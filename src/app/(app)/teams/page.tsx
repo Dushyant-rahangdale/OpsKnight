@@ -158,7 +158,20 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
     }
 
     // Get current user permissions
-    const permissions = await getUserPermissions();
+    let permissions;
+    try {
+        permissions = await getUserPermissions();
+    } catch (error) {
+        console.error('Error getting user permissions:', error);
+        // Default to USER role if there's an error
+        permissions = {
+            id: '',
+            role: 'USER' as const,
+            isAdmin: false,
+            isAdminOrResponder: false,
+            isResponderOrAbove: false
+        };
+    }
     const canCreateTeam = permissions.isAdminOrResponder;
     const canUpdateTeam = permissions.isAdminOrResponder;
     const canDeleteTeam = permissions.isAdmin;
@@ -177,36 +190,54 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
     // Fetch activity logs for each team
     const teamsWithActivity = await Promise.all(
         teams.map(async (team) => {
-            const [activityLogs, activityTotal] = await Promise.all([
-                prisma.auditLog.findMany({
-                    where: {
-                        OR: [
-                            { entityType: 'TEAM', entityId: team.id },
-                            { entityType: 'TEAM_MEMBER', entityId: { contains: team.id } }
-                        ]
-                    },
-                    include: {
-                        actor: {
-                            select: {
-                                name: true,
-                                email: true
+            try {
+                const [activityLogs, activityTotal] = await Promise.all([
+                    prisma.auditLog.findMany({
+                        where: {
+                            OR: [
+                                { entityType: 'TEAM', entityId: team.id },
+                                { 
+                                    entityType: 'TEAM_MEMBER', 
+                                    entityId: { 
+                                        not: null,
+                                        startsWith: `${team.id}:` 
+                                    } 
+                                }
+                            ]
+                        },
+                        include: {
+                            actor: {
+                                select: {
+                                    name: true,
+                                    email: true
+                                }
                             }
+                        },
+                        orderBy: { createdAt: 'desc' },
+                        take: ACTIVITY_PER_PAGE
+                    }),
+                    prisma.auditLog.count({
+                        where: {
+                            OR: [
+                                { entityType: 'TEAM', entityId: team.id },
+                                { 
+                                    entityType: 'TEAM_MEMBER', 
+                                    entityId: { 
+                                        not: null,
+                                        startsWith: `${team.id}:` 
+                                    } 
+                                }
+                            ]
                         }
-                    },
-                    orderBy: { createdAt: 'desc' },
-                    take: ACTIVITY_PER_PAGE
-                }),
-                prisma.auditLog.count({
-                    where: {
-                        OR: [
-                            { entityType: 'TEAM', entityId: team.id },
-                            { entityType: 'TEAM_MEMBER', entityId: { contains: team.id } }
-                        ]
-                    }
-                })
-            ]);
+                    })
+                ]);
 
-            return { team, activityLogs, activityTotal };
+                return { team, activityLogs, activityTotal };
+            } catch (error) {
+                // If activity log fetch fails, return empty logs
+                console.error(`Error fetching activity logs for team ${team.id}:`, error);
+                return { team, activityLogs: [], activityTotal: 0 };
+            }
         })
     );
 

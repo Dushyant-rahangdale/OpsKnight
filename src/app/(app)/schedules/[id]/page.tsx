@@ -14,6 +14,14 @@ import {
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ScheduleCalendar from '@/components/ScheduleCalendar';
+import LayerCard from '@/components/LayerCard';
+import LayerCreateForm from '@/components/LayerCreateForm';
+import OverrideForm from '@/components/OverrideForm';
+import OverrideList from '@/components/OverrideList';
+import CurrentCoverageDisplay from '@/components/CurrentCoverageDisplay';
+
+// Revalidate every 30 seconds to ensure current coverage is up-to-date
+export const revalidate = 30;
 
 export default async function ScheduleDetailPage({
     params,
@@ -24,9 +32,11 @@ export default async function ScheduleDetailPage({
 }) {
     const { id } = await params;
     const awaitedSearchParams = await searchParams;
+    // Use current time - this will be recalculated on each page load/refresh
     const now = new Date();
     const calendarRangeStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const calendarRangeEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    // Coverage range: from yesterday to 90 days ahead to ensure we catch current coverage
     const coverageRangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     const coverageRangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90);
     const historyPageSize = 8;
@@ -136,7 +146,14 @@ export default async function ScheduleDetailPage({
     }));
 
     const coverageBlocks = buildScheduleBlocks(schedule.layers, overridesInRange, coverageRangeStart, coverageRangeEnd);
-    const activeBlocks = coverageBlocks.filter((block) => block.start <= now && block.end > now);
+    // Filter for blocks that are currently active (start <= now < end)
+    // Use getTime() for accurate comparison
+    const nowTime = now.getTime();
+    const activeBlocks = coverageBlocks.filter((block) => {
+        const blockStartTime = block.start.getTime();
+        const blockEndTime = block.end.getTime();
+        return blockStartTime <= nowTime && blockEndTime > nowTime;
+    });
     const nextChange = activeBlocks.length
         ? activeBlocks.reduce((earliest, block) => (block.end < earliest ? block.end : earliest), activeBlocks[0].end)
         : coverageBlocks
@@ -179,467 +196,255 @@ export default async function ScheduleDetailPage({
         }).format(date);
 
     return (
-        <main className="schedule-detail">
-            <section className="schedule-hero schedule-hero--detail">
-                <div>
-                    <Link href="/schedules" className="schedule-back">Back to schedules</Link>
-                    <h1>{schedule.name}</h1>
-                    <p className="schedule-hero-subtext">
-                        {schedule.timeZone} · current time {formatShortTime(now)} ({scheduleTimezoneLabel})
+        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem' }}>
+            {/* Header */}
+            <header style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'flex-start', 
+                marginBottom: '2rem',
+                paddingBottom: '1.5rem',
+                borderBottom: '2px solid var(--border)'
+            }}>
+                <div style={{ flex: 1 }}>
+                    <Link 
+                        href="/schedules" 
+                        className="schedule-back-link"
+                        style={{ 
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.9rem',
+                            color: 'var(--text-secondary)',
+                            textDecoration: 'none',
+                            marginBottom: '0.75rem',
+                            fontWeight: '500',
+                            transition: 'color 0.2s'
+                        }}
+                    >
+                        ← Back to schedules
+                    </Link>
+                    <h1 style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: 'bold', 
+                        color: 'var(--text-primary)', 
+                        marginBottom: '0.5rem' 
+                    }}>
+                        {schedule.name}
+                    </h1>
+                    <p style={{ 
+                        color: 'var(--text-secondary)', 
+                        fontSize: '0.95rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap'
+                    }}>
+                        <span style={{
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                            color: '#0c4a6e',
+                            border: '1px solid #bae6fd'
+                        }}>
+                            {schedule.timeZone}
+                        </span>
+                        <span>·</span>
+                        <span>Current time: <strong>{formatShortTime(now)}</strong> ({scheduleTimezoneLabel})</span>
                     </p>
                 </div>
-                <div className="schedule-hero-actions">
-                    <div className={`coverage-pill ${activeBlocks.length > 0 ? 'on' : 'off'}`}>
-                        <span className="coverage-dot" />
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '20px',
+                        background: activeBlocks.length > 0
+                            ? 'linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%)' 
+                            : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                        border: `1px solid ${activeBlocks.length > 0 ? '#a7f3d0' : '#fecaca'}`,
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        color: activeBlocks.length > 0 ? '#065f46' : '#991b1b'
+                    }}>
+                        <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: activeBlocks.length > 0 ? '#10b981' : '#ef4444',
+                            display: 'inline-block'
+                        }} />
                         {activeBlocks.length > 0 ? 'On-call active' : 'No coverage'}
                     </div>
                 </div>
-            </section>
+            </header>
 
-            <div className="schedule-detail-grid">
-                <div className="schedule-main">
-                    <section className="schedule-panel">
-                        <div className="schedule-panel-header">
-                            <h3>Layers</h3>
-                            <span className="schedule-chip">{schedule.layers.length} layers</span>
+            {/* Main Content Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+                <div>
+                    <section className="glass-panel" style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        marginBottom: '2rem'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '1.5rem',
+                            paddingBottom: '1rem',
+                            borderBottom: '1px solid #e2e8f0'
+                        }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                                Layers
+                            </h3>
+                            <span style={{
+                                padding: '0.3rem 0.6rem',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                                color: '#0c4a6e',
+                                border: '1px solid #bae6fd'
+                            }}>
+                                {schedule.layers.length} {schedule.layers.length === 1 ? 'layer' : 'layers'}
+                            </span>
                         </div>
                         {schedule.layers.length === 0 ? (
-                            <p className="schedule-empty">No layers yet. Add a layer to define rotations.</p>
+                            <p style={{
+                                fontSize: '0.9rem',
+                                color: 'var(--text-muted)',
+                                padding: '2rem',
+                                textAlign: 'center',
+                                background: '#f8fafc',
+                                borderRadius: '8px'
+                            }}>
+                                No layers yet. Add a layer to define rotations.
+                            </p>
                         ) : (
-                            <div className="layer-list">
+                            <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
                                 {schedule.layers.map((layer) => (
-                                    <div key={layer.id} className="layer-card">
-                                        <div className="layer-header">
-                                            <div>
-                                                <div className="layer-name">{layer.name}</div>
-                        <div className="layer-meta">
-                            {formatShortTime(new Date(layer.start))} {schedule.timeZone} · {layer.rotationLengthHours}h rotation
-                            {layer.end ? ` · ends ${formatShortTime(new Date(layer.end))}` : ''}
-                        </div>
-                                            </div>
-                                            {canManageSchedules ? (
-                                                <form action={deleteLayer.bind(null, schedule.id, layer.id)}>
-                                                    <button type="submit" className="layer-delete">Remove</button>
-                                                </form>
-                                            ) : (
-                                                <button 
-                                                    type="button" 
-                                                    disabled 
-                                                    className="layer-delete" 
-                                                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                                    title="Admin or Responder role required to delete layers"
-                                                >
-                                                    Remove
-                                                </button>
-                                            )}
-                                        </div>
-                                        {canManageSchedules ? (
-                                            <form action={updateLayer.bind(null, layer.id)} className="layer-settings">
-                                                <label className="schedule-field">
-                                                    Name
-                                                    <input name="name" defaultValue={layer.name} required />
-                                                </label>
-                                                <label className="schedule-field">
-                                                    Rotation (hours)
-                                                    <input
-                                                        name="rotationLengthHours"
-                                                        type="number"
-                                                        min="1"
-                                                        defaultValue={layer.rotationLengthHours}
-                                                        required
-                                                    />
-                                                </label>
-                                                <label className="schedule-field">
-                                                    Start
-                                                    <input
-                                                        type="datetime-local"
-                                                        name="start"
-                                                        defaultValue={formatDateInput(new Date(layer.start))}
-                                                        required
-                                                    />
-                                                </label>
-                                                <label className="schedule-field">
-                                                    End
-                                                    <input
-                                                        type="datetime-local"
-                                                        name="end"
-                                                        defaultValue={layer.end ? formatDateInput(new Date(layer.end)) : ''}
-                                                    />
-                                                </label>
-                                                <button type="submit" className="glass-button primary">Save</button>
-                                            </form>
-                                        ) : (
-                                            <div className="layer-settings" style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', opacity: 0.7 }}>
-                                                <p style={{ fontSize: '0.8rem', color: 'var(--danger)', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                                                    ⚠️ You don't have access to edit layers. Admin or Responder role required.
-                                                </p>
-                                                <div style={{ opacity: 0.5, pointerEvents: 'none' }}>
-                                                    <label className="schedule-field">
-                                                        Name
-                                                        <input name="name" defaultValue={layer.name} disabled />
-                                                    </label>
-                                                    <label className="schedule-field">
-                                                        Rotation (hours)
-                                                        <input
-                                                            name="rotationLengthHours"
-                                                            type="number"
-                                                            min="1"
-                                                            defaultValue={layer.rotationLengthHours}
-                                                            disabled
-                                                        />
-                                                    </label>
-                                                    <label className="schedule-field">
-                                                        Start
-                                                        <input
-                                                            type="datetime-local"
-                                                            name="start"
-                                                            defaultValue={formatDateInput(new Date(layer.start))}
-                                                            disabled
-                                                        />
-                                                    </label>
-                                                    <label className="schedule-field">
-                                                        End
-                                                        <input
-                                                            type="datetime-local"
-                                                            name="end"
-                                                            defaultValue={layer.end ? formatDateInput(new Date(layer.end)) : ''}
-                                                            disabled
-                                                        />
-                                                    </label>
-                                                    <button type="button" disabled className="glass-button primary" style={{ opacity: 0.5 }}>Save</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div className="layer-users">
-                                            {layer.users.length === 0 ? (
-                                                <p className="schedule-empty">No responders in this layer.</p>
-                                            ) : (
-                                                layer.users.map((layerUser, index) => (
-                                                    <div key={layerUser.userId} className="layer-user">
-                                                        <span className="layer-user-name">{layerUser.user.name}</span>
-                                                        <div className="layer-user-actions">
-                                                            {canManageSchedules ? (
-                                                                <>
-                                                                    <form action={moveLayerUser.bind(null, layer.id, layerUser.userId, 'up')}>
-                                                                        <button type="submit" className="layer-action" disabled={index === 0}>
-                                                                            Up
-                                                                        </button>
-                                                                    </form>
-                                                                    <form action={moveLayerUser.bind(null, layer.id, layerUser.userId, 'down')}>
-                                                                        <button
-                                                                            type="submit"
-                                                                            className="layer-action"
-                                                                            disabled={index === layer.users.length - 1}
-                                                                        >
-                                                                            Down
-                                                                        </button>
-                                                                    </form>
-                                                                    <form action={removeLayerUser.bind(null, layer.id, layerUser.userId)}>
-                                                                        <button type="submit" className="layer-remove">Remove</button>
-                                                                    </form>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        disabled 
-                                                                        className="layer-action" 
-                                                                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                                                        title="Admin or Responder role required"
-                                                                    >
-                                                                        Up
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        disabled 
-                                                                        className="layer-action" 
-                                                                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                                                        title="Admin or Responder role required"
-                                                                    >
-                                                                        Down
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button" 
-                                                                        disabled 
-                                                                        className="layer-remove" 
-                                                                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                                                        title="Admin or Responder role required"
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                        {canManageSchedules ? (
-                                            <form action={addLayerUser.bind(null, layer.id)} className="layer-add-form">
-                                                <select name="userId" required>
-                                                    <option value="">Add responder</option>
-                                                    {users.map((user) => (
-                                                        <option key={user.id} value={user.id}>
-                                                            {user.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <button type="submit" className="glass-button primary">Add</button>
-                                            </form>
-                                        ) : (
-                                            <div className="layer-add-form" style={{ opacity: 0.7 }}>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--danger)', marginBottom: '0.5rem', fontStyle: 'italic' }}>
-                                                    ⚠️ Admin or Responder role required to add responders
-                                                </p>
-                                                <div style={{ display: 'flex', gap: '0.5rem', opacity: 0.5, pointerEvents: 'none' }}>
-                                                    <select name="userId" disabled style={{ flex: 1 }}>
-                                                        <option value="">Add responder</option>
-                                                    </select>
-                                                    <button type="button" disabled className="glass-button primary" style={{ opacity: 0.5 }}>Add</button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <LayerCard
+                                        key={layer.id}
+                                        layer={{
+                                            id: layer.id,
+                                            name: layer.name,
+                                            start: new Date(layer.start),
+                                            end: layer.end ? new Date(layer.end) : null,
+                                            rotationLengthHours: layer.rotationLengthHours,
+                                            users: layer.users
+                                        }}
+                                        scheduleId={schedule.id}
+                                        timeZone={schedule.timeZone}
+                                        users={users}
+                                        canManageSchedules={canManageSchedules}
+                                        updateLayer={updateLayer}
+                                        deleteLayer={deleteLayer}
+                                        addLayerUser={addLayerUser}
+                                        moveLayerUser={moveLayerUser}
+                                        removeLayerUser={removeLayerUser}
+                                    />
                                 ))}
                             </div>
                         )}
-                        {canManageSchedules ? (
-                            <form action={createLayer.bind(null, schedule.id)} className="schedule-form layer-create-form">
-                                <h4 className="panel-subtitle">Add layer</h4>
-                                <label className="schedule-field">
-                                    Layer name
-                                    <input name="name" placeholder="Primary rotation" required />
-                                </label>
-                                <label className="schedule-field">
-                                    Rotation length (hours)
-                                    <input name="rotationLengthHours" type="number" min="1" defaultValue="24" required />
-                                </label>
-                                <label className="schedule-field">
-                                    Start
-                                    <input type="datetime-local" name="start" defaultValue={formatDateInput(now)} required />
-                                </label>
-                                <label className="schedule-field">
-                                    End (optional)
-                                    <input type="datetime-local" name="end" />
-                                </label>
-                                <button className="glass-button primary schedule-submit">Create layer</button>
-                            </form>
-                        ) : (
-                            <div className="schedule-form layer-create-form" style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', opacity: 0.7 }}>
-                                <h4 className="panel-subtitle" style={{ color: 'var(--text-secondary)' }}>Add layer</h4>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--danger)', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                                    ⚠️ You don't have access to create layers. Admin or Responder role required.
-                                </p>
-                                <div style={{ opacity: 0.5, pointerEvents: 'none' }}>
-                                    <label className="schedule-field">
-                                        Layer name
-                                        <input name="name" placeholder="Primary rotation" disabled />
-                                    </label>
-                                    <label className="schedule-field">
-                                        Rotation length (hours)
-                                        <input name="rotationLengthHours" type="number" min="1" defaultValue="24" disabled />
-                                    </label>
-                                    <label className="schedule-field">
-                                        Start
-                                        <input type="datetime-local" name="start" defaultValue={formatDateInput(now)} disabled />
-                                    </label>
-                                    <label className="schedule-field">
-                                        End (optional)
-                                        <input type="datetime-local" name="end" disabled />
-                                    </label>
-                                    <button type="button" disabled className="glass-button primary schedule-submit" style={{ opacity: 0.5 }}>Create layer</button>
-                                </div>
-                            </div>
-                        )}
+                        <LayerCreateForm
+                            scheduleId={schedule.id}
+                            canManageSchedules={canManageSchedules}
+                            createLayer={createLayer}
+                            defaultStartDate={formatDateInput(now)}
+                        />
                     </section>
 
                     <ScheduleCalendar shifts={calendarShifts} timeZone={schedule.timeZone} />
                 </div>
 
-                <aside className="schedule-side">
-                    <div className="schedule-panel">
-                        <h3>Current coverage</h3>
-                        {activeBlocks.length === 0 ? (
-                            <p className="schedule-empty">No one is currently assigned.</p>
-                        ) : (
-                            <div className="coverage-list">
-                                {activeBlocks.map((block) => (
-                                    <div key={block.id} className="coverage-item">
-                                        <div className="current-avatar">
-                                            {block.userName.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="current-name">{block.userName}</div>
-                                            <div className="current-meta">
-                                                {block.layerName} - Until {formatDateTime(block.end)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {nextChange && (
-                            <div className="current-next">
-                                Next change {formatDateTime(nextChange)}
-                            </div>
-                        )}
-                    </div>
+                <aside>
+                    {/* Current Coverage Panel - Client Component for Real-time Updates */}
+                    <CurrentCoverageDisplay
+                        key={`coverage-${schedule.id}-${schedule.layers.map(l => `${l.id}-${l.start.getTime()}-${l.end?.getTime() || 'null'}`).join('-')}`}
+                        initialBlocks={activeBlocks.map(block => ({
+                            id: block.id,
+                            userName: block.userName,
+                            layerName: block.layerName,
+                            start: block.start,
+                            end: block.end
+                        }))}
+                        scheduleTimeZone={schedule.timeZone}
+                    />
 
-                    <div className="schedule-panel">
-                        <h3>Overrides</h3>
-                        <p className="schedule-panel-note">
-                            Temporarily replace on-call coverage. Times use your browser local time.
-                        </p>
-                        {canManageSchedules ? (
-                            <form action={createOverride.bind(null, schedule.id)} className="schedule-form roster-form">
-                                <label className="schedule-field">
-                                    On-call user
-                                    <select name="userId" required>
-                                        <option value="">Select a responder</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <label className="schedule-field">
-                                    Replace (optional)
-                                    <select name="replacesUserId">
-                                        <option value="">Any user</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>
-                                                {user.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <label className="schedule-field">
-                                    Start
-                                    <input type="datetime-local" name="start" required />
-                                </label>
-                                <label className="schedule-field">
-                                    End
-                                    <input type="datetime-local" name="end" required />
-                                </label>
-                                <button className="glass-button primary schedule-submit">Create override</button>
-                            </form>
-                        ) : (
-                            <div className="schedule-form roster-form" style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', opacity: 0.7 }}>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--danger)', marginBottom: '0.75rem', fontStyle: 'italic' }}>
-                                    ⚠️ You don't have access to create overrides. Admin or Responder role required.
-                                </p>
-                                <div style={{ opacity: 0.5, pointerEvents: 'none' }}>
-                                    <label className="schedule-field">
-                                        On-call user
-                                        <select name="userId" disabled>
-                                            <option value="">Select a responder</option>
-                                        </select>
-                                    </label>
-                                    <label className="schedule-field">
-                                        Replace (optional)
-                                        <select name="replacesUserId" disabled>
-                                            <option value="">Any user</option>
-                                        </select>
-                                    </label>
-                                    <label className="schedule-field">
-                                        Start
-                                        <input type="datetime-local" name="start" disabled />
-                                    </label>
-                                    <label className="schedule-field">
-                                        End
-                                        <input type="datetime-local" name="end" disabled />
-                                    </label>
-                                    <button type="button" disabled className="glass-button primary schedule-submit" style={{ opacity: 0.5 }}>Create override</button>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="panel-divider" />
-
-                        <h4 className="panel-subtitle">Upcoming overrides</h4>
-                        {upcomingOverrides.length === 0 ? (
-                            <p className="schedule-empty">No upcoming overrides.</p>
-                        ) : (
-                            <div className="roster-list">
-                                {upcomingOverrides.map((override) => (
-                                    <div key={override.id} className="roster-item">
-                                        <div>
-                                            <div className="roster-name">{override.user.name}</div>
-                                            <div className="roster-meta">
-                                                {formatDateTime(new Date(override.start))} - {formatDateTime(new Date(override.end))}
-                                            </div>
-                                            {override.replacesUser && (
-                                                <div className="roster-meta">
-                                                    Replaces {override.replacesUser.name}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {canManageSchedules ? (
-                                            <form action={deleteOverride.bind(null, schedule.id, override.id)}>
-                                                <button className="roster-remove" type="submit">Remove</button>
-                                            </form>
-                                        ) : (
-                                            <button 
-                                                type="button" 
-                                                disabled 
-                                                className="roster-remove" 
-                                                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                                                title="Admin or Responder role required to remove overrides"
-                                            >
-                                                Remove
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="panel-divider" />
-
-                        <h4 className="panel-subtitle">Override history</h4>
-                        {historyOverrides.length === 0 ? (
-                            <p className="schedule-empty">No past overrides yet.</p>
-                        ) : (
-                            <div className="history-list">
-                                {historyOverrides.map((override) => (
-                                    <div key={override.id} className="history-item">
-                                        <div>
-                                            <div className="history-name">{override.user.name}</div>
-                                            <div className="history-meta">
-                                                {formatDateTime(new Date(override.start))} - {formatDateTime(new Date(override.end))}
-                                            </div>
-                                            {override.replacesUser && (
-                                                <div className="history-meta">
-                                                    Replaced {override.replacesUser.name}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className="history-tag">Override</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {historyTotalPages > 1 && (
-                            <div className="history-pagination">
-                                <Link
-                                    href={`/schedules/${schedule.id}?history=${Math.max(1, historyPage - 1)}`}
-                                    className={`calendar-nav-button ${historyPage === 1 ? 'disabled' : ''}`}
-                                >
-                                    Prev
-                                </Link>
-                                <span className="history-page">
-                                    Page {historyPage} of {historyTotalPages}
-                                </span>
-                                <Link
-                                    href={`/schedules/${schedule.id}?history=${Math.min(historyTotalPages, historyPage + 1)}`}
-                                    className={`calendar-nav-button ${historyPage === historyTotalPages ? 'disabled' : ''}`}
-                                >
-                                    Next
-                                </Link>
-                            </div>
-                        )}
-                    </div>
+                    <OverrideForm
+                        scheduleId={schedule.id}
+                        users={users}
+                        canManageSchedules={canManageSchedules}
+                        createOverride={createOverride}
+                    />
+                    <OverrideList
+                        overrides={upcomingOverrides.map(o => ({
+                            id: o.id,
+                            start: new Date(o.start),
+                            end: new Date(o.end),
+                            userId: o.userId,
+                            replacesUserId: o.replacesUserId,
+                            user: o.user,
+                            replacesUser: o.replacesUser
+                        }))}
+                        scheduleId={schedule.id}
+                        canManageSchedules={canManageSchedules}
+                        deleteOverride={deleteOverride}
+                        timeZone={schedule.timeZone}
+                        title="Upcoming Overrides"
+                        emptyMessage="No upcoming overrides."
+                    />
+                    <OverrideList
+                        overrides={historyOverrides.map(o => ({
+                            id: o.id,
+                            start: new Date(o.start),
+                            end: new Date(o.end),
+                            userId: o.userId,
+                            replacesUserId: o.replacesUserId,
+                            user: o.user,
+                            replacesUser: o.replacesUser
+                        }))}
+                        scheduleId={schedule.id}
+                        canManageSchedules={canManageSchedules}
+                        deleteOverride={deleteOverride}
+                        timeZone={schedule.timeZone}
+                        title="Override History"
+                        emptyMessage="No past overrides yet."
+                    />
+                    {historyTotalPages > 1 && (
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginTop: '1rem',
+                            paddingTop: '1rem',
+                            borderTop: '1px solid #e2e8f0'
+                        }}>
+                            <Link
+                                href={`/schedules/${schedule.id}?history=${Math.max(1, historyPage - 1)}`}
+                                className={`glass-button ${historyPage === 1 ? 'disabled' : ''}`}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                Prev
+                            </Link>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                Page {historyPage} of {historyTotalPages}
+                            </span>
+                            <Link
+                                href={`/schedules/${schedule.id}?history=${Math.min(historyTotalPages, historyPage + 1)}`}
+                                className={`glass-button ${historyPage === historyTotalPages ? 'disabled' : ''}`}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                Next
+                            </Link>
+                        </div>
+                    )}
 
                 </aside>
             </div>

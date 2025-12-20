@@ -34,10 +34,13 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
     const shiftsForDate = (date: Date) => {
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+        // Filter shifts that overlap with this day
+        // Note: Blocks that span midnight will appear on both days (this is expected behavior)
         return shifts
             .filter((shift) => {
                 const start = new Date(shift.start);
                 const end = new Date(shift.end);
+                // Check if shift overlaps with this day
                 return start < dayEnd && end > dayStart;
             })
             .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -64,6 +67,8 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
 
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
     const [cursor, setCursor] = useState(() => new Date());
+    const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+    
     const monthLabel = useMemo(
         () =>
             new Intl.DateTimeFormat('en-US', {
@@ -80,6 +85,18 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
         return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
     }, []);
 
+    const toggleExpand = (dateKey: string) => {
+        setExpandedDates(prev => {
+            const next = new Set(prev);
+            if (next.has(dateKey)) {
+                next.delete(dateKey);
+            } else {
+                next.add(dateKey);
+            }
+            return next;
+        });
+    };
+
     const handlePrev = () => {
         setCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     };
@@ -93,23 +110,70 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
     };
 
     return (
-        <section className="schedule-panel">
-            <div className="schedule-panel-header calendar-header">
+        <section className="glass-panel" style={{
+            padding: '1.5rem',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px'
+        }}>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                paddingBottom: '1rem',
+                borderBottom: '1px solid #e2e8f0'
+            }}>
                 <div>
-                    <h3>On-call calendar</h3>
-                    <span className="schedule-chip">{monthLabel}</span>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)', margin: 0, marginBottom: '0.25rem' }}>
+                        On-call Calendar
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                        Shows all active layers. Multiple layers can be active simultaneously.
+                    </p>
                 </div>
-                <div className="calendar-nav">
-                    <button type="button" className="calendar-nav-button" onClick={handlePrev}>
-                        Prev
-                    </button>
-                    <button type="button" className="calendar-nav-button" onClick={handleToday}>
-                        Today
-                    </button>
-                    <button type="button" className="calendar-nav-button" onClick={handleNext}>
-                        Next
-                    </button>
-                </div>
+                <span style={{
+                    padding: '0.3rem 0.6rem',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                    color: '#0c4a6e',
+                    border: '1px solid #bae6fd'
+                }}>
+                    {monthLabel}
+                </span>
+            </div>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.5rem',
+                marginBottom: '1rem'
+            }}>
+                <button 
+                    type="button" 
+                    className="glass-button" 
+                    onClick={handlePrev}
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                >
+                    Prev
+                </button>
+                <button 
+                    type="button" 
+                    className="glass-button" 
+                    onClick={handleToday}
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                >
+                    Today
+                </button>
+                <button 
+                    type="button" 
+                    className="glass-button" 
+                    onClick={handleNext}
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                >
+                    Next
+                </button>
             </div>
             <div className="calendar-weekdays">
                 {weekdayLabels.map((day) => (
@@ -119,23 +183,112 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
             <div className="calendar-grid">
                 {calendarCells.map((cell) => {
                     const isToday = cell.date.toDateString() === todayKey;
+                    const dateKey = cell.date.toISOString();
+                    const isExpanded = expandedDates.has(dateKey);
                     const preview = cell.shifts.slice(0, 2);
                     const remaining = cell.shifts.length - preview.length;
+                    const showAll = isExpanded || cell.shifts.length <= 2;
+                    
                     return (
                         <div
-                            key={cell.date.toISOString()}
+                            key={dateKey}
                             className={`calendar-day ${cell.inMonth ? '' : 'inactive'} ${isToday ? 'today' : ''}`}
                         >
                             <span className="calendar-date">{cell.date.getDate()}</span>
-                            {preview.length > 0 && (
+                            {cell.shifts.length > 0 && (
                                 <div className="calendar-shifts">
-                                    {preview.map((shift) => (
-                                        <div key={shift.id} className="calendar-shift">
-                                            <span className="calendar-shift-name">{shift.label}</span>
-                                        </div>
-                                    ))}
-                                    {remaining > 0 && (
-                                        <div className="calendar-shift-more">+{remaining} more</div>
+                                    {(showAll ? cell.shifts : preview).map((shift) => {
+                                        const start = new Date(shift.start);
+                                        const end = new Date(shift.end);
+                                        const startTime = start.toLocaleTimeString('en-US', { 
+                                            hour: 'numeric', 
+                                            minute: '2-digit',
+                                            hour12: true 
+                                        });
+                                        const endTime = end.toLocaleTimeString('en-US', { 
+                                            hour: 'numeric', 
+                                            minute: '2-digit',
+                                            hour12: true 
+                                        });
+                                        const isMultiDay = start.toDateString() !== end.toDateString();
+                                        return (
+                                            <div key={shift.id} className="calendar-shift" title={`${startTime} - ${endTime}${isMultiDay ? ' (spans multiple days)' : ''}`}>
+                                                <span className="calendar-shift-name">{shift.label}</span>
+                                                {isMultiDay && (
+                                                    <span style={{ 
+                                                        fontSize: '0.65rem', 
+                                                        opacity: 0.7,
+                                                        marginLeft: '0.25rem'
+                                                    }}>
+                                                        (multi-day)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {remaining > 0 && !isExpanded && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpand(dateKey);
+                                            }}
+                                            className="calendar-shift-more"
+                                            style={{
+                                                cursor: 'pointer',
+                                                background: 'rgba(99, 102, 241, 0.1)',
+                                                border: '1px solid rgba(99, 102, 241, 0.2)',
+                                                borderRadius: '4px',
+                                                padding: '0.25rem 0.5rem',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '500',
+                                                color: '#6366f1',
+                                                transition: 'all 0.2s',
+                                                width: '100%',
+                                                textAlign: 'center',
+                                                marginTop: '0.25rem'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                                            }}
+                                        >
+                                            +{remaining} more
+                                        </button>
+                                    )}
+                                    {isExpanded && remaining > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleExpand(dateKey);
+                                            }}
+                                            className="calendar-shift-more"
+                                            style={{
+                                                cursor: 'pointer',
+                                                background: 'rgba(99, 102, 241, 0.1)',
+                                                border: '1px solid rgba(99, 102, 241, 0.2)',
+                                                borderRadius: '4px',
+                                                padding: '0.25rem 0.5rem',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '500',
+                                                color: '#6366f1',
+                                                transition: 'all 0.2s',
+                                                width: '100%',
+                                                textAlign: 'center',
+                                                marginTop: '0.25rem'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                                            }}
+                                        >
+                                            Show less
+                                        </button>
                                     )}
                                 </div>
                             )}

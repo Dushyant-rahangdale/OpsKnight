@@ -37,12 +37,29 @@ export const authOptions: NextAuthOptions = {
                 if (!email || !password) return null;
 
                 const user = await prisma.user.findUnique({ where: { email } });
-                if (!user || !user.passwordHash || user.status !== 'ACTIVE') {
+                if (!user || !user.passwordHash) {
+                    return null;
+                }
+
+                // Check if user is disabled
+                if (user.status === 'DISABLED') {
                     return null;
                 }
 
                 const isValid = await bcrypt.compare(password, user.passwordHash);
                 if (!isValid) return null;
+
+                // Update status to ACTIVE if it's INVITED (first login)
+                if (user.status !== 'ACTIVE') {
+                    await prisma.user.update({
+                        where: { email: user.email },
+                        data: {
+                            status: 'ACTIVE',
+                            invitedAt: null,
+                            deactivatedAt: null
+                        }
+                    });
+                }
 
                 return {
                     id: user.id,
@@ -78,19 +95,9 @@ export const authOptions: NextAuthOptions = {
                 where: { email: user.email }
             });
 
+            // Final check - prevent disabled users from signing in
             if (existing?.status === 'DISABLED') {
                 return false;
-            }
-
-            if (existing && existing.status !== 'ACTIVE') {
-                await prisma.user.update({
-                    where: { email: user.email },
-                    data: {
-                        status: 'ACTIVE',
-                        invitedAt: null,
-                        deactivatedAt: null
-                    }
-                });
             }
 
             return true;

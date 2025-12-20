@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -19,12 +19,18 @@ function formatError(message: string | null | undefined) {
 
 export default function LoginClient({ callbackUrl, errorCode, passwordSet }: Props) {
     const router = useRouter();
-    const initialError = useMemo(() => formatError(errorCode), [errorCode]);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState(initialError);
+    const [error, setError] = useState('');
+    
+    // Set initial error from errorCode prop after mount to avoid hydration issues
+    useEffect(() => {
+        if (errorCode) {
+            setError(formatError(errorCode));
+        }
+    }, [errorCode]);
 
     const handleCredentials = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -58,7 +64,7 @@ export default function LoginClient({ callbackUrl, errorCode, passwordSet }: Pro
                         A redline-ready control center for high-stakes response. See every alert, escalation, and shift before it
                         becomes a disruption.
                     </p>
-                    <div className="login-features">
+                    <div className="login-features" suppressHydrationWarning>
                         <div className="login-feature-pill">Live incident war room</div>
                         <div className="login-feature-pill">Layered schedules and overrides</div>
                         <div className="login-feature-pill">Audit-ready access controls</div>

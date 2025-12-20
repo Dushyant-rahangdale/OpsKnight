@@ -1,35 +1,100 @@
 import prisma from '@/lib/prisma';
 import { getUserPermissions } from '@/lib/rbac';
 import { createSchedule } from './actions';
-import Link from 'next/link';
-import TimeZoneSelect from '@/components/TimeZoneSelect';
+import ScheduleCard from '@/components/ScheduleCard';
+import ScheduleStats from '@/components/ScheduleStats';
+import ScheduleCreateForm from '@/components/ScheduleCreateForm';
 
 export default async function SchedulesPage() {
     const schedules = await prisma.onCallSchedule.findMany({
-        include: { layers: { include: { users: true } } }
+        include: { 
+            layers: { 
+                include: { 
+                    users: {
+                        select: {
+                            userId: true
+                        }
+                    } 
+                } 
+            } 
+        },
+        orderBy: { createdAt: 'desc' }
     });
+    
     const totalLayers = schedules.reduce((sum, schedule) => sum + schedule.layers.length, 0);
     const hasActiveCoverage = schedules.some((schedule) =>
         schedule.layers.some((layer) => layer.users.length > 0)
     );
+    
     const permissions = await getUserPermissions();
     const canManageSchedules = permissions.isAdminOrResponder;
 
     return (
-        <main className="schedule-page">
-            <section className="schedule-hero">
+        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem' }}>
+            {/* Header */}
+            <header style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: '2rem',
+                paddingBottom: '1.5rem',
+                borderBottom: '2px solid var(--border)'
+            }}>
                 <div>
-                    <p className="schedule-eyebrow">On-call</p>
-                    <h1>Schedules</h1>
-                    <p className="schedule-subtitle">Design rotations, monitor coverage, and keep responders aligned.</p>
+                    <p style={{ 
+                        fontSize: '0.85rem', 
+                        fontWeight: '600', 
+                        color: 'var(--accent)', 
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                    }}>
+                        On-call
+                    </p>
+                    <h1 style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: 'bold', 
+                        color: 'var(--text-primary)', 
+                        marginBottom: '0.5rem' 
+                    }}>
+                        Schedules
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                        Design rotations, monitor coverage, and keep responders aligned.
+                    </p>
                 </div>
-                <div className="schedule-hero-actions">
-                    <div className={`coverage-pill ${hasActiveCoverage ? 'on' : 'off'}`}>
-                        <span className="coverage-dot" />
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '20px',
+                        background: hasActiveCoverage 
+                            ? 'linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%)' 
+                            : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                        border: `1px solid ${hasActiveCoverage ? '#a7f3d0' : '#fecaca'}`,
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        color: hasActiveCoverage ? '#065f46' : '#991b1b'
+                    }}>
+                        <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: hasActiveCoverage ? '#10b981' : '#ef4444',
+                            display: 'inline-block'
+                        }} />
                         {hasActiveCoverage ? 'Rotations active' : 'No active rotations'}
                     </div>
                     {canManageSchedules ? (
-                        <a href="#new-schedule" className="glass-button primary">New schedule</a>
+                        <a 
+                            href="#new-schedule" 
+                            className="glass-button primary"
+                            style={{ textDecoration: 'none' }}
+                        >
+                            New Schedule
+                        </a>
                     ) : (
                         <button 
                             type="button" 
@@ -38,99 +103,77 @@ export default async function SchedulesPage() {
                             style={{ opacity: 0.6, cursor: 'not-allowed' }}
                             title="Admin or Responder role required to create schedules"
                         >
-                            New schedule
+                            New Schedule
                         </button>
                     )}
                 </div>
-            </section>
+            </header>
 
-            <section className="schedule-stats">
-                <div className="schedule-stat">
-                    <span className="schedule-stat-label">Schedules</span>
-                    <span className="schedule-stat-value">{schedules.length}</span>
-                </div>
-                <div className="schedule-stat">
-                    <span className="schedule-stat-label">Layers</span>
-                    <span className="schedule-stat-value">{totalLayers}</span>
-                </div>
-                <div className="schedule-stat">
-                    <span className="schedule-stat-label">Coverage status</span>
-                    <span className="schedule-stat-value">{hasActiveCoverage ? 'Healthy' : 'Needs setup'}</span>
-                </div>
-            </section>
+            {/* Statistics */}
+            <ScheduleStats 
+                scheduleCount={schedules.length}
+                layerCount={totalLayers}
+                hasActiveCoverage={hasActiveCoverage}
+            />
 
-            <div className="schedule-grid">
-                <div className="schedule-list">
-                    {schedules.map((schedule: any) => (
-                        <Link key={schedule.id} href={`/schedules/${schedule.id}`} className="schedule-card">
-                            {(() => {
-                                const uniqueUsers = new Set<string>();
-                                schedule.layers.forEach((layer: any) => {
-                                    layer.users.forEach((user: any) => uniqueUsers.add(user.userId));
-                                });
-                                return (
-                                    <>
-                                    <div className="schedule-card-header">
-                                        <h3>{schedule.name}</h3>
-                                        <span className="schedule-chip">{schedule.timeZone}</span>
-                                    </div>
-                                    <p className="schedule-card-body">Layered rotations with overrides and handoffs.</p>
-                                    <div className="schedule-card-footer">
-                                        <span className="schedule-meta">{schedule.layers.length} layers</span>
-                                        <span className="schedule-meta">{uniqueUsers.size} responders</span>
-                                        <span className="schedule-link">View schedule -&gt;</span>
-                                    </div>
-                                    </>
-                                );
-                            })()}
-                        </Link>
-                    ))}
-                    {schedules.length === 0 && (
-                        <div className="schedule-card empty-state">
-                            <h3>No schedules yet</h3>
-                            <p>Create a schedule to start building your on-call coverage.</p>
-                        </div>
-                    )}
-                </div>
-
-                <aside className="schedule-side">
-                    {canManageSchedules ? (
-                        <div id="new-schedule" className="schedule-panel">
-                            <h3>New schedule</h3>
-                            <form action={createSchedule} className="schedule-form">
-                                <label className="schedule-field">
-                                    Name
-                                    <input name="name" placeholder="Primary on-call" required />
-                                </label>
-                                <label className="schedule-field">
-                                    Time zone
-                                    <TimeZoneSelect name="timeZone" defaultValue="UTC" />
-                                </label>
-                                <button className="glass-button primary schedule-submit">Create schedule</button>
-                            </form>
+            {/* Main Content Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+                {/* Schedules List */}
+                <div>
+                    {schedules.length === 0 ? (
+                        <div className="glass-panel empty-state" style={{ 
+                            padding: '3rem', 
+                            textAlign: 'center', 
+                            color: 'var(--text-muted)', 
+                            background: 'white',
+                            borderRadius: '12px'
+                        }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
+                            <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem', fontWeight: '600' }}>No schedules yet</p>
+                            <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                                Create a schedule to start building your on-call coverage.
+                            </p>
+                            {canManageSchedules && (
+                                <a href="#new-schedule" className="glass-button primary" style={{ textDecoration: 'none' }}>
+                                    Create Your First Schedule
+                                </a>
+                            )}
                         </div>
                     ) : (
-                        <div id="new-schedule" className="schedule-panel" style={{ background: '#f9fafb', opacity: 0.7, pointerEvents: 'none' }}>
-                            <h3 style={{ color: 'var(--text-secondary)' }}>New schedule</h3>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--danger)', marginBottom: '1rem', fontStyle: 'italic' }}>
-                                ⚠️ You don't have access to create schedules. Admin or Responder role required.
-                            </p>
-                            <div className="schedule-form" style={{ opacity: 0.5 }}>
-                                <label className="schedule-field">
-                                    Name
-                                    <input name="name" placeholder="Primary on-call" disabled />
-                                </label>
-                                <label className="schedule-field">
-                                    Time zone
-                                    <TimeZoneSelect name="timeZone" defaultValue="UTC" disabled />
-                                </label>
-                                <button className="glass-button primary schedule-submit" disabled>Create schedule</button>
-                            </div>
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            {schedules.map((schedule) => (
+                                <ScheduleCard key={schedule.id} schedule={schedule} />
+                            ))}
                         </div>
                     )}
-                    <div className="schedule-panel schedule-hint">
-                        <h4>Next up</h4>
-                        <p>Set a rotation and assign your responders to start tracking coverage.</p>
+                </div>
+
+                {/* Sidebar */}
+                <aside>
+                    <ScheduleCreateForm action={createSchedule} canCreate={canManageSchedules} />
+                    <div className="glass-panel" style={{ 
+                        marginTop: '1.5rem',
+                        padding: '1.5rem', 
+                        background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                        border: '1px solid #fde68a',
+                        borderRadius: '12px'
+                    }}>
+                        <h4 style={{ 
+                            fontSize: '1rem', 
+                            fontWeight: '600', 
+                            marginBottom: '0.5rem',
+                            color: '#78350f'
+                        }}>
+                            Next up
+                        </h4>
+                        <p style={{ 
+                            fontSize: '0.9rem', 
+                            color: '#78350f',
+                            lineHeight: 1.5,
+                            margin: 0
+                        }}>
+                            Set a rotation and assign your responders to start tracking coverage.
+                        </p>
                     </div>
                 </aside>
             </div>

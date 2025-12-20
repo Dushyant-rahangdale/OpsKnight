@@ -1,5 +1,7 @@
 import LoginClient from './LoginClient';
 
+export const dynamic = 'force-dynamic';
+
 type SearchParams = {
     callbackUrl?: string;
     error?: string;

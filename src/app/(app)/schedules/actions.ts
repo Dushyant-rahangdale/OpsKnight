@@ -3,27 +3,41 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { assertAdminOrResponder } from '@/lib/rbac';
-export async function createSchedule(formData: FormData) {
+type ScheduleFormState = {
+    error?: string | null;
+    success?: boolean;
+};
+
+export async function createSchedule(_prevState: ScheduleFormState, formData: FormData): Promise<ScheduleFormState> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
-    const name = formData.get('name') as string;
-    const timeZone = formData.get('timeZone') as string || 'UTC';
+    const name = (formData.get('name') as string)?.trim() || '';
+    const timeZone = (formData.get('timeZone') as string) || 'UTC';
 
-    await prisma.onCallSchedule.create({
-        data: { name, timeZone }
-    });
+    if (!name) {
+        return { error: 'Schedule name is required.' };
+    }
 
-    revalidatePath('/schedules');
+    try {
+        await prisma.onCallSchedule.create({
+            data: { name, timeZone }
+        });
+
+        revalidatePath('/schedules');
+        return { success: true };
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to create schedule.' };
+    }
 }
 
-export async function createLayer(scheduleId: string, formData: FormData) {
+export async function createLayer(scheduleId: string, formData: FormData): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     const name = formData.get('name') as string;
     const start = formData.get('start') as string;
@@ -31,65 +45,73 @@ export async function createLayer(scheduleId: string, formData: FormData) {
     const rotationLength = Number(formData.get('rotationLengthHours'));
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
-        return;
+        return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
     }
 
     const startDate = new Date(start);
     const endDate = end ? new Date(end) : null;
 
     if (Number.isNaN(startDate.getTime())) {
-        return;
+        return { error: 'Invalid start date.' };
     }
     if (endDate && Number.isNaN(endDate.getTime())) {
-        return;
+        return { error: 'Invalid end date.' };
     }
     if (endDate && endDate <= startDate) {
-        return;
+        return { error: 'End date must be after start date.' };
     }
 
-    await prisma.onCallLayer.create({
-        data: {
-            scheduleId,
-            name,
-            start: startDate,
-            end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-            rotationLengthHours: rotationLength
-        }
-    });
+    try {
+        await prisma.onCallLayer.create({
+            data: {
+                scheduleId,
+                name,
+                start: startDate,
+                end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+                rotationLengthHours: rotationLength
+            }
+        });
 
-    revalidatePath(`/schedules/${scheduleId}`);
-    revalidatePath('/schedules');
+        revalidatePath(`/schedules/${scheduleId}`);
+        revalidatePath('/schedules');
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to create layer.' };
+    }
 }
 
-export async function deleteLayer(scheduleId: string, layerId: string) {
+export async function deleteLayer(scheduleId: string, layerId: string): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
-    await prisma.$transaction([
-        prisma.onCallLayerUser.deleteMany({
-            where: { layerId }
-        }),
-        prisma.onCallLayer.delete({
-            where: { id: layerId }
-        })
-    ]);
+    try {
+        await prisma.$transaction([
+            prisma.onCallLayerUser.deleteMany({
+                where: { layerId }
+            }),
+            prisma.onCallLayer.delete({
+                where: { id: layerId }
+            })
+        ]);
 
-    revalidatePath(`/schedules/${scheduleId}`);
-    revalidatePath('/schedules');
+        revalidatePath(`/schedules/${scheduleId}`);
+        revalidatePath('/schedules');
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to delete layer.' };
+    }
 }
 
-export async function addLayerUser(layerId: string, formData: FormData) {
+export async function addLayerUser(layerId: string, formData: FormData): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     const userId = formData.get('userId') as string;
 
     if (!userId) {
-        return;
+        return { error: 'User is required.' };
     }
 
     const existing = await prisma.onCallLayerUser.findUnique({
@@ -145,11 +167,11 @@ export async function addLayerUser(layerId: string, formData: FormData) {
     }
 }
 
-export async function updateLayer(layerId: string, formData: FormData) {
+export async function updateLayer(layerId: string, formData: FormData): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     const name = formData.get('name') as string;
     const start = formData.get('start') as string;
@@ -157,109 +179,121 @@ export async function updateLayer(layerId: string, formData: FormData) {
     const rotationLength = Number(formData.get('rotationLengthHours'));
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
-        return;
+        return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
     }
 
     const startDate = new Date(start);
     const endDate = end ? new Date(end) : null;
 
     if (Number.isNaN(startDate.getTime())) {
-        return;
+        return { error: 'Invalid start date.' };
     }
     if (endDate && Number.isNaN(endDate.getTime())) {
-        return;
+        return { error: 'Invalid end date.' };
     }
     if (endDate && endDate <= startDate) {
-        return;
+        return { error: 'End date must be after start date.' };
     }
 
-    await prisma.onCallLayer.update({
-        where: { id: layerId },
-        data: {
-            name,
-            start: startDate,
-            end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-            rotationLengthHours: rotationLength
+    try {
+        await prisma.onCallLayer.update({
+            where: { id: layerId },
+            data: {
+                name,
+                start: startDate,
+                end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
+                rotationLengthHours: rotationLength
+            }
+        });
+
+        const layer = await prisma.onCallLayer.findUnique({
+            where: { id: layerId },
+            select: { scheduleId: true }
+        });
+
+        if (layer) {
+            revalidatePath(`/schedules/${layer.scheduleId}`);
+            revalidatePath('/schedules');
         }
-    });
-
-    const layer = await prisma.onCallLayer.findUnique({
-        where: { id: layerId },
-        select: { scheduleId: true }
-    });
-
-    if (layer) {
-        revalidatePath(`/schedules/${layer.scheduleId}`);
-        revalidatePath('/schedules');
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to update layer.' };
     }
 }
-export async function moveLayerUser(layerId: string, userId: string, direction: 'up' | 'down') {
+export async function moveLayerUser(layerId: string, userId: string, direction: 'up' | 'down'): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
-    const users = await prisma.onCallLayerUser.findMany({
-        where: { layerId },
-        orderBy: { position: 'asc' }
-    });
-    const index = users.findIndex((u) => u.userId === userId);
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    try {
+        const users = await prisma.onCallLayerUser.findMany({
+            where: { layerId },
+            orderBy: { position: 'asc' }
+        });
+        const index = users.findIndex((u) => u.userId === userId);
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
 
-    if (index === -1 || targetIndex < 0 || targetIndex >= users.length) {
-        return;
-    }
+        if (index === -1 || targetIndex < 0 || targetIndex >= users.length) {
+            return { error: 'Cannot move user in that direction.' };
+        }
 
-    const current = users[index];
-    const target = users[targetIndex];
+        const current = users[index];
+        const target = users[targetIndex];
 
-    await prisma.$transaction([
-        prisma.onCallLayerUser.update({
-            where: { id: current.id },
-            data: { position: target.position }
-        }),
-        prisma.onCallLayerUser.update({
-            where: { id: target.id },
-            data: { position: current.position }
-        })
-    ]);
+        await prisma.$transaction([
+            prisma.onCallLayerUser.update({
+                where: { id: current.id },
+                data: { position: target.position }
+            }),
+            prisma.onCallLayerUser.update({
+                where: { id: target.id },
+                data: { position: current.position }
+            })
+        ]);
 
-    const layer = await prisma.onCallLayer.findUnique({
-        where: { id: layerId },
-        select: { scheduleId: true }
-    });
+        const layer = await prisma.onCallLayer.findUnique({
+            where: { id: layerId },
+            select: { scheduleId: true }
+        });
 
-    if (layer) {
-        revalidatePath(`/schedules/${layer.scheduleId}`);
-        revalidatePath('/schedules');
+        if (layer) {
+            revalidatePath(`/schedules/${layer.scheduleId}`);
+            revalidatePath('/schedules');
+        }
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to move user.' };
     }
 }
 
-export async function removeLayerUser(layerId: string, userId: string) {
+export async function removeLayerUser(layerId: string, userId: string): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
-    await prisma.onCallLayerUser.delete({
-        where: { layerId_userId: { layerId, userId } }
-    });
+    try {
+        await prisma.onCallLayerUser.delete({
+            where: { layerId_userId: { layerId, userId } }
+        });
 
-    const layer = await prisma.onCallLayer.findUnique({
-        where: { id: layerId },
-        select: { scheduleId: true }
-    });
+        const layer = await prisma.onCallLayer.findUnique({
+            where: { id: layerId },
+            select: { scheduleId: true }
+        });
 
-    if (layer) {
-        revalidatePath(`/schedules/${layer.scheduleId}`);
+        if (layer) {
+            revalidatePath(`/schedules/${layer.scheduleId}`);
+        }
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to remove user from layer.' };
     }
 }
 
-export async function createOverride(scheduleId: string, formData: FormData) {
+export async function createOverride(scheduleId: string, formData: FormData): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     const userId = formData.get('userId') as string;
     const replacesUserId = (formData.get('replacesUserId') as string) || null;
@@ -267,42 +301,50 @@ export async function createOverride(scheduleId: string, formData: FormData) {
     const end = formData.get('end') as string;
 
     if (!userId || !start || !end) {
-        return;
+        return { error: 'User, start date, and end date are required.' };
     }
 
     const startDate = new Date(start);
     const endDate = new Date(end);
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-        return;
+        return { error: 'Invalid date format.' };
     }
 
     if (endDate <= startDate) {
-        return;
+        return { error: 'End date must be after start date.' };
     }
 
-    await prisma.onCallOverride.create({
-        data: {
-            scheduleId,
-            userId,
-            replacesUserId: replacesUserId || null,
-            start: startDate,
-            end: endDate
-        }
-    });
+    try {
+        await prisma.onCallOverride.create({
+            data: {
+                scheduleId,
+                userId,
+                replacesUserId: replacesUserId || null,
+                start: startDate,
+                end: endDate
+            }
+        });
 
-    revalidatePath(`/schedules/${scheduleId}`);
+        revalidatePath(`/schedules/${scheduleId}`);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to create override.' };
+    }
 }
 
-export async function deleteOverride(scheduleId: string, overrideId: string) {
+export async function deleteOverride(scheduleId: string, overrideId: string): Promise<{ error?: string } | undefined> {
     try {
         await assertAdminOrResponder();
     } catch (error) {
-        return;
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
-    await prisma.onCallOverride.delete({
-        where: { id: overrideId }
-    });
+    try {
+        await prisma.onCallOverride.delete({
+            where: { id: overrideId }
+        });
 
-    revalidatePath(`/schedules/${scheduleId}`);
+        revalidatePath(`/schedules/${scheduleId}`);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Failed to delete override.' };
+    }
 }
