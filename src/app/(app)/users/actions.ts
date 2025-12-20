@@ -3,17 +3,8 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { randomBytes } from 'crypto';
-
-async function assertAdmin() {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as any)?.role;
-    if (!session || role !== 'ADMIN') {
-        throw new Error('Unauthorized');
-    }
-}
+import { getCurrentUser, assertAdmin, assertAdminOrResponder, assertNotSelf } from '@/lib/rbac';
 
 async function assertUserIsNotSoleOwner(userId: string) {
     const ownedMemberships = await prisma.teamMember.findMany({
@@ -123,7 +114,7 @@ export async function addUser(_prevState: UserFormState, formData: FormData): Pr
         data: {
             name,
             email,
-            role: (role as any) || 'USER',
+            role: (role as 'ADMIN' | 'RESPONDER' | 'USER') || 'USER',
             status: 'INVITED',
             invitedAt: new Date()
         }
@@ -146,11 +137,16 @@ export async function addUser(_prevState: UserFormState, formData: FormData): Pr
 }
 
 export async function updateUserRole(userId: string, formData: FormData) {
-    await assertAdmin();
+    try {
+        const currentUser = await assertAdmin();
+        assertNotSelf(currentUser.id, userId, 'change the role of');
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin access required.' };
+    }
     const role = formData.get('role') as string;
     await prisma.user.update({
         where: { id: userId },
-        data: { role: role as any }
+        data: { role: role as 'ADMIN' | 'RESPONDER' | 'USER' }
     });
 
     await logAudit({
@@ -166,7 +162,11 @@ export async function updateUserRole(userId: string, formData: FormData) {
 }
 
 export async function addUserToTeam(userId: string, formData: FormData) {
-    await assertAdmin();
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const teamId = formData.get('teamId') as string;
     const role = (formData.get('role') as string) || 'MEMBER';
 
@@ -182,7 +182,7 @@ export async function addUserToTeam(userId: string, formData: FormData) {
         data: {
             userId,
             teamId,
-            role: (role as any) || 'MEMBER'
+            role: (role as 'OWNER' | 'ADMIN' | 'MEMBER') || 'MEMBER'
         }
     });
 
@@ -219,7 +219,12 @@ export async function removeUserFromTeam(memberId: string) {
 }
 
 export async function deactivateUser(userId: string, _formData?: FormData) {
-    await assertAdmin();
+    try {
+        const currentUser = await assertAdmin();
+        assertNotSelf(currentUser.id, userId, 'deactivate');
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin access required.' };
+    }
     await prisma.user.update({
         where: { id: userId },
         data: {
@@ -240,7 +245,11 @@ export async function deactivateUser(userId: string, _formData?: FormData) {
 }
 
 export async function reactivateUser(userId: string, _formData?: FormData) {
-    await assertAdmin();
+    try {
+        await assertAdmin();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin access required.' };
+    }
     await prisma.user.update({
         where: { id: userId },
         data: {
@@ -323,6 +332,7 @@ export async function deleteUser(userId: string, _formData?: FormData) {
 type BulkUserActionState = {
     error?: string | null;
     success?: boolean;
+    message?: string;
 };
 
 export async function bulkUpdateUsers(_prevState: BulkUserActionState, formData: FormData): Promise<BulkUserActionState> {
@@ -376,6 +386,8 @@ export async function bulkUpdateUsers(_prevState: BulkUserActionState, formData:
                 actorId: await getDefaultActorId()
             });
         }
+        revalidatePath('/users');
+        return { success: true, message: `Deactivated ${userIds.length} user(s)` };
     } else if (action === 'delete') {
         try {
             for (const userId of userIds) {
@@ -395,14 +407,30 @@ export async function bulkUpdateUsers(_prevState: BulkUserActionState, formData:
                 actorId: await getDefaultActorId()
             });
         }
-    } else {
-        return { error: 'Unsupported bulk action.' };
+        revalidatePath('/users');
+        return { success: true, message: `Deleted ${userIds.length} user(s)` };
+    } else if (action === 'setRole') {
+        const role = formData.get('role') as string;
+        if (!role) {
+            return { error: 'Role is required.' };
+        }
+        for (const userId of userIds) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { role: role as 'ADMIN' | 'RESPONDER' | 'USER' }
+            });
+
+            await logAudit({
+                action: 'user.role.updated',
+                entityType: 'USER',
+                entityId: userId,
+                actorId: await getDefaultActorId(),
+                details: { role }
+            });
+        }
+        revalidatePath('/users');
+        return { success: true, message: `Updated role for ${userIds.length} user(s)` };
     }
-
-    revalidatePath('/users');
-    revalidatePath('/audit');
-    revalidatePath('/incidents');
-    revalidatePath('/schedules');
-
-    return { success: true };
+    
+    return { error: 'Unsupported bulk action.' };
 }

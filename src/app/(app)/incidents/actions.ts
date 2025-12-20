@@ -5,8 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
 import { notifySlackForIncident } from '@/lib/slack';
+import { getCurrentUser, assertResponderOrAbove } from '@/lib/rbac';
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     await prisma.incident.update({
         where: { id },
         data: {
@@ -32,6 +38,11 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
 }
 
 export async function resolveIncidentWithNote(id: string, resolution: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const trimmedResolution = resolution?.trim();
     const minLength = 10;
     const maxLength = 1000;
@@ -43,7 +54,7 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
     if (trimmedResolution.length > maxLength) {
         throw new Error(`Resolution note must be ${maxLength} characters or fewer.`);
     }
-    const user = await prisma.user.findFirst();
+    const user = await getCurrentUser();
 
     await prisma.incident.update({
         where: { id },
@@ -82,6 +93,11 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
 }
 
 export async function updateIncidentUrgency(id: string, urgency: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const parsedUrgency: IncidentUrgency = urgency === 'LOW' ? 'LOW' : 'HIGH';
     await prisma.incident.update({
         where: { id },
@@ -101,6 +117,11 @@ export async function updateIncidentUrgency(id: string, urgency: string) {
 }
 
 export async function createIncident(formData: FormData) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const urgency = formData.get('urgency') as any;
@@ -148,9 +169,12 @@ export async function createIncident(formData: FormData) {
 }
 
 export async function addNote(incidentId: string, content: string) {
-    // Mock user for now - in real app would match session
-    const user = await prisma.user.findFirst();
-    if (!user) return;
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
+    const user = await getCurrentUser();
 
     await prisma.incidentNote.create({
         data: {
@@ -171,6 +195,11 @@ export async function addNote(incidentId: string, content: string) {
 }
 
 export async function reassignIncident(incidentId: string, assigneeId: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const assignee = await prisma.user.findUnique({ where: { id: assigneeId } });
     if (!assignee) return;
 
@@ -191,6 +220,11 @@ export async function reassignIncident(incidentId: string, assigneeId: string) {
 }
 
 export async function addWatcher(incidentId: string, userId: string, role: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     if (!userId) return;
 
     await prisma.incidentWatcher.upsert({
@@ -221,6 +255,11 @@ export async function addWatcher(incidentId: string, userId: string, role: strin
 }
 
 export async function removeWatcher(incidentId: string, watcherId: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     await prisma.incidentWatcher.delete({
         where: { id: watcherId }
     });

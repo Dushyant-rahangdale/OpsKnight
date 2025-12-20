@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
+import { assertAdminOrResponder, assertAdmin } from '@/lib/rbac';
 
 type TeamFormState = {
     error?: string | null;
@@ -24,6 +25,11 @@ async function ensureTeamHasOwner(teamId: string, excludeMemberId?: string) {
 }
 
 export async function createTeam(_prevState: TeamFormState, formData: FormData): Promise<TeamFormState> {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const name = (formData.get('name') as string | null)?.trim() ?? '';
     const description = (formData.get('description') as string | null)?.trim() ?? '';
 
@@ -67,6 +73,11 @@ export async function createTeam(_prevState: TeamFormState, formData: FormData):
 }
 
 export async function updateTeam(teamId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
 
@@ -92,6 +103,11 @@ export async function updateTeam(teamId: string, formData: FormData) {
 }
 
 export async function deleteTeam(teamId: string) {
+    try {
+        await assertAdmin();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin access required.' };
+    }
     await prisma.teamMember.deleteMany({
         where: { teamId }
     });
@@ -118,8 +134,19 @@ export async function deleteTeam(teamId: string) {
 }
 
 export async function addTeamMember(teamId: string, formData: FormData) {
+    let currentUser;
+    try {
+        currentUser = await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const userId = formData.get('userId') as string;
     const role = (formData.get('role') as string) || 'MEMBER';
+    
+    // Only admins can assign OWNER/ADMIN roles
+    if ((role === 'OWNER' || role === 'ADMIN') && currentUser.role !== 'ADMIN') {
+        return { error: 'Only admins can assign OWNER or ADMIN roles.' };
+    }
 
     if (!userId) return;
 
@@ -127,7 +154,7 @@ export async function addTeamMember(teamId: string, formData: FormData) {
         data: {
             teamId,
             userId,
-            role: role as any
+            role: role as 'OWNER' | 'ADMIN' | 'MEMBER'
         }
     });
 
@@ -145,6 +172,12 @@ export async function addTeamMember(teamId: string, formData: FormData) {
 }
 
 export async function updateTeamMemberRole(memberId: string, formData: FormData) {
+    let currentUser;
+    try {
+        currentUser = await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const role = (formData.get('role') as string) || 'MEMBER';
 
     const member = await prisma.teamMember.findUnique({
@@ -152,6 +185,11 @@ export async function updateTeamMemberRole(memberId: string, formData: FormData)
     });
 
     if (!member) return;
+    
+    // Only admins can assign OWNER/ADMIN roles
+    if ((role === 'OWNER' || role === 'ADMIN') && currentUser.role !== 'ADMIN') {
+        return { error: 'Only admins can assign OWNER or ADMIN roles.' };
+    }
 
     if (member.role === 'OWNER' && role !== 'OWNER') {
         await ensureTeamHasOwner(member.teamId, member.id);
@@ -176,6 +214,11 @@ export async function updateTeamMemberRole(memberId: string, formData: FormData)
 }
 
 export async function removeTeamMember(memberId: string) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
+    }
     const member = await prisma.teamMember.findUnique({
         where: { id: memberId }
     });

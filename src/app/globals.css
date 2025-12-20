@@ -3456,3 +3456,15 @@ span:hover > .info-tooltip {
   background: rgba(211, 47, 47, 0.04);
   border-color: rgba(211, 47, 47, 0.2);
 }
+
+/* Toast animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

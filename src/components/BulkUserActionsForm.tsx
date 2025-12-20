@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import type { FormEvent } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 
 type FormState = {
     error?: string | null;
@@ -28,6 +29,30 @@ function SubmitButton() {
 export default function BulkUserActionsForm({ action, formId, className = '', style }: Props) {
     const [state, formAction] = useFormState(action, { error: null, success: false });
     const [localError, setLocalError] = useState<string | null>(null);
+    const [showRoleSelect, setShowRoleSelect] = useState(false);
+    const router = useRouter();
+    
+    useEffect(() => {
+        if (state?.success) {
+            router.refresh();
+        }
+    }, [state?.success, router]);
+
+    useEffect(() => {
+        const actionSelect = document.getElementById(`${formId}-action`) as HTMLSelectElement;
+        const roleSelect = document.getElementById(`${formId}-role`) as HTMLSelectElement;
+        
+        if (actionSelect && roleSelect) {
+            const handleChange = () => {
+                setShowRoleSelect(actionSelect.value === 'setRole');
+                if (actionSelect.value !== 'setRole') {
+                    roleSelect.value = '';
+                }
+            };
+            actionSelect.addEventListener('change', handleChange);
+            return () => actionSelect.removeEventListener('change', handleChange);
+        }
+    }, [formId]);
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         const formData = new FormData(event.currentTarget);
@@ -46,6 +71,15 @@ export default function BulkUserActionsForm({ action, formId, className = '', st
             return;
         }
 
+        if (bulkAction === 'setRole') {
+            const role = formData.get('role') as string;
+            if (!role) {
+                setLocalError('Select a role.');
+                event.preventDefault();
+                return;
+            }
+        }
+
         if (bulkAction === 'delete' && !window.confirm('Delete selected users? This cannot be undone.')) {
             event.preventDefault();
             return;
@@ -62,12 +96,21 @@ export default function BulkUserActionsForm({ action, formId, className = '', st
             className={`bulk-actions-form ${className}`.trim()}
             style={style}
         >
-            <select name="bulkAction" defaultValue="" className="bulk-actions-select">
+            <select name="bulkAction" defaultValue="" className="bulk-actions-select" id={`${formId}-action`}>
                 <option value="" disabled>Bulk action</option>
                 <option value="activate">Activate</option>
                 <option value="deactivate">Deactivate</option>
+                <option value="setRole">Change Role</option>
                 <option value="delete">Delete</option>
             </select>
+            {showRoleSelect && (
+                <select name="role" defaultValue="" className="bulk-actions-select" id={`${formId}-role`} required>
+                    <option value="" disabled>Select role</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="RESPONDER">Responder</option>
+                    <option value="USER">User</option>
+                </select>
+            )}
             <SubmitButton />
             {(localError || state?.error) ? (
                 <span className="bulk-actions-error">

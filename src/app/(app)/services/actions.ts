@@ -4,8 +4,14 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { randomBytes } from 'crypto';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
+import { assertAdminOrResponder, assertAdmin } from '@/lib/rbac';
 
 export async function createIntegration(formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const serviceId = formData.get('serviceId') as string;
     const name = formData.get('name') as string;
 
@@ -29,6 +35,11 @@ export async function createIntegration(formData: FormData) {
 }
 
 export async function updateService(serviceId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
     const slackWebhookUrl = formData.get('slackWebhookUrl') as string;
@@ -58,6 +69,11 @@ export async function updateService(serviceId: string, formData: FormData) {
 }
 
 export async function deleteService(serviceId: string) {
+    try {
+        await assertAdmin();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized. Admin access required.');
+    }
     if (!serviceId) return;
 
     // Delete related data first to avoid constraints (or rely on cascade delete)

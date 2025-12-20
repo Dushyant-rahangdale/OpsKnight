@@ -3,8 +3,14 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { assertAdmin } from '@/lib/rbac';
 
 export async function createPolicy(formData: FormData) {
+    try {
+        await assertAdmin();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized. Admin access required.');
+    }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
 

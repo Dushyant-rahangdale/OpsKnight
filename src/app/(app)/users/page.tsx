@@ -1,5 +1,8 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
+import type { Role, UserStatus, AuditEntityType } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import {
     addUser,
     addUserToTeam,
@@ -11,10 +14,8 @@ import {
     updateUserRole
 } from './actions';
 import BulkUserActionsForm from '@/components/BulkUserActionsForm';
-import DeleteUserButton from '@/components/DeleteUserButton';
 import UserCreateForm from '@/components/UserCreateForm';
-import InviteLinkButton from '@/components/InviteLinkButton';
-import RoleSelector from '@/components/RoleSelector';
+import UserTable from '@/components/UserTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     const statusFilter = typeof awaitedSearchParams?.status === 'string' ? awaitedSearchParams.status : '';
     const roleFilter = typeof awaitedSearchParams?.role === 'string' ? awaitedSearchParams.role : '';
     const teamFilter = typeof awaitedSearchParams?.teamId === 'string' ? awaitedSearchParams.teamId : '';
+    const sortBy = typeof awaitedSearchParams?.sortBy === 'string' ? awaitedSearchParams.sortBy : 'createdAt';
+    const sortOrder = typeof awaitedSearchParams?.sortOrder === 'string' ? awaitedSearchParams.sortOrder : 'desc';
     const page = Math.max(1, Number(awaitedSearchParams?.page) || 1);
     const historyPage = Math.max(1, Number(awaitedSearchParams?.historyPage) || 1);
     const skip = (page - 1) * USERS_PER_PAGE;
@@ -52,15 +55,15 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     ]
                 }
                 : {},
-            statusFilter ? { status: statusFilter as any } : {},
-            roleFilter ? { role: roleFilter as any } : {},
+            statusFilter ? { status: statusFilter as UserStatus } : {},
+            roleFilter ? { role: roleFilter as Role } : {},
             teamFilter ? { teamMemberships: { some: { teamId: teamFilter } } } : {}
         ].filter(Boolean)
     };
 
-    const auditLogWhere: any = {
+    const auditLogWhere = {
         entityType: {
-            in: ['USER', 'TEAM', 'TEAM_MEMBER']
+            in: ['USER', 'TEAM', 'TEAM_MEMBER'] as AuditEntityType[]
         }
     };
 
@@ -74,7 +77,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 }
             },
             where,
-            orderBy: { createdAt: 'desc' },
+            orderBy: sortBy === 'name' 
+                ? { name: sortOrder as 'asc' | 'desc' } 
+                : sortBy === 'email' 
+                ? { email: sortOrder as 'asc' | 'desc' } 
+                : sortBy === 'status' 
+                ? { status: sortOrder as 'asc' | 'desc' } 
+                : { createdAt: sortOrder as 'asc' | 'desc' },
             skip,
             take: USERS_PER_PAGE
         }),
@@ -102,28 +111,62 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         ownerCountByTeam.set(entry.teamId, entry._count._all);
     }
 
-    // Get total stats (not just current page)
-    const [totalStats] = await Promise.all([
-        prisma.user.groupBy({
-            by: ['status'],
-            _count: { _all: true }
-        })
-    ]);
-
+    // Optimize: Get stats efficiently (only if no filters applied, otherwise use filtered counts)
     const stats = {
         total: totalCount,
-        active: totalStats.find(s => s.status === 'ACTIVE')?._count._all || 0,
-        invited: totalStats.find(s => s.status === 'INVITED')?._count._all || 0,
-        disabled: totalStats.find(s => s.status === 'DISABLED')?._count._all || 0
+        active: 0,
+        invited: 0,
+        disabled: 0
     };
+    
+    // If filters are applied, get filtered stats; otherwise get all stats
+    if (query || statusFilter || roleFilter || teamFilter) {
+        // With filters, we already have totalCount, get breakdown
+        const [activeCount, invitedCount, disabledCount] = await Promise.all([
+            prisma.user.count({ where: { ...where, status: 'ACTIVE' } }),
+            prisma.user.count({ where: { ...where, status: 'INVITED' } }),
+            prisma.user.count({ where: { ...where, status: 'DISABLED' } })
+        ]);
+        stats.active = activeCount;
+        stats.invited = invitedCount;
+        stats.disabled = disabledCount;
+    } else {
+        // No filters - get all stats efficiently
+        const [totalStats] = await Promise.all([
+            prisma.user.groupBy({
+                by: ['status'],
+                _count: { _all: true }
+            })
+        ]);
+        stats.active = totalStats.find(s => s.status === 'ACTIVE')?._count._all || 0;
+        stats.invited = totalStats.find(s => s.status === 'INVITED')?._count._all || 0;
+        stats.disabled = totalStats.find(s => s.status === 'DISABLED')?._count._all || 0;
+    }
 
     const totalPages = Math.ceil(totalCount / USERS_PER_PAGE);
     const historyTotalPages = Math.ceil(auditLogTotal / HISTORY_PER_PAGE);
+
+    // Get current user for permission checks
+    const session = await getServerSession(authOptions);
+    const currentUserEmail = session?.user?.email;
+    const currentUser = currentUserEmail 
+        ? await prisma.user.findUnique({
+            where: { email: currentUserEmail },
+            select: { id: true, role: true }
+        })
+        : null;
+    const currentUserId = currentUser?.id || '';
+    const currentUserRole = (currentUser?.role as Role) || 'USER';
+    const isAdmin = currentUserRole === 'ADMIN';
+    const isAdminOrResponder = currentUserRole === 'ADMIN' || currentUserRole === 'RESPONDER';
+
     const baseParams = new URLSearchParams();
     if (query) baseParams.set('q', query);
     if (statusFilter) baseParams.set('status', statusFilter);
     if (roleFilter) baseParams.set('role', roleFilter);
     if (teamFilter) baseParams.set('teamId', teamFilter);
+    if (sortBy !== 'createdAt') baseParams.set('sortBy', sortBy);
+    if (sortOrder !== 'desc') baseParams.set('sortOrder', sortOrder);
     
     const historyBaseParams = new URLSearchParams();
     if (query) historyBaseParams.set('q', query);
@@ -131,10 +174,38 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     if (roleFilter) historyBaseParams.set('role', roleFilter);
     if (teamFilter) historyBaseParams.set('teamId', teamFilter);
     if (page > 1) historyBaseParams.set('page', page.toString());
+    if (sortBy !== 'createdAt') historyBaseParams.set('sortBy', sortBy);
+    if (sortOrder !== 'desc') historyBaseParams.set('sortOrder', sortOrder);
     
     function buildHistoryPaginationUrl(pageNum: number): string {
         const params = new URLSearchParams(historyBaseParams);
         params.set('historyPage', pageNum.toString());
+        return `/users?${params.toString()}`;
+    }
+    
+    function buildSortUrl(newSortBy: string): string {
+        const params = new URLSearchParams(baseParams);
+        if (sortBy === newSortBy && sortOrder === 'asc') {
+            params.set('sortBy', newSortBy);
+            params.set('sortOrder', 'desc');
+        } else if (sortBy === newSortBy) {
+            params.delete('sortBy');
+            params.delete('sortOrder');
+        } else {
+            params.set('sortBy', newSortBy);
+            params.set('sortOrder', 'asc');
+        }
+        params.delete('page'); // Reset to page 1 when sorting
+        return `/users?${params.toString()}`;
+    }
+    
+    // Keep old function for backwards compatibility
+    function buildSortUrlOld(field: string): string {
+        const params = new URLSearchParams(baseParams);
+        const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
+        params.set('sortBy', field);
+        params.set('sortOrder', newOrder);
+        params.delete('page'); // Reset to page 1 when sorting
         return `/users?${params.toString()}`;
     }
 
@@ -187,6 +258,24 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     {/* Filters Panel */}
                     <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
                         <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1rem' }}>Filter Users</h2>
+                        {/* Quick Filter Buttons */}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                            <Link href="/users" style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', textDecoration: 'none', background: !statusFilter && !roleFilter && !teamFilter && !query ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)', color: !statusFilter && !roleFilter && !teamFilter && !query ? 'white' : 'var(--primary)', fontWeight: '600' }}>
+                                All Users
+                            </Link>
+                            <Link href="/users?status=ACTIVE" style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', textDecoration: 'none', background: statusFilter === 'ACTIVE' ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)', color: statusFilter === 'ACTIVE' ? 'white' : 'var(--primary)', fontWeight: '600' }}>
+                                Active
+                            </Link>
+                            <Link href="/users?status=INVITED" style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', textDecoration: 'none', background: statusFilter === 'INVITED' ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)', color: statusFilter === 'INVITED' ? 'white' : 'var(--primary)', fontWeight: '600' }}>
+                                Invited
+                            </Link>
+                            <Link href="/users?status=DISABLED" style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', textDecoration: 'none', background: statusFilter === 'DISABLED' ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)', color: statusFilter === 'DISABLED' ? 'white' : 'var(--primary)', fontWeight: '600' }}>
+                                Disabled
+                            </Link>
+                            <Link href="/users?role=ADMIN" style={{ padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.8rem', textDecoration: 'none', background: roleFilter === 'ADMIN' ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)', color: roleFilter === 'ADMIN' ? 'white' : 'var(--primary)', fontWeight: '600' }}>
+                                Admins
+                            </Link>
+                        </div>
                         <form method="get" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'end' }}>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Search</label>
@@ -250,12 +339,27 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
                     {/* Users Table - Cleaner Design */}
                     <div className="glass-panel" style={{ background: 'white', padding: '0', overflow: 'hidden' }}>
-                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.15rem' }}>User Directory</h2>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                     Showing {skip + 1}-{Math.min(skip + USERS_PER_PAGE, totalCount)} of {totalCount} users
                                 </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '600' }}>Sort:</span>
+                                <Link href={buildSortUrl('name')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', background: sortBy === 'name' ? 'rgba(211, 47, 47, 0.1)' : 'transparent', textDecoration: 'none', color: sortBy === 'name' ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                                    Name {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                </Link>
+                                <Link href={buildSortUrl('email')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', background: sortBy === 'email' ? 'rgba(211, 47, 47, 0.1)' : 'transparent', textDecoration: 'none', color: sortBy === 'email' ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                                    Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                </Link>
+                                <Link href={buildSortUrl('status')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', background: sortBy === 'status' ? 'rgba(211, 47, 47, 0.1)' : 'transparent', textDecoration: 'none', color: sortBy === 'status' ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                                    Status {sortBy === 'status' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                </Link>
+                                <Link href={buildSortUrl('createdAt')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', background: sortBy === 'createdAt' ? 'rgba(211, 47, 47, 0.1)' : 'transparent', textDecoration: 'none', color: sortBy === 'createdAt' ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                                    Date {sortBy === 'createdAt' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                </Link>
                             </div>
                         </div>
                         <div style={{ overflowX: 'auto' }}>
@@ -264,170 +368,23 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                                     <p style={{ fontSize: '0.9rem' }}>No users found matching your filters.</p>
                                 </div>
                             ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                                    <thead>
-                                        <tr style={{ background: '#f9fafb', borderBottom: '2px solid var(--border)' }}>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '40px' }}>
-                                                <input type="checkbox" style={{ cursor: 'pointer', width: '16px', height: '16px' }} />
-                                            </th>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>User</th>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '140px' }}>Role</th>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '100px' }}>Status</th>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Teams</th>
-                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '120px' }}>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {users.map((user: any) => {
-                                            const updateRole = updateUserRole.bind(null, user.id);
-                                            const deactivate = deactivateUser.bind(null, user.id);
-                                            const reactivate = reactivateUser.bind(null, user.id);
-                                            const removeUser = deleteUser.bind(null, user.id);
-                                            const inviteUser = generateInvite.bind(null, user.id);
-                                            const assignToTeam = addUserToTeam.bind(null, user.id);
-                                            const availableTeams = teams.filter(
-                                                (team) => !user.teamMemberships?.some((member: any) => member.teamId === team.id)
-                                            );
-                                            const isSoleOwner = user.teamMemberships?.some(
-                                                (member: any) => member.role === "OWNER" && ownerCountByTeam.get(member.teamId) === 1
-                                            );
-
-                                            return (
-                                                <tr 
-                                                    key={user.id} 
-                                                    style={{ 
-                                                        borderBottom: '1px solid #f1f5f9'
-                                                    }}
-                                                    className="user-table-row"
-                                                >
-                                                    <td style={{ padding: '0.875rem 1rem' }}>
-                                                        <input
-                                                            type="checkbox"
-                                                            name="userIds"
-                                                            value={user.id}
-                                                            form="bulk-users-form"
-                                                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                                                        />
-                                                    </td>
-                                                    <td style={{ padding: '0.875rem 1rem' }}>
-                                                        <div>
-                                                            <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.15rem' }}>{user.name}</div>
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.email}</div>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '0.875rem 1rem' }}>
-                                                        <RoleSelector 
-                                                            userId={user.id}
-                                                            currentRole={user.role}
-                                                            updateRole={updateRole}
-                                                        />
-                                                    </td>
-                                                    <td style={{ padding: '0.875rem 1rem' }}>
-                                                        <span style={{
-                                                            padding: '0.2rem 0.6rem',
-                                                            borderRadius: '999px',
-                                                            fontSize: '0.7rem',
-                                                            fontWeight: '700',
-                                                            textTransform: 'uppercase',
-                                                            background: user.status === 'ACTIVE' ? '#e6f4ea' : user.status === 'INVITED' ? '#fff3e0' : '#fee2e2',
-                                                            color: user.status === 'ACTIVE' ? '#0f5132' : user.status === 'INVITED' ? '#b45309' : '#b91c1c',
-                                                            display: 'inline-block'
-                                                        }}>
-                                                            {user.status}
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ padding: '0.875rem 1rem' }}>
-                                                        {!user.teamMemberships || user.teamMemberships.length === 0 ? (
-                                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>—</span>
-                                                        ) : (
-                                                            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                                                                {user.teamMemberships.slice(0, 2).map((member: any) => (
-                                                                    <span
-                                                                        key={member.id}
-                                                                        style={{
-                                                                            padding: '0.15rem 0.5rem',
-                                                                            borderRadius: '999px',
-                                                                            fontSize: '0.7rem',
-                                                                            fontWeight: '600',
-                                                                            background: member.role === "OWNER" ? '#fee2e2' : member.role === "ADMIN" ? '#fef3c7' : '#ecfdf5',
-                                                                            color: member.role === "OWNER" ? '#b91c1c' : member.role === "ADMIN" ? '#78350f' : '#065f46'
-                                                                        }}
-                                                                        title={`${member.team.name} (${member.role})`}
-                                                                    >
-                                                                        {member.team.name}
-                                                                    </span>
-                                                                ))}
-                                                                {user.teamMemberships.length > 2 && (
-                                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }} title={user.teamMemberships.slice(2).map((m: any) => `${m.team.name} (${m.role})`).join(', ')}>
-                                                                        +{user.teamMemberships.length - 2}
-                                                                    </span>
-                                                            )}
-                                                        </div>
-                                                        )}
-                                                        {availableTeams.length > 0 && (
-                                                            <form action={assignToTeam} style={{ marginTop: '0.4rem', display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                                                                <select name="teamId" defaultValue="" style={{ padding: '0.25rem 0.4rem', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '0.75rem', minWidth: '100px', background: 'white' }}>
-                                                                    <option value="" disabled>Add team</option>
-                                                                    {availableTeams.map((team) => (
-                                                                        <option key={team.id} value={team.id}>
-                                                                            {team.name}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                                <select name="role" defaultValue="MEMBER" style={{ padding: '0.25rem 0.4rem', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '0.75rem', background: 'white' }}>
-                                                                    <option value="MEMBER">Member</option>
-                                                                    <option value="ADMIN">Admin</option>
-                                                                    <option value="OWNER">Owner</option>
-                                                                </select>
-                                                                <button type="submit" className="glass-button" style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}>
-                                                                    Add
-                                                                </button>
-                                                            </form>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                                                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                                            {user.status === "INVITED" && (
-                                                                <InviteLinkButton action={inviteUser} className="invite-link-inline" />
-                                                            )}
-                                                            {user.status === "DISABLED" ? (
-                                                                <form action={reactivate}>
-                                                                    <button type="submit" className="glass-button primary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.7rem' }}>
-                                                                        Activate
-                                                                    </button>
-                                                                </form>
-                                                            ) : user.status === "INVITED" ? (
-                                                                <form action={reactivate}>
-                                                                    <button type="submit" className="glass-button primary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.7rem' }}>
-                                                                        Activate
-                                                                    </button>
-                                                                </form>
-                                                            ) : (
-                                                                <form action={deactivate}>
-                                                                    <button type="submit" className="glass-button" style={{ padding: '0.35rem 0.7rem', fontSize: '0.7rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-                                                                        Deactivate
-                                                                    </button>
-                                                                </form>
-                                                            )}
-                                                            <DeleteUserButton
-                                                                action={removeUser}
-                                                                className={isSoleOwner ? "glass-button" : "glass-button"}
-                                                                disabled={isSoleOwner}
-                                                                title={
-                                                                    isSoleOwner
-                                                                        ? "Reassign team ownership before deleting this user."
-                                                                        : "Delete user"
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                <UserTable
+                                    users={users}
+                                    teams={teams}
+                                    ownerCountByTeam={ownerCountByTeam}
+                                    currentUserId={currentUserId}
+                                    currentUserRole={currentUserRole}
+                                    isAdmin={isAdmin}
+                                    isAdminOrResponder={isAdminOrResponder}
+                                    updateUserRole={updateUserRole}
+                                    deactivateUser={deactivateUser}
+                                    reactivateUser={reactivateUser}
+                                    deleteUser={deleteUser}
+                                    generateInvite={generateInvite}
+                                    addUserToTeam={addUserToTeam}
+                                />
                             )}
-                    </div>
+                        </div>
 
                         {/* Pagination */}
                         {totalPages > 1 && (

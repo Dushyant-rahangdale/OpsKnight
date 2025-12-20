@@ -2,7 +2,13 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { assertAdminOrResponder } from '@/lib/rbac';
 export async function createSchedule(formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
     const name = formData.get('name') as string;
     const timeZone = formData.get('timeZone') as string || 'UTC';
 
@@ -14,6 +20,11 @@ export async function createSchedule(formData: FormData) {
 }
 
 export async function createLayer(scheduleId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     const name = formData.get('name') as string;
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
@@ -51,6 +62,11 @@ export async function createLayer(scheduleId: string, formData: FormData) {
 }
 
 export async function deleteLayer(scheduleId: string, layerId: string) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     await prisma.$transaction([
         prisma.onCallLayerUser.deleteMany({
             where: { layerId }
@@ -65,6 +81,11 @@ export async function deleteLayer(scheduleId: string, layerId: string) {
 }
 
 export async function addLayerUser(layerId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     const userId = formData.get('userId') as string;
 
     if (!userId) {
@@ -125,6 +146,11 @@ export async function addLayerUser(layerId: string, formData: FormData) {
 }
 
 export async function updateLayer(layerId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     const name = formData.get('name') as string;
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
@@ -168,6 +194,11 @@ export async function updateLayer(layerId: string, formData: FormData) {
     }
 }
 export async function moveLayerUser(layerId: string, userId: string, direction: 'up' | 'down') {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     const users = await prisma.onCallLayerUser.findMany({
         where: { layerId },
         orderBy: { position: 'asc' }
@@ -205,6 +236,11 @@ export async function moveLayerUser(layerId: string, userId: string, direction: 
 }
 
 export async function removeLayerUser(layerId: string, userId: string) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     await prisma.onCallLayerUser.delete({
         where: { layerId_userId: { layerId, userId } }
     });
@@ -220,6 +256,11 @@ export async function removeLayerUser(layerId: string, userId: string) {
 }
 
 export async function createOverride(scheduleId: string, formData: FormData) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     const userId = formData.get('userId') as string;
     const replacesUserId = (formData.get('replacesUserId') as string) || null;
     const start = formData.get('start') as string;
@@ -254,6 +295,11 @@ export async function createOverride(scheduleId: string, formData: FormData) {
 }
 
 export async function deleteOverride(scheduleId: string, overrideId: string) {
+    try {
+        await assertAdminOrResponder();
+    } catch (error) {
+        return;
+    }
     await prisma.onCallOverride.delete({
         where: { id: overrideId }
     });
