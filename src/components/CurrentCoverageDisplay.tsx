@@ -6,8 +6,8 @@ type CoverageBlock = {
     id: string;
     userName: string;
     layerName: string;
-    start: Date;
-    end: Date;
+    start: Date | string; // Can be Date or ISO string from server
+    end: Date | string; // Can be Date or ISO string from server
 };
 
 type CurrentCoverageDisplayProps = {
@@ -20,15 +20,28 @@ export default function CurrentCoverageDisplay({
     scheduleTimeZone
 }: CurrentCoverageDisplayProps) {
     // Format date/time function inside the client component
-    const formatDateTime = (date: Date) =>
-        date.toLocaleString('en-US', {
+    const formatDateTime = (date: Date) => {
+        // Ensure we're working with a proper Date object
+        const dateObj = date instanceof Date ? date : new Date(date);
+        
+        return dateObj.toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
             hour: 'numeric',
             minute: '2-digit',
+            hour12: true,
             timeZone: scheduleTimeZone
         });
-    const [activeBlocks, setActiveBlocks] = useState(initialBlocks);
+    };
+    // Convert initialBlocks to ensure all dates are Date objects
+    // Dates come as ISO strings from server, so we always convert them
+    const normalizedBlocks = initialBlocks.map(block => ({
+        ...block,
+        start: new Date(block.start),
+        end: new Date(block.end)
+    }));
+    
+    const [activeBlocks, setActiveBlocks] = useState(normalizedBlocks);
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // Recalculate when initialBlocks prop changes (e.g., after layer update)
@@ -39,12 +52,14 @@ export default function CurrentCoverageDisplay({
             
             // Recalculate active blocks based on current time
             const nowTime = now.getTime();
-            const active = initialBlocks.filter((block) => {
-                // Handle both Date objects and ISO strings
-                const blockStart = block.start instanceof Date ? block.start : new Date(block.start);
-                const blockEnd = block.end instanceof Date ? block.end : new Date(block.end);
-                const blockStartTime = blockStart.getTime();
-                const blockEndTime = blockEnd.getTime();
+            const normalized = initialBlocks.map(block => ({
+                ...block,
+                start: new Date(block.start),
+                end: new Date(block.end)
+            }));
+            const active = normalized.filter((block) => {
+                const blockStartTime = block.start.getTime();
+                const blockEndTime = block.end.getTime();
                 return blockStartTime <= nowTime && blockEndTime > nowTime;
             });
             setActiveBlocks(active);
@@ -62,12 +77,14 @@ export default function CurrentCoverageDisplay({
             
             // Recalculate active blocks based on current time
             const nowTime = now.getTime();
-            const active = initialBlocks.filter((block) => {
-                // Handle both Date objects and ISO strings
-                const blockStart = block.start instanceof Date ? block.start : new Date(block.start);
-                const blockEnd = block.end instanceof Date ? block.end : new Date(block.end);
-                const blockStartTime = blockStart.getTime();
-                const blockEndTime = blockEnd.getTime();
+            const normalized = initialBlocks.map(block => ({
+                ...block,
+                start: new Date(block.start),
+                end: new Date(block.end)
+            }));
+            const active = normalized.filter((block) => {
+                const blockStartTime = block.start.getTime();
+                const blockEndTime = block.end.getTime();
                 return blockStartTime <= nowTime && blockEndTime > nowTime;
             });
             setActiveBlocks(active);
@@ -89,11 +106,18 @@ export default function CurrentCoverageDisplay({
 
     return (
         <div className="glass-panel" style={{
-            padding: '1.5rem',
-            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-            border: '1px solid #e2e8f0',
+            padding: '2rem',
+            background: activeBlocks.length > 0 
+                ? 'linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: activeBlocks.length > 0 
+                ? '2px solid #a7f3d0'
+                : '1px solid #e2e8f0',
             borderRadius: '12px',
-            marginBottom: '1.5rem'
+            marginBottom: '1.5rem',
+            boxShadow: activeBlocks.length > 0 
+                ? '0 4px 12px rgba(16, 185, 129, 0.15)'
+                : '0 2px 8px rgba(0,0,0,0.04)'
         }}>
             <div style={{
                 display: 'flex',
@@ -220,7 +244,7 @@ export default function CurrentCoverageDisplay({
                                             {block.layerName}
                                         </span>
                                         <span>·</span>
-                                        <span>Until {formatDateTime(new Date(block.end))}</span>
+                                        <span>Until {formatDateTime(block.end)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -237,7 +261,7 @@ export default function CurrentCoverageDisplay({
                             fontWeight: '500',
                             textAlign: 'center'
                         }}>
-                            ⏰ Next change: {formatDateTime(new Date(nextChange))}
+                            ⏰ Next change: {formatDateTime(nextChange)}
                         </div>
                     )}
                 </>

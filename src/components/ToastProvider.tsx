@@ -32,7 +32,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}
-            <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ 
+                position: 'fixed', 
+                top: '1rem', 
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 10000, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '0.5rem',
+                maxWidth: '90%',
+                width: 'auto',
+                pointerEvents: 'none'
+            }}>
                 {toasts.map((toast) => (
                     <Toast
                         key={toast.id}

@@ -25,20 +25,18 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
     return (
         <div
             style={{
-                position: 'fixed',
-                top: '1rem',
-                right: '1rem',
-                padding: '0.75rem 1rem',
+                padding: '0.75rem 1.25rem',
                 background: bgColor,
                 color: textColor,
                 border: `1px solid ${borderColor}`,
                 borderRadius: '8px',
-                boxShadow: 'var(--shadow-md)',
-                zIndex: 1000,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                minWidth: '250px',
+                minWidth: '300px',
+                maxWidth: '500px',
+                pointerEvents: 'auto',
                 animation: 'slideIn 0.3s ease-out'
             }}
         >

@@ -34,16 +34,54 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
     const shiftsForDate = (date: Date) => {
         const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+        
         // Filter shifts that overlap with this day
-        // Note: Blocks that span midnight will appear on both days (this is expected behavior)
-        return shifts
-            .filter((shift) => {
-                const start = new Date(shift.start);
-                const end = new Date(shift.end);
-                // Check if shift overlaps with this day
-                return start < dayEnd && end > dayStart;
-            })
-            .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        const overlapping = shifts.filter((shift) => {
+            const start = new Date(shift.start);
+            const end = new Date(shift.end);
+            return start < dayEnd && end > dayStart;
+        });
+        
+        // Group by layer - show only ONE shift per layer per day
+        const byLayer = new Map<string, CalendarShift>();
+        overlapping.forEach(shift => {
+            const layerName = shift.label.split(':')[0].trim();
+            
+            // If we haven't seen this layer yet, or if this shift starts on this day (preferred)
+            if (!byLayer.has(layerName)) {
+                byLayer.set(layerName, shift);
+            } else {
+                const existing = byLayer.get(layerName)!;
+                const shiftStart = new Date(shift.start).getTime();
+                const existingStart = new Date(existing.start).getTime();
+                const dayStartTime = dayStart.getTime();
+                const dayEndTime = dayEnd.getTime();
+                
+                // Prefer shift that starts on this day
+                const shiftStartsToday = shiftStart >= dayStartTime && shiftStart < dayEndTime;
+                const existingStartsToday = existingStart >= dayStartTime && existingStart < dayEndTime;
+                
+                if (shiftStartsToday && !existingStartsToday) {
+                    byLayer.set(layerName, shift);
+                } else if (!shiftStartsToday && !existingStartsToday) {
+                    // If neither starts today, prefer the one with more overlap
+                    const shiftOverlap = Math.min(new Date(shift.end).getTime(), dayEndTime) - 
+                                        Math.max(new Date(shift.start).getTime(), dayStartTime);
+                    const existingOverlap = Math.min(new Date(existing.end).getTime(), dayEndTime) - 
+                                           Math.max(existingStart, dayStartTime);
+                    if (shiftOverlap > existingOverlap) {
+                        byLayer.set(layerName, shift);
+                    }
+                }
+            }
+        });
+        
+        // Return only one shift per layer, sorted by layer name for consistency
+        return Array.from(byLayer.values()).sort((a, b) => {
+            const layerA = a.label.split(':')[0].trim();
+            const layerB = b.label.split(':')[0].trim();
+            return layerA.localeCompare(layerB);
+        });
     };
 
     for (let i = 0; i < startOffset; i++) {
@@ -68,6 +106,7 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
     const [cursor, setCursor] = useState(() => new Date());
     const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+    const [filterLayer, setFilterLayer] = useState<string | null>(null);
     
     const monthLabel = useMemo(
         () =>
@@ -79,7 +118,12 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
         [cursor, timeZone]
     );
 
-    const calendarCells = useMemo(() => buildCalendar(cursor, shifts), [cursor, shifts]);
+    const filteredShifts = useMemo(() => {
+        if (!filterLayer) return shifts;
+        return shifts.filter(shift => shift.label.startsWith(filterLayer + ':'));
+    }, [shifts, filterLayer]);
+
+    const calendarCells = useMemo(() => buildCalendar(cursor, filteredShifts), [cursor, filteredShifts]);
     const todayKey = useMemo(() => {
         const now = new Date();
         return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();

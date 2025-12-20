@@ -156,8 +156,34 @@ export default function LayerCard({
                     borderBottom: '1px solid #e2e8f0'
                 }}>
                     <div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                            {layer.name}
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.5rem',
+                            marginBottom: '0.25rem'
+                        }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                {layer.name}
+                            </div>
+                            <span 
+                                title="A layer defines a rotation pattern. Multiple layers can run simultaneously to provide different coverage (e.g., day shift and night shift)."
+                                style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#e0f2fe',
+                                    color: '#0c4a6e',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '600',
+                                    cursor: 'help',
+                                    border: '1px solid #bae6fd'
+                                }}
+                            >
+                                ?
+                            </span>
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                             {formatShortTime(new Date(layer.start), timeZone)} {timeZone} · {layer.rotationLengthHours}h rotation

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 type ConfirmDialogProps = {
     isOpen: boolean;
@@ -31,10 +32,19 @@ export default function ConfirmDialog({
                 }
             };
             document.addEventListener('keydown', handleEscape);
+            const scrollY = window.scrollY;
             document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+            
             return () => {
                 document.removeEventListener('keydown', handleEscape);
-                document.body.style.overflow = 'unset';
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+                window.scrollTo(0, scrollY);
             };
         }
     }, [isOpen, onCancel]);
@@ -64,17 +74,22 @@ export default function ConfirmDialog({
 
     const styles = variantStyles[variant];
 
-    return (
+    const dialog = (
         <div
             style={{
                 position: 'fixed',
-                inset: 0,
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 background: 'rgba(0, 0, 0, 0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 2000,
-                padding: '1rem'
+                zIndex: 9999,
+                padding: '1rem',
+                overflow: 'auto',
+                overscrollBehavior: 'contain'
             }}
             onClick={onCancel}
         >
@@ -82,24 +97,43 @@ export default function ConfirmDialog({
                 style={{
                     background: 'white',
                     borderRadius: '16px',
-                    padding: '2rem',
                     maxWidth: '500px',
                     width: '100%',
+                    maxHeight: '90vh',
+                    display: 'flex',
+                    flexDirection: 'column',
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
+                    overflow: 'hidden',
+                    margin: 'auto',
+                    position: 'relative'
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{styles.icon}</div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                        {title}
-                    </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                        {message}
-                    </p>
+                <div style={{ 
+                    padding: '2rem',
+                    paddingBottom: '1rem',
+                    overflowY: 'auto',
+                    flex: 1
+                }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{styles.icon}</div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                            {title}
+                        </h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                            {message}
+                        </p>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '0.75rem', 
+                    justifyContent: 'flex-end',
+                    padding: '1.5rem 2rem',
+                    borderTop: '1px solid #e2e8f0',
+                    background: '#f8fafc'
+                }}>
                     <button
                         onClick={onCancel}
                         className="glass-button"
@@ -137,5 +171,11 @@ export default function ConfirmDialog({
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') {
+        return dialog;
+    }
+
+    return createPortal(dialog, document.body);
 }
 

@@ -19,6 +19,8 @@ import LayerCreateForm from '@/components/LayerCreateForm';
 import OverrideForm from '@/components/OverrideForm';
 import OverrideList from '@/components/OverrideList';
 import CurrentCoverageDisplay from '@/components/CurrentCoverageDisplay';
+import ScheduleTimeline from '@/components/ScheduleTimeline';
+import LayerHelpPanel from '@/components/LayerHelpPanel';
 
 // Revalidate every 30 seconds to ensure current coverage is up-to-date
 export const revalidate = 30;
@@ -253,6 +255,14 @@ export default async function ScheduleDetailPage({
                         </span>
                         <span>·</span>
                         <span>Current time: <strong>{formatShortTime(now)}</strong> ({scheduleTimezoneLabel})</span>
+                        <span>·</span>
+                        <span style={{
+                            fontSize: '0.8rem',
+                            color: 'var(--text-muted)',
+                            fontStyle: 'italic'
+                        }}>
+                            All times shown in schedule timezone
+                        </span>
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -282,9 +292,26 @@ export default async function ScheduleDetailPage({
                 </div>
             </header>
 
+            {/* Current Coverage - Prominent Display */}
+            <div style={{ marginBottom: '2rem' }}>
+                <CurrentCoverageDisplay
+                    key={`coverage-${schedule.id}-${schedule.layers.map(l => `${l.id}-${l.start.getTime()}-${l.end?.getTime() || 'null'}`).join('-')}`}
+                    initialBlocks={activeBlocks.map(block => ({
+                        id: block.id,
+                        userName: block.userName,
+                        layerName: block.layerName,
+                        start: block.start.toISOString(),
+                        end: block.end.toISOString()
+                    }))}
+                    scheduleTimeZone={schedule.timeZone}
+                />
+            </div>
+
             {/* Main Content Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
                 <div>
+                    <LayerHelpPanel />
+                    
                     <section className="glass-panel" style={{
                         padding: '1.5rem',
                         background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -300,9 +327,30 @@ export default async function ScheduleDetailPage({
                             paddingBottom: '1rem',
                             borderBottom: '1px solid #e2e8f0'
                         }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                                Layers
-                            </h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                                    Layers
+                                </h3>
+                                <span 
+                                    title="Layers define rotation patterns. Multiple layers can run simultaneously to provide different coverage (e.g., day shift and night shift). Each layer rotates through its assigned responders based on the rotation length."
+                                    style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        background: '#e0f2fe',
+                                        color: '#0c4a6e',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        cursor: 'help',
+                                        border: '1px solid #bae6fd'
+                                    }}
+                                >
+                                    ?
+                                </span>
+                            </div>
                             <span style={{
                                 padding: '0.3rem 0.6rem',
                                 borderRadius: '8px',
@@ -360,22 +408,26 @@ export default async function ScheduleDetailPage({
                         />
                     </section>
 
+                    {/* Timeline View */}
+                    <ScheduleTimeline
+                        shifts={scheduleBlocks.map(block => ({
+                            id: block.id,
+                            start: block.start.toISOString(),
+                            end: block.end.toISOString(),
+                            label: `${block.layerName}: ${block.userName}${block.source === 'override' ? ' (Override)' : ''}`,
+                            layerName: block.layerName,
+                            userName: block.userName,
+                            source: block.source
+                        }))}
+                        timeZone={schedule.timeZone}
+                        layers={schedule.layers.map(l => ({ id: l.id, name: l.name }))}
+                    />
+
+                    {/* Calendar View */}
                     <ScheduleCalendar shifts={calendarShifts} timeZone={schedule.timeZone} />
                 </div>
 
                 <aside>
-                    {/* Current Coverage Panel - Client Component for Real-time Updates */}
-                    <CurrentCoverageDisplay
-                        key={`coverage-${schedule.id}-${schedule.layers.map(l => `${l.id}-${l.start.getTime()}-${l.end?.getTime() || 'null'}`).join('-')}`}
-                        initialBlocks={activeBlocks.map(block => ({
-                            id: block.id,
-                            userName: block.userName,
-                            layerName: block.layerName,
-                            start: block.start,
-                            end: block.end
-                        }))}
-                        scheduleTimeZone={schedule.timeZone}
-                    />
 
                     <OverrideForm
                         scheduleId={schedule.id}
