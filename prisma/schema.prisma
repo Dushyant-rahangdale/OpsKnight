@@ -133,6 +133,8 @@ model Service {
   name               String
   description        String?
   status             ServiceStatus @default(OPERATIONAL)
+  targetAckMinutes   Int           @default(15)
+  targetResolveMinutes Int         @default(120)
   teamId             String?
   escalationPolicyId String?
   slackWebhookUrl    String?       // Per-service Slack Webhook URL

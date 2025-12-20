@@ -99,10 +99,6 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     <div className="users-hero-text">
                         <p className="hero-eyebrow">RESPONDERS & ACCESS</p>
                         <h1>Users</h1>
-                        <p className="hero-subtitle">
-                            Control who can see incidents, join teams, and receive notifications. Adjust filters to
-                            find a responder or role quickly.
-                        </p>
                     </div>
                     <div className="hero-stats">
                         {heroStats.map((stat) => (
@@ -116,13 +112,13 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
                 <div className="users-main-grid">
                     <div className="users-left-column">
-                        <div className="panel filters-panel">
-                            <div className="panel-heading">
+                        <div className="panel filters-panel panel-compact directory-panel">
+                            <div className="panel-heading compact">
                                 <p className="panel-eyebrow">Filters</p>
                                 <h2>Find responders quickly</h2>
                                 <p className="muted-text">Search, filter, and refine who should receive alerts.</p>
                             </div>
-                            <form method="get" className="filters-form">
+                            <form method="get" className="filters-form filters-form-compact">
                                 <label className="filter-field">
                                     <span className="filter-label">Search</span>
                                     <input
@@ -170,27 +166,27 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                                     </a>
                                 </div>
                             </form>
-                            <div className="bulk-actions-section">
-                                <div>
-                                    <p className="panel-eyebrow">Bulk actions</p>
-                                    <p className="muted-text">Select rows then trigger updates.</p>
-                                </div>
-                                <BulkUserActionsForm
-                                    action={bulkUpdateUsers}
-                                    formId="bulk-users-form"
-                                    className="bulk-actions-form-inline"
-                                />
+                    </div>
+
+                        <div className="panel table-panel panel-compact directory-panel">
+                        <div className="panel-heading compact">
+                            <div>
+                                <p className="panel-eyebrow">User directory</p>
+                                <h2>Team roles & status</h2>
                             </div>
                         </div>
-
-                        <div className="panel table-panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <p className="panel-eyebrow">User directory</p>
-                                    <h2>Team roles & status</h2>
-                                </div>
+                        <div className="table-actions">
+                            <div>
+                                <p className="panel-eyebrow">Bulk actions</p>
+                                <p className="muted-text">Select rows to update status, roles, or remove responders.</p>
                             </div>
-                            <div className="table-wrapper">
+                            <BulkUserActionsForm
+                                action={bulkUpdateUsers}
+                                formId="bulk-users-form"
+                                className="bulk-actions-form-inline"
+                            />
+                        </div>
+                        <div className="table-wrapper table-wrapper-compact">
                                 <table className="users-table">
                                     <thead>
                                         <tr>
@@ -352,17 +348,17 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                         </div>
                     </div>
 
-                    <aside className="users-right-column">
-                        <div className="panel invite-panel">
+                    <aside className="users-right-column sidebar-compact">
+                        <article className="panel sidebar-card schedule-panel invite-panel">
                             <div>
                                 <p className="panel-eyebrow">Invite new user</p>
                                 <h3>Secure invite link</h3>
                                 <p className="muted-text">Add responders with a role and send a secure invite instantly.</p>
                             </div>
                             <UserCreateForm action={addUser} className="invite-form-card" />
-                        </div>
-                        <div className="panel audit-panel">
-                            <div className="panel-heading">
+                        </article>
+                        <article className="panel sidebar-card schedule-panel audit-panel">
+                            <div className="panel-heading compact">
                                 <div>
                                     <p className="panel-eyebrow">Recent Access Changes</p>
                                     <p className="muted-text">Audit trail of who joined, reactivated, or was removed.</p>
@@ -382,7 +378,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                                     ))
                                 )}
                             </div>
-                        </div>
+                        </article>
                     </aside>
                 </div>
             </div>
