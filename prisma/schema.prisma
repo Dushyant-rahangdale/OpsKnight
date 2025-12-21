@@ -74,35 +74,42 @@ enum IncidentUrgency {
   HIGH
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      Role     @default(USER)
-  status    UserStatus @default(INVITED)
-  passwordHash String?
-  timeZone  String   @default("UTC")
-  dailySummary Boolean @default(true)
-  incidentDigest DigestLevel @default(HIGH)
-  invitedAt DateTime?
-  deactivatedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum EscalationTargetType {
+  USER
+  TEAM
+  SCHEDULE
+}
 
-  assignedIncidents Incident[]
-  teamMemberships   TeamMember[]
-  onCallShifts      OnCallShift[]
-  escalationRules   EscalationRule[]
-  incidentNotes     IncidentNote[]
-  notifications     Notification[]
-  incidentWatchers  IncidentWatcher[]
-  auditLogs         AuditLog[]
-  overrides         OnCallOverride[] @relation("OverrideUser")
-  overrideReplacements OnCallOverride[] @relation("OverrideReplacesUser")
-  layerAssignments  OnCallLayerUser[]
-  accounts          Account[]
-  sessions          Session[]
-  apiKeys           ApiKey[]
+model User {
+  id             String      @id @default(cuid())
+  name           String
+  email          String      @unique
+  role           Role        @default(USER)
+  status         UserStatus  @default(INVITED)
+  passwordHash   String?
+  timeZone       String      @default("UTC")
+  dailySummary   Boolean     @default(true)
+  incidentDigest DigestLevel @default(HIGH)
+  invitedAt      DateTime?
+  deactivatedAt  DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  assignedIncidents    Incident[]
+  teamMemberships      TeamMember[]
+  onCallShifts         OnCallShift[]
+  escalationRules      EscalationRule[]
+  incidentNotes        IncidentNote[]
+  notifications        Notification[]
+  incidentWatchers     IncidentWatcher[]
+  auditLogs            AuditLog[]
+  overrides            OnCallOverride[]   @relation("OverrideUser")
+  overrideReplacements OnCallOverride[]   @relation("OverrideReplacesUser")
+  layerAssignments     OnCallLayerUser[]
+  accounts             Account[]
+  sessions             Session[]
+  apiKeys              ApiKey[]
+  incidentTemplates    IncidentTemplate[]
 }
 
 model Team {
@@ -112,12 +119,14 @@ model Team {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members  TeamMember[]
-  services Service[]
+  members           TeamMember[]
+  services          Service[]
+  escalationRules   EscalationRule[]
+  incidentTemplates IncidentTemplate[]
 }
 
 model TeamMember {
-  id     String @id @default(cuid())
+  id     String   @id @default(cuid())
   userId String
   teamId String
   role   TeamRole @default(MEMBER)
@@ -129,52 +138,59 @@ model TeamMember {
 }
 
 model Service {
-  id                 String        @id @default(cuid())
-  name               String
-  description        String?
-  status             ServiceStatus @default(OPERATIONAL)
-  targetAckMinutes   Int           @default(15)
-  targetResolveMinutes Int         @default(120)
-  teamId             String?
-  escalationPolicyId String?
-  slackWebhookUrl    String?       // Per-service Slack Webhook URL
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                   String        @id @default(cuid())
+  name                 String
+  description          String?
+  status               ServiceStatus @default(OPERATIONAL)
+  targetAckMinutes     Int           @default(15)
+  targetResolveMinutes Int           @default(120)
+  teamId               String?
+  escalationPolicyId   String?
+  slackWebhookUrl      String? // Per-service Slack Webhook URL
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   team      Team?             @relation(fields: [teamId], references: [id])
   incidents Incident[]
   policy    EscalationPolicy? @relation(fields: [escalationPolicyId], references: [id])
-  
-  integrations Integration[]
-  alerts       Alert[]
+
+  integrations     Integration[]
+  alerts           Alert[]
+  incidentTemplates IncidentTemplate[]
 }
 
 // Enhanced Escalation Policy
 model EscalationPolicy {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  
+
   // Replaced simple JSON with relational steps
-  steps       EscalationRule[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  steps EscalationRule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   services Service[]
 }
 
 model EscalationRule {
-  id        String   @id @default(cuid())
-  policyId  String
-  policy    EscalationPolicy @relation(fields: [policyId], references: [id])
-  
-  delayMinutes Int    @default(0) // Time to wait before escalating to next step
-  stepOrder    Int    // 0, 1, 2...
-  
-  // Target: currently only a User, could be a Team or Schedule later
-  targetUserId String
-  targetUser   User   @relation(fields: [targetUserId], references: [id])
+  id       String           @id @default(cuid())
+  policyId String
+  policy   EscalationPolicy @relation(fields: [policyId], references: [id])
+
+  delayMinutes Int @default(0) // Time to wait before escalating to next step
+  stepOrder    Int // 0, 1, 2...
+
+  // Target type and ID - one of these will be set based on targetType
+  targetType       EscalationTargetType @default(USER)
+  targetUserId     String?
+  targetTeamId     String?
+  targetScheduleId String?
+
+  targetUser     User?           @relation(fields: [targetUserId], references: [id])
+  targetTeam     Team?           @relation(fields: [targetTeamId], references: [id])
+  targetSchedule OnCallSchedule? @relation(fields: [targetScheduleId], references: [id])
 }
 
 model Integration {
@@ -191,9 +207,9 @@ model Integration {
 
 model Alert {
   id         String   @id @default(cuid())
-  dedupKey   String?  // The deduplication key from the event source
+  dedupKey   String? // The deduplication key from the event source
   status     String   @default("TRIGGERED") // TRIGGERED, RESOLVED
-  payload    Json     // The full event payload
+  payload    Json // The full event payload
   serviceId  String
   incidentId String?
   createdAt  DateTime @default(now())
@@ -203,27 +219,82 @@ model Alert {
 }
 
 model Incident {
-  id          String          @id @default(cuid())
-  title       String
-  description String?
-  status      IncidentStatus  @default(OPEN)
-  urgency     IncidentUrgency @default(HIGH)
-  priority    String?         // P1, P2.. P5
-  dedupKey    String?         // Key for deduplication
-  serviceId   String
-  assigneeId  String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                    String          @id @default(cuid())
+  title                 String
+  description           String?
+  status                IncidentStatus  @default(OPEN)
+  urgency               IncidentUrgency @default(HIGH)
+  priority              String? // P1, P2.. P5
+  dedupKey              String? // Key for deduplication
+  serviceId             String
+  assigneeId            String?
+  currentEscalationStep Int? // Current step index (0-based)
+  nextEscalationAt      DateTime? // When to execute next escalation step
+  escalationStatus      String? // ESCALATING, COMPLETED, PAUSED
+  acknowledgedAt        DateTime? // When incident was acknowledged (for SLA tracking)
+  resolvedAt            DateTime? // When incident was resolved (for SLA tracking)
+  snoozedUntil          DateTime? // When to auto-unsnooze (for time-based snoozing)
+  snoozeReason          String? // Reason for snoozing
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  service  Service         @relation(fields: [serviceId], references: [id])
-  assignee User?           @relation(fields: [assigneeId], references: [id])
-  events   IncidentEvent[]
-  notes    IncidentNote[]
-  alerts   Alert[]         // Relation to raw alerts
+  service       Service           @relation(fields: [serviceId], references: [id])
+  assignee      User?             @relation(fields: [assigneeId], references: [id])
+  events        IncidentEvent[]
+  notes         IncidentNote[]
+  alerts        Alert[] // Relation to raw alerts
   notifications Notification[]
-  watchers IncidentWatcher[]
-  
+  watchers      IncidentWatcher[]
+  tags          IncidentTag[]
+
   @@index([dedupKey]) // Index for fast deduplication lookups
+  @@index([nextEscalationAt, escalationStatus]) // Index for escalation processing queries
+  @@index([snoozedUntil]) // Index for auto-unsnooze processing
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String? // Optional color for tag
+  createdAt DateTime @default(now())
+
+  incidents IncidentTag[]
+}
+
+model IncidentTag {
+  id         String   @id @default(cuid())
+  incidentId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([incidentId, tagId])
+  @@index([incidentId])
+  @@index([tagId])
+}
+
+model IncidentTemplate {
+  id               String          @id @default(cuid())
+  name             String
+  description      String?
+  title            String // Default title for incidents created from this template
+  descriptionText  String? // Default description text
+  defaultUrgency   IncidentUrgency @default(HIGH)
+  defaultPriority  String? // P1-P5
+  defaultServiceId String? // Default service to use
+  createdById      String // User who created the template
+  isPublic         Boolean         @default(false) // Whether template is available to all users
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  defaultService Service? @relation(fields: [defaultServiceId], references: [id])
+  Team           Team?    @relation(fields: [teamId], references: [id])
+  teamId         String?
+
+  @@index([createdById])
 }
 
 model IncidentWatcher {
@@ -260,35 +331,36 @@ model IncidentNote {
 }
 
 model OnCallSchedule {
-  id        String        @id @default(cuid())
-  name      String
-  timeZone  String        @default("UTC")
-  layers    OnCallLayer[]
-  overrides OnCallOverride[]
-  shifts    OnCallShift[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  timeZone        String           @default("UTC")
+  layers          OnCallLayer[]
+  overrides       OnCallOverride[]
+  shifts          OnCallShift[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  escalationRules EscalationRule[]
 }
 
 model OnCallLayer {
-  id        String   @id @default(cuid())
-  scheduleId String
-  name      String
-  start     DateTime
-  end       DateTime?
-  rotationLengthHours Int @default(24)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String    @id @default(cuid())
+  scheduleId          String
+  name                String
+  start               DateTime
+  end                 DateTime?
+  rotationLengthHours Int       @default(24)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  schedule OnCallSchedule @relation(fields: [scheduleId], references: [id])
+  schedule OnCallSchedule    @relation(fields: [scheduleId], references: [id])
   users    OnCallLayerUser[]
 }
 
 model OnCallLayerUser {
-  id      String @id @default(cuid())
-  layerId String
-  userId  String
-  position Int @default(0)
+  id       String @id @default(cuid())
+  layerId  String
+  userId   String
+  position Int    @default(0)
 
   layer OnCallLayer @relation(fields: [layerId], references: [id])
   user  User        @relation(fields: [userId], references: [id])
@@ -297,13 +369,13 @@ model OnCallLayerUser {
 }
 
 model OnCallOverride {
-  id        String   @id @default(cuid())
-  scheduleId String
-  userId    String
+  id             String   @id @default(cuid())
+  scheduleId     String
+  userId         String
   replacesUserId String?
-  start     DateTime
-  end       DateTime
-  createdAt DateTime @default(now())
+  start          DateTime
+  end            DateTime
+  createdAt      DateTime @default(now())
 
   schedule     OnCallSchedule @relation(fields: [scheduleId], references: [id])
   user         User           @relation("OverrideUser", fields: [userId], references: [id])
@@ -388,13 +460,13 @@ model VerificationToken {
 }
 
 model ApiKey {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
   prefix     String
   tokenHash  String
   scopes     String[]
   userId     String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
   revokedAt  DateTime?
 

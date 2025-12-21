@@ -19,12 +19,14 @@ export async function GET(req: NextRequest) {
 
         const searchTerm = query.toLowerCase();
 
-        // Search incidents
+        // Search incidents (including notes and events)
         const incidents = await prisma.incident.findMany({
             where: {
                 OR: [
                     { title: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } }
+                    { description: { contains: query, mode: 'insensitive' } },
+                    { notes: { some: { content: { contains: query, mode: 'insensitive' } } } },
+                    { events: { some: { message: { contains: query, mode: 'insensitive' } } } }
                 ]
             },
             take: 5,

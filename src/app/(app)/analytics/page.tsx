@@ -207,7 +207,23 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         prisma.incident.count({ where: { ...activeWhere, assigneeId: null } }),
         prisma.incident.findMany({
             where: recentIncidentWhere,
-            select: { id: true, createdAt: true, updatedAt: true, status: true, urgency: true, assigneeId: true, serviceId: true }
+            select: { 
+                id: true, 
+                createdAt: true, 
+                updatedAt: true, 
+                status: true, 
+                urgency: true, 
+                assigneeId: true, 
+                serviceId: true,
+                acknowledgedAt: true,
+                resolvedAt: true,
+                service: {
+                    select: {
+                        targetAckMinutes: true,
+                        targetResolveMinutes: true
+                    }
+                }
+            }
         }),
         prisma.incident.findMany({
             where: trendIncidentWhere,
@@ -318,7 +334,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         ])
         : [[], [], [], []];
 
+    // Use acknowledgedAt field if available, fallback to event parsing for backward compatibility
     const ackByIncident = new Map<string, Date>();
+    for (const incident of recentIncidents) {
+        if (incident.acknowledgedAt) {
+            ackByIncident.set(incident.id, incident.acknowledgedAt);
+        }
+    }
+    // Fallback to event parsing for incidents without acknowledgedAt
     for (const ack of ackEvents) {
         if (!ackByIncident.has(ack.incidentId)) {
             ackByIncident.set(ack.incidentId, ack.createdAt);
@@ -338,8 +361,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
 
     const resolvedIncidents = recentIncidents.filter((incident) => incident.status === 'RESOLVED');
     const resolvedDiffs = resolvedIncidents.map((incident) => {
-        if (incident.updatedAt && incident.createdAt) {
-            return incident.updatedAt.getTime() - incident.createdAt.getTime();
+        // Use resolvedAt field if available, fallback to updatedAt
+        const resolvedAt = incident.resolvedAt || incident.updatedAt;
+        if (resolvedAt && incident.createdAt) {
+            return resolvedAt.getTime() - incident.createdAt.getTime();
         }
         return null;
     }).filter((diff): diff is number => diff !== null);
@@ -512,11 +537,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
             }
         }
 
-        if (incident.status === 'RESOLVED' && incident.updatedAt && incident.createdAt) {
-            current.resolveTotal += 1;
-            const diffMinutes = (incident.updatedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
-            if (diffMinutes <= resolveTargetMinutes) {
-                current.resolveMet += 1;
+        if (incident.status === 'RESOLVED') {
+            const resolvedAt = incident.resolvedAt || incident.updatedAt;
+            if (resolvedAt && incident.createdAt) {
+                current.resolveTotal += 1;
+                const diffMinutes = (resolvedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
+                if (diffMinutes <= resolveTargetMinutes) {
+                    current.resolveMet += 1;
+                }
             }
         }
 
@@ -549,10 +577,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
             }
         }
 
-        if (incident.status === 'RESOLVED' && incident.updatedAt && incident.createdAt) {
-            const diffMinutes = (incident.updatedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
-            if (diffMinutes <= resolveTargetMinutes) {
-                resolveSlaMet += 1;
+        if (incident.status === 'RESOLVED') {
+            const resolvedAt = incident.resolvedAt || incident.updatedAt;
+            if (resolvedAt && incident.createdAt) {
+                const diffMinutes = (resolvedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
+                if (diffMinutes <= resolveTargetMinutes) {
+                    resolveSlaMet += 1;
+                }
             }
         }
     }

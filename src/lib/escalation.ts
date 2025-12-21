@@ -114,7 +114,7 @@ export async function resolveEscalationTarget(
  * Execute escalation policy for an incident.
  * Handles multiple steps with delays and different target types.
  */
-export async function executeEscalation(incidentId: string, stepIndex: number = 0) {
+export async function executeEscalation(incidentId: string, stepIndex?: number) {
     const incident = await prisma.incident.findUnique({
         where: { id: incidentId },
         include: {
@@ -123,7 +123,11 @@ export async function executeEscalation(incidentId: string, stepIndex: number = 
                     policy: {
                         include: {
                             steps: {
-                                include: { targetUser: true },
+                                include: { 
+                                    targetUser: true,
+                                    targetTeam: true,
+                                    targetSchedule: true
+                                },
                                 orderBy: { stepOrder: 'asc' }
                             }
                         }
@@ -134,63 +138,170 @@ export async function executeEscalation(incidentId: string, stepIndex: number = 
     });
 
     if (!incident?.service?.policy?.steps?.length) {
+        // Clear escalation status if no policy
+        await prisma.incident.update({
+            where: { id: incidentId },
+            data: {
+                escalationStatus: null,
+                nextEscalationAt: null,
+                currentEscalationStep: null
+            }
+        });
         return { escalated: false, reason: 'No escalation policy configured' };
     }
 
-    if (stepIndex >= incident.service.policy.steps.length) {
+    // Use provided stepIndex, or currentEscalationStep from DB, or default to 0
+    const currentStepIndex = stepIndex ?? incident.currentEscalationStep ?? 0;
+
+    if (currentStepIndex >= incident.service.policy.steps.length) {
+        // Mark escalation as completed
+        await prisma.incident.update({
+            where: { id: incidentId },
+            data: {
+                escalationStatus: 'COMPLETED',
+                nextEscalationAt: null,
+                currentEscalationStep: null
+            }
+        });
         return { escalated: false, reason: 'All escalation steps exhausted' };
     }
 
-    const step = incident.service.policy.steps[stepIndex];
-    const targetUser = step.targetUser;
-
-    // Send notification (defaulting to EMAIL for now)
-    const result = await sendNotification(
-        incidentId,
-        targetUser.id,
-        'EMAIL',
-        `[OpsGuard] Incident: ${incident.title}${stepIndex > 0 ? ` (Escalation Level ${stepIndex + 1})` : ''}`
-    );
-
-    // Assign incident to target user (only on first step)
-    if (stepIndex === 0) {
-        await prisma.incident.update({
-            where: { id: incidentId },
-            data: { assigneeId: targetUser.id }
-        });
+    const step = incident.service.policy.steps[currentStepIndex];
+    
+    // Resolve target based on target type
+    let targetId: string | null = null;
+    let targetName: string = 'Unknown';
+    
+    switch (step.targetType) {
+        case 'USER':
+            targetId = step.targetUserId || null;
+            targetName = step.targetUser?.name || 'Unknown User';
+            break;
+        case 'TEAM':
+            targetId = step.targetTeamId || null;
+            targetName = step.targetTeam?.name || 'Unknown Team';
+            break;
+        case 'SCHEDULE':
+            targetId = step.targetScheduleId || null;
+            targetName = step.targetSchedule?.name || 'Unknown Schedule';
+            break;
     }
 
-    await prisma.incidentEvent.create({
-        data: {
-            incidentId,
-            message: `Escalated to ${targetUser.name} (Level ${stepIndex + 1}${step.delayMinutes > 0 ? `, after ${step.delayMinutes} minute delay` : ''})`
-        }
-    });
-
-    // Schedule next step if there is one
-    if (stepIndex < incident.service.policy.steps.length - 1) {
-        const nextStep = incident.service.policy.steps[stepIndex + 1];
-        const delayMs = nextStep.delayMinutes * 60 * 1000;
-        const executeAt = new Date(Date.now() + delayMs);
-
-        // In a production system, you would use a job queue (e.g., Bull, Agenda, etc.)
-        // For now, we'll just log that the next step should be executed
-        // TODO: Implement proper job scheduling for delayed escalations
-        
-        await prisma.incidentEvent.create({
+    // Initialize escalation status if this is the first step
+    if (currentStepIndex === 0 && !incident.escalationStatus) {
+        await prisma.incident.update({
+            where: { id: incidentId },
             data: {
-                incidentId,
-                message: `Next escalation step scheduled for ${executeAt.toLocaleString()} (${nextStep.delayMinutes} minute delay)`
+                escalationStatus: 'ESCALATING',
+                currentEscalationStep: 0
             }
         });
     }
 
+    if (!targetId) {
+        await prisma.incidentEvent.create({
+            data: {
+                incidentId,
+                message: `Escalation step ${currentStepIndex + 1} has invalid target configuration. Skipping.`
+            }
+        });
+        // Try next step
+        if (currentStepIndex < incident.service.policy.steps.length - 1) {
+            return executeEscalation(incidentId, currentStepIndex + 1);
+        }
+        return { escalated: false, reason: 'Invalid target configuration' };
+    }
+
+    // Resolve to user IDs using resolveEscalationTarget
+    const targetUserIds = await resolveEscalationTarget(
+        step.targetType,
+        targetId,
+        new Date()
+    );
+
+    if (targetUserIds.length === 0) {
+        await prisma.incidentEvent.create({
+            data: {
+                incidentId,
+                message: `Escalation step ${currentStepIndex + 1} (${step.targetType}: ${targetName}) resolved to no users. Skipping.`
+            }
+        });
+        // Try next step
+        if (currentStepIndex < incident.service.policy.steps.length - 1) {
+            return executeEscalation(incidentId, currentStepIndex + 1);
+        }
+        return { escalated: false, reason: 'No users to notify' };
+    }
+
+    // Send notifications to all resolved users
+    const notificationsSent = [];
+    for (const userId of targetUserIds) {
+        const result = await sendNotification(
+            incidentId,
+            userId,
+            'EMAIL',
+            `[OpsGuard] Incident: ${incident.title}${currentStepIndex > 0 ? ` (Escalation Level ${currentStepIndex + 1})` : ''}`
+        );
+        notificationsSent.push({ userId, result });
+    }
+
+    // Assign incident to first user (only on first step)
+    if (currentStepIndex === 0 && targetUserIds.length > 0) {
+        await prisma.incident.update({
+            where: { id: incidentId },
+            data: { assigneeId: targetUserIds[0] }
+        });
+    }
+
+    // Create event message
+    const targetDescription = step.targetType === 'USER' 
+        ? targetName
+        : `${step.targetType}: ${targetName} (${targetUserIds.length} user${targetUserIds.length !== 1 ? 's' : ''})`;
+
+    await prisma.incidentEvent.create({
+        data: {
+            incidentId,
+            message: `Escalated to ${targetDescription} (Level ${currentStepIndex + 1}${step.delayMinutes > 0 ? `, after ${step.delayMinutes} minute delay` : ''})`
+        }
+    });
+
+    // Determine next escalation step and schedule it
+    const nextStepIndex = currentStepIndex + 1;
+    let nextEscalationAt: Date | null = null;
+    let escalationStatus: string = 'COMPLETED';
+
+    if (nextStepIndex < incident.service.policy.steps.length) {
+        const nextStep = incident.service.policy.steps[nextStepIndex];
+        const delayMs = nextStep.delayMinutes * 60 * 1000;
+        nextEscalationAt = new Date(Date.now() + delayMs);
+        escalationStatus = 'ESCALATING';
+
+        await prisma.incidentEvent.create({
+            data: {
+                incidentId,
+                message: `Next escalation step scheduled for ${nextEscalationAt.toLocaleString()} (${nextStep.delayMinutes} minute delay)`
+            }
+        });
+    }
+
+    // Update incident with escalation state
+    await prisma.incident.update({
+        where: { id: incidentId },
+        data: {
+            currentEscalationStep: nextStepIndex < incident.service.policy.steps.length ? nextStepIndex : null,
+            nextEscalationAt,
+            escalationStatus: escalationStatus as any
+        }
+    });
+
     return { 
         escalated: true, 
-        targetUser: targetUser.name, 
-        stepIndex,
-        notification: result,
-        nextStepScheduled: stepIndex < incident.service.policy.steps.length - 1
+        targetName,
+        targetType: step.targetType,
+        targetCount: targetUserIds.length,
+        stepIndex: currentStepIndex,
+        notifications: notificationsSent,
+        nextStepScheduled: nextStepIndex < incident.service.policy.steps.length
     };
 }
 
@@ -199,14 +310,83 @@ export async function executeEscalation(incidentId: string, stepIndex: number = 
  * This should be called periodically (e.g., via cron job) to process delayed escalations
  */
 export async function processPendingEscalations() {
-    // This is a placeholder for future implementation
-    // In production, you would:
-    // 1. Query for incidents that need escalation (based on scheduled times)
-    // 2. Check if incident is still unacknowledged
-    // 3. Execute the next escalation step
-    // 4. Schedule the next step if applicable
+    const now = new Date();
     
-    // For now, this is a no-op
-    return { processed: 0 };
+    // Find incidents that need escalation (nextEscalationAt is in the past, still open/unacknowledged)
+    const incidentsToEscalate = await prisma.incident.findMany({
+        where: {
+            nextEscalationAt: {
+                lte: now
+            },
+            escalationStatus: 'ESCALATING',
+            status: {
+                in: ['OPEN', 'SNOOZED'] // Only escalate if still open or snoozed
+            }
+        },
+        include: {
+            service: {
+                include: {
+                    policy: {
+                        include: {
+                            steps: {
+                                include: {
+                                    targetUser: true,
+                                    targetTeam: true,
+                                    targetSchedule: true
+                                },
+                                orderBy: { stepOrder: 'asc' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    let processed = 0;
+    const errors: string[] = [];
+
+    for (const incident of incidentsToEscalate) {
+        try {
+            // Get the current step index (default to 0 if not set)
+            const currentStepIndex = incident.currentEscalationStep ?? 0;
+
+            // Execute the next escalation step
+            const result = await executeEscalation(incident.id, currentStepIndex);
+
+            if (result.escalated) {
+                processed++;
+            } else {
+                // If escalation failed or completed, update status
+                await prisma.incident.update({
+                    where: { id: incident.id },
+                    data: {
+                        escalationStatus: result.reason?.includes('exhausted') || result.reason?.includes('completed') ? 'COMPLETED' : 'ESCALATING',
+                        nextEscalationAt: null
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`Error processing escalation for incident ${incident.id}:`, error);
+            errors.push(`Incident ${incident.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            
+            // Update incident to prevent infinite retries on same error
+            await prisma.incident.update({
+                where: { id: incident.id },
+                data: {
+                    escalationStatus: 'COMPLETED',
+                    nextEscalationAt: null
+                }
+            }).catch(() => {
+                // Ignore update errors
+            });
+        }
+    }
+
+    return {
+        processed,
+        total: incidentsToEscalate.length,
+        errors: errors.length > 0 ? errors : undefined
+    };
 }
 

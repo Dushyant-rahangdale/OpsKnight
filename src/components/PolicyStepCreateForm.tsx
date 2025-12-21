@@ -7,18 +7,23 @@ import { useToast } from './ToastProvider';
 type PolicyStepCreateFormProps = {
     policyId: string;
     users: Array<{ id: string; name: string; email: string }>;
+    teams: Array<{ id: string; name: string }>;
+    schedules: Array<{ id: string; name: string }>;
     addStep: (policyId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
 };
 
 export default function PolicyStepCreateForm({
     policyId,
     users,
+    teams,
+    schedules,
     addStep
 }: PolicyStepCreateFormProps) {
     const router = useRouter();
     const { showToast } = useToast();
     const [isPending, startTransition] = useTransition();
     const [showForm, setShowForm] = useState(false);
+    const [targetType, setTargetType] = useState<'USER' | 'TEAM' | 'SCHEDULE'>('USER');
 
     const handleSubmit = async (formData: FormData) => {
         startTransition(async () => {
@@ -79,10 +84,12 @@ export default function PolicyStepCreateForm({
             <form action={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>
-                        Notify User *
+                        Target Type *
                     </label>
                     <select
-                        name="userId"
+                        name="targetType"
+                        value={targetType}
+                        onChange={(e) => setTargetType(e.target.value as 'USER' | 'TEAM' | 'SCHEDULE')}
                         required
                         disabled={isPending}
                         style={{
@@ -94,13 +101,88 @@ export default function PolicyStepCreateForm({
                             background: 'white'
                         }}
                     >
-                        <option value="">Select a user</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.name} ({user.email})
-                            </option>
-                        ))}
+                        <option value="USER">User</option>
+                        <option value="TEAM">Team</option>
+                        <option value="SCHEDULE">Schedule (On-Call)</option>
                     </select>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        {targetType === 'USER' && 'Notify a specific user'}
+                        {targetType === 'TEAM' && 'Notify all members of a team'}
+                        {targetType === 'SCHEDULE' && 'Notify the user currently on-call for a schedule'}
+                    </p>
+                </div>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>
+                        {targetType === 'USER' && 'Select User *'}
+                        {targetType === 'TEAM' && 'Select Team *'}
+                        {targetType === 'SCHEDULE' && 'Select Schedule *'}
+                    </label>
+                    {targetType === 'USER' && (
+                        <select
+                            name="targetUserId"
+                            required
+                            disabled={isPending}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                background: 'white'
+                            }}
+                        >
+                            <option value="">Select a user</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    {targetType === 'TEAM' && (
+                        <select
+                            name="targetTeamId"
+                            required
+                            disabled={isPending}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                background: 'white'
+                            }}
+                        >
+                            <option value="">Select a team</option>
+                            {teams.map((team) => (
+                                <option key={team.id} value={team.id}>
+                                    {team.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    {targetType === 'SCHEDULE' && (
+                        <select
+                            name="targetScheduleId"
+                            required
+                            disabled={isPending}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                background: 'white'
+                            }}
+                        >
+                            <option value="">Select a schedule</option>
+                            {schedules.map((schedule) => (
+                                <option key={schedule.id} value={schedule.id}>
+                                    {schedule.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </div>
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>

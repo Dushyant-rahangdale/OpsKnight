@@ -121,7 +121,10 @@ async function ensurePolicySteps(policyId: string, userIds: string[]) {
     if (existingSteps > 0) return
     const steps = userIds.slice(0, 3).map((userId, index) => ({
         policyId,
+        targetType: 'USER' as const,
         targetUserId: userId,
+        targetTeamId: null,
+        targetScheduleId: null,
         stepOrder: index,
         delayMinutes: index * 10
     }))
@@ -388,7 +391,8 @@ async function main() {
         where: { dedupKey: { startsWith: 'demo-' } }
     })
     const incidentCount = await prisma.incident.count()
-    const shouldSeedIncidents = forceDemo || existingDemoIncidents === 0 || incidentCount < 20
+    // Always seed if forceDemo is true, or if we have less than 300 demo incidents
+    const shouldSeedIncidents = forceDemo || existingDemoIncidents < 300
 
     if (shouldSeedIncidents) {
         const incidentServices = services
@@ -401,17 +405,83 @@ async function main() {
         ]
         const statuses = ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const
         const urgencies = ['HIGH', 'LOW'] as const
+        const priorities = ['P1', 'P2', 'P3', 'P4', 'P5', null] as const
+        const incidentTitles = [
+            'Database connection pool exhausted',
+            'API latency spike detected',
+            'Memory leak in service worker',
+            'Failed payment processing',
+            'Certificate expiration warning',
+            'Disk space critical on production',
+            'Cache miss rate increased',
+            'Third-party API timeout',
+            'High error rate in microservice',
+            'Queue processing backlog',
+            'DNS resolution failure',
+            'SSL handshake timeout',
+            'Database query performance degradation',
+            'Message queue consumer lag',
+            'CDN cache invalidation issue',
+            'Load balancer health check failures',
+            'Redis connection timeout',
+            'Elasticsearch cluster unresponsive',
+            'Kubernetes pod crash loop',
+            'Network partition detected',
+            'Storage quota exceeded',
+            'Authentication service outage',
+            'Data replication lag',
+            'GraphQL query timeout',
+            'WebSocket connection drops',
+            'Cron job execution failure',
+            'Backup job failed',
+            'Monitoring system unreachable',
+            'Log aggregation delay',
+            'Service mesh routing issue'
+        ]
 
-        for (let index = 0; index < 50; index += 1) {
-            const createdAt = hoursFrom(daysAgo(randomInt(90)), randomInt(20))
+        const totalIncidents = 500
+        console.log(`Creating ${totalIncidents} demo incidents...`)
+
+        for (let index = 0; index < totalIncidents; index += 1) {
+            const createdAt = hoursFrom(daysAgo(randomInt(180)), randomInt(48)) // Up to 180 days ago
             const status = randomPick(Array.from(statuses))
             const urgency = randomPick(Array.from(urgencies))
+            const priority = Math.random() > 0.3 ? randomPick(Array.from(priorities)) : null // 70% have priority
             const service = randomPick(incidentServices)
-            const assigneeId = Math.random() > 0.2 ? randomPick(assignees) : null
+            const assigneeId = Math.random() > 0.15 ? randomPick(assignees) : null // 85% assigned
             const resolved = status === 'RESOLVED'
-            const updatedAt = resolved ? hoursFrom(createdAt, 1 + Math.floor(Math.random() * 24)) : hoursFrom(createdAt, Math.floor(Math.random() * 12))
-            const title = `${service.name} ${urgency === 'HIGH' ? 'Critical' : 'Degraded'} alert #${index + 1}`
-            const dedupKey = `demo-${service.id}-${index + 1}`
+            const acknowledged = status === 'ACKNOWLEDGED' || resolved
+            const snoozed = status === 'SNOOZED'
+            
+            // Calculate timestamps based on status
+            let acknowledgedAt: Date | null = null
+            let resolvedAt: Date | null = null
+            let snoozedUntil: Date | null = null
+            let updatedAt: Date
+
+            if (acknowledged) {
+                const ackDelayMinutes = Math.floor(Math.random() * 120) + 5 // 5-125 minutes after creation
+                acknowledgedAt = new Date(createdAt.getTime() + ackDelayMinutes * 60 * 1000)
+            }
+
+            if (resolved) {
+                const resolveDelayHours = Math.floor(Math.random() * 72) + 1 // 1-72 hours after creation
+                resolvedAt = new Date(createdAt.getTime() + resolveDelayHours * 60 * 60 * 1000)
+                updatedAt = resolvedAt
+            } else if (snoozed) {
+                const snoozeHours = [1, 4, 8, 24, 48][randomInt(5)] // 1, 4, 8, 24, or 48 hours
+                snoozedUntil = new Date(createdAt.getTime() + snoozeHours * 60 * 60 * 1000)
+                updatedAt = hoursFrom(createdAt, Math.floor(Math.random() * 12))
+            } else {
+                updatedAt = hoursFrom(createdAt, Math.floor(Math.random() * 48))
+            }
+
+            // Generate varied incident titles
+            const titleTemplate = randomPick(incidentTitles)
+            const title = `${service.name}: ${titleTemplate}${index > 0 ? ` (${index + 1})` : ''}`
+            const dedupKey = `demo-${service.id}-${index + 1}-${Date.now()}`
+            
+            // Check if this specific incident already exists (by dedupKey)
             const alreadyExists = await prisma.incident.findFirst({
                 where: { dedupKey }
             })
@@ -422,14 +492,22 @@ async function main() {
             const incident = await prisma.incident.create({
                 data: {
                     title,
-                    description: `Demo incident for ${service.name}`,
+                    description: `Demo incident for ${service.name}. ${urgency === 'HIGH' ? 'High priority issue requiring immediate attention.' : 'Lower priority issue for follow-up.'}${priority ? ` Priority level: ${priority}.` : ''}`,
                     status,
                     urgency,
+                    priority,
                     dedupKey,
                     serviceId: service.id,
                     assigneeId,
+                    acknowledgedAt,
+                    resolvedAt,
+                    snoozedUntil,
+                    snoozeReason: snoozed ? 'Demo data: Auto-snoozed for testing' : null,
                     createdAt,
-                    updatedAt
+                    updatedAt,
+                    // Set escalation status based on incident status
+                    escalationStatus: resolved || acknowledged ? 'COMPLETED' : (snoozed || status === 'SUPPRESSED' ? 'PAUSED' : 'ESCALATING'),
+                    nextEscalationAt: resolved || acknowledged || snoozed || status === 'SUPPRESSED' ? null : hoursFrom(createdAt, 15 + randomInt(30))
                 }
             })
 
@@ -456,49 +534,114 @@ async function main() {
                 }
             })
 
-            if (assigneeId && Math.random() > 0.3) {
+            // Add acknowledgment event if acknowledged
+            if (acknowledged && acknowledgedAt) {
+                const ackUserName = assigneeId ? userNameById.get(assigneeId) || 'Responder' : 'System'
                 await prisma.incidentEvent.create({
                     data: {
                         incidentId: incident.id,
-                        message: `Acknowledged via API event.`,
-                        createdAt: hoursFrom(createdAt, 0.5)
+                        message: `Incident acknowledged by ${ackUserName}`,
+                        createdAt: acknowledgedAt
                     }
                 })
             }
 
-            if (Math.random() > 0.6) {
+            // Add escalation events (for some incidents)
+            if (!resolved && !acknowledged && Math.random() > 0.5) {
                 const escalatedTo = randomPick(assignees)
                 const escalatedName = userNameById.get(escalatedTo) || 'Responder'
                 await prisma.incidentEvent.create({
                     data: {
                         incidentId: incident.id,
-                        message: `Escalated to ${escalatedName} (Level 1)`,
-                        createdAt: hoursFrom(createdAt, 1.5)
+                        message: `Escalated to ${escalatedName} (Level ${1 + randomInt(3)})`,
+                        createdAt: hoursFrom(createdAt, 1 + randomInt(4))
                     }
                 })
             }
 
-            if (resolved) {
-                const autoResolved = Math.random() > 0.5
+            // Add resolution event if resolved
+            if (resolved && resolvedAt) {
+                const resolverName = assigneeId ? userNameById.get(assigneeId) || 'Responder' : 'System'
+                const resolutionMethods = [
+                    'Resolved by responder action',
+                    'Auto-resolved after monitoring check passed',
+                    'Resolved via automated remediation',
+                    'Manually resolved after investigation',
+                    'Resolved after service restart'
+                ]
                 await prisma.incidentEvent.create({
                     data: {
                         incidentId: incident.id,
-                        message: autoResolved ? 'Auto-resolved by event from demo.' : 'Resolved by responder action.',
-                        createdAt: updatedAt
+                        message: `${randomPick(resolutionMethods)} by ${resolverName}`,
+                        createdAt: resolvedAt
                     }
                 })
             }
 
-            if (Math.random() > 0.8) {
+            // Add snooze event if snoozed
+            if (snoozed && snoozedUntil) {
+                const snoozeReasons = [
+                    'Snoozed for maintenance window',
+                    'Snoozed pending investigation',
+                    'Snoozed - false positive expected',
+                    'Snoozed until next business day'
+                ]
                 await prisma.incidentEvent.create({
                     data: {
                         incidentId: incident.id,
-                        message: 'Incident reopened after regression.',
-                        createdAt: hoursFrom(updatedAt, 2)
+                        message: `${randomPick(snoozeReasons)} (until ${snoozedUntil.toLocaleString()})`,
+                        createdAt: createdAt
                     }
                 })
+            }
+
+            // Add some notes for a portion of incidents
+            if (Math.random() > 0.7) {
+                const noteContents = [
+                    'Investigating root cause. Initial assessment suggests network connectivity issue.',
+                    'Working with vendor to resolve third-party service outage.',
+                    'Monitoring metrics show gradual improvement. Continuing to observe.',
+                    'Applied hotfix. Monitoring for stability.',
+                    'Rolled back recent deployment. Incident appears to be resolved.',
+                    'Identified configuration error. Fix in progress.',
+                    'Scaling up resources to handle increased load.',
+                    'Database query optimization applied. Performance improving.',
+                    'Cache cleared. Service recovery in progress.',
+                    'Implemented circuit breaker pattern. Error rate decreasing.'
+                ]
+                const noteAuthor = randomPick(assignees)
+                await prisma.incidentNote.create({
+                    data: {
+                        incidentId: incident.id,
+                        userId: noteAuthor,
+                        content: randomPick(noteContents),
+                        createdAt: hoursFrom(createdAt, Math.random() * 24)
+                    }
+                })
+            }
+
+            // Add watchers for some incidents
+            if (Math.random() > 0.8 && assigneeId) {
+                const watcherIds = assignees.filter(id => id !== assigneeId).slice(0, randomInt(3) + 1)
+                for (const watcherId of watcherIds) {
+                    await prisma.incidentWatcher.create({
+                        data: {
+                            incidentId: incident.id,
+                            userId: watcherId,
+                            role: 'FOLLOWER',
+                            createdAt: hoursFrom(createdAt, Math.random() * 6)
+                        }
+                    }).catch(() => {}) // Ignore duplicate watcher errors
+                }
+            }
+
+            // Progress indicator every 50 incidents
+            if ((index + 1) % 50 === 0) {
+                console.log(`  Created ${index + 1}/${totalIncidents} incidents...`)
             }
         }
+        
+        console.log(`✓ Created ${totalIncidents} demo incidents successfully`)
     }
 
     console.log('Seed complete. Demo password:', demoPassword)

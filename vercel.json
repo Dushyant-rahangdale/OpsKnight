@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-escalations",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
+

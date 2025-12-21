@@ -1,0 +1,83 @@
+'use server';
+
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { assertResponderOrAbove, getCurrentUser } from '@/lib/rbac';
+import { IncidentUrgency } from '@prisma/client';
+
+export async function createTemplate(formData: FormData) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
+
+    const user = await getCurrentUser();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string | null;
+    const title = formData.get('title') as string;
+    const descriptionText = formData.get('descriptionText') as string | null;
+    const defaultUrgency = (formData.get('defaultUrgency') as IncidentUrgency) || 'HIGH';
+    const defaultPriority = formData.get('defaultPriority') as string | null;
+    const defaultServiceId = formData.get('defaultServiceId') as string | null;
+    const isPublic = formData.get('isPublic') === 'on';
+
+    await prisma.incidentTemplate.create({
+        data: {
+            name,
+            description,
+            title,
+            descriptionText,
+            defaultUrgency,
+            defaultPriority: defaultPriority || null,
+            defaultServiceId: defaultServiceId || null,
+            createdById: user.id,
+            isPublic
+        }
+    });
+
+    revalidatePath('/incidents/templates');
+    revalidatePath('/incidents/create');
+    
+    redirect('/incidents/templates');
+}
+
+// Wrapper for useActionState compatibility
+export async function createTemplateAction(_prevState: null, formData: FormData): Promise<null> {
+    await createTemplate(formData);
+    return null; // Won't be reached due to redirect
+}
+
+export async function getAllTemplates(userId?: string) {
+    const templates = await prisma.incidentTemplate.findMany({
+        where: userId
+            ? {
+                OR: [
+                    { isPublic: true },
+                    { createdById: userId }
+                ]
+            }
+            : undefined,
+        include: {
+            createdBy: { select: { id: true, name: true } },
+            defaultService: { select: { id: true, name: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+    return templates;
+}
+
+export async function deleteTemplate(templateId: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
+
+    await prisma.incidentTemplate.delete({
+        where: { id: templateId }
+    });
+
+    revalidatePath('/incidents/templates');
+}

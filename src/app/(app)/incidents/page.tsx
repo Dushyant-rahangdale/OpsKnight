@@ -1,12 +1,22 @@
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { getUserPermissions } from '@/lib/rbac';
+import IncidentsListTable from '@/components/incident/IncidentsListTable';
+import IncidentsFilters from '@/components/incident/IncidentsFilters';
 
 export const revalidate = 30;
 
-export default async function IncidentsPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
-    const { filter } = await searchParams;
-    const currentFilter = filter || 'all_open';
+const ITEMS_PER_PAGE = 50; // Number of incidents per page
+
+export default async function IncidentsPage({ searchParams }: { searchParams: Promise<{ filter?: string; search?: string; priority?: string; urgency?: string; sort?: string; page?: string }> }) {
+    const params = await searchParams;
+    const currentFilter = params.filter || 'all_open';
+    const currentSearch = params.search || '';
+    const currentPriority = params.priority || 'all';
+    const currentUrgency = params.urgency || 'all';
+    const currentSort = params.sort || 'newest';
+    const currentPage = parseInt(params.page || '1', 10);
+    const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
     const permissions = await getUserPermissions();
     const canCreateIncident = permissions.isResponderOrAbove;
@@ -20,36 +30,106 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
     if (currentFilter === 'mine') {
         where = {
             assigneeId: currentUser?.id,
-            status: { not: 'RESOLVED' }
+            status: { notIn: ['RESOLVED'] }
         };
     } else if (currentFilter === 'all_open') {
-        where = { status: { not: 'RESOLVED' } };
+        where = { status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] } };
     } else if (currentFilter === 'resolved') {
         where = { status: 'RESOLVED' };
+    } else if (currentFilter === 'snoozed') {
+        where = { status: 'SNOOZED' };
+    } else if (currentFilter === 'suppressed') {
+        where = { status: 'SUPPRESSED' };
     }
 
-    const incidents = await prisma.incident.findMany({
+    // Add search filter
+    if (currentSearch) {
+        where.OR = [
+            { title: { contains: currentSearch, mode: 'insensitive' as const } },
+            { description: { contains: currentSearch, mode: 'insensitive' as const } },
+            { id: { contains: currentSearch, mode: 'insensitive' as const } }
+        ];
+    }
+
+    // Add priority filter
+    if (currentPriority !== 'all') {
+        where.priority = currentPriority;
+    }
+
+    // Add urgency filter
+    if (currentUrgency !== 'all') {
+        where.urgency = currentUrgency;
+    }
+
+    // Determine sort order
+    let orderBy: any = { createdAt: 'desc' };
+    if (currentSort === 'oldest') {
+        orderBy = { createdAt: 'asc' };
+    } else if (currentSort === 'updated') {
+        orderBy = { updatedAt: 'desc' };
+    } else if (currentSort === 'status') {
+        orderBy = { status: 'asc' };
+    } else if (currentSort === 'priority') {
+        // For priority, we'll sort by priority then createdAt
+        // Note: Prisma doesn't support custom priority ordering, so we'll do it in memory if needed
+        orderBy = { priority: 'asc' };
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.incident.count({ where });
+    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+    // Get paginated incidents
+    let incidents = await prisma.incident.findMany({
         where,
-        include: { service: true, assignee: true },
-        orderBy: { createdAt: 'desc' }
+        include: { 
+            service: true, 
+            assignee: true 
+        },
+        orderBy,
+        skip,
+        take: ITEMS_PER_PAGE
+    });
+
+    // Custom priority sorting if needed (P1, P2, P3, P4, P5, null)
+    // Note: For pagination, we should ideally do this at DB level, but for now we'll sort in memory
+    if (currentSort === 'priority') {
+        const priorityOrder = { 'P1': 1, 'P2': 2, 'P3': 3, 'P4': 4, 'P5': 5, '': 6 };
+        incidents = incidents.sort((a, b) => {
+            const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 6;
+            const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 6;
+            if (aPriority !== bPriority) {
+                return aPriority - bPriority;
+            }
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    }
+
+    const users = await prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: 'asc' }
     });
 
     const tabs = [
         { id: 'mine', label: 'Mine' },
         { id: 'all_open', label: 'All Open' },
         { id: 'resolved', label: 'Resolved' },
+        { id: 'snoozed', label: 'Snoozed' },
+        { id: 'suppressed', label: 'Suppressed' },
     ];
 
     return (
         <main>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
+            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
+                <div style={{ flex: 1 }}>
                     <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Incidents</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Central command for all operative issues.</p>
                 </div>
+                {/* Create Incident Button - Top */}
                 {canCreateIncident ? (
-                    <Link href="/incidents/create" className="glass-button primary" style={{ textDecoration: 'none' }}>
-                        Create Incident
+                    <Link href="/incidents/create" className="glass-button primary" style={{ textDecoration: 'none', borderRadius: '0px', whiteSpace: 'nowrap' }}>
+                        + Create Incident
                     </Link>
                 ) : (
                     <button 
@@ -58,13 +138,14 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
                         className="glass-button primary" 
                         style={{ 
                             textDecoration: 'none', 
+                            borderRadius: '0px',
                             opacity: 0.6, 
                             cursor: 'not-allowed',
-                            position: 'relative'
+                            whiteSpace: 'nowrap'
                         }}
                         title="Responder role or above required to create incidents"
                     >
-                        Create Incident
+                        + Create Incident
                     </button>
                 )}
             </header>
@@ -74,12 +155,13 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
                 {tabs.map(tab => (
                     <Link
                         key={tab.id}
-                        href={`/incidents?filter=${tab.id}`}
+                        href={`/incidents?filter=${tab.id}${currentSearch ? `&search=${encodeURIComponent(currentSearch)}` : ''}${currentPriority !== 'all' ? `&priority=${currentPriority}` : ''}${currentUrgency !== 'all' ? `&urgency=${currentUrgency}` : ''}${currentSort !== 'newest' ? `&sort=${currentSort}` : ''}`}
                         style={{
                             padding: '0.5rem 1rem',
                             color: currentFilter === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
                             borderBottom: currentFilter === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-                            fontWeight: currentFilter === tab.id ? 600 : 400
+                            fontWeight: currentFilter === tab.id ? 600 : 400,
+                            textDecoration: 'none'
                         }}
                     >
                         {tab.label}
@@ -87,68 +169,26 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
                 ))}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {incidents.length === 0 ? (
-                    <div className="glass-panel empty-state" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No incidents found matching this filter. Good job!
-                    </div>
-                ) : incidents.map((incident: any) => (
-                    <Link key={incident.id} href={`/incidents/${incident.id}`} className="glass-panel" style={{ padding: '1rem', display: 'grid', gridTemplateColumns: '80px 1fr 150px 150px 120px', alignItems: 'center', gap: '1rem', transition: 'background 0.2s' }}>
-                        {/* Urgency */}
-                        <div style={{
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: incident.urgency === 'HIGH' ? 'var(--danger)' : 'var(--warning)',
-                            background: incident.urgency === 'HIGH' ? 'rgba(255, 50, 50, 0.1)' : 'rgba(255, 170, 0, 0.1)',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem'
-                        }}>
-                            {incident.urgency}
-                        </div>
+            {/* Filters */}
+            <IncidentsFilters 
+                currentFilter={currentFilter}
+                currentSort={currentSort}
+                currentPriority={currentPriority}
+                currentUrgency={currentUrgency}
+                currentSearch={currentSearch}
+            />
 
-                        {/* Title & Service */}
-                        <div>
-                            <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>{incident.title}</div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                on <span style={{ color: 'var(--text-primary)' }}>{incident.service.name}</span>
-                            </div>
-                        </div>
-
-                        {/* Assignee */}
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                            {incident.assignee ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-                                        {incident.assignee.name.charAt(0)}
-                                    </div>
-                                    {incident.assignee.name.split(' ')[0]}
-                                </div>
-                            ) : (
-                                <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Unassigned</span>
-                            )}
-                        </div>
-
-                        {/* Created At */}
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            {new Date(incident.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-
-                        {/* Status */}
-                        <div style={{ textAlign: 'right' }}>
-                            <span style={{
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                background: incident.status === 'RESOLVED' ? 'rgba(0, 255, 128, 0.1)' : 'rgba(255, 255, 255, 0.1)',
-                                color: incident.status === 'RESOLVED' ? 'var(--success)' : 'var(--text-primary)'
-                            }}>
-                                {incident.status}
-                            </span>
-                        </div>
-                    </Link>
-                ))}
-            </div>
+            <IncidentsListTable 
+                incidents={incidents as any}
+                users={users}
+                canManageIncidents={permissions.isResponderOrAbove}
+                pagination={{
+                    currentPage: currentPage,
+                    totalPages: totalPages,
+                    totalItems: totalCount,
+                    itemsPerPage: ITEMS_PER_PAGE
+                }}
+            />
         </main>
     );
 }

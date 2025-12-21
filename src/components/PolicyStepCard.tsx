@@ -10,11 +10,20 @@ type PolicyStepCardProps = {
         id: string;
         stepOrder: number;
         delayMinutes: number;
+        targetType: 'USER' | 'TEAM' | 'SCHEDULE';
         targetUser: {
             id: string;
             name: string;
             email: string;
-        };
+        } | null;
+        targetTeam: {
+            id: string;
+            name: string;
+        } | null;
+        targetSchedule: {
+            id: string;
+            name: string;
+        } | null;
     };
     policyId: string;
     canManagePolicies: boolean;
@@ -111,12 +120,17 @@ export default function PolicyStepCard({
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>
-                            Notify User
+                            Target ({step.targetType})
                         </label>
                         <input
                             type="hidden"
-                            name="userId"
-                            value={step.targetUser.id}
+                            name="targetType"
+                            value={step.targetType}
+                        />
+                        <input
+                            type="hidden"
+                            name={step.targetType === 'USER' ? 'targetUserId' : step.targetType === 'TEAM' ? 'targetTeamId' : 'targetScheduleId'}
+                            value={step.targetType === 'USER' ? (step.targetUser?.id || '') : step.targetType === 'TEAM' ? (step.targetTeam?.id || '') : (step.targetSchedule?.id || '')}
                         />
                         <div style={{
                             padding: '0.6rem',
@@ -125,8 +139,13 @@ export default function PolicyStepCard({
                             fontSize: '0.9rem',
                             color: 'var(--text-primary)'
                         }}>
-                            {step.targetUser.name} ({step.targetUser.email})
+                            {step.targetType === 'USER' && step.targetUser && `${step.targetUser.name} (${step.targetUser.email})`}
+                            {step.targetType === 'TEAM' && step.targetTeam && step.targetTeam.name}
+                            {step.targetType === 'SCHEDULE' && step.targetSchedule && step.targetSchedule.name}
                         </div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                            To change the target, delete and recreate this step.
+                        </p>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>
@@ -203,11 +222,28 @@ export default function PolicyStepCard({
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                             <div>
-                                <h4 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                                    {step.targetUser.name}
-                                </h4>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                    <h4 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
+                                        {step.targetType === 'USER' && step.targetUser && step.targetUser.name}
+                                        {step.targetType === 'TEAM' && step.targetTeam && step.targetTeam.name}
+                                        {step.targetType === 'SCHEDULE' && step.targetSchedule && step.targetSchedule.name}
+                                    </h4>
+                                    <span style={{
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '4px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: '600',
+                                        background: step.targetType === 'USER' ? '#e0f2fe' : step.targetType === 'TEAM' ? '#fef3c7' : '#f3e8ff',
+                                        color: step.targetType === 'USER' ? '#0c4a6e' : step.targetType === 'TEAM' ? '#78350f' : '#581c87',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        {step.targetType}
+                                    </span>
+                                </div>
                                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                                    {step.targetUser.email}
+                                    {step.targetType === 'USER' && step.targetUser && step.targetUser.email}
+                                    {step.targetType === 'TEAM' && 'All team members'}
+                                    {step.targetType === 'SCHEDULE' && 'Current on-call user'}
                                 </p>
                             </div>
                             <div style={{
@@ -293,7 +329,7 @@ export default function PolicyStepCard({
             <ConfirmDialog
                 isOpen={showDeleteConfirm}
                 title="Delete Escalation Step"
-                message={`Are you sure you want to delete step ${step.stepOrder + 1}? This will remove ${step.targetUser.name} from the escalation policy.`}
+                message={`Are you sure you want to delete step ${step.stepOrder + 1}? This will remove the ${step.targetType.toLowerCase()} target from the escalation policy.`}
                 confirmText="Delete Step"
                 cancelText="Cancel"
                 variant="danger"

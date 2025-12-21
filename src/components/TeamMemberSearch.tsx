@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 type User = {
     id: string;
@@ -49,7 +49,7 @@ export default function TeamMemberSearch({ members, onFilterChange }: TeamMember
     }, [members, searchQuery, roleFilter, statusFilter]);
 
     // Notify parent of filtered results
-    useMemo(() => {
+    useEffect(() => {
         onFilterChange(filtered);
     }, [filtered, onFilterChange]);
 

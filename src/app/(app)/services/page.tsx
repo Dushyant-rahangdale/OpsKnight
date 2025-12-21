@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
 import { getUserPermissions, assertAdminOrResponder } from '@/lib/rbac';
+import ServiceCard from '@/components/service/ServiceCard';
+import ServicesFilters from '@/components/service/ServicesFilters';
+import CreateServiceForm from '@/components/service/CreateServiceForm';
 
 export const revalidate = 30;
 
@@ -41,7 +44,22 @@ async function createService(formData: FormData) {
     redirect('/services');
 }
 
-export default async function ServicesPage() {
+type ServicesPageProps = {
+    searchParams: Promise<{ 
+        search?: string; 
+        status?: string; 
+        team?: string; 
+        sort?: string;
+    }>;
+};
+
+export default async function ServicesPage({ searchParams }: ServicesPageProps) {
+    const params = await searchParams;
+    const searchQuery = typeof params?.search === 'string' ? params.search.trim() : '';
+    const statusFilter = typeof params?.status === 'string' ? params.status : 'all';
+    const teamFilter = typeof params?.team === 'string' ? params.team : '';
+    const sortBy = typeof params?.sort === 'string' ? params.sort : 'name_asc';
+
     const [teams, policies] = await Promise.all([
         prisma.team.findMany({ orderBy: { name: 'asc' } }),
         prisma.escalationPolicy.findMany({
@@ -50,7 +68,35 @@ export default async function ServicesPage() {
         })
     ]);
     
+    // Build where clause for filtering
+    const where: any = {
+        AND: [
+            searchQuery
+                ? {
+                    OR: [
+                        { name: { contains: searchQuery, mode: 'insensitive' as const } },
+                        { description: { contains: searchQuery, mode: 'insensitive' as const } }
+                    ]
+                }
+                : {},
+            teamFilter ? { teamId: teamFilter } : {}
+        ].filter(Boolean)
+    };
+
+    // Build orderBy clause
+    let orderBy: any = { name: 'asc' };
+    if (sortBy === 'name_desc') {
+        orderBy = { name: 'desc' };
+    } else if (sortBy === 'name_asc') {
+        orderBy = { name: 'asc' };
+    } else if (sortBy === 'incidents_desc') {
+        orderBy = { incidents: { _count: 'desc' } };
+    } else if (sortBy === 'incidents_asc') {
+        orderBy = { incidents: { _count: 'asc' } };
+    }
+
     const services = await prisma.service.findMany({
+        where,
         include: {
             team: true,
             policy: {
@@ -62,11 +108,11 @@ export default async function ServicesPage() {
             },
             _count: { select: { incidents: true } }
         },
-        orderBy: { name: 'asc' }
+        orderBy
     });
 
     // Calculate dynamic status for each service
-    const servicesWithStatus = services.map(service => {
+    let servicesWithStatus = services.map(service => {
         const openIncidents = service.incidents;
         const hasCritical = openIncidents.some(i => i.urgency === 'HIGH');
 
@@ -79,150 +125,124 @@ export default async function ServicesPage() {
         return { ...service, dynamicStatus };
     });
 
+    // Apply status filter (client-side since status is calculated)
+    if (statusFilter !== 'all') {
+        servicesWithStatus = servicesWithStatus.filter(service => service.dynamicStatus === statusFilter);
+    }
+
+    // Apply sorting by status if needed (client-side)
+    if (sortBy === 'status') {
+        const statusOrder = { 'CRITICAL': 0, 'DEGRADED': 1, 'OPERATIONAL': 2 };
+        servicesWithStatus.sort((a, b) => {
+            const aOrder = statusOrder[a.dynamicStatus as keyof typeof statusOrder] ?? 3;
+            const bOrder = statusOrder[b.dynamicStatus as keyof typeof statusOrder] ?? 3;
+            return aOrder - bOrder;
+        });
+    }
+
     const permissions = await getUserPermissions();
     const canCreateService = permissions.isAdminOrResponder;
 
     return (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem' }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>Service Directory</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Manage your services and their health.</p>
+                    <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                        Service Directory
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+                        Manage your services and monitor their health status
+                    </p>
+                </div>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '0.5rem', 
+                    alignItems: 'center',
+                    padding: '0.75rem 1rem',
+                    background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0px'
+                }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500' }}>
+                        Total Services:
+                    </span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                        {servicesWithStatus.length}
+                    </span>
                 </div>
             </header>
 
             {/* Create Service Form */}
             {canCreateService ? (
-                <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: 'white' }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem' }}>Create New Service</h2>
-                    <form action={createService} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500' }}>Service Name *</label>
-                        <input name="name" required placeholder="e.g. API Gateway" style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px' }} />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500' }}>Description</label>
-                        <input name="description" placeholder="Brief description" style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px' }} />
-                    </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500' }}>Owner Team</label>
-                        <select name="teamId" style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px' }}>
-                            <option value="">Unassigned</option>
-                            {teams.map((team) => (
-                                <option key={team.id} value={team.id}>{team.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500' }}>
-                            Escalation Policy
-                            <span 
-                                title="Defines who gets notified when incidents occur and in what order. You can create policies in the Policies section."
-                                style={{
-                                    marginLeft: '0.25rem',
-                                    width: '16px',
-                                    height: '16px',
-                                    borderRadius: '50%',
-                                    background: '#e0f2fe',
-                                    color: '#0c4a6e',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '0.7rem',
-                                    fontWeight: '600',
-                                    cursor: 'help',
-                                    border: '1px solid #bae6fd'
-                                }}
-                            >
-                                ?
-                            </span>
-                        </label>
-                        <select name="escalationPolicyId" style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px' }}>
-                            <option value="">No escalation policy</option>
-                            {policies.map((policy) => (
-                                <option key={policy.id} value={policy.id}>{policy.name}</option>
-                            ))}
-                        </select>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                            Select an escalation policy to define incident notification workflow. <Link href="/policies" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Manage policies →</Link>
-                        </p>
-                    </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500' }}>Slack Webhook URL (Optional)</label>
-                        <input name="slackWebhookUrl" placeholder="https://hooks.slack.com/services/..." style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px', fontFamily: 'monospace' }} />
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>If provided, incidents for this service will post notifications to this channel.</p>
-                    </div>
-                        <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                            <button type="submit" className="glass-button primary">Create Service</button>
-                        </div>
-                    </form>
-                </div>
+                <CreateServiceForm 
+                    teams={teams}
+                    policies={policies}
+                    createAction={createService}
+                />
             ) : (
-                <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: '#f9fafb', border: '1px solid #e5e7eb', opacity: 0.7 }}>
-                    <h2 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Create New Service</h2>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                        ⚠️ You don't have access to create services. Admin or Responder role required.
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'flex-end', opacity: 0.5, pointerEvents: 'none' }}>
+                <div className="glass-panel" style={{ 
+                    padding: '1.25rem', 
+                    marginBottom: '1.5rem', 
+                    background: '#f9fafb', 
+                    border: '1px solid #e5e7eb', 
+                    opacity: 0.7,
+                    borderRadius: '0px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.2rem' }}>⚠️</span>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Service Name *</label>
-                            <input name="name" disabled style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px', background: '#f3f4f6' }} />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-secondary)' }}>Description</label>
-                            <input name="description" disabled style={{ width: '100%', padding: '0.6rem', border: '1px solid var(--border)', borderRadius: '4px', background: '#f3f4f6' }} />
-                        </div>
-                        <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                            <button type="button" disabled className="glass-button primary" style={{ opacity: 0.5 }}>Create Service</button>
+                            <h2 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                                Create New Service
+                            </h2>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                You don't have access to create services. Admin or Responder role required.
+                            </p>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Filters */}
+            <ServicesFilters
+                currentSearch={searchQuery}
+                currentStatus={statusFilter}
+                currentTeam={teamFilter}
+                currentSort={sortBy}
+                teams={teams}
+            />
+
             {/* Services Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                {servicesWithStatus.length === 0 ? (
-                    <p className="glass-panel empty-state" style={{ padding: '2rem', gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-muted)', background: 'white' }}>
-                        No services found. Create one above!
+            {servicesWithStatus.length === 0 ? (
+                <div className="glass-panel empty-state" style={{ 
+                    padding: '4rem 2rem', 
+                    textAlign: 'center', 
+                    color: 'var(--text-muted)', 
+                    background: 'white',
+                    borderRadius: '0px',
+                    border: '1px solid var(--border)'
+                }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                        No services found
+                    </h3>
+                    <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+                        {searchQuery || statusFilter !== 'all' || teamFilter
+                            ? 'Try adjusting your filters or search query.'
+                            : 'Create your first service to get started.'}
                     </p>
-                ) : servicesWithStatus.map((service: any) => (
-                    <Link href={`/services/${service.id}`} key={service.id} className="glass-panel" style={{ padding: '1.5rem', display: 'block', background: 'white', textDecoration: 'none' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                            <h3 style={{ fontWeight: '600', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{service.name}</h3>
-                            <span style={{
-                                fontSize: '0.75rem',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                background: service.dynamicStatus === 'OPERATIONAL' ? '#e6f4ea' : service.dynamicStatus === 'CRITICAL' ? '#fce8e8' : '#fff3e0',
-                                color: service.dynamicStatus === 'OPERATIONAL' ? 'var(--success)' : service.dynamicStatus === 'CRITICAL' ? 'var(--danger)' : '#f57c00',
-                                fontWeight: '500'
-                            }}>
-                                {service.dynamicStatus}
-                            </span>
-                        </div>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                            {service.description || 'No description provided.'}
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>Owned by <strong style={{ color: 'var(--text-primary)' }}>{service.team?.name || 'Unassigned'}</strong></span>
-                                <span>{service.incidents.length > 0 && `${service.incidents.length} open / `}{service._count.incidents} total incidents</span>
-                            </div>
-                            {service.policy && (
-                                <div style={{ 
-                                    padding: '0.25rem 0.5rem',
-                                    background: '#f0f9ff',
-                                    borderRadius: '4px',
-                                    fontSize: '0.8rem',
-                                    color: '#0369a1'
-                                }}>
-                                    📋 Escalation: {service.policy.name}
-                                </div>
-                            )}
-                        </div>
-                    </Link>
-                ))}
-            </div>
+                    {canCreateService && !searchQuery && statusFilter === 'all' && !teamFilter && (
+                        <Link href="/services" className="glass-button primary" style={{ display: 'inline-block' }}>
+                            Create Service
+                        </Link>
+                    )}
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
+                    {servicesWithStatus.map((service: any) => (
+                        <ServiceCard key={service.id} service={service} compact={false} />
+                    ))}
+                </div>
+            )}
         </main>
     );
 }

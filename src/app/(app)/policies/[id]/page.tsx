@@ -19,12 +19,16 @@ export const revalidate = 30;
 export default async function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
-    const [policy, users, services] = await Promise.all([
+    const [policy, users, teams, schedules, services] = await Promise.all([
         prisma.escalationPolicy.findUnique({
             where: { id },
             include: {
                 steps: {
-                    include: { targetUser: true },
+                    include: { 
+                        targetUser: true,
+                        targetTeam: true,
+                        targetSchedule: true
+                    },
                     orderBy: { stepOrder: 'asc' }
                 },
                 services: {
@@ -36,6 +40,14 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
         prisma.user.findMany({
             where: { status: 'ACTIVE', role: { in: ['ADMIN', 'RESPONDER'] } },
             select: { id: true, name: true, email: true },
+            orderBy: { name: 'asc' }
+        }),
+        prisma.team.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        }),
+        prisma.onCallSchedule.findMany({
+            select: { id: true, name: true },
             orderBy: { name: 'asc' }
         }),
         prisma.service.findMany({
@@ -188,11 +200,20 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                                             id: step.id,
                                             stepOrder: step.stepOrder,
                                             delayMinutes: step.delayMinutes,
-                                            targetUser: {
+                                            targetType: step.targetType,
+                                            targetUser: step.targetUser ? {
                                                 id: step.targetUser.id,
                                                 name: step.targetUser.name,
                                                 email: step.targetUser.email
-                                            }
+                                            } : null,
+                                            targetTeam: step.targetTeam ? {
+                                                id: step.targetTeam.id,
+                                                name: step.targetTeam.name
+                                            } : null,
+                                            targetSchedule: step.targetSchedule ? {
+                                                id: step.targetSchedule.id,
+                                                name: step.targetSchedule.name
+                                            } : null
                                         }}
                                         policyId={policy.id}
                                         canManagePolicies={canManagePolicies}
@@ -210,6 +231,8 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                             <PolicyStepCreateForm
                                 policyId={policy.id}
                                 users={users}
+                                teams={teams}
+                                schedules={schedules}
                                 addStep={addPolicyStep}
                             />
                         )}

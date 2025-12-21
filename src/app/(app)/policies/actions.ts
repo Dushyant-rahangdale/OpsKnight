@@ -137,8 +137,25 @@ export async function addPolicyStep(policyId: string, formData: FormData) {
         throw new Error(error instanceof Error ? error.message : 'Unauthorized. Admin access required.');
     }
 
-    const userId = formData.get('userId') as string;
+    const targetType = formData.get('targetType') as 'USER' | 'TEAM' | 'SCHEDULE' || 'USER';
+    const targetUserId = formData.get('targetUserId') as string | null;
+    const targetTeamId = formData.get('targetTeamId') as string | null;
+    const targetScheduleId = formData.get('targetScheduleId') as string | null;
     const delayMinutes = parseInt(formData.get('delayMinutes') as string || '0');
+
+    // Validate that appropriate target ID is provided
+    let targetId: string | null = null;
+    if (targetType === 'USER' && targetUserId) {
+        targetId = targetUserId;
+    } else if (targetType === 'TEAM' && targetTeamId) {
+        targetId = targetTeamId;
+    } else if (targetType === 'SCHEDULE' && targetScheduleId) {
+        targetId = targetScheduleId;
+    }
+
+    if (!targetId) {
+        throw new Error(`Target ${targetType} is required`);
+    }
 
     // Get current max step order
     const maxStep = await prisma.escalationRule.findFirst({
@@ -151,7 +168,10 @@ export async function addPolicyStep(policyId: string, formData: FormData) {
     await prisma.escalationRule.create({
         data: {
             policyId,
-            targetUserId: userId,
+            targetType,
+            targetUserId: targetType === 'USER' ? targetId : null,
+            targetTeamId: targetType === 'TEAM' ? targetId : null,
+            targetScheduleId: targetType === 'SCHEDULE' ? targetId : null,
             delayMinutes,
             stepOrder: nextStepOrder
         }
@@ -162,7 +182,7 @@ export async function addPolicyStep(policyId: string, formData: FormData) {
         entityType: 'SERVICE',
         entityId: policyId,
         actorId: await getDefaultActorId(),
-        details: { stepOrder: nextStepOrder }
+        details: { stepOrder: nextStepOrder, targetType }
     });
 
     revalidatePath(`/policies/${policyId}`);
@@ -175,7 +195,10 @@ export async function updatePolicyStep(stepId: string, formData: FormData) {
         throw new Error(error instanceof Error ? error.message : 'Unauthorized. Admin access required.');
     }
 
-    const userId = formData.get('userId') as string;
+    const targetType = formData.get('targetType') as 'USER' | 'TEAM' | 'SCHEDULE' || undefined;
+    const targetUserId = formData.get('targetUserId') as string | null;
+    const targetTeamId = formData.get('targetTeamId') as string | null;
+    const targetScheduleId = formData.get('targetScheduleId') as string | null;
     const delayMinutes = parseInt(formData.get('delayMinutes') as string || '0');
 
     const step = await prisma.escalationRule.findUnique({
@@ -187,10 +210,33 @@ export async function updatePolicyStep(stepId: string, formData: FormData) {
         throw new Error('Escalation step not found');
     }
 
+    // Use existing targetType if not provided
+    const finalTargetType = targetType || step.targetType;
+
+    // Validate that appropriate target ID is provided
+    let targetId: string | null = null;
+    if (finalTargetType === 'USER' && targetUserId) {
+        targetId = targetUserId;
+    } else if (finalTargetType === 'TEAM' && targetTeamId) {
+        targetId = targetTeamId;
+    } else if (finalTargetType === 'SCHEDULE' && targetScheduleId) {
+        targetId = targetScheduleId;
+    } else {
+        // Fallback to existing values
+        targetId = step.targetUserId || step.targetTeamId || step.targetScheduleId || null;
+    }
+
+    if (!targetId) {
+        throw new Error(`Target ${finalTargetType} is required`);
+    }
+
     await prisma.escalationRule.update({
         where: { id: stepId },
         data: {
-            targetUserId: userId,
+            targetType: finalTargetType,
+            targetUserId: finalTargetType === 'USER' ? targetId : null,
+            targetTeamId: finalTargetType === 'TEAM' ? targetId : null,
+            targetScheduleId: finalTargetType === 'SCHEDULE' ? targetId : null,
             delayMinutes
         }
     });
@@ -200,7 +246,7 @@ export async function updatePolicyStep(stepId: string, formData: FormData) {
         entityType: 'SERVICE',
         entityId: step.policyId,
         actorId: await getDefaultActorId(),
-        details: { stepId, stepOrder: step.stepOrder }
+        details: { stepId, stepOrder: step.stepOrder, targetType: finalTargetType }
     });
 
     revalidatePath(`/policies/${step.policyId}`);

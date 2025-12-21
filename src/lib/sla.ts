@@ -1,0 +1,282 @@
+import prisma from './prisma';
+
+export type SLAMetrics = {
+    mttr: number | null; // Mean Time To Resolve (minutes)
+    mttd: number | null; // Mean Time To Detect (minutes)
+    mtti: number | null; // Mean Time To Investigate (minutes) - time from creation to first note/event
+    mttk: number | null; // Mean Time To Know (minutes) - similar to MTTD
+    ackCompliance: number; // Percentage of incidents acknowledged within SLA
+    resolveCompliance: number; // Percentage of incidents resolved within SLA
+    totalIncidents: number;
+    ackBreaches: number;
+    resolveBreaches: number;
+};
+
+/**
+ * Calculate SLA metrics for a service or all services
+ */
+export async function calculateSLAMetrics(serviceId?: string, startDate?: Date, endDate?: Date): Promise<SLAMetrics> {
+    const where: any = {
+        status: 'RESOLVED'
+    };
+
+    if (serviceId) {
+        where.serviceId = serviceId;
+    }
+
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
+    }
+
+    const resolvedIncidents = await prisma.incident.findMany({
+        where,
+        include: {
+            service: true,
+            events: {
+                orderBy: { createdAt: 'asc' },
+                take: 1
+            },
+            notes: {
+                orderBy: { createdAt: 'asc' },
+                take: 1
+            }
+        }
+    });
+
+    if (resolvedIncidents.length === 0) {
+        return {
+            mttr: null,
+            mttd: null,
+            mtti: null,
+            mttk: null,
+            ackCompliance: 0,
+            resolveCompliance: 0,
+            totalIncidents: 0,
+            ackBreaches: 0,
+            resolveBreaches: 0
+        };
+    }
+
+    // Calculate MTTR (Mean Time To Resolve)
+    const resolveTimes = resolvedIncidents
+        .filter(i => i.resolvedAt && i.createdAt)
+        .map(i => {
+            const created = i.createdAt.getTime();
+            const resolved = i.resolvedAt!.getTime();
+            return (resolved - created) / (1000 * 60); // Convert to minutes
+        });
+
+    const mttr = resolveTimes.length > 0
+        ? resolveTimes.reduce((sum, time) => sum + time, 0) / resolveTimes.length
+        : null;
+
+    // Calculate MTTD (Mean Time To Detect) - time from first alert to incident creation
+    // For now, we'll use creation time as detection time (can be enhanced with alert timestamps)
+    const mttd = null; // TODO: Implement when alert timestamps are available
+
+    // Calculate MTTI (Mean Time To Investigate) - time from creation to first note
+    const investigateTimes = resolvedIncidents
+        .filter(i => i.notes.length > 0)
+        .map(i => {
+            const created = i.createdAt.getTime();
+            const firstNote = i.notes[0].createdAt.getTime();
+            return (firstNote - created) / (1000 * 60); // Convert to minutes
+        });
+
+    const mtti = investigateTimes.length > 0
+        ? investigateTimes.reduce((sum, time) => sum + time, 0) / investigateTimes.length
+        : null;
+
+    // Calculate MTTK (Mean Time To Know) - similar to MTTD
+    const mttk = mttd;
+
+    // Calculate SLA compliance
+    let ackCompliant = 0;
+    let ackBreaches = 0;
+    let resolveCompliant = 0;
+    let resolveBreaches = 0;
+
+    for (const incident of resolvedIncidents) {
+        const targetAckMinutes = incident.service.targetAckMinutes || 15;
+        const targetResolveMinutes = incident.service.targetResolveMinutes || 120;
+
+        // Check acknowledgment SLA
+        if (incident.acknowledgedAt) {
+            const ackTime = (incident.acknowledgedAt.getTime() - incident.createdAt.getTime()) / (1000 * 60);
+            if (ackTime <= targetAckMinutes) {
+                ackCompliant++;
+            } else {
+                ackBreaches++;
+            }
+        } else {
+            // If never acknowledged, check if it should have been
+            const timeToResolve = incident.resolvedAt
+                ? (incident.resolvedAt.getTime() - incident.createdAt.getTime()) / (1000 * 60)
+                : null;
+            if (timeToResolve && timeToResolve > targetAckMinutes) {
+                ackBreaches++;
+            }
+        }
+
+        // Check resolution SLA
+        if (incident.resolvedAt) {
+            const resolveTime = (incident.resolvedAt.getTime() - incident.createdAt.getTime()) / (1000 * 60);
+            if (resolveTime <= targetResolveMinutes) {
+                resolveCompliant++;
+            } else {
+                resolveBreaches++;
+            }
+        }
+    }
+
+    const totalIncidents = resolvedIncidents.length;
+    const ackCompliance = totalIncidents > 0 ? (ackCompliant / totalIncidents) * 100 : 0;
+    const resolveCompliance = totalIncidents > 0 ? (resolveCompliant / totalIncidents) * 100 : 0;
+
+    return {
+        mttr,
+        mttd,
+        mtti,
+        mttk,
+        ackCompliance: Math.round(ackCompliance * 100) / 100, // Round to 2 decimal places
+        resolveCompliance: Math.round(resolveCompliance * 100) / 100,
+        totalIncidents,
+        ackBreaches,
+        resolveBreaches
+    };
+}
+
+/**
+ * Check if an incident is breaching SLA
+ */
+export async function checkIncidentSLA(incidentId: string): Promise<{
+    ackSLA: { breached: boolean; timeRemaining: number | null; targetMinutes: number };
+    resolveSLA: { breached: boolean; timeRemaining: number | null; targetMinutes: number };
+}> {
+    const incident = await prisma.incident.findUnique({
+        where: { id: incidentId },
+        include: { service: true }
+    });
+
+    if (!incident) {
+        throw new Error('Incident not found');
+    }
+
+    const now = new Date();
+    const createdAt = incident.createdAt.getTime();
+    const nowTime = now.getTime();
+    const elapsedMinutes = (nowTime - createdAt) / (1000 * 60);
+
+    const targetAckMinutes = incident.service.targetAckMinutes || 15;
+    const targetResolveMinutes = incident.service.targetResolveMinutes || 120;
+
+    // Check acknowledgment SLA
+    let ackBreached = false;
+    let ackTimeRemaining: number | null = null;
+
+    if (incident.acknowledgedAt) {
+        const ackTime = (incident.acknowledgedAt.getTime() - createdAt) / (1000 * 60);
+        ackBreached = ackTime > targetAckMinutes;
+    } else if (incident.status !== 'RESOLVED') {
+        ackBreached = elapsedMinutes > targetAckMinutes;
+        ackTimeRemaining = Math.max(0, targetAckMinutes - elapsedMinutes);
+    }
+
+    // Check resolution SLA
+    let resolveBreached = false;
+    let resolveTimeRemaining: number | null = null;
+
+    if (incident.resolvedAt) {
+        const resolveTime = (incident.resolvedAt.getTime() - createdAt) / (1000 * 60);
+        resolveBreached = resolveTime > targetResolveMinutes;
+    } else if (incident.status !== 'RESOLVED') {
+        resolveBreached = elapsedMinutes > targetResolveMinutes;
+        resolveTimeRemaining = Math.max(0, targetResolveMinutes - elapsedMinutes);
+    }
+
+    return {
+        ackSLA: {
+            breached: ackBreached,
+            timeRemaining: ackTimeRemaining,
+            targetMinutes: targetAckMinutes
+        },
+        resolveSLA: {
+            breached: resolveBreached,
+            timeRemaining: resolveTimeRemaining,
+            targetMinutes: targetResolveMinutes
+        }
+    };
+}
+
+/**
+ * Format time in minutes to human-readable string
+ */
+export function formatTimeMinutes(minutes: number): string {
+    if (minutes < 1) {
+        return '< 1 min';
+    } else if (minutes < 60) {
+        return `${Math.round(minutes)} min`;
+    } else if (minutes < 1440) {
+        const hours = Math.floor(minutes / 60);
+        const mins = Math.round(minutes % 60);
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    } else {
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    }
+}
+
+/**
+ * Format time in milliseconds to human-readable string (for minutes)
+ */
+export function formatTimeMinutesMs(ms: number | null): string {
+    if (ms === null) return '--';
+    const minutes = ms / 1000 / 60;
+    return formatTimeMinutes(minutes);
+}
+
+/**
+ * Calculate Mean Time To Acknowledge (MTTA) for a single incident
+ * Returns time in milliseconds
+ */
+export function calculateMTTA(incident: { acknowledgedAt: Date | null; createdAt: Date }): number | null {
+    if (incident.acknowledgedAt && incident.createdAt) {
+        return incident.acknowledgedAt.getTime() - incident.createdAt.getTime();
+    }
+    return null;
+}
+
+/**
+ * Calculate Mean Time To Resolve (MTTR) for a single incident
+ * Returns time in milliseconds
+ */
+export function calculateMTTR(incident: { resolvedAt: Date | null; createdAt: Date }): number | null {
+    if (incident.resolvedAt && incident.createdAt) {
+        return incident.resolvedAt.getTime() - incident.createdAt.getTime();
+    }
+    return null;
+}
+
+/**
+ * Check if an incident met the acknowledgement SLA
+ */
+export function checkAckSLA(incident: { acknowledgedAt: Date | null; createdAt: Date }, service: { targetAckMinutes?: number | null }): boolean {
+    if (!incident.acknowledgedAt || !incident.createdAt) return false;
+    const ackTimeMinutes = (incident.acknowledgedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
+    const target = service.targetAckMinutes ?? 15; // Default to 15 minutes
+    return ackTimeMinutes <= target;
+}
+
+/**
+ * Check if an incident met the resolution SLA
+ */
+export function checkResolveSLA(incident: { resolvedAt: Date | null; createdAt: Date }, service: { targetResolveMinutes?: number | null }): boolean {
+    if (!incident.resolvedAt || !incident.createdAt) return false;
+    const resolveTimeMinutes = (incident.resolvedAt.getTime() - incident.createdAt.getTime()) / 1000 / 60;
+    const target = service.targetResolveMinutes ?? 120; // Default to 120 minutes
+    return resolveTimeMinutes <= target;
+}
+

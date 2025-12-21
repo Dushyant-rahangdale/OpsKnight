@@ -1,0 +1,69 @@
+'use server';
+
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { assertResponderOrAbove, getCurrentUser } from '@/lib/rbac';
+
+export async function snoozeIncidentWithDuration(incidentId: string, durationMinutes: number, reason?: string) {
+    try {
+        await assertResponderOrAbove();
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+    }
+
+    const snoozedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+    const user = await getCurrentUser();
+
+    await prisma.incident.update({
+        where: { id: incidentId },
+        data: {
+            status: 'SNOOZED',
+            snoozedUntil,
+            snoozeReason: reason || null,
+            escalationStatus: 'PAUSED',
+            nextEscalationAt: null,
+            events: {
+                create: {
+                    message: `Incident snoozed until ${snoozedUntil.toLocaleString()}${reason ? ` (Reason: ${reason})` : ''}${user ? ` by ${user.name}` : ''}`
+                }
+            }
+        }
+    });
+
+    revalidatePath(`/incidents/${incidentId}`);
+    revalidatePath('/incidents');
+    revalidatePath('/');
+}
+
+export async function processAutoUnsnooze() {
+    const now = new Date();
+    const incidentsToUnsnooze = await prisma.incident.findMany({
+        where: {
+            status: 'SNOOZED',
+            snoozedUntil: { lte: now }
+        },
+        select: { id: true }
+    });
+
+    let processedCount = 0;
+    for (const incident of incidentsToUnsnooze) {
+        await prisma.incident.update({
+            where: { id: incident.id },
+            data: {
+                status: 'OPEN',
+                snoozedUntil: null,
+                snoozeReason: null,
+                escalationStatus: 'ESCALATING',
+                nextEscalationAt: new Date(),
+                events: {
+                    create: {
+                        message: 'Incident auto-unsnoozed (snooze duration expired)'
+                    }
+                }
+            }
+        });
+        processedCount++;
+    }
+
+    return { processed: processedCount };
+}
