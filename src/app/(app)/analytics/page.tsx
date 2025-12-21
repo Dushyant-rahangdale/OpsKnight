@@ -1,4 +1,8 @@
 import prisma from '@/lib/prisma';
+import MetricCard from '@/components/analytics/MetricCard';
+import ChartCard from '@/components/analytics/ChartCard';
+import AnalyticsFilters from '@/components/analytics/AnalyticsFilters';
+import BarChart from '@/components/analytics/BarChart';
 
 const formatMinutes = (ms: number | null) => (ms === null ? '--' : `${(ms / 1000 / 60).toFixed(1)}m`);
 const formatPercent = (value: number) => `${value.toFixed(0)}%`;
@@ -545,168 +549,124 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         { label: 'On-call hours', value: formatHours(totalShiftMs), detail: 'Next 14 days' }
     ];
 
+    // Build export URL with all filters
+    const exportParams = new URLSearchParams();
+    exportParams.append('format', 'csv');
+    exportParams.append('window', `${windowDays}`);
+    if (teamId && teamId !== 'ALL') exportParams.append('team', teamId);
+    if (serviceId && serviceId !== 'ALL') exportParams.append('service', serviceId);
+    if (assigneeId && assigneeId !== 'ALL') exportParams.append('assignee', assigneeId);
+    if (statusFilter !== 'ALL') exportParams.append('status', statusFilter);
+    if (urgencyFilter !== 'ALL') exportParams.append('urgency', urgencyFilter);
+    const exportUrl = `/api/analytics/export?${exportParams.toString()}`;
+
     return (
         <main className="page-shell analytics-shell">
-            <header className="page-header">
-                <div>
-                    <p className="schedule-eyebrow">Analytics</p>
-                    <h1>Operational readiness</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>
-                        Full-funnel metrics for incident volume, response speed, coverage, and ownership health.
-                    </p>
-                </div>
-                
-            </header>
-
-            <section className="glass-panel analytics-filters">
-                <form method="get" className="analytics-filter-form">
-                    <label className="analytics-filter-field">
-                        <span>Team</span>
-                        <select name="team" defaultValue={teamId ?? 'ALL'}>
-                            <option value="ALL">All teams</option>
-                            {teams
-                                .slice()
-                                .sort((a, b) => a.name.localeCompare(b.name))
-                                .map((team) => (
-                                    <option key={team.id} value={team.id}>
-                                        {team.name}
-                                    </option>
-                                ))}
-                        </select>
-                    </label>
-                    <label className="analytics-filter-field">
-                        <span>Service</span>
-                        <select name="service" defaultValue={serviceId ?? 'ALL'}>
-                            <option value="ALL">All services</option>
-                            {servicesForFilter
-                                .slice()
-                                .sort((a, b) => a.name.localeCompare(b.name))
-                                .map((service) => (
-                                    <option key={service.id} value={service.id}>
-                                        {service.name}
-                                    </option>
-                                ))}
-                        </select>
-                    </label>
-                    <label className="analytics-filter-field">
-                        <span>Assignee</span>
-                        <select name="assignee" defaultValue={assigneeId ?? 'ALL'}>
-                            <option value="ALL">All assignees</option>
-                            {users
-                                .slice()
-                                .sort((a, b) => (filterUserNameMap.get(a.id) || '').localeCompare(filterUserNameMap.get(b.id) || ''))
-                                .map((user) => (
-                                    <option key={user.id} value={user.id}>
-                                        {filterUserNameMap.get(user.id)}
-                                    </option>
-                                ))}
-                        </select>
-                    </label>
-                    <label className="analytics-filter-field">
-                        <span>Status</span>
-                        <select name="status" defaultValue={statusFilter}>
-                            <option value="ALL">All statuses</option>
-                            {allowedStatus.map((status) => (
-                                <option key={status} value={status}>
-                                    {status}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="analytics-filter-field">
-                        <span>Urgency</span>
-                        <select name="urgency" defaultValue={urgencyFilter}>
-                            <option value="ALL">All urgencies</option>
-                            {allowedUrgency.map((urgency) => (
-                                <option key={urgency} value={urgency}>
-                                    {urgency}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="analytics-filter-field">
-                        <span>Window</span>
-                        <select name="window" defaultValue={`${windowDays}`}>
-                            {[1, 3, 7, 14, 30, 60, 90].map((days) => (
-                                <option key={days} value={`${days}`}>
-                                    Last {days} days
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <div className="analytics-filter-actions">
-                        <button type="submit" className="glass-button primary">Apply</button>
-                        <a href="/analytics" className="glass-button">Reset</a>
+            <div className="analytics-hero-redesigned">
+                <div className="analytics-hero-inner">
+                    <div className="analytics-hero-left">
+                        <p className="schedule-eyebrow">Analytics</p>
+                        <h1>Operational readiness</h1>
                     </div>
-                </form>
-            </section>
+                    <div className="analytics-hero-right">
+                        <a 
+                            href={exportUrl}
+                            className="analytics-export-btn"
+                        >
+                            <span>📥</span>
+                            Export CSV
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <AnalyticsFilters
+                teams={teams}
+                services={servicesForFilter}
+                users={users}
+                currentFilters={{
+                    team: teamId ?? 'ALL',
+                    service: serviceId ?? 'ALL',
+                    assignee: assigneeId ?? 'ALL',
+                    status: statusFilter,
+                    urgency: urgencyFilter,
+                    window: `${windowDays}`
+                }}
+            />
 
             <section className="glass-panel analytics-grid">
-                {metricCards.map((metric) => (
-                    <article key={metric.label} className="analytics-card">
-                        <span className="analytics-label">{metric.label}</span>
-                        <span className="analytics-value">{metric.value}</span>
-                        <span className="analytics-detail">{metric.detail}</span>
-                    </article>
-                ))}
+                {metricCards.map((metric, index) => {
+                    // Determine variant based on metric type
+                    let variant: 'default' | 'primary' | 'success' | 'warning' | 'danger' = 'default';
+                    if (metric.label.includes('SLA') || metric.label.includes('rate')) {
+                        const value = parseFloat(metric.value.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(value)) {
+                            variant = value >= 90 ? 'success' : value >= 70 ? 'warning' : 'danger';
+                        }
+                    } else if (metric.label.includes('MTTA') || metric.label.includes('MTTR')) {
+                        variant = 'primary';
+                    } else if (index === 0 || index === 1) {
+                        variant = 'primary';
+                    }
+
+                    return (
+                        <MetricCard
+                            key={metric.label}
+                            label={metric.label}
+                            value={metric.value}
+                            detail={metric.detail}
+                            variant={variant}
+                        />
+                    );
+                })}
             </section>
 
             <section className="glass-panel analytics-charts">
-                <div className="analytics-chart">
-                    <div className="chart-title">Incident volume (last {trendWindowDays} days)</div>
-                    <div className="analytics-bar-chart">
-                        {trendSeries.map((entry) => (
-                            <div key={entry.key} className="analytics-bar">
-                                <div
-                                    className="analytics-bar-fill"
-                                    style={{ height: `${(entry.count / maxTrend) * 100}%` }}
-                                />
-                                <span className="analytics-bar-label">{entry.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className="analytics-chart">
-                    <div className="chart-title">Incident status mix ({recentWindowDays}d)</div>
+                <ChartCard title={`Incident volume (last ${trendWindowDays} days)`}>
+                    <BarChart
+                        data={trendSeries.map(entry => ({ key: entry.key, label: entry.label, count: entry.count }))}
+                        maxValue={maxTrend}
+                        height={180}
+                    />
+                </ChartCard>
+                <ChartCard title={`Incident status mix (${recentWindowDays}d)`}>
                     <div className="analytics-list">
                         {statusMix.map((entry) => (
-                            <div key={entry.status} className="analytics-list-item">
+                            <div key={entry.status} className="analytics-list-item-enhanced">
                                 <span>{entry.status}</span>
                                 <strong>{entry.count}</strong>
                             </div>
                         ))}
                     </div>
-                </div>
-                <div className="analytics-chart">
-                    <div className="chart-title">Top noisy services ({serviceWindowDays}d)</div>
+                </ChartCard>
+                <ChartCard title={`Top noisy services (${serviceWindowDays}d)`}>
                     <div className="analytics-list">
                         {topServices.length === 0 ? (
                             <div className="analytics-muted">No incidents in the last {serviceWindowDays} days.</div>
                         ) : topServices.map((service) => (
-                            <div key={service.id} className="analytics-list-item">
+                            <div key={service.id} className="analytics-list-item-enhanced">
                                 <span>{service.name}</span>
                                 <strong>{service.count}</strong>
                             </div>
                         ))}
                     </div>
-                </div>
-                <div className="analytics-chart">
-                    <div className="chart-title">Urgency mix ({recentWindowDays}d)</div>
+                </ChartCard>
+                <ChartCard title={`Urgency mix (${recentWindowDays}d)`}>
                     <div className="analytics-list">
-                        <div className="analytics-list-item">
+                        <div className="analytics-list-item-enhanced">
                             <span>HIGH</span>
                             <strong>{highUrgencyCount}</strong>
                         </div>
-                        <div className="analytics-list-item">
+                        <div className="analytics-list-item-enhanced">
                             <span>LOW</span>
                             <strong>{lowUrgencyCount}</strong>
                         </div>
                     </div>
-                </div>
+                </ChartCard>
             </section>
 
             <section className="analytics-split">
-                <div className="glass-panel analytics-section">
+                <div className="glass-panel analytics-section-enhanced">
                     <h2>Response health</h2>
                     <div className="analytics-kpi-row">
                         <div className="analytics-kpi">
@@ -768,7 +728,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                     </div>
                 </div>
 
-                <div className="glass-panel analytics-section">
+                <div className="glass-panel analytics-section-enhanced">
                     <h2>Coverage outlook</h2>
                     <div className="analytics-table">
                         <div className="analytics-table-row">
@@ -795,7 +755,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                 </div>
             </section>
 
-            <section className="glass-panel analytics-section">
+            <section className="glass-panel analytics-section-enhanced">
                 <h2>SLA compliance by service</h2>
                 <div className="analytics-table">
                     {serviceSlaTable.length === 0 ? (
@@ -810,7 +770,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
             </section>
 
             <section className="analytics-split">
-                <div className="glass-panel analytics-section">
+                <div className="glass-panel analytics-section-enhanced">
                     <h2>Reliability signals</h2>
                     <div className="analytics-table">
                         <div className="analytics-table-row">
@@ -848,7 +808,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                     </div>
                 </div>
 
-                <div className="glass-panel analytics-section">
+                <div className="glass-panel analytics-section-enhanced">
                     <h2>State age breakdown</h2>
                     <div className="analytics-list">
                         {statusAges.map((entry) => (
@@ -861,7 +821,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                 </div>
             </section>
 
-            <section className="glass-panel analytics-section">
+            <section className="glass-panel analytics-section-enhanced">
                 <h2>Ownership & on-call load</h2>
                 <div className="analytics-columns">
                     <div>
@@ -893,7 +853,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                 </div>
             </section>
 
-            <section className="glass-panel analytics-section">
+            <section className="glass-panel analytics-section-enhanced">
                 <h2>Top recurring incident titles</h2>
                 <div className="analytics-list">
                     {recurringTitles.length === 0 ? (
