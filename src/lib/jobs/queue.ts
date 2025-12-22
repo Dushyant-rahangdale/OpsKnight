@@ -1,149 +1,67 @@
 /**
- * Job Queue Setup for Background Processing
+ * PostgreSQL-based Job Queue System
  * 
- * This file sets up the job queue infrastructure for processing
- * background jobs like escalations, notifications, etc.
+ * This implementation uses PostgreSQL instead of Redis/BullMQ.
+ * Jobs are stored in the BackgroundJob table and processed by cron jobs.
  * 
- * TODO: Install dependencies:
- * npm install bullmq ioredis
- * 
- * TODO: Set up Redis:
- * - Local: docker run -d -p 6379:6379 redis:alpine
- * - Or use Redis Cloud / AWS ElastiCache
+ * Benefits:
+ * - No additional infrastructure (Redis) needed
+ * - Uses existing PostgreSQL database
+ * - ACID transactions
+ * - Easy to query and monitor
+ * - Works with existing database backups
  */
 
-// Uncomment when dependencies are installed
-/*
-import { Queue, Worker, QueueEvents } from 'bullmq';
-import Redis from 'ioredis';
+import prisma from '../prisma';
 
-// Redis connection
-const connection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-});
+export type JobType = 'ESCALATION' | 'NOTIFICATION' | 'AUTO_UNSNOOZE' | 'SCHEDULED_TASK';
+export type JobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
-// Job Queues
-export const escalationQueue = new Queue('escalations', { connection });
-export const notificationQueue = new Queue('notifications', { connection });
-export const scheduledJobsQueue = new Queue('scheduled-jobs', { connection });
+interface JobPayload {
+  incidentId?: string;
+  userId?: string;
+  channel?: string;
+  message?: string;
+  stepIndex?: number;
+  [key: string]: any;
+}
 
-// Queue Events for monitoring
-export const escalationQueueEvents = new QueueEvents('escalations', { connection });
-export const notificationQueueEvents = new QueueEvents('notifications', { connection });
-
-// Worker for processing escalation jobs
-export const escalationWorker = new Worker(
-  'escalations',
-  async (job) => {
-    const { incidentId, stepIndex } = job.data;
-    
-    // Import here to avoid circular dependencies
-    const { executeEscalation } = await import('../escalation');
-    
-    try {
-      const result = await executeEscalation(incidentId, stepIndex);
-      return result;
-    } catch (error) {
-      console.error(`Escalation job failed for incident ${incidentId}:`, error);
-      throw error;
-    }
-  },
-  {
-    connection,
-    concurrency: 5, // Process 5 escalations concurrently
-    removeOnComplete: {
-      age: 3600, // Keep completed jobs for 1 hour
-      count: 1000, // Keep last 1000 jobs
+/**
+ * Schedule a background job
+ */
+export async function scheduleJob(
+  type: JobType,
+  scheduledAt: Date,
+  payload: JobPayload,
+  maxAttempts: number = 3
+): Promise<string> {
+  const job = await prisma.backgroundJob.create({
+    data: {
+      type,
+      status: 'PENDING',
+      scheduledAt,
+      payload,
+      maxAttempts,
     },
-    removeOnFail: {
-      age: 86400, // Keep failed jobs for 24 hours
-    },
-  }
-);
+  });
 
-// Worker for processing notification jobs
-export const notificationWorker = new Worker(
-  'notifications',
-  async (job) => {
-    const { incidentId, userId, channel, message } = job.data;
-    
-    // Import here to avoid circular dependencies
-    const { sendNotification } = await import('../notifications');
-    
-    try {
-      const result = await sendNotification(incidentId, userId, channel, message);
-      return result;
-    } catch (error) {
-      console.error(`Notification job failed:`, error);
-      throw error;
-    }
-  },
-  {
-    connection,
-    concurrency: 10, // Process 10 notifications concurrently
-    removeOnComplete: {
-      age: 3600,
-      count: 1000,
-    },
-    removeOnFail: {
-      age: 86400,
-    },
-  }
-);
-
-// Error handling
-escalationWorker.on('completed', (job) => {
-  console.log(`Escalation job ${job.id} completed`);
-});
-
-escalationWorker.on('failed', (job, err) => {
-  console.error(`Escalation job ${job?.id} failed:`, err);
-});
-
-notificationWorker.on('completed', (job) => {
-  console.log(`Notification job ${job.id} completed`);
-});
-
-notificationWorker.on('failed', (job, err) => {
-  console.error(`Notification job ${job?.id} failed:`, err);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  await escalationWorker.close();
-  await notificationWorker.close();
-  await connection.quit();
-});
-*/
-
-// Placeholder exports for now
-export const escalationQueue = null;
-export const notificationQueue = null;
-export const scheduledJobsQueue = null;
+  return job.id;
+}
 
 /**
  * Schedule an escalation job
  */
-export async function scheduleEscalation(incidentId: string, stepIndex: number, delay: number) {
-  // TODO: Implement when BullMQ is set up
-  /*
-  await escalationQueue.add(
-    `escalate-${incidentId}-${stepIndex}`,
-    { incidentId, stepIndex },
-    {
-      delay, // Delay in milliseconds
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000,
-      },
-    }
-  );
-  */
-  console.log(`[PLACEHOLDER] Would schedule escalation for incident ${incidentId}, step ${stepIndex}, delay ${delay}ms`);
+export async function scheduleEscalation(
+  incidentId: string,
+  stepIndex: number,
+  delayMs: number
+): Promise<string> {
+  const scheduledAt = new Date(Date.now() + delayMs);
+  
+  return scheduleJob('ESCALATION', scheduledAt, {
+    incidentId,
+    stepIndex,
+  });
 }
 
 /**
@@ -154,23 +72,267 @@ export async function scheduleNotification(
   userId: string,
   channel: string,
   message: string,
-  delay: number = 0
-) {
-  // TODO: Implement when BullMQ is set up
-  /*
-  await notificationQueue.add(
-    `notify-${incidentId}-${userId}`,
-    { incidentId, userId, channel, message },
-    {
-      delay,
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    }
-  );
-  */
-  console.log(`[PLACEHOLDER] Would schedule notification for user ${userId}, channel ${channel}`);
+  delayMs: number = 0
+): Promise<string> {
+  const scheduledAt = new Date(Date.now() + delayMs);
+  
+  return scheduleJob('NOTIFICATION', scheduledAt, {
+    incidentId,
+    userId,
+    channel,
+    message,
+  });
 }
 
+/**
+ * Schedule an auto-unsnooze job
+ */
+export async function scheduleAutoUnsnooze(
+  incidentId: string,
+  snoozedUntil: Date
+): Promise<string> {
+  return scheduleJob('AUTO_UNSNOOZE', snoozedUntil, {
+    incidentId,
+  });
+}
+
+/**
+ * Get pending jobs that are ready to execute
+ */
+export async function getPendingJobs(limit: number = 50): Promise<any[]> {
+  const now = new Date();
+  
+  return prisma.backgroundJob.findMany({
+    where: {
+      status: 'PENDING',
+      scheduledAt: {
+        lte: now,
+      },
+      attempts: {
+        lt: prisma.backgroundJob.fields.maxAttempts,
+      },
+    },
+    orderBy: {
+      scheduledAt: 'asc',
+    },
+    take: limit,
+  });
+}
+
+/**
+ * Mark a job as processing
+ */
+export async function markJobProcessing(jobId: string): Promise<void> {
+  await prisma.backgroundJob.update({
+    where: { id: jobId },
+    data: {
+      status: 'PROCESSING',
+      startedAt: new Date(),
+      attempts: {
+        increment: 1,
+      },
+    },
+  });
+}
+
+/**
+ * Mark a job as completed
+ */
+export async function markJobCompleted(jobId: string): Promise<void> {
+  await prisma.backgroundJob.update({
+    where: { id: jobId },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+    },
+  });
+}
+
+/**
+ * Mark a job as failed
+ */
+export async function markJobFailed(jobId: string, error: string): Promise<void> {
+  const job = await prisma.backgroundJob.findUnique({
+    where: { id: jobId },
+  });
+
+  if (!job) return;
+
+  const shouldRetry = job.attempts < job.maxAttempts;
+  
+  await prisma.backgroundJob.update({
+    where: { id: jobId },
+    data: {
+      status: shouldRetry ? 'PENDING' : 'FAILED',
+      failedAt: shouldRetry ? null : new Date(),
+      error: shouldRetry ? null : error,
+      // Reschedule for retry with exponential backoff
+      scheduledAt: shouldRetry 
+        ? new Date(Date.now() + Math.pow(2, job.attempts) * 5000) // 5s, 10s, 20s
+        : job.scheduledAt,
+    },
+  });
+}
+
+/**
+ * Process a single job
+ */
+export async function processJob(job: any): Promise<boolean> {
+  try {
+    await markJobProcessing(job.id);
+
+    switch (job.type) {
+      case 'ESCALATION':
+        const { executeEscalation } = await import('../escalation');
+        const result = await executeEscalation(
+          job.payload.incidentId,
+          job.payload.stepIndex
+        );
+        if (result.escalated || result.reason?.includes('completed') || result.reason?.includes('exhausted')) {
+          await markJobCompleted(job.id);
+          return true;
+        } else {
+          await markJobFailed(job.id, result.reason || 'Escalation failed');
+          return false;
+        }
+
+      case 'NOTIFICATION':
+        const { sendNotification } = await import('../notifications');
+        const notificationResult = await sendNotification(
+          job.payload.incidentId,
+          job.payload.userId,
+          job.payload.channel as any,
+          job.payload.message
+        );
+        if (notificationResult.success) {
+          await markJobCompleted(job.id);
+          return true;
+        } else {
+          await markJobFailed(job.id, notificationResult.error || 'Notification failed');
+          return false;
+        }
+
+      case 'AUTO_UNSNOOZE':
+        const incident = await prisma.incident.findUnique({
+          where: { id: job.payload.incidentId },
+        });
+        
+        if (incident && incident.status === 'SNOOZED' && incident.snoozedUntil) {
+          const now = new Date();
+          if (now >= incident.snoozedUntil) {
+            await prisma.incident.update({
+              where: { id: job.payload.incidentId },
+              data: {
+                status: 'OPEN',
+                snoozedUntil: null,
+                snoozeReason: null,
+                events: {
+                  create: {
+                    message: 'Incident auto-unsnoozed',
+                  },
+                },
+              },
+            });
+            await markJobCompleted(job.id);
+            return true;
+          } else {
+            // Not ready yet, reschedule
+            await prisma.backgroundJob.update({
+              where: { id: job.id },
+              data: {
+                status: 'PENDING',
+                scheduledAt: incident.snoozedUntil,
+                startedAt: null,
+              },
+            });
+            return false;
+          }
+        } else {
+          // Incident no longer snoozed, cancel job
+          await prisma.backgroundJob.update({
+            where: { id: job.id },
+            data: {
+              status: 'CANCELLED',
+            },
+          });
+          return false;
+        }
+
+      default:
+        await markJobFailed(job.id, `Unknown job type: ${job.type}`);
+        return false;
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    await markJobFailed(job.id, errorMessage);
+    return false;
+  }
+}
+
+/**
+ * Process all pending jobs
+ */
+export async function processPendingJobs(limit: number = 50): Promise<{
+  processed: number;
+  failed: number;
+  total: number;
+}> {
+  const pendingJobs = await getPendingJobs(limit);
+  let processed = 0;
+  let failed = 0;
+
+  for (const job of pendingJobs) {
+    const success = await processJob(job);
+    if (success) {
+      processed++;
+    } else {
+      failed++;
+    }
+  }
+
+  return {
+    processed,
+    failed,
+    total: pendingJobs.length,
+  };
+}
+
+/**
+ * Clean up old completed jobs (optional maintenance)
+ */
+export async function cleanupOldJobs(olderThanDays: number = 7): Promise<number> {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+  const result = await prisma.backgroundJob.deleteMany({
+    where: {
+      status: {
+        in: ['COMPLETED', 'CANCELLED'],
+      },
+      completedAt: {
+        lte: cutoffDate,
+      },
+    },
+  });
+
+  return result.count;
+}
+
+/**
+ * Get job statistics
+ */
+export async function getJobStats(): Promise<{
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+}> {
+  const [pending, processing, completed, failed] = await Promise.all([
+    prisma.backgroundJob.count({ where: { status: 'PENDING' } }),
+    prisma.backgroundJob.count({ where: { status: 'PROCESSING' } }),
+    prisma.backgroundJob.count({ where: { status: 'COMPLETED' } }),
+    prisma.backgroundJob.count({ where: { status: 'FAILED' } }),
+  ]);
+
+  return { pending, processing, completed, failed };
+}

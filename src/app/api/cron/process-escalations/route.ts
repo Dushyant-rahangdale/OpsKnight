@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processPendingEscalations } from '@/lib/escalation';
+import { processPendingJobs, getJobStats } from '@/lib/jobs/queue';
 
 /**
- * Cron endpoint for processing pending escalations
+ * Cron endpoint for processing pending escalations and background jobs
  * 
- * This should be called periodically (e.g., every 1-5 minutes) to process
- * escalations that are scheduled for execution.
+ * This endpoint processes:
+ * 1. Escalations based on nextEscalationAt field in Incident table
+ * 2. Background jobs from BackgroundJob table (PostgreSQL-based queue)
+ * 
+ * This should be called periodically (e.g., every 1-5 minutes).
  * 
  * Setup options:
- * 1. Vercel Cron: Add to vercel.json
+ * 1. Vercel Cron: Already configured in vercel.json (every 5 minutes)
  * 2. External cron service: Call this endpoint
  * 3. Self-hosted: Use node-cron or similar
  * 
@@ -28,17 +32,32 @@ export async function GET(req: NextRequest) {
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
-    const result = await processPendingEscalations();
+    // Process escalations (legacy method - based on nextEscalationAt)
+    const escalationResult = await processPendingEscalations();
+
+    // Process background jobs (PostgreSQL-based queue)
+    const jobResult = await processPendingJobs(50);
+
+    // Get job statistics
+    const jobStats = await getJobStats();
 
     return NextResponse.json({
       success: true,
-      processed: result.processed,
-      total: result.total,
-      errors: result.errors,
+      escalations: {
+        processed: escalationResult.processed,
+        total: escalationResult.total,
+        errors: escalationResult.errors,
+      },
+      jobs: {
+        processed: jobResult.processed,
+        failed: jobResult.failed,
+        total: jobResult.total,
+      },
+      stats: jobStats,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error processing escalations:', error);
+    console.error('Error processing escalations/jobs:', error);
     return NextResponse.json(
       {
         success: false,

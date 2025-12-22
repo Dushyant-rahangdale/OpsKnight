@@ -499,3 +499,39 @@ model NotificationProvider {
 
   @@index([provider])
 }
+
+// Background Job Queue (PostgreSQL-based, no Redis needed)
+enum JobType {
+  ESCALATION
+  NOTIFICATION
+  AUTO_UNSNOOZE
+  SCHEDULED_TASK
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model BackgroundJob {
+  id          String    @id @default(cuid())
+  type        JobType
+  status      JobStatus @default(PENDING)
+  scheduledAt DateTime // When to execute the job
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  error       String? // Error message if failed
+  payload     Json // Job-specific data (incidentId, userId, etc.)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([type, status, scheduledAt]) // For efficient job polling
+  @@index([status, scheduledAt]) // For finding pending jobs
+  @@index([scheduledAt]) // For time-based queries
+}

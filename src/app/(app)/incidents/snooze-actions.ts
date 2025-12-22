@@ -30,6 +30,15 @@ export async function snoozeIncidentWithDuration(incidentId: string, durationMin
         }
     });
 
+    // Schedule auto-unsnooze job using PostgreSQL job queue
+    try {
+        const { scheduleAutoUnsnooze } = await import('@/lib/jobs/queue');
+        await scheduleAutoUnsnooze(incidentId, snoozedUntil);
+    } catch (error) {
+        console.error(`Failed to schedule auto-unsnooze job for incident ${incidentId}:`, error);
+        // Continue anyway - cron job will pick it up via snoozedUntil field
+    }
+
     revalidatePath(`/incidents/${incidentId}`);
     revalidatePath('/incidents');
     revalidatePath('/');

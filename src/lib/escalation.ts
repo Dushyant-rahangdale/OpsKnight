@@ -285,13 +285,25 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
 
     // Update incident with escalation state
     await prisma.incident.update({
-        where: { id: incidentId },
-        data: {
-            currentEscalationStep: nextStepIndex < incident.service.policy.steps.length ? nextStepIndex : null,
-            nextEscalationAt,
-            escalationStatus: escalationStatus as any
-        }
+      where: { id: incidentId },
+      data: {
+        currentEscalationStep: nextStepIndex < incident.service.policy.steps.length ? nextStepIndex : null,
+        nextEscalationAt,
+        escalationStatus: escalationStatus as any
+      }
     });
+
+    // Schedule next escalation step using PostgreSQL job queue
+    if (nextStepIndex < incident.service.policy.steps.length && nextEscalationAt) {
+      try {
+        const { scheduleEscalation } = await import('./jobs/queue');
+        const delayMs = nextStep.delayMinutes * 60 * 1000;
+        await scheduleEscalation(incidentId, nextStepIndex, delayMs);
+      } catch (error) {
+        console.error(`Failed to schedule escalation job for incident ${incidentId}:`, error);
+        // Continue anyway - cron job will pick it up via nextEscalationAt
+      }
+    }
 
     return { 
         escalated: true, 

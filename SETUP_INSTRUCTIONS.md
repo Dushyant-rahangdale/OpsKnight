@@ -2,44 +2,25 @@
 
 ## 🚀 Quick Start
 
-### 1. Install New Dependencies
+### 1. Run Database Migration
 
-For background job processing (when ready):
+The background job system uses PostgreSQL (no Redis needed!):
 ```bash
-npm install bullmq ioredis
+npx prisma migrate dev --name add_background_jobs
 ```
 
-### 2. Set Up Redis (for Background Jobs)
-
-**Option A: Docker (Local Development)**
+Or if using the migration file directly:
 ```bash
-docker run -d -p 6379:6379 --name redis redis:alpine
+# The migration file is at: prisma/migrations/add_background_jobs/migration.sql
+# Prisma will automatically apply it when you run:
+npx prisma migrate dev
 ```
 
-**Option B: Redis Cloud**
-- Sign up at https://redis.com/try-free/
-- Get connection string
-- Add to `.env`:
-```
-REDIS_HOST=your-redis-host
-REDIS_PORT=6379
-REDIS_PASSWORD=your-password
-```
-
-**Option C: AWS ElastiCache / Other Cloud**
-- Follow provider's setup instructions
-- Add connection details to `.env`
-
-### 3. Environment Variables
+### 2. Environment Variables
 
 Add to `.env.local`:
 ```env
-# Redis (for background jobs)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# Cron Secret (for securing cron endpoints)
+# Cron Secret (for securing cron endpoints - optional)
 CRON_SECRET=your-secret-key-here
 
 # Notification Providers (when implementing)
@@ -50,28 +31,16 @@ FIREBASE_PROJECT_ID=
 FIREBASE_PRIVATE_KEY=
 ```
 
-### 4. Enable Background Jobs
+### 3. Background Jobs are Ready!
 
-Once Redis is set up:
+The PostgreSQL-based job queue is already integrated:
+- ✅ No Redis needed - uses your existing PostgreSQL database
+- ✅ Jobs are automatically scheduled when escalations are created
+- ✅ Cron endpoint processes jobs every 5 minutes (configured in vercel.json)
+- ✅ Automatic retry with exponential backoff
+- ✅ Job statistics and monitoring available
 
-1. Uncomment code in `src/lib/jobs/queue.ts`
-2. Update `src/lib/escalation.ts` to use job queue:
-```typescript
-import { scheduleEscalation } from '@/lib/jobs/queue';
-
-// Replace direct execution with:
-await scheduleEscalation(incidentId, stepIndex, delayMs);
-```
-
-3. Update `src/lib/notifications.ts` to use job queue:
-```typescript
-import { scheduleNotification } from '@/lib/jobs/queue';
-
-// Replace direct sending with:
-await scheduleNotification(incidentId, userId, channel, message);
-```
-
-### 5. Verify Cron Job
+### 4. Verify Cron Job
 
 The cron job is already configured in `vercel.json`:
 - Runs every 5 minutes
