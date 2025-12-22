@@ -7520,6 +7520,46 @@ span:hover > .info-tooltip {
   box-shadow: 0 2px 8px rgba(211, 47, 47, 0.1);
 }
 
+.dashboard-service-health-item:hover {
+  background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-urgency-item:hover {
+  background: #f3f4f6 !important;
+  border-color: var(--primary) !important;
+}
+
+.dashboard-collapsible-header:hover {
+  background: #f9fafb !important;
+}
+
+/* Sidebar scrolling improvements */
+.dashboard-sidebar {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Responsive: Make two-column layout single column on smaller screens */
 @media (max-width: 1024px) {
   main > div[style*="grid-template-columns: minmax(0, 2fr) 320px"] {

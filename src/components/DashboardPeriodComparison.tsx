@@ -54,10 +54,7 @@ export default function DashboardPeriodComparison({
   ];
 
   return (
-    <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-      <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>
-        Period Comparison
-      </h3>
+    <div style={{ padding: '0' }}>
       <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         <span style={{ fontWeight: '600' }}>{periodLabel}</span> vs <span style={{ fontWeight: '600' }}>{previousPeriodLabel}</span>
       </div>

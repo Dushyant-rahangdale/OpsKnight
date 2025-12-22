@@ -18,6 +18,17 @@ type DashboardTemplate = {
   };
 };
 
+// Extend the layout type to include all widget types
+type ExtendedLayout = {
+  showMetrics: boolean;
+  showCharts: boolean;
+  showTimeline: boolean;
+  showActivity: boolean;
+  showServiceHealth: boolean;
+  showPerformance: boolean;
+  showComparison: boolean;
+};
+
 const templates: DashboardTemplate[] = [
   {
     id: 'executive',

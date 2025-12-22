@@ -16,6 +16,10 @@ import DashboardSavedFilters from '@/components/DashboardSavedFilters';
 import DashboardNotifications from '@/components/DashboardNotifications';
 import DashboardTemplates from '@/components/DashboardTemplates';
 import DashboardTemplateWrapper from '@/components/DashboardTemplateWrapper';
+import DashboardPeriodComparison from '@/components/DashboardPeriodComparison';
+import DashboardServiceHealth from '@/components/DashboardServiceHealth';
+import DashboardUrgencyDistribution from '@/components/DashboardUrgencyDistribution';
+import DashboardCollapsibleWidget from '@/components/DashboardCollapsibleWidget';
 import { calculateSLAMetrics } from '@/lib/sla';
 import { Suspense } from 'react';
 
@@ -164,6 +168,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         ...dateFilter
       }
     }),
+    // All-time counts (for Command Center and Advanced Metrics)
     prisma.incident.count({
       where: {
         status: { not: 'RESOLVED' }
@@ -230,6 +235,125 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     { label: 'Suppressed', value: statusCounts['SUPPRESSED'] || 0, color: '#a855f7' }
   ].filter(item => item.value > 0);
 
+  // Calculate urgency distribution
+  const urgencyCounts = allIncidents.reduce((acc, incident) => {
+    acc[incident.urgency] = (acc[incident.urgency] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const urgencyDistribution = [
+    { label: 'High', value: urgencyCounts['HIGH'] || 0, color: '#ef4444' },
+    { label: 'Medium', value: urgencyCounts['MEDIUM'] || 0, color: '#f59e0b' },
+    { label: 'Low', value: urgencyCounts['LOW'] || 0, color: '#22c55e' }
+  ].filter(item => item.value > 0);
+
+  // Calculate previous period data for comparison
+  const getDaysFromRange = (range: string): number => {
+    if (range === 'all') return 0;
+    if (range === 'custom') return 30; // Default to 30 days for custom
+    const days = parseInt(range);
+    return isNaN(days) ? 30 : days;
+  };
+
+  const currentPeriodDays = getDaysFromRange(range);
+  const previousPeriodStart = new Date();
+  previousPeriodStart.setDate(previousPeriodStart.getDate() - (currentPeriodDays * 2));
+  const previousPeriodEnd = new Date();
+  previousPeriodEnd.setDate(previousPeriodEnd.getDate() - currentPeriodDays);
+
+  const previousPeriodIncidents = currentPeriodDays > 0 ? await Promise.all([
+    prisma.incident.count({
+      where: {
+        createdAt: {
+          gte: previousPeriodStart,
+          lt: previousPeriodEnd
+        }
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: { not: 'RESOLVED' },
+        createdAt: {
+          gte: previousPeriodStart,
+          lt: previousPeriodEnd
+        }
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: 'RESOLVED',
+        createdAt: {
+          gte: previousPeriodStart,
+          lt: previousPeriodEnd
+        }
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: 'ACKNOWLEDGED',
+        createdAt: {
+          gte: previousPeriodStart,
+          lt: previousPeriodEnd
+        }
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: { not: 'RESOLVED' },
+        urgency: 'HIGH',
+        createdAt: {
+          gte: previousPeriodStart,
+          lt: previousPeriodEnd
+        }
+      }
+    })
+  ]) : [0, 0, 0, 0, 0];
+
+  const [prevTotal, prevOpen, prevResolved, prevAcknowledged, prevCritical] = previousPeriodIncidents;
+
+  // Get service health data
+  const servicesWithIncidents = await Promise.all(
+    services.map(async (service) => {
+      const [activeCount, criticalCount] = await Promise.all([
+        prisma.incident.count({
+          where: {
+            serviceId: service.id,
+            status: { not: 'RESOLVED' }
+          }
+        }),
+        prisma.incident.count({
+          where: {
+            serviceId: service.id,
+            status: { not: 'RESOLVED' },
+            urgency: 'HIGH'
+          }
+        })
+      ]);
+
+      return {
+        id: service.id,
+        name: service.name,
+        status: service.status,
+        activeIncidents: activeCount,
+        criticalIncidents: criticalCount
+      };
+    })
+  );
+
+  // Helper functions for period labels
+  const getPeriodLabels = () => {
+    if (range === 'all') return { current: 'All Time', previous: 'All Time' };
+    const days = getDaysFromRange(range);
+    if (days === 0) return { current: 'All Time', previous: 'All Time' };
+    
+    return {
+      current: `Last ${days} days`,
+      previous: `Previous ${days} days`
+    };
+  };
+
+  const periodLabels = getPeriodLabels();
+
   // Calculate system status
   const openIncidentsList = incidents.filter(i => i.status !== 'RESOLVED');
   const criticalIncidents = openIncidentsList.filter(i => i.urgency === 'HIGH');
@@ -260,6 +384,29 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   // Calculate total incidents for the selected range
   const totalInRange = totalCount;
+  
+  // Calculate current period metrics (filtered by date range)
+  const currentPeriodOpen = await prisma.incident.count({
+    where: {
+      status: { not: 'RESOLVED' },
+      ...dateFilter
+    }
+  });
+  
+  const currentPeriodAcknowledged = await prisma.incident.count({
+    where: {
+      status: 'ACKNOWLEDGED',
+      ...dateFilter
+    }
+  });
+  
+  const currentPeriodCritical = await prisma.incident.count({
+    where: {
+      status: { not: 'RESOLVED' },
+      urgency: 'HIGH',
+      ...dateFilter
+    }
+  });
   const getRangeLabel = () => {
     if (range === '7') return '(7d)';
     if (range === '30') return '(30d)';
@@ -321,16 +468,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <div className="command-metric-label">TOTAL {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
-            <div className="command-metric-value">{allOpenIncidentsCount}</div>
-            <div className="command-metric-label">OPEN (All Time)</div>
+            <div className="command-metric-value">{currentPeriodOpen}</div>
+            <div className="command-metric-label">OPEN {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
             <div className="command-metric-value">{allResolvedCount}</div>
-            <div className="command-metric-label">RESOLVED (All Time)</div>
+            <div className="command-metric-label">RESOLVED {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
             <div className="command-metric-value">{unassignedCount}</div>
-            <div className="command-metric-label">UNASSIGNED</div>
+            <div className="command-metric-label">UNASSIGNED (All Time)</div>
           </div>
         </div>
       </div>
@@ -553,7 +700,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </div>
 
         {/* Right Sidebar - All Widgets (matching users page style) */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <aside className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Dashboard Templates */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Dashboard Templates</h3>
@@ -717,73 +864,226 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* Performance Metrics Widget */}
           <DashboardTemplateWrapper widgetType="showPerformance">
-            <DashboardPerformanceMetrics
-            mtta={mttaMinutes}
-            mttr={slaMetrics.mttr}
-            ackSlaRate={slaMetrics.ackCompliance}
-            resolveSlaRate={slaMetrics.resolveCompliance}
-            />
+            <DashboardCollapsibleWidget
+              title="Performance Metrics"
+              defaultExpanded={true}
+              icon={
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              }
+            >
+              <DashboardPerformanceMetrics
+                mtta={mttaMinutes}
+                mttr={slaMetrics.mttr}
+                ackSlaRate={slaMetrics.ackCompliance}
+                resolveSlaRate={slaMetrics.resolveCompliance}
+              />
+            </DashboardCollapsibleWidget>
           </DashboardTemplateWrapper>
 
           {/* Status Distribution - Charts */}
           <DashboardTemplateWrapper widgetType="showCharts">
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
-                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Status Distribution</h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <DashboardStatusChart data={statusDistribution} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {statusDistribution.map((item) => (
-                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '0.4rem 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: item.color }} />
-                      <span>{item.label}</span>
+            <DashboardCollapsibleWidget
+              title="Status Distribution"
+              defaultExpanded={false}
+              icon={
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
+                    <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <DashboardStatusChart data={statusDistribution} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  {statusDistribution.map((item) => (
+                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '0.4rem 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: item.color }} />
+                        <span>{item.label}</span>
+                      </div>
+                      <span style={{ fontWeight: '600' }}>{item.value}</span>
                     </div>
-                    <span style={{ fontWeight: '600' }}>{item.value}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
+            </DashboardCollapsibleWidget>
           </DashboardTemplateWrapper>
 
           {/* Advanced Metrics - Metrics */}
           <DashboardTemplateWrapper widgetType="showMetrics">
-            <DashboardAdvancedMetrics
-            totalIncidents={allIncidents.length}
-            openIncidents={allOpenIncidentsCount}
-            resolvedIncidents={allResolvedCount}
-            acknowledgedIncidents={allAcknowledgedCount}
-            criticalIncidents={allCriticalIncidentsCount}
-            unassignedIncidents={unassignedCount}
-            servicesCount={services.length}
-            />
+            <DashboardCollapsibleWidget
+              title="Advanced Metrics"
+              defaultExpanded={false}
+              icon={
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              }
+            >
+              <DashboardAdvancedMetrics
+                totalIncidents={allIncidents.length}
+                openIncidents={allOpenIncidentsCount}
+                resolvedIncidents={allResolvedCount}
+                acknowledgedIncidents={allAcknowledgedCount}
+                criticalIncidents={allCriticalIncidentsCount}
+                unassignedIncidents={unassignedCount}
+                servicesCount={services.length}
+              />
+            </DashboardCollapsibleWidget>
           </DashboardTemplateWrapper>
 
+          {/* Period Comparison Widget - Comparison */}
+          <DashboardTemplateWrapper widgetType="showComparison">
+            <DashboardCollapsibleWidget
+              title="Period Comparison"
+              defaultExpanded={false}
+              icon={
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                    <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              }
+            >
+              <DashboardPeriodComparison
+                current={{
+                  total: totalInRange,
+                  open: currentPeriodOpen,
+                  resolved: allResolvedCount, // Already filtered by dateFilter
+                  acknowledged: currentPeriodAcknowledged,
+                  critical: currentPeriodCritical
+                }}
+                previous={{
+                  total: prevTotal,
+                  open: prevOpen,
+                  resolved: prevResolved,
+                  acknowledged: prevAcknowledged,
+                  critical: prevCritical
+                }}
+                periodLabel={periodLabels.current}
+                previousPeriodLabel={periodLabels.previous}
+              />
+            </DashboardCollapsibleWidget>
+          </DashboardTemplateWrapper>
+
+          {/* Service Health Widget - Service Health */}
+          <DashboardTemplateWrapper widgetType="showServiceHealth">
+            <DashboardCollapsibleWidget
+              title="Service Health"
+              defaultExpanded={true}
+              icon={
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              }
+            >
+              <DashboardServiceHealth services={servicesWithIncidents} />
+            </DashboardCollapsibleWidget>
+          </DashboardTemplateWrapper>
+
+          {/* Urgency Distribution - Charts */}
+          {urgencyDistribution.length > 0 && (
+            <DashboardTemplateWrapper widgetType="showCharts">
+              <DashboardCollapsibleWidget
+                title="Urgency Distribution"
+                defaultExpanded={false}
+                icon={
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px', 
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
+                      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                }
+              >
+                <DashboardUrgencyDistribution data={urgencyDistribution} />
+              </DashboardCollapsibleWidget>
+            </DashboardTemplateWrapper>
+          )}
+
           {/* Notifications Widget */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Browser Notifications</h3>
+          <DashboardCollapsibleWidget
+            title="Browser Notifications"
+            defaultExpanded={false}
+            icon={
+              <div style={{ 
+                width: '32px', 
+                height: '32px', 
+                borderRadius: '8px', 
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            }
+          >
             <Suspense fallback={null}>
               <DashboardNotifications 
                 criticalCount={allCriticalIncidentsCount}
                 unassignedCount={unassignedCount}
               />
             </Suspense>
-          </div>
+          </DashboardCollapsibleWidget>
         </aside>
       </div>
     </main>
