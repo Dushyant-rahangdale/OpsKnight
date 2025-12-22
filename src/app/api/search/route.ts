@@ -49,8 +49,6 @@ export async function GET(req: NextRequest) {
                 },
                 take: 10, // Increased from 5
                 orderBy: [
-                    // Prioritize exact title matches
-                    { title: { sort: 'asc', nulls: 'last' } },
                     { createdAt: 'desc' }
                 ],
                 select: {
@@ -132,32 +130,43 @@ export async function GET(req: NextRequest) {
                 }
             }),
 
-            // Search postmortems
-            prisma.postmortem.findMany({
-                where: {
-                    OR: [
-                        { title: { contains: searchTerm, mode: 'insensitive' } },
-                        { summary: { contains: searchTerm, mode: 'insensitive' } },
-                        { rootCause: { contains: searchTerm, mode: 'insensitive' } },
-                        { lessons: { contains: searchTerm, mode: 'insensitive' } }
-                    ],
-                    status: { not: 'ARCHIVED' } // Don't show archived postmortems
-                },
-                take: 5,
-                orderBy: { createdAt: 'desc' },
-                select: {
-                    id: true,
-                    incidentId: true,
-                    title: true,
-                    status: true,
-                    incident: {
+            // Search postmortems (only if Postmortem model exists)
+            (async () => {
+                try {
+                    // Check if Postmortem model exists by checking if prisma has it
+                    if (!prisma.postmortem) {
+                        return [];
+                    }
+                    return await prisma.postmortem.findMany({
+                        where: {
+                            OR: [
+                                { title: { contains: searchTerm, mode: 'insensitive' } },
+                                { summary: { contains: searchTerm, mode: 'insensitive' } },
+                                { rootCause: { contains: searchTerm, mode: 'insensitive' } },
+                                { lessons: { contains: searchTerm, mode: 'insensitive' } }
+                            ],
+                            status: { not: 'ARCHIVED' } // Don't show archived postmortems
+                        },
+                        take: 5,
+                        orderBy: { createdAt: 'desc' },
                         select: {
                             id: true,
-                            title: true
+                            incidentId: true,
+                            title: true,
+                            status: true,
+                            incident: {
+                                select: {
+                                    id: true,
+                                    title: true
+                                }
+                            }
                         }
-                    }
+                    });
+                } catch (e) {
+                    // If postmortem model doesn't exist or query fails, return empty
+                    return [];
                 }
-            })
+            })()
         ]);
 
         // Format results with proper priorities (incidents first, then services, etc.)
@@ -224,8 +233,15 @@ export async function GET(req: NextRequest) {
         });
 
         return NextResponse.json({ results });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Search error:', error);
-        return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+        // Provide more detailed error information in development
+        const errorMessage = process.env.NODE_ENV === 'development' 
+            ? (error?.message || 'Search failed') 
+            : 'Search failed. Please try again.';
+        return NextResponse.json({ 
+            error: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        }, { status: 500 });
     }
 }

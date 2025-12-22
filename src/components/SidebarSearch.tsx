@@ -294,10 +294,14 @@ export default function SidebarSearch() {
                 }
 
                 if (!response.ok) {
-                    throw new Error('Search failed');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Search failed with status ${response.status}`);
                 }
 
                 const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
                 setResults(data.results || []);
                 saveRecentSearch(query);
             } catch (err: any) {
