@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
         const searchPattern = searchWords.map(w => `%${w}%`).join(' ');
 
         // Run all searches in parallel for better performance
-        const [incidents, services, teams, users, policies, postmortems] = await Promise.all([
+        // Note: Postmortem search is wrapped to handle missing model gracefully
+        const searchPromises: Promise<any>[] = [
             // Search incidents - Enhanced with multiple search strategies
             prisma.incident.findMany({
                 where: {
@@ -171,6 +172,9 @@ export async function GET(req: NextRequest) {
 
         const [incidents, services, teams, users, policies, postmortemsResult] = await Promise.all(searchPromises);
 
+        // Handle postmortems result (unwrap promise if needed)
+        const postmortems = Array.isArray(postmortemsResult) ? postmortemsResult : [];
+
         // Format results with proper priorities (incidents first, then services, etc.)
         const results = [
             ...incidents.map(i => ({
@@ -213,7 +217,7 @@ export async function GET(req: NextRequest) {
                 href: `/policies/${p.id}`,
                 priority: 6
             })),
-            ...(Array.isArray(postmortems) ? postmortems : []).map((pm: any) => ({
+            ...postmortems.map((pm: any) => ({
                 type: 'postmortem' as const,
                 id: pm.id,
                 title: pm.title,
