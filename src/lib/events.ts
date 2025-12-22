@@ -78,15 +78,21 @@ export async function processEvent(payload: EventPayload, serviceId: string, int
                 }
             });
 
-            // Execute escalation policy - send notifications
+            // Send service-level notifications (to team members, assignee, etc.)
+            // Uses user preferences for each recipient
+            try {
+                const { sendServiceNotifications } = await import('./user-notifications');
+                await sendServiceNotifications(newIncident.id, 'triggered');
+            } catch (e) {
+                console.error('Service notification failed:', e);
+            }
+
+            // Execute escalation policy - send notifications via policy steps
             try {
                 await executeEscalation(newIncident.id);
             } catch (e) {
                 console.error('Escalation failed:', e);
             }
-
-            // Send Slack notification
-            notifySlackForIncident(newIncident.id, 'triggered').catch(console.error);
 
             return { action: 'triggered', incident: newIncident };
         }

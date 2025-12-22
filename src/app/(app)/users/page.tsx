@@ -382,6 +382,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                                     deleteUser={deleteUser}
                                     generateInvite={generateInvite}
                                     addUserToTeam={addUserToTeam}
+                                    sortBy={sortBy}
+                                    sortOrder={sortOrder}
                                 />
                             )}
                         </div>

@@ -2,35 +2,42 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import ProfileForm from '@/components/settings/ProfileForm';
+import SettingsSection from '@/components/settings/SettingsSection';
 
 export default async function ProfileSettingsPage() {
     const session = await getServerSession(authOptions);
     const email = session?.user?.email ?? null;
-    const name = session?.user?.name ?? '';
-    const role = (session?.user as any)?.role ?? 'USER';
-
+    
+    // Fetch user data from database to get the latest name
     const user = email
         ? await prisma.user.findUnique({
             where: { email },
-            select: { createdAt: true }
+            select: { 
+                name: true,
+                role: true,
+                createdAt: true
+            }
         })
         : null;
 
+    const name = user?.name || session?.user?.name || '';
+    const role = user?.role || (session?.user as any)?.role || 'USER';
+    const memberSince = user?.createdAt ? user.createdAt.toLocaleDateString() : 'Unknown';
+
     return (
-        <div className="settings-section">
-            <header className="settings-section-header">
-                <h2>Profile</h2>
-                <p>Identity details tied to your OpsGuard account.</p>
-            </header>
+        <SettingsSection
+            title="Profile"
+            description="Identity details tied to your OpsGuard account."
+        >
             <ProfileForm
                 name={name}
                 email={email}
                 role={role}
-                memberSince={user?.createdAt ? user.createdAt.toLocaleDateString() : 'Unknown'}
+                memberSince={memberSince}
             />
-            <div className="settings-note">
+            <div className="settings-note" style={{ marginTop: '1.5rem' }}>
                 Updates are managed by your identity provider or an OpsGuard administrator.
             </div>
-        </div>
+        </SettingsSection>
     );
 }

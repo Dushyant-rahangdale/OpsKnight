@@ -1,6 +1,8 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { updatePreferences } from '@/app/(app)/settings/actions';
 
 type Props = {
@@ -14,48 +16,110 @@ type State = {
     success?: boolean;
 };
 
+const TIMEZONES = [
+    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    { value: 'America/New_York', label: 'America/New_York (Eastern Time)' },
+    { value: 'America/Chicago', label: 'America/Chicago (Central Time)' },
+    { value: 'America/Denver', label: 'America/Denver (Mountain Time)' },
+    { value: 'America/Los_Angeles', label: 'America/Los_Angeles (Pacific Time)' },
+    { value: 'Europe/London', label: 'Europe/London (GMT)' },
+    { value: 'Europe/Paris', label: 'Europe/Paris (CET)' },
+    { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
+    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+    { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT)' },
+    { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
+    { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST)' }
+];
+
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
         <button className="glass-button primary settings-submit" type="submit" disabled={pending}>
-            {pending ? 'Saving...' : 'Save preferences'}
+            {pending ? 'Saving...' : 'Save Preferences'}
         </button>
     );
 }
 
 export default function PreferencesForm({ timeZone, dailySummary, incidentDigest }: Props) {
-    const [state, formAction] = useFormState<State>(updatePreferences, { error: null, success: false });
+    const [state, formAction] = useActionState<State, FormData>(updatePreferences, { error: null, success: false });
+    const router = useRouter();
+
+    // Refresh the page after successful update
+    useEffect(() => {
+        if (state?.success) {
+            const timer = setTimeout(() => {
+                router.refresh();
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [state?.success, router]);
 
     return (
-        <form action={formAction} className="settings-panel">
-            <div className="settings-field">
-                <label>Timezone</label>
-                <select name="timeZone" defaultValue={timeZone}>
-                    <option value="UTC">UTC</option>
-                    <option value="America/New_York">America/New_York</option>
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="Asia/Kolkata">Asia/Kolkata</option>
-                    <option value="Asia/Singapore">Asia/Singapore</option>
-                </select>
+        <form action={formAction} className="settings-panel-modern">
+            <div className="settings-panel-header">
+                <h3>General Preferences</h3>
+                <p>Configure your timezone and notification preferences</p>
             </div>
-            <div className="settings-field">
-                <label>Daily summary</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    <input type="checkbox" name="dailySummary" defaultChecked={dailySummary} />
-                    Send daily incident summary
-                </label>
+
+            <div className="settings-form">
+                <div className="settings-field">
+                    <label>Timezone</label>
+                    <select name="timeZone" defaultValue={timeZone} key={timeZone}>
+                        {TIMEZONES.map(tz => (
+                            <option key={tz.value} value={tz.value}>{tz.label}</option>
+                        ))}
+                    </select>
+                    <p className="settings-field-hint">All times will be displayed in your selected timezone</p>
+                </div>
+                
+                <div className="settings-field">
+                    <label>Daily Summary</label>
+                    <label className="settings-checkbox-label">
+                        <input 
+                            type="checkbox" 
+                            name="dailySummary" 
+                            defaultChecked={dailySummary}
+                            key={dailySummary ? 'checked' : 'unchecked'}
+                        />
+                        <span>
+                            <strong>Send daily incident summary</strong>
+                            <small>Receive a daily email with a summary of all incidents</small>
+                        </span>
+                    </label>
+                </div>
+                
+                <div className="settings-field">
+                    <label>Incident Digest</label>
+                    <select name="incidentDigest" defaultValue={incidentDigest} key={incidentDigest}>
+                        <option value="HIGH">High priority only</option>
+                        <option value="ALL">All incidents</option>
+                        <option value="NONE">None</option>
+                    </select>
+                    <p className="settings-field-hint">Choose which incidents to include in your digest emails</p>
+                </div>
             </div>
-            <div className="settings-field">
-                <label>Incident digest</label>
-                <select name="incidentDigest" defaultValue={incidentDigest}>
-                    <option value="HIGH">High priority only</option>
-                    <option value="ALL">All incidents</option>
-                    <option value="NONE">None</option>
-                </select>
-            </div>
+            
             <SubmitButton />
-            {state?.error ? <div className="settings-note" style={{ color: 'var(--danger)' }}>{state.error}</div> : null}
-            {state?.success ? <div className="settings-note" style={{ color: 'var(--success)' }}>Preferences saved.</div> : null}
+            
+            {state?.error && (
+                <div className="settings-error-banner">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" fill="#dc2626"/>
+                        <path d="M10 6V10M10 14H10.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    <span>{state.error}</span>
+                </div>
+            )}
+            
+            {state?.success && (
+                <div className="settings-success-banner">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" fill="#22c55e"/>
+                        <path d="M7 10L9 12L13 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Preferences saved successfully</span>
+                </div>
+            )}
         </form>
     );
 }

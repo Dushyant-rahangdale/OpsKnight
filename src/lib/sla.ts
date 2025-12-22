@@ -41,6 +41,10 @@ export async function calculateSLAMetrics(serviceId?: string, startDate?: Date, 
             notes: {
                 orderBy: { createdAt: 'asc' },
                 take: 1
+            },
+            alerts: {
+                orderBy: { createdAt: 'asc' },
+                take: 1
             }
         }
     });
@@ -73,8 +77,28 @@ export async function calculateSLAMetrics(serviceId?: string, startDate?: Date, 
         : null;
 
     // Calculate MTTD (Mean Time To Detect) - time from first alert to incident creation
-    // For now, we'll use creation time as detection time (can be enhanced with alert timestamps)
-    const mttd = null; // TODO: Implement when alert timestamps are available
+    // Use the first alert timestamp if available, otherwise use incident creation time
+    const detectionTimes = resolvedIncidents
+        .filter(incident => {
+            // Only calculate if we have alerts or can use incident creation time
+            return incident.alerts.length > 0 || incident.createdAt;
+        })
+        .map(incident => {
+            if (incident.alerts.length > 0) {
+                // Use first alert timestamp as detection time
+                const alertTime = incident.alerts[0].createdAt.getTime();
+                const incidentTime = incident.createdAt.getTime();
+                // MTTD = time from alert to incident creation (detection time)
+                return (incidentTime - alertTime) / (1000 * 60); // Convert to minutes
+            } else {
+                // For manually created incidents without alerts, detection time is 0
+                return 0;
+            }
+        });
+
+    const mttd = detectionTimes.length > 0
+        ? detectionTimes.reduce((sum, time) => sum + time, 0) / detectionTimes.length
+        : null;
 
     // Calculate MTTI (Mean Time To Investigate) - time from creation to first note
     const investigateTimes = resolvedIncidents

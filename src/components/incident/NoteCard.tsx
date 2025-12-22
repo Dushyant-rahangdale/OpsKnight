@@ -91,3 +91,6 @@ export default function NoteCard({ content, userName, createdAt, isResolution = 
         </div>
     );
 }
+
+
+

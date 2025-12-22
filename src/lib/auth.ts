@@ -74,17 +74,44 @@ export const authOptions: NextAuthOptions = {
         signIn: '/login'
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger }) {
+            // Initial sign in - set user data
             if (user) {
                 token.role = (user as any).role;
                 token.sub = (user as any).id ?? token.sub;
+                token.name = (user as any).name;
+                token.email = (user as any).email;
             }
+            
+            // Fetch latest user data from database on each request to ensure name is up-to-date
+            // This ensures name changes reflect immediately without requiring re-login
+            if (token.sub && typeof token.sub === 'string') {
+                try {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: token.sub },
+                        select: { name: true, email: true, role: true }
+                    });
+                    
+                    if (dbUser) {
+                        token.name = dbUser.name;
+                        token.email = dbUser.email;
+                        token.role = dbUser.role;
+                    }
+                } catch (error) {
+                    // If database fetch fails, keep existing token data
+                    console.error('Error fetching user data in JWT callback:', error);
+                }
+            }
+            
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).role = token.role;
                 (session.user as any).id = token.sub;
+                // Always use the latest name from token (which is fetched from DB)
+                session.user.name = (token.name as string) || session.user.name;
+                session.user.email = (token.email as string) || session.user.email;
             }
             return session;
         },

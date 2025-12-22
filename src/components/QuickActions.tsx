@@ -7,12 +7,14 @@ type QuickAction = {
     label: string;
     href: string;
     icon: React.ReactNode;
+    description?: string;
 };
 
 const quickActions: QuickAction[] = [
     {
         label: 'New Incident',
         href: '/incidents/create',
+        description: 'Create a new incident',
         icon: (
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 3 2.5 20h19L12 3Zm0 6 4.5 9h-9L12 9Zm0 3v4" strokeLinecap="round" />
@@ -22,6 +24,7 @@ const quickActions: QuickAction[] = [
     {
         label: 'New Service',
         href: '/services',
+        description: 'Add a new service',
         icon: (
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M4 6h16v5H4V6Zm0 7h16v5H4v-5Z" />
@@ -31,6 +34,7 @@ const quickActions: QuickAction[] = [
     {
         label: 'New Team',
         href: '/teams',
+        description: 'Create a new team',
         icon: (
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M7 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm10 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM3 19a4 4 0 0 1 8 0v1H3v-1Zm10 1v-1a4 4 0 0 1 8 0v1h-8Z" />
@@ -40,6 +44,7 @@ const quickActions: QuickAction[] = [
     {
         label: 'New Schedule',
         href: '/schedules',
+        description: 'Set up on-call schedule',
         icon: (
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M7 3v3m10-3v3M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" strokeLinecap="round" />
@@ -49,6 +54,7 @@ const quickActions: QuickAction[] = [
     {
         label: 'New Policy',
         href: '/policies',
+        description: 'Create escalation policy',
         icon: (
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5Z" />
@@ -69,9 +75,19 @@ export default function QuickActions() {
             }
         };
 
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                setIsOpen(false);
+            }
+        };
+
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleEscape);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+                document.removeEventListener('keydown', handleEscape);
+            };
         }
     }, [isOpen]);
 
@@ -81,51 +97,27 @@ export default function QuickActions() {
     };
 
     return (
-        <div ref={menuRef} style={{ position: 'relative' }}>
+        <div ref={menuRef} className="quick-actions-container">
             <button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    padding: '0.625rem 1rem',
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '0px',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    whiteSpace: 'nowrap'
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
-                }}
+                className={`quick-actions-trigger ${isOpen ? 'active' : ''}`}
+                aria-label="Quick actions"
+                aria-expanded={isOpen}
             >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span style={{ display: 'none' }}>Quick Actions</span>
+                <span className="quick-actions-label">Create</span>
                 <svg 
+                    className="quick-actions-chevron"
                     viewBox="0 0 24 24" 
                     width="14" 
                     height="14" 
                     fill="none" 
                     stroke="currentColor" 
                     strokeWidth="2"
-                    style={{
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s',
-                        marginLeft: 'auto'
-                    }}
                 >
                     <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -134,66 +126,43 @@ export default function QuickActions() {
             {isOpen && (
                 <>
                     <div
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 9998
-                        }}
+                        className="quick-actions-overlay"
                         onClick={() => setIsOpen(false)}
                     />
-                    <div style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 0.5rem)',
-                        right: 0,
-                        minWidth: '200px',
-                        width: 'max-content',
-                        background: 'white',
-                        borderRadius: '0px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                        border: '1px solid rgba(0,0,0,0.1)',
-                        zIndex: 9999,
-                        overflow: 'hidden'
-                    }}>
-                        {quickActions.map((action, index) => (
-                            <button
-                                key={action.href}
-                                onClick={() => handleActionClick(action.href)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.875rem 1rem',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    transition: 'background 0.15s',
-                                    borderBottom: index < quickActions.length - 1 ? '1px solid #e5e7eb' : 'none',
-                                    whiteSpace: 'nowrap'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#f3f4f6';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                }}
-                            >
-                                <span style={{ color: 'var(--primary)', flexShrink: 0 }}>
-                                    {action.icon}
-                                </span>
-                                <span style={{
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    color: 'var(--text-primary)'
-                                }}>
-                                    {action.label}
-                                </span>
-                            </button>
-                        ))}
+                    <div className="quick-actions-menu">
+                        <div className="quick-actions-header">
+                            <h3>Quick Actions</h3>
+                            <p>Create new resources quickly</p>
+                        </div>
+                        <div className="quick-actions-list">
+                            {quickActions.map((action) => (
+                                <button
+                                    key={action.href}
+                                    type="button"
+                                    onClick={() => handleActionClick(action.href)}
+                                    className="quick-actions-item"
+                                >
+                                    <div className="quick-actions-item-icon">
+                                        {action.icon}
+                                    </div>
+                                    <div className="quick-actions-item-content">
+                                        <span className="quick-actions-item-label">{action.label}</span>
+                                        {action.description && (
+                                            <span className="quick-actions-item-desc">{action.description}</span>
+                                        )}
+                                    </div>
+                                    <svg 
+                                        className="quick-actions-item-arrow"
+                                        width="16" 
+                                        height="16" 
+                                        viewBox="0 0 16 16" 
+                                        fill="none"
+                                    >
+                                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </>
             )}

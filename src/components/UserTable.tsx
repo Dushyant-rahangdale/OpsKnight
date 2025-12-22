@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
+import { useSearchParams, usePathname } from 'next/navigation';
 import RoleSelector from './RoleSelector';
 import InviteLinkButton from './InviteLinkButton';
 import DeleteUserButton from './DeleteUserButton';
@@ -11,6 +13,7 @@ type User = {
     email: string;
     role: string;
     status: string;
+    createdAt?: Date;
     teamMemberships?: Array<{
         id: string;
         role: string;
@@ -33,6 +36,8 @@ type UserTableProps = {
     deleteUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
     generateInvite: (userId: string, prevState: any, formData: FormData) => Promise<any>;
     addUserToTeam: (userId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
+    sortBy?: string;
+    sortOrder?: string;
 };
 
 export default function UserTable({
@@ -48,8 +53,32 @@ export default function UserTable({
     reactivateUser,
     deleteUser,
     generateInvite,
-    addUserToTeam
+    addUserToTeam,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
 }: UserTableProps) {
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    // Build sort URL function on client side
+    const buildSortUrl = (newSortBy: string): string => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (sortBy === newSortBy && sortOrder === 'asc') {
+            // If already sorted by this field ascending, switch to descending
+            params.set('sortBy', newSortBy);
+            params.set('sortOrder', 'desc');
+        } else if (sortBy === newSortBy) {
+            // If already sorted by this field descending, remove sort (default)
+            params.delete('sortBy');
+            params.delete('sortOrder');
+        } else {
+            // New field, sort ascending
+            params.set('sortBy', newSortBy);
+            params.set('sortOrder', 'asc');
+        }
+        params.delete('page'); // Reset to page 1 when sorting
+        return `${pathname}?${params.toString()}`;
+    };
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isPending, startTransition] = useTransition();
 
@@ -90,10 +119,77 @@ export default function UserTable({
                             aria-label="Select all users"
                         />
                     </th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>User</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>
+                        {buildSortUrl ? (
+                            <Link 
+                                href={buildSortUrl('name')}
+                                style={{ 
+                                    textDecoration: 'none', 
+                                    color: 'inherit',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                User
+                                {sortBy === 'name' && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>
+                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </Link>
+                        ) : 'User'}
+                    </th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '140px' }}>Role</th>
-                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '100px' }}>Status</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '100px' }}>
+                        {buildSortUrl ? (
+                            <Link 
+                                href={buildSortUrl('status')}
+                                style={{ 
+                                    textDecoration: 'none', 
+                                    color: 'inherit',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                Status
+                                {sortBy === 'status' && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>
+                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </Link>
+                        ) : 'Status'}
+                    </th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)' }}>Teams</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '140px' }}>
+                        {buildSortUrl ? (
+                            <Link 
+                                href={buildSortUrl('createdAt')}
+                                style={{ 
+                                    textDecoration: 'none', 
+                                    color: 'inherit',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                }}
+                            >
+                                Created
+                                {sortBy === 'createdAt' && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--primary)' }}>
+                                        {sortOrder === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </Link>
+                        ) : 'Created'}
+                    </th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', width: '120px' }}>Actions</th>
                 </tr>
             </thead>
@@ -219,6 +315,20 @@ export default function UserTable({
                                             Add
                                         </button>
                                     </form>
+                                )}
+                            </td>
+                            <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                {user.createdAt ? (
+                                    new Date(user.createdAt).toLocaleString('en-US', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: true
+                                    })
+                                ) : (
+                                    <span style={{ color: 'var(--text-muted)' }}>—</span>
                                 )}
                             </td>
                             <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>

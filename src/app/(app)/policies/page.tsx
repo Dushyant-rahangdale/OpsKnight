@@ -10,7 +10,11 @@ export default async function PoliciesPage() {
         prisma.escalationPolicy.findMany({
             include: {
                 steps: {
-                    include: { targetUser: true },
+                    include: { 
+                        targetUser: true,
+                        targetTeam: true,
+                        targetSchedule: true
+                    },
                     orderBy: { stepOrder: 'asc' }
                 },
                 services: {
@@ -155,7 +159,22 @@ export default async function PoliciesPage() {
                                                         {step.stepOrder + 1}
                                                     </div>
                                                     <div style={{ flex: 1, color: 'var(--text-primary)' }}>
-                                                        <strong>{step.targetUser.name}</strong>
+                                                        <strong>
+                                                            {step.targetUser?.name || 
+                                                             step.targetTeam?.name || 
+                                                             step.targetSchedule?.name || 
+                                                             'Unknown target'}
+                                                        </strong>
+                                                        {step.targetType && step.targetType !== 'USER' && (
+                                                            <span style={{ 
+                                                                fontSize: '0.7rem', 
+                                                                color: 'var(--text-muted)', 
+                                                                marginLeft: '0.5rem',
+                                                                fontWeight: 'normal'
+                                                            }}>
+                                                                ({step.targetType})
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                                                         {step.delayMinutes === 0 ? 'Immediate' : `+${step.delayMinutes}m`}

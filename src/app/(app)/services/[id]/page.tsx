@@ -1,66 +1,147 @@
 import prisma from '@/lib/prisma';
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
-import { revalidatePath } from 'next/cache';
-import StatusBadge from '@/components/incident/StatusBadge';
-import IncidentCard from '@/components/incident/IncidentCard';
+import { notFound } from 'next/navigation';
 import HoverLink from '@/components/service/HoverLink';
-
+import ServiceTabs from '@/components/service/ServiceTabs';
+import IncidentList from '@/components/service/IncidentList';
+import Pagination from '@/components/service/Pagination';
+import StatusBadge from '@/components/incident/StatusBadge';
+import DeleteServiceButton from '@/components/service/DeleteServiceButton';
 import { deleteService } from '../actions';
+import { getUserPermissions } from '@/lib/rbac';
 
-// Next.js 15: params is a Promise
-export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+const INCIDENTS_PER_PAGE = 20;
+
+type ServiceDetailPageProps = {
+    params: Promise<{ id: string }>;
+    searchParams?: Promise<{ page?: string }>;
+};
+
+export default async function ServiceDetailPage({ params, searchParams }: ServiceDetailPageProps) {
     const { id } = await params;
+    const searchParamsResolved = await searchParams;
+    const page = Math.max(1, parseInt(searchParamsResolved?.page || '1', 10));
+    const skip = (page - 1) * INCIDENTS_PER_PAGE;
 
-    const service = await prisma.service.findUnique({
-        where: { id },
-        include: {
-            team: true,
-            policy: {
-                include: {
-                    steps: {
-                        include: { targetUser: true },
-                        orderBy: { stepOrder: 'asc' }
-                    }
-                }
-            },
-            incidents: {
-                include: {
-                    service: true,
-                    assignee: true
+    const [service, totalIncidentsCount] = await Promise.all([
+        prisma.service.findUnique({
+            where: { id },
+            include: {
+                team: true,
+                policy: {
+                    select: { id: true, name: true }
                 },
-                orderBy: { createdAt: 'desc' },
-                take: 10
-            },
-            _count: {
-                select: { incidents: true }
+                incidents: {
+                    include: {
+                        assignee: {
+                            select: { id: true, name: true, email: true }
+                        }
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    skip,
+                    take: INCIDENTS_PER_PAGE
+                },
+                _count: {
+                    select: { incidents: true }
+                }
             }
-        }
-    });
+        }),
+        prisma.incident.count({
+            where: { serviceId: id }
+        })
+    ]);
 
     if (!service) {
         notFound();
     }
 
+    const permissions = await getUserPermissions();
+    const canDeleteService = permissions.isAdmin;
+
     // Calculate dynamic status
-    const openIncidents = service.incidents.filter(i => i.status !== 'RESOLVED');
-    const hasCritical = openIncidents.some(i => i.urgency === 'HIGH');
-    const dynamicStatus = hasCritical ? 'CRITICAL' : openIncidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL';
+    const allOpenIncidents = await prisma.incident.findMany({
+        where: {
+            serviceId: id,
+            status: { not: 'RESOLVED' }
+        },
+        select: { urgency: true }
+    });
+    const hasCritical = allOpenIncidents.some(i => i.urgency === 'HIGH');
+    const dynamicStatus = hasCritical ? 'CRITICAL' : allOpenIncidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL';
 
-    // Bind delete action
-    const deleteServiceWithId = deleteService.bind(null, service.id);
+    // Get all incidents for calculations
+    const allIncidents = await prisma.incident.findMany({
+        where: { serviceId: id },
+        select: {
+            status: true,
+            urgency: true,
+            createdAt: true,
+            resolvedAt: true
+        }
+    });
 
-    // Get more incident stats
-    const resolvedIncidents = service.incidents.filter(i => i.status === 'RESOLVED');
-    const criticalIncidents = openIncidents.filter(i => i.urgency === 'HIGH');
+    const resolvedIncidents = allIncidents.filter(i => i.status === 'RESOLVED');
+    const criticalIncidents = allOpenIncidents.filter(i => i.urgency === 'HIGH');
     const totalIncidents = service._count.incidents;
 
+    // Calculate average resolution time
+    const resolvedWithTime = resolvedIncidents.filter(i => i.resolvedAt && i.createdAt);
+    const avgResolutionTime = resolvedWithTime.length > 0
+        ? resolvedWithTime.reduce((sum, incident) => {
+            const resolutionTime = (incident.resolvedAt!.getTime() - incident.createdAt.getTime()) / (1000 * 60);
+            return sum + resolutionTime;
+        }, 0) / resolvedWithTime.length
+        : undefined;
+
+    // Calculate SLA compliance
+    let slaCompliance = 100;
+    if (service.targetResolveMinutes && resolvedWithTime.length > 0) {
+        const slaCompliant = resolvedWithTime.filter(i => {
+            const resolutionTime = (i.resolvedAt!.getTime() - i.createdAt.getTime()) / (1000 * 60);
+            return resolutionTime <= service.targetResolveMinutes;
+        }).length;
+        slaCompliance = (slaCompliant / resolvedWithTime.length) * 100;
+    }
+
+    // Get recent incidents (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentIncidents = allIncidents.filter(i => i.createdAt >= sevenDaysAgo).length;
+
+    // Calculate resolution rate
+    const resolutionRate = totalIncidents > 0 
+        ? (resolvedIncidents.length / totalIncidents) * 100 
+        : 100;
+
+    // Calculate MTTR (Mean Time To Resolution) in hours
+    const mttr = resolvedWithTime.length > 0
+        ? resolvedWithTime.reduce((sum, incident) => {
+            const resolutionTime = (incident.resolvedAt!.getTime() - incident.createdAt.getTime()) / (1000 * 60 * 60);
+            return sum + resolutionTime;
+        }, 0) / resolvedWithTime.length
+        : undefined;
+
+    // Calculate incident frequency (incidents per month)
+    const serviceAgeDays = (new Date().getTime() - service.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    const incidentsPerMonth = serviceAgeDays > 0 
+        ? (totalIncidents / serviceAgeDays) * 30 
+        : 0;
+
+    // Calculate uptime percentage (simplified - based on resolved vs total)
+    // If all incidents are resolved quickly, uptime is high
+    const uptimePercentage = totalIncidents === 0 
+        ? 100 
+        : Math.max(0, 100 - (allOpenIncidents.length / totalIncidents) * 100);
+
+    const totalPages = Math.ceil(totalIncidentsCount / INCIDENTS_PER_PAGE);
+    const deleteServiceWithId = deleteService.bind(null, service.id);
+
     return (
-        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem' }}>
+        <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+            {/* Back Link */}
             <HoverLink 
                 href="/services"
                 style={{ 
-                    marginBottom: '1.5rem', 
+                    marginBottom: '2rem', 
                     display: 'inline-flex', 
                     alignItems: 'center',
                     gap: '0.5rem',
@@ -75,182 +156,250 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                 Back to Services
             </HoverLink>
 
-            {/* Header Section */}
+            {/* Header */}
             <div style={{ 
-                padding: '2rem', 
-                marginBottom: '2rem', 
-                background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 60%, #f3f4f6 100%)', 
-                border: '1px solid #e6e8ef', 
-                borderRadius: '0px',
-                boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)' 
+                marginBottom: '2rem',
+                paddingBottom: '1.5rem',
+                borderBottom: '2px solid var(--border)'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                             <StatusBadge status={dynamicStatus as any} size="lg" showDot />
                         </div>
-                        <h1 style={{ fontSize: '2.2rem', fontWeight: '800', marginBottom: '0.5rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                        <h1 style={{ 
+                            fontSize: '2.5rem', 
+                            fontWeight: '800', 
+                            marginBottom: '0.5rem', 
+                            color: 'var(--text-primary)', 
+                            letterSpacing: '-0.02em' 
+                        }}>
                             {service.name}
                         </h1>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '720px', lineHeight: 1.6 }}>
-                            {service.description || 'No description provided.'}
+                        {service.description && (
+                            <p style={{ 
+                                color: 'var(--text-secondary)', 
+                                fontSize: '1.05rem', 
+                                maxWidth: '800px', 
+                                lineHeight: 1.6 
+                            }}>
+                                {service.description}
+                            </p>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        <HoverLink 
+                            href={`/services/${id}/integrations`}
+                            className="glass-button"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                                <line x1="12" y1="22.08" x2="12" y2="12" />
+                            </svg>
+                            Integrations
+                        </HoverLink>
+                        <HoverLink 
+                            href={`/services/${id}/settings`}
+                            className="glass-button"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+                            </svg>
+                            Settings
+                        </HoverLink>
+                        {canDeleteService && (
+                            <DeleteServiceButton
+                                action={deleteServiceWithId}
+                                serviceName={service.name}
+                                incidentCount={totalIncidents}
+                                hasOpenIncidents={allOpenIncidents.length > 0}
+                            />
+                        )}
+                    </div>
+                </div>
+                
+                {/* Tab Navigation */}
+                <ServiceTabs serviceId={id} />
+            </div>
+
+            {/* Key Metrics */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+                gap: '1.5rem',
+                marginBottom: '3rem'
+            }}>
+                {/* Service Availability */}
+                <div style={{
+                    padding: '1.5rem',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0px'
+                }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                        Service Availability
+                    </div>
+                    <div style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: '700', 
+                        color: uptimePercentage >= 99 ? 'var(--success)' : uptimePercentage >= 95 ? 'var(--warning)' : 'var(--danger)',
+                        marginBottom: '0.5rem'
+                    }}>
+                        {uptimePercentage.toFixed(1)}%
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        {allOpenIncidents.length} active issue{allOpenIncidents.length !== 1 ? 's' : ''}
+                    </div>
+                </div>
+
+                {/* MTTR - Mean Time To Resolution */}
+                {mttr !== undefined && (
+                    <div style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0px'
+                    }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                            MTTR
+                        </div>
+                        <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                            {mttr < 1 
+                                ? `${Math.round(mttr * 60)}m`
+                                : mttr < 24
+                                ? `${mttr.toFixed(1)}h`
+                                : `${(mttr / 24).toFixed(1)}d`
+                            }
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            Mean Time To Resolution
+                        </div>
+                    </div>
+                )}
+
+                {/* Resolution Rate */}
+                <div style={{
+                    padding: '1.5rem',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0px'
+                }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                        Resolution Rate
+                    </div>
+                    <div style={{ 
+                        fontSize: '2rem', 
+                        fontWeight: '700', 
+                        color: resolutionRate >= 90 ? 'var(--success)' : resolutionRate >= 70 ? 'var(--warning)' : 'var(--danger)',
+                        marginBottom: '0.5rem'
+                    }}>
+                        {resolutionRate.toFixed(1)}%
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        {resolvedIncidents.length} of {totalIncidents} resolved
+                    </div>
+                </div>
+
+                {/* Incident Frequency */}
+                <div style={{
+                    padding: '1.5rem',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0px'
+                }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                        Incident Frequency
+                    </div>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                        {incidentsPerMonth < 1 
+                            ? '<1'
+                            : incidentsPerMonth.toFixed(1)
+                        }
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                        per month
+                    </div>
+                </div>
+
+                {/* Critical Incidents */}
+                {criticalIncidents.length > 0 && (
+                    <div style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, #ffffff 100%)',
+                        border: '1px solid rgba(239,68,68,0.2)',
+                        borderRadius: '0px'
+                    }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                            Critical Issues
+                        </div>
+                        <div style={{ 
+                            fontSize: '2rem', 
+                            fontWeight: '700', 
+                            color: 'var(--danger)',
+                            marginBottom: '0.5rem'
+                        }}>
+                            {criticalIncidents.length}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--danger)', fontWeight: '600' }}>
+                            Requires immediate attention
+                        </div>
+                    </div>
+                )}
+
+                {/* SLA Compliance - only show if not 100% */}
+                {slaCompliance < 100 && (
+                    <div style={{
+                        padding: '1.5rem',
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0px'
+                    }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>
+                            SLA Compliance
+                        </div>
+                        <div style={{ 
+                            fontSize: '2rem', 
+                            fontWeight: '700', 
+                            color: slaCompliance >= 95 ? 'var(--success)' : slaCompliance >= 80 ? 'var(--warning)' : 'var(--danger)',
+                            marginBottom: '0.5rem'
+                        }}>
+                            {slaCompliance.toFixed(1)}%
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            Target: {service.targetResolveMinutes}m
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Incidents Section */}
+            <div style={{ marginBottom: '2rem' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '1.5rem'
+                }}>
+                    <div>
+                        <h2 style={{ 
+                            fontSize: '1.5rem', 
+                            fontWeight: '700', 
+                            marginBottom: '0.25rem',
+                            color: 'var(--text-primary)'
+                        }}>
+                            Incidents
+                        </h2>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                            {totalIncidentsCount} total incident{totalIncidentsCount !== 1 ? 's' : ''}
                         </p>
                     </div>
-                </div>
-
-                {/* Service Info Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div style={{ 
-                        background: 'linear-gradient(180deg, rgba(211,47,47,0.06) 0%, #ffffff 90%)', 
-                        border: '1px solid rgba(211,47,47,0.15)', 
-                        borderRadius: '0px', 
-                        padding: '1.25rem',
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                    >
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>Owner Team</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {service.team?.name || 'Unassigned'}
-                        </div>
-                    </div>
-                    <div style={{ 
-                        background: 'linear-gradient(180deg, rgba(34,197,94,0.06) 0%, #ffffff 90%)', 
-                        border: '1px solid rgba(34,197,94,0.15)', 
-                        borderRadius: '0px', 
-                        padding: '1.25rem',
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                    >
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>Total Incidents</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.5rem', color: 'var(--text-primary)' }}>
-                            {totalIncidents}
-                        </div>
-                        {resolvedIncidents.length > 0 && (
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                                {resolvedIncidents.length} resolved
-                            </div>
-                        )}
-                    </div>
-                    <div style={{ 
-                        background: openIncidents.length > 0 
-                            ? 'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, #ffffff 90%)' 
-                            : 'linear-gradient(180deg, rgba(34,197,94,0.06) 0%, #ffffff 90%)', 
-                        border: openIncidents.length > 0 
-                            ? '1px solid rgba(239,68,68,0.2)' 
-                            : '1px solid rgba(34,197,94,0.15)', 
-                        borderRadius: '0px', 
-                        padding: '1.25rem',
-                        transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                    >
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>Open Incidents</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.5rem', color: openIncidents.length > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                            {openIncidents.length}
-                        </div>
-                        {criticalIncidents.length > 0 && (
-                            <div style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '0.25rem', fontWeight: '600' }}>
-                                {criticalIncidents.length} critical
-                            </div>
-                        )}
-                    </div>
-                    {service.policy ? (
-                        <div style={{ 
-                            background: 'linear-gradient(180deg, rgba(59,130,246,0.06) 0%, #ffffff 90%)', 
-                            border: '1px solid rgba(59,130,246,0.15)', 
-                            borderRadius: '0px', 
-                            padding: '1.25rem',
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        >
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>Escalation Policy</div>
-                            <HoverLink 
-                                href={`/policies/${service.policy.id}`}
-                                style={{ 
-                                    color: 'var(--primary)', 
-                                    fontWeight: 700, 
-                                    fontSize: '1.1rem', 
-                                    textDecoration: 'none',
-                                    display: 'inline-block'
-                                }}
-                            >
-                                {service.policy.name}
-                            </HoverLink>
-                        </div>
-                    ) : (
-                        <div style={{ 
-                            background: 'linear-gradient(180deg, rgba(156,163,175,0.06) 0%, #ffffff 90%)', 
-                            border: '1px solid rgba(156,163,175,0.15)', 
-                            borderRadius: '0px', 
-                            padding: '1.25rem'
-                        }}>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem', fontWeight: '600' }}>Escalation Policy</div>
-                            <div style={{ fontWeight: 500, fontSize: '0.95rem', color: 'var(--text-muted)' }}>
-                                Not assigned
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-                    <Link 
-                        href={`/services/${id}/integrations`} 
-                        className="glass-button primary"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                            <line x1="12" y1="22.08" x2="12" y2="12" />
-                        </svg>
-                        Manage Integrations
-                    </Link>
-                    <Link 
-                        href={`/services/${id}/settings`} 
-                        className="glass-button"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-                        </svg>
-                        Settings
-                    </Link>
-                    <Link 
+                    <HoverLink 
                         href={`/incidents/create?serviceId=${id}`}
-                        className="glass-button"
+                        className="glass-button primary"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                     >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -259,110 +408,31 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                             <line x1="8" y1="12" x2="16" y2="12" />
                         </svg>
                         Create Incident
-                    </Link>
-                    <form action={deleteServiceWithId} style={{ marginLeft: 'auto' }}>
-                        <button 
-                            type="submit" 
-                            style={{ 
-                                background: 'var(--danger)', 
-                                color: 'white', 
-                                border: 'none', 
-                                padding: '0.75rem 1.5rem', 
-                                borderRadius: '0px', 
-                                cursor: 'pointer', 
-                                fontWeight: '600',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                transition: 'background 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-error-dark)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--danger)'}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                            Delete Service
-                        </button>
-                    </form>
+                    </HoverLink>
                 </div>
-            </div>
 
-            {/* Recent Incidents Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                <div>
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                        Recent Incidents
-                    </h2>
-                    <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-                        {service.incidents.length > 0 
-                            ? `Showing ${service.incidents.length} most recent incidents for this service`
-                            : 'No incidents recorded for this service'}
-                    </p>
-                    {totalIncidents > service.incidents.length && (
-                        <Link 
-                            href={`/incidents?service=${id}`}
-                            style={{ 
-                                fontSize: '0.85rem', 
-                                color: 'var(--primary)', 
-                                textDecoration: 'none',
-                                fontWeight: '500',
-                                marginTop: '0.5rem',
-                                display: 'inline-block'
-                            }}
-                        >
-                            View all {totalIncidents} incidents →
-                        </Link>
-                    )}
-                </div>
-                <Link 
-                    href={`/incidents/create?serviceId=${id}`}
-                    className="glass-button primary"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="16" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                    </svg>
-                    Create Incident
-                </Link>
-            </div>
+                <IncidentList 
+                    incidents={service.incidents.map(i => ({
+                        id: i.id,
+                        title: i.title,
+                        status: i.status,
+                        urgency: i.urgency,
+                        priority: i.priority,
+                        createdAt: i.createdAt,
+                        resolvedAt: i.resolvedAt,
+                        assignee: i.assignee
+                    }))}
+                    serviceId={id}
+                />
 
-            {service.incidents.length === 0 ? (
-                <div className="glass-panel" style={{ 
-                    padding: '4rem 2rem', 
-                    color: 'var(--text-muted)', 
-                    background: 'white', 
-                    textAlign: 'center', 
-                    borderRadius: '0px',
-                    border: '1px solid var(--border)'
-                }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                        No incidents recorded
-                    </h3>
-                    <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-                        This service has no recorded incidents. The system appears to be healthy.
-                    </p>
-                    <Link href={`/incidents/create?serviceId=${id}`} className="glass-button primary" style={{ display: 'inline-block' }}>
-                        Create First Incident
-                    </Link>
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.25rem' }}>
-                    {service.incidents.map((incident: any) => (
-                        <IncidentCard 
-                            key={incident.id}
-                            incident={incident}
-                            showSLA={true}
-                            showEscalation={true}
-                            compact={false}
-                        />
-                    ))}
-                </div>
-            )}
+                {totalPages > 1 && (
+                    <Pagination 
+                        currentPage={page}
+                        totalPages={totalPages}
+                        baseUrl={`/services/${id}`}
+                    />
+                )}
+            </div>
         </main>
     );
 }

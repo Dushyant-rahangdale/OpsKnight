@@ -1,0 +1,88 @@
+import { getUserPermissions } from '@/lib/rbac';
+import SystemNotificationSettings from '@/components/settings/SystemNotificationSettings';
+import SettingsSection from '@/components/settings/SettingsSection';
+import { getNotificationProviders } from './actions';
+
+export default async function SystemSettingsPage() {
+    const permissions = await getUserPermissions();
+    
+    // Show access denied message for non-admins instead of redirecting
+    if (!permissions.isAdmin) {
+        return (
+            <SettingsSection
+                title="Notification Providers"
+                description="Configure notification providers for email, SMS, and push notifications. These settings apply system-wide."
+            >
+                <div className="glass-panel" style={{
+                    padding: '2rem',
+                    textAlign: 'center',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0px',
+                    background: '#f9fafb'
+                }}>
+                    <div style={{
+                        fontSize: '3rem',
+                        marginBottom: '1rem'
+                    }}>🔒</div>
+                    <h3 style={{
+                        fontSize: '1.25rem',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                        marginBottom: '0.5rem'
+                    }}>
+                        Access Restricted
+                    </h3>
+                    <p style={{
+                        color: 'var(--text-muted)',
+                        marginBottom: '1.5rem'
+                    }}>
+                        You need administrator privileges to access system settings.
+                    </p>
+                    <div style={{
+                        padding: '1rem',
+                        background: '#fef3c7',
+                        border: '1px solid #fbbf24',
+                        borderRadius: '4px',
+                        fontSize: '0.9rem',
+                        color: '#92400e',
+                        marginTop: '1rem'
+                    }}>
+                        ⚠️ Your current role: <strong>{permissions.role}</strong>. Admin role required.
+                    </div>
+                    <p style={{
+                        marginTop: '1.5rem',
+                        fontSize: '0.85rem',
+                        color: 'var(--text-muted)'
+                    }}>
+                        Please contact your system administrator to upgrade your account.
+                    </p>
+                </div>
+            </SettingsSection>
+        );
+    }
+
+    let providers = [];
+    try {
+        providers = await getNotificationProviders();
+    } catch (error) {
+        console.error('Error loading notification providers:', error);
+        // Continue with empty providers array if there's an error
+    }
+
+    return (
+        <SettingsSection
+            title="Notification Providers"
+            description="Configure notification providers for email, SMS, and push notifications. These settings apply system-wide."
+        >
+            <SystemNotificationSettings 
+                providers={providers}
+            />
+
+            <div className="settings-note" style={{ marginTop: '2rem' }}>
+                <strong>Note:</strong> Sensitive credentials are stored encrypted. Changes take effect immediately.
+                <br />
+                Environment variables (if set) will override these settings.
+            </div>
+        </SettingsSection>
+    );
+}

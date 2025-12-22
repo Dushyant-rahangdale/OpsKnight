@@ -143,6 +143,9 @@ export async function addPolicyStep(policyId: string, formData: FormData) {
     const targetScheduleId = formData.get('targetScheduleId') as string | null;
     const delayMinutes = parseInt(formData.get('delayMinutes') as string || '0');
 
+    // Note: Notification channels are now user preferences, not policy step configuration
+    // Each user chooses how they want to be notified in their settings
+
     // Validate that appropriate target ID is provided
     let targetId: string | null = null;
     if (targetType === 'USER' && targetUserId) {
@@ -200,6 +203,11 @@ export async function updatePolicyStep(stepId: string, formData: FormData) {
     const targetTeamId = formData.get('targetTeamId') as string | null;
     const targetScheduleId = formData.get('targetScheduleId') as string | null;
     const delayMinutes = parseInt(formData.get('delayMinutes') as string || '0');
+    
+    // Get notification channels from form (checkboxes)
+    const notificationChannels = formData.getAll('notificationChannels') as string[];
+    // Default to EMAIL if none selected, otherwise use existing
+    const finalChannels = notificationChannels.length > 0 ? notificationChannels : undefined;
 
     const step = await prisma.escalationRule.findUnique({
         where: { id: stepId },
@@ -230,15 +238,22 @@ export async function updatePolicyStep(stepId: string, formData: FormData) {
         throw new Error(`Target ${finalTargetType} is required`);
     }
 
+    const updateData: any = {
+        targetType: finalTargetType,
+        targetUserId: finalTargetType === 'USER' ? targetId : null,
+        targetTeamId: finalTargetType === 'TEAM' ? targetId : null,
+        targetScheduleId: finalTargetType === 'SCHEDULE' ? targetId : null,
+        delayMinutes
+    };
+
+    // Only update notification channels if provided
+    if (finalChannels !== undefined) {
+        updateData.notificationChannels = finalChannels.length > 0 ? finalChannels : ['EMAIL'];
+    }
+
     await prisma.escalationRule.update({
         where: { id: stepId },
-        data: {
-            targetType: finalTargetType,
-            targetUserId: finalTargetType === 'USER' ? targetId : null,
-            targetTeamId: finalTargetType === 'TEAM' ? targetId : null,
-            targetScheduleId: finalTargetType === 'SCHEDULE' ? targetId : null,
-            delayMinutes
-        }
+        data: updateData
     });
 
     await logAudit({

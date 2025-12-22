@@ -11,6 +11,7 @@ type PolicyStepCardProps = {
         stepOrder: number;
         delayMinutes: number;
         targetType: 'USER' | 'TEAM' | 'SCHEDULE';
+        notificationChannels?: string[];
         targetUser: {
             id: string;
             name: string;
@@ -171,6 +172,17 @@ export default function PolicyStepCard({
                             Wait time before this step is executed
                         </p>
                     </div>
+                    <div style={{ 
+                        padding: '0.75rem', 
+                        background: '#eff6ff', 
+                        border: '1px solid #3b82f6', 
+                        borderRadius: '0px',
+                        fontSize: '0.85rem',
+                        color: '#1e40af'
+                    }}>
+                        <strong>📢 Notification Channels:</strong> Users will receive notifications based on their personal preferences (configured in Settings → Preferences). 
+                        Each user chooses how they want to be notified (email, SMS, push) in their profile.
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                             type="submit"
@@ -244,6 +256,9 @@ export default function PolicyStepCard({
                                     {step.targetType === 'USER' && step.targetUser && step.targetUser.email}
                                     {step.targetType === 'TEAM' && 'All team members'}
                                     {step.targetType === 'SCHEDULE' && 'Current on-call user'}
+                                </p>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                                    Notifications sent based on user preferences
                                 </p>
                             </div>
                             <div style={{

@@ -22,9 +22,18 @@ export default async function AppLayout({
   if (!session) {
     redirect('/login');
   }
-  const userName = session?.user?.name ?? null;
+  
+  // Fetch latest user data from database to ensure name is always current
+  // This ensures name changes reflect immediately in the topbar
+  const email = session?.user?.email ?? null;
+  const dbUser = email ? await prisma.user.findUnique({
+    where: { email },
+    select: { name: true, role: true }
+  }) : null;
+  
+  const userName = dbUser?.name || session?.user?.name || null;
   const userEmail = session?.user?.email ?? null;
-  const userRole = (session?.user as any)?.role ?? null;
+  const userRole = dbUser?.role || (session?.user as any)?.role || null;
 
   const criticalOpenCount = await prisma.incident.count({
     where: {
@@ -45,19 +54,19 @@ export default async function AppLayout({
       <div className="app-shell">
         <Sidebar />
         <div className="content-shell">
-          <header className="topbar">
-            <div className="topbar-left">
+          <header className="topbar-new">
+            <div className="topbar-section topbar-section-left">
               <OperationalStatus tone={statusTone} label={statusLabel} detail={statusDetail} />
             </div>
-            <div className="topbar-center" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, maxWidth: '600px', margin: '0 auto', justifyContent: 'center' }}>
-              <div style={{ flex: 1, maxWidth: '400px' }}>
+            <div className="topbar-section topbar-section-center">
+              <div className="topbar-search-wrapper">
                 <SidebarSearch />
               </div>
-              <div style={{ flexShrink: 0 }}>
+              <div className="topbar-actions-wrapper">
                 <QuickActions />
               </div>
             </div>
-            <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+            <div className="topbar-section topbar-section-right">
               <TopbarUserMenu name={userName} email={userEmail} role={userRole} />
             </div>
           </header>

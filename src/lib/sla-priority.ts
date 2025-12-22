@@ -33,3 +33,6 @@ export function checkPriorityResolveSLA(incident: Incident, service: Service): b
     const target = getPrioritySLATarget(incident.priority, service);
     return resolveTimeMinutes <= target.resolve;
 }
+
+
+

@@ -63,11 +63,20 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
         data: updateData
     });
 
-    // Send Slack notification for acknowledge/resolve
-    if (status === 'ACKNOWLEDGED') {
-        notifySlackForIncident(id, 'acknowledged').catch(console.error);
-    } else if (status === 'RESOLVED') {
-        notifySlackForIncident(id, 'resolved').catch(console.error);
+    // Send service-level notifications for status changes
+    // Uses user preferences for each recipient
+    try {
+        const { sendServiceNotifications } = await import('@/lib/user-notifications');
+        if (status === 'ACKNOWLEDGED') {
+            await sendServiceNotifications(id, 'acknowledged');
+        } else if (status === 'RESOLVED') {
+            await sendServiceNotifications(id, 'resolved');
+        } else if (status === 'OPEN' && currentIncident?.status !== 'OPEN') {
+            // Status changed to OPEN (e.g., from snoozed/acknowledged)
+            await sendServiceNotifications(id, 'updated');
+        }
+    } catch (e) {
+        console.error('Service notification failed:', e);
     }
 
     revalidatePath(`/incidents/${id}`);
@@ -133,7 +142,14 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
         });
     }
 
-    notifySlackForIncident(id, 'resolved').catch(console.error);
+    // Send service-level notifications for resolution
+    // Uses user preferences for each recipient
+    try {
+        const { sendServiceNotifications } = await import('@/lib/user-notifications');
+        await sendServiceNotifications(id, 'resolved');
+    } catch (e) {
+        console.error('Service notification failed:', e);
+    }
 
     revalidatePath(`/incidents/${id}`);
     revalidatePath('/incidents');
@@ -211,8 +227,22 @@ export async function createIncident(formData: FormData) {
         });
     }
 
-    // Send Slack notification for new incident
-    notifySlackForIncident(incident.id, 'triggered').catch(console.error);
+    // Send service-level notifications for new incident
+    // Uses user preferences for each recipient
+    try {
+        const { sendServiceNotifications } = await import('@/lib/user-notifications');
+        await sendServiceNotifications(incident.id, 'triggered');
+    } catch (e) {
+        console.error('Service notification failed:', e);
+    }
+
+    // Execute escalation policy if service has one
+    try {
+        const { executeEscalation } = await import('@/lib/escalation');
+        await executeEscalation(incident.id);
+    } catch (e) {
+        console.error('Escalation failed:', e);
+    }
 
     revalidatePath('/incidents');
     revalidatePath('/');

@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import SecurityForm from '@/components/settings/SecurityForm';
+import SettingsSection from '@/components/settings/SettingsSection';
 
 export default async function SecuritySettingsPage() {
     const session = await getServerSession(authOptions);
@@ -16,11 +17,10 @@ export default async function SecuritySettingsPage() {
     const hasPassword = Boolean(user?.passwordHash);
 
     return (
-        <div className="settings-section">
-            <header className="settings-section-header">
-                <h2>Security</h2>
-                <p>Control how you sign in and monitor account activity.</p>
-            </header>
+        <SettingsSection
+            title="Security"
+            description="Control how you sign in and monitor account activity."
+        >
 
             <div className="settings-panel">
                 <div className="settings-row">
@@ -53,9 +53,9 @@ export default async function SecuritySettingsPage() {
             </div>
 
             <SecurityForm hasPassword={hasPassword} />
-            <div className="settings-note">
+            <div className="settings-note" style={{ marginTop: '1.5rem' }}>
                 For password resets or session issues, contact your OpsGuard administrator.
             </div>
-        </div>
+        </SettingsSection>
     );
 }

@@ -10,7 +10,6 @@ type Shortcut = {
 };
 
 const shortcuts: Shortcut[] = [
-    { keys: ['⌘', 'K'], description: 'Open search', category: 'Navigation' },
     { keys: ['?'], description: 'Show keyboard shortcuts', category: 'Navigation' },
     { keys: ['⌘', '/'], description: 'Show keyboard shortcuts', category: 'Navigation' },
     { keys: ['G', 'D'], description: 'Go to Dashboard', category: 'Navigation' },
@@ -21,8 +20,9 @@ const shortcuts: Shortcut[] = [
     { keys: ['G', 'C'], description: 'Go to Schedules', category: 'Navigation' },
     { keys: ['G', 'P'], description: 'Go to Policies', category: 'Navigation' },
     { keys: ['G', 'A'], description: 'Go to Analytics', category: 'Navigation' },
-    { keys: ['N'], description: 'New Incident', category: 'Actions' },
-    { keys: ['/'], description: 'Focus search', category: 'Actions' },
+    { keys: ['⌘', 'N'], description: 'New Incident', category: 'Actions' },
+    { keys: ['⌘', 'R'], description: 'Refresh Dashboard', category: 'Actions' },
+    { keys: ['⌘', 'E'], description: 'Export CSV', category: 'Actions' },
     { keys: ['Esc'], description: 'Close modal/dialog', category: 'Actions' }
 ];
 

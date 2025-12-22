@@ -1,10 +1,10 @@
 import prisma from './prisma';
+import { sendIncidentEmail } from './email';
 
 export type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH' | 'SLACK' | 'WEBHOOK';
 
 /**
  * Send notifications to escalation policy targets for an incident.
- * This is a mock implementation - in production, integrate with actual providers.
  */
 export async function sendNotification(
     incidentId: string,
@@ -23,15 +23,44 @@ export async function sendNotification(
         }
     });
 
-    // Mock: Simulate sending (in production, call external APIs)
     try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 100));
+        let result: { success: boolean; error?: string };
 
-        // Mock success (90% success rate for demo)
-        const success = Math.random() > 0.1;
+        // Route to appropriate notification service
+        switch (channel) {
+            case 'EMAIL':
+                // Determine event type from message or incident status
+                const incident = await prisma.incident.findUnique({ where: { id: incidentId } });
+                const eventType = incident?.status === 'RESOLVED' ? 'resolved' :
+                                 incident?.status === 'ACKNOWLEDGED' ? 'acknowledged' : 'triggered';
+                result = await sendIncidentEmail(userId, incidentId, eventType);
+                break;
+            
+            case 'SMS':
+                // TODO: Implement SMS notifications (Twilio, AWS SNS, etc.)
+                result = { success: false, error: 'SMS notifications not yet implemented' };
+                break;
+            
+            case 'PUSH':
+                // TODO: Implement push notifications (Firebase, OneSignal, etc.)
+                result = { success: false, error: 'Push notifications not yet implemented' };
+                break;
+            
+            case 'SLACK':
+                // Slack is handled separately via slack.ts
+                result = { success: true };
+                break;
+            
+            case 'WEBHOOK':
+                // TODO: Implement webhook notifications
+                result = { success: false, error: 'Webhook notifications not yet implemented' };
+                break;
+            
+            default:
+                result = { success: false, error: `Unknown channel: ${channel}` };
+        }
 
-        if (success) {
+        if (result.success) {
             await prisma.notification.update({
                 where: { id: notification.id },
                 data: {
@@ -50,7 +79,7 @@ export async function sendNotification(
 
             return { success: true, notificationId: notification.id };
         } else {
-            throw new Error('Simulated delivery failure');
+            throw new Error(result.error || 'Notification delivery failed');
         }
     } catch (error: any) {
         await prisma.notification.update({

@@ -35,14 +35,30 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
             return { error: 'Name must be at least 2 characters.' };
         }
 
+        // Don't update if name hasn't changed
+        if (user.name === name) {
+            return { success: true };
+        }
+
         await prisma.user.update({
             where: { id: user.id },
             data: { name }
         });
 
+        // Revalidate multiple paths to ensure UI updates everywhere
         revalidatePath('/settings/profile');
+        revalidatePath('/settings');
+        revalidatePath('/');
+        revalidatePath('/incidents');
+        revalidatePath('/users');
+        revalidatePath('/policies');
+        revalidatePath('/schedules');
+        // Revalidate layout to update topbar
+        revalidatePath('/', 'layout');
+        
         return { success: true };
     } catch (error) {
+        console.error('Error updating profile:', error);
         return { error: error instanceof Error ? error.message : 'Unable to update profile.' };
     }
 }
@@ -72,6 +88,40 @@ export async function updatePreferences(_prevState: ActionState, formData: FormD
         return { success: true };
     } catch (error) {
         return { error: error instanceof Error ? error.message : 'Unable to update preferences.' };
+    }
+}
+
+export async function updateNotificationPreferences(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+    try {
+        const user = await getCurrentUser();
+        const emailEnabled = formData.get('emailNotificationsEnabled') === 'on';
+        const smsEnabled = formData.get('smsNotificationsEnabled') === 'on';
+        const pushEnabled = formData.get('pushNotificationsEnabled') === 'on';
+        const phoneNumber = (formData.get('phoneNumber') as string | null)?.trim() || null;
+
+        // Validate phone number if SMS is enabled
+        if (smsEnabled && phoneNumber) {
+            // Basic E.164 format validation
+            const phoneRegex = /^\+[1-9]\d{1,14}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                return { error: 'Phone number must be in E.164 format (e.g., +1234567890)' };
+            }
+        }
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailNotificationsEnabled: emailEnabled,
+                smsNotificationsEnabled: smsEnabled,
+                pushNotificationsEnabled: pushEnabled,
+                phoneNumber: smsEnabled ? phoneNumber : null
+            }
+        });
+
+        revalidatePath('/settings/preferences');
+        return { success: true };
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unable to update notification preferences.' };
     }
 }
 

@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import ApiKeysPanel from '@/components/settings/ApiKeysPanel';
+import SettingsSection from '@/components/settings/SettingsSection';
 
 export default async function ApiKeysSettingsPage() {
     const session = await getServerSession(authOptions);
@@ -20,12 +21,10 @@ export default async function ApiKeysSettingsPage() {
         : [];
 
     return (
-        <div className="settings-section">
-            <header className="settings-section-header">
-                <h2>API keys</h2>
-                <p>Generate keys for automation and integrations.</p>
-            </header>
-
+        <SettingsSection
+            title="API Keys"
+            description="Generate keys for automation and integrations."
+        >
             <ApiKeysPanel
                 keys={keys.map((key) => ({
                     id: key.id,
@@ -37,6 +36,6 @@ export default async function ApiKeysSettingsPage() {
                     revokedAt: key.revokedAt ? key.revokedAt.toLocaleDateString() : null
                 }))}
             />
-        </div>
+        </SettingsSection>
     );
 }

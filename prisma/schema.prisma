@@ -81,19 +81,24 @@ enum EscalationTargetType {
 }
 
 model User {
-  id             String      @id @default(cuid())
-  name           String
-  email          String      @unique
-  role           Role        @default(USER)
-  status         UserStatus  @default(INVITED)
-  passwordHash   String?
-  timeZone       String      @default("UTC")
-  dailySummary   Boolean     @default(true)
-  incidentDigest DigestLevel @default(HIGH)
-  invitedAt      DateTime?
-  deactivatedAt  DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                        String      @id @default(cuid())
+  name                      String
+  email                     String      @unique
+  role                      Role        @default(USER)
+  status                    UserStatus  @default(INVITED)
+  passwordHash              String?
+  timeZone                  String      @default("UTC")
+  dailySummary              Boolean     @default(true)
+  incidentDigest            DigestLevel @default(HIGH)
+  // Notification preferences (user-level, like PagerDuty)
+  emailNotificationsEnabled Boolean     @default(false)
+  smsNotificationsEnabled   Boolean     @default(false)
+  pushNotificationsEnabled  Boolean     @default(false)
+  phoneNumber               String? // For SMS notifications
+  invitedAt                 DateTime?
+  deactivatedAt             DateTime?
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
 
   assignedIncidents    Incident[]
   teamMemberships      TeamMember[]
@@ -103,13 +108,14 @@ model User {
   notifications        Notification[]
   incidentWatchers     IncidentWatcher[]
   auditLogs            AuditLog[]
-  overrides            OnCallOverride[]   @relation("OverrideUser")
-  overrideReplacements OnCallOverride[]   @relation("OverrideReplacesUser")
+  overrides            OnCallOverride[]       @relation("OverrideUser")
+  overrideReplacements OnCallOverride[]       @relation("OverrideReplacesUser")
   layerAssignments     OnCallLayerUser[]
   accounts             Account[]
   sessions             Session[]
   apiKeys              ApiKey[]
   incidentTemplates    IncidentTemplate[]
+  updatedProviders     NotificationProvider[]
 }
 
 model Team {
@@ -146,7 +152,7 @@ model Service {
   targetResolveMinutes Int           @default(120)
   teamId               String?
   escalationPolicyId   String?
-  slackWebhookUrl      String? // Per-service Slack Webhook URL
+  slackWebhookUrl      String? // Per-service Slack Webhook URL (only notification config at service level)
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -154,8 +160,8 @@ model Service {
   incidents Incident[]
   policy    EscalationPolicy? @relation(fields: [escalationPolicyId], references: [id])
 
-  integrations     Integration[]
-  alerts           Alert[]
+  integrations      Integration[]
+  alerts            Alert[]
   incidentTemplates IncidentTemplate[]
 }
 
@@ -187,6 +193,9 @@ model EscalationRule {
   targetUserId     String?
   targetTeamId     String?
   targetScheduleId String?
+
+  // Note: Notification channels are determined by user preferences, not policy steps
+  // Users choose how they want to be notified (email, SMS, push) in their settings
 
   targetUser     User?           @relation(fields: [targetUserId], references: [id])
   targetTeam     Team?           @relation(fields: [targetTeamId], references: [id])
@@ -304,7 +313,7 @@ model IncidentWatcher {
   role       String   @default("FOLLOWER") // FOLLOWER, STAKEHOLDER, EXEC
   createdAt  DateTime @default(now())
 
-  incident Incident @relation(fields: [incidentId], references: [id])
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
 
   @@unique([incidentId, userId])
@@ -316,7 +325,7 @@ model IncidentEvent {
   message    String
   createdAt  DateTime @default(now())
 
-  incident Incident @relation(fields: [incidentId], references: [id])
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 }
 
 model IncidentNote {
@@ -326,7 +335,7 @@ model IncidentNote {
   content    String
   createdAt  DateTime @default(now())
 
-  incident Incident @relation(fields: [incidentId], references: [id])
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
 }
 
@@ -473,4 +482,20 @@ model ApiKey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// System-level notification provider configuration
+model NotificationProvider {
+  id        String   @id @default(cuid())
+  provider  String   @unique // 'twilio', 'resend', 'sendgrid', 'smtp', 'firebase', 'onesignal'
+  enabled   Boolean  @default(false)
+  // Encrypted configuration (JSON stored as text, should be encrypted in production)
+  config    Json // Provider-specific configuration
+  updatedBy String? // User ID who last updated
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  updatedByUser User? @relation(fields: [updatedBy], references: [id])
+
+  @@index([provider])
 }

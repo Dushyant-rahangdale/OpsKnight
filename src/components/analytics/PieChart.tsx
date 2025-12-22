@@ -1,3 +1,5 @@
+'use client';
+
 interface PieChartData {
     label: string;
     value: number;
@@ -8,9 +10,10 @@ interface PieChartProps {
     data: PieChartData[];
     size?: number;
     showLegend?: boolean;
+    onSegmentClick?: (segment: PieChartData) => void;
 }
 
-export default function PieChart({ data, size = 120, showLegend = true }: PieChartProps) {
+export default function PieChart({ data, size = 120, showLegend = true, onSegmentClick }: PieChartProps) {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     if (total === 0) {
         return (
@@ -55,6 +58,16 @@ export default function PieChart({ data, size = 120, showLegend = true }: PieCha
                         stroke="#ffffff"
                         strokeWidth="2"
                         className="analytics-pie-segment"
+                        style={{ cursor: onSegmentClick ? 'pointer' : 'default' }}
+                        onClick={() => onSegmentClick && onSegmentClick(segment)}
+                        onMouseEnter={(e) => {
+                            if (onSegmentClick) {
+                                e.currentTarget.style.opacity = '0.8';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                        }}
                     />
                 ))}
             </svg>
@@ -75,4 +88,3 @@ export default function PieChart({ data, size = 120, showLegend = true }: PieCha
         </div>
     );
 }
-

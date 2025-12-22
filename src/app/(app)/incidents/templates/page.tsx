@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getUserPermissions } from '@/lib/rbac';
 import { deleteTemplate, getAllTemplates } from '../template-actions';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import ConfirmSubmitButton from '@/components/ConfirmSubmitButton';
 
 export const revalidate = 30;
 
@@ -195,8 +195,8 @@ export default async function TemplatesPage() {
                                 {canManageTemplates && template.createdById === permissions.id && (
                                     <form action={handleDelete} style={{ display: 'inline' }}>
                                         <input type="hidden" name="templateId" value={template.id} />
-                                        <button
-                                            type="submit"
+                                        <ConfirmSubmitButton
+                                            confirmMessage="Are you sure you want to delete this template?"
                                             className="glass-button"
                                             style={{
                                                 padding: '0.625rem 1rem',
@@ -207,14 +207,9 @@ export default async function TemplatesPage() {
                                                 fontWeight: 600,
                                                 cursor: 'pointer'
                                             }}
-                                            onClick={(e) => {
-                                                if (!confirm('Are you sure you want to delete this template?')) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
                                         >
                                             Delete
-                                        </button>
+                                        </ConfirmSubmitButton>
                                     </form>
                                 )}
                             </div>

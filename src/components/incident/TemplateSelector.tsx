@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type Template = {
@@ -16,24 +15,17 @@ type Template = {
 
 type TemplateSelectorProps = {
     templates: Template[];
+    selectedTemplateId: string | null;
+    selectedTemplate: Template | null;
 };
 
-export default function TemplateSelector({ templates }: TemplateSelectorProps) {
+export default function TemplateSelector({
+    templates,
+    selectedTemplateId,
+    selectedTemplate
+}: TemplateSelectorProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const templateId = searchParams.get('template');
-    const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-
-    useEffect(() => {
-        if (templateId && templates.length > 0) {
-            const template = templates.find(t => t.id === templateId);
-            if (template) {
-                setSelectedTemplate(template);
-            }
-        } else {
-            setSelectedTemplate(null);
-        }
-    }, [templateId, templates]);
 
     const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const templateId = e.target.value;
@@ -68,7 +60,7 @@ export default function TemplateSelector({ templates }: TemplateSelectorProps) {
                 <select
                     id="template-select"
                     onChange={handleTemplateChange}
-                    value={selectedTemplate?.id || ''}
+                    value={selectedTemplateId || ''}
                     style={{
                         flex: 1,
                         padding: '0.75rem',
@@ -101,7 +93,7 @@ export default function TemplateSelector({ templates }: TemplateSelectorProps) {
                             whiteSpace: 'nowrap'
                         }}
                     >
-                        Manage Templates →
+                        Manage Templates ƒ+'
                     </a>
                 )}
             </div>

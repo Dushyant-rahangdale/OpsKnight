@@ -233,15 +233,14 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
         return { escalated: false, reason: 'No users to notify' };
     }
 
-    // Send notifications to all resolved users
+    // Send notifications to all resolved users based on their preferences
+    // Each user chooses how they want to be notified (email, SMS, push) in their settings
+    const { sendUserNotification } = await import('./user-notifications');
     const notificationsSent = [];
+    
     for (const userId of targetUserIds) {
-        const result = await sendNotification(
-            incidentId,
-            userId,
-            'EMAIL',
-            `[OpsGuard] Incident: ${incident.title}${currentStepIndex > 0 ? ` (Escalation Level ${currentStepIndex + 1})` : ''}`
-        );
+        const message = `[OpsGuard] Incident: ${incident.title}${currentStepIndex > 0 ? ` (Escalation Level ${currentStepIndex + 1})` : ''}`;
+        const result = await sendUserNotification(incidentId, userId, message);
         notificationsSent.push({ userId, result });
     }
 
