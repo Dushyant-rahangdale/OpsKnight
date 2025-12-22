@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation';
 import { getPostmortem } from '../actions';
 import { notFound } from 'next/navigation';
 import PostmortemForm from '@/components/PostmortemForm';
+import PostmortemDetailView from '@/components/postmortem/PostmortemDetailView';
 import { getUserPermissions } from '@/lib/rbac';
+import prisma from '@/lib/prisma';
 import Link from 'next/link';
 
 export default async function PostmortemPage({
@@ -21,6 +23,13 @@ export default async function PostmortemPage({
     const postmortem = await getPostmortem(incidentId);
     const permissions = await getUserPermissions();
     const canEdit = permissions.isResponderOrAbove;
+    
+    // Get users for action items assignment
+    const users = await prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: 'asc' },
+    });
 
     if (!postmortem) {
         // Check if incident exists and is resolved
@@ -87,7 +96,7 @@ export default async function PostmortemPage({
                 </div>
 
                 {canEdit ? (
-                    <PostmortemForm incidentId={incidentId} />
+                    <PostmortemForm incidentId={incidentId} users={users} />
                 ) : (
                     <div style={{ padding: 'var(--spacing-4)', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
                         <p>You don't have permission to create postmortems.</p>
@@ -128,56 +137,9 @@ export default async function PostmortemPage({
             </div>
 
             {canEdit ? (
-                <PostmortemForm incidentId={incidentId} initialData={postmortem} />
+                <PostmortemForm incidentId={incidentId} initialData={postmortem} users={users} />
             ) : (
-                <div>
-                    {/* Read-only view */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
-                        {postmortem.summary && (
-                            <div>
-                                <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>
-                                    Summary
-                                </h2>
-                                <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                                    {postmortem.summary}
-                                </p>
-                            </div>
-                        )}
-
-                        {postmortem.rootCause && (
-                            <div>
-                                <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>
-                                    Root Cause
-                                </h2>
-                                <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                                    {postmortem.rootCause}
-                                </p>
-                            </div>
-                        )}
-
-                        {postmortem.resolution && (
-                            <div>
-                                <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>
-                                    Resolution
-                                </h2>
-                                <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                                    {postmortem.resolution}
-                                </p>
-                            </div>
-                        )}
-
-                        {postmortem.lessons && (
-                            <div>
-                                <h2 style={{ fontSize: 'var(--font-size-lg)', marginBottom: 'var(--spacing-2)' }}>
-                                    Lessons Learned
-                                </h2>
-                                <p style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
-                                    {postmortem.lessons}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <PostmortemDetailView postmortem={postmortem} users={users} />
             )}
         </div>
     );

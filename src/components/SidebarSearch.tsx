@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useModalState } from '@/hooks/useModalState';
 
 type SearchResult = {
-    type: 'incident' | 'service' | 'team' | 'user' | 'policy';
+    type: 'incident' | 'service' | 'team' | 'user' | 'policy' | 'postmortem';
     id: string;
     title: string;
     subtitle?: string;
@@ -105,7 +105,7 @@ export default function SidebarSearch() {
         });
 
         // Add grouped results
-        const typeOrder: SearchResult['type'][] = ['incident', 'service', 'team', 'user', 'policy'];
+        const typeOrder: SearchResult['type'][] = ['incident', 'service', 'team', 'user', 'policy', 'postmortem'];
         typeOrder.forEach(type => {
             const typeResults = typeMap.get(type);
             if (typeResults && typeResults.length > 0) {
@@ -113,6 +113,7 @@ export default function SidebarSearch() {
                     type,
                     title: type === 'incident' ? 'Incidents' : 
                            type === 'service' ? 'Services' :
+                           type === 'postmortem' ? 'Postmortems' :
                            type === 'team' ? 'Teams' :
                            type === 'user' ? 'Users' : 'Policies',
                     results: typeResults

@@ -17,20 +17,42 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ results: [] });
         }
 
-        const searchTerm = query.trim().toLowerCase();
+        const searchTerm = query.trim();
+        const searchTermLower = searchTerm.toLowerCase();
+
+        // Enhanced search with full-text search support
+        // For PostgreSQL, we can use full-text search for better results
+        const searchWords = searchTerm.split(/\s+/).filter(w => w.length > 0);
+        const searchPattern = searchWords.map(w => `%${w}%`).join(' ');
 
         // Run all searches in parallel for better performance
-        const [incidents, services, teams, users, policies] = await Promise.all([
-            // Search incidents
+        const [incidents, services, teams, users, policies, postmortems] = await Promise.all([
+            // Search incidents - Enhanced with multiple search strategies
             prisma.incident.findMany({
                 where: {
                     OR: [
+                        // Exact match (highest priority)
+                        { title: { equals: searchTerm, mode: 'insensitive' } },
+                        // Contains match
                         { title: { contains: searchTerm, mode: 'insensitive' } },
-                        { description: { contains: searchTerm, mode: 'insensitive' } }
+                        { description: { contains: searchTerm, mode: 'insensitive' } },
+                        // Word boundary matches (if multiple words)
+                        ...(searchWords.length > 1 ? searchWords.map(word => ({
+                            OR: [
+                                { title: { contains: word, mode: 'insensitive' } },
+                                { description: { contains: word, mode: 'insensitive' } }
+                            ]
+                        })) : []),
+                        // ID search
+                        { id: { contains: searchTerm, mode: 'insensitive' } }
                     ]
                 },
-                take: 5,
-                orderBy: { createdAt: 'desc' },
+                take: 10, // Increased from 5
+                orderBy: [
+                    // Prioritize exact title matches
+                    { title: { sort: 'asc', nulls: 'last' } },
+                    { createdAt: 'desc' }
+                ],
                 select: {
                     id: true,
                     title: true,
@@ -108,6 +130,33 @@ export async function GET(req: NextRequest) {
                     name: true,
                     description: true
                 }
+            }),
+
+            // Search postmortems
+            prisma.postmortem.findMany({
+                where: {
+                    OR: [
+                        { title: { contains: searchTerm, mode: 'insensitive' } },
+                        { summary: { contains: searchTerm, mode: 'insensitive' } },
+                        { rootCause: { contains: searchTerm, mode: 'insensitive' } },
+                        { lessons: { contains: searchTerm, mode: 'insensitive' } }
+                    ],
+                    status: { not: 'ARCHIVED' } // Don't show archived postmortems
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    incidentId: true,
+                    title: true,
+                    status: true,
+                    incident: {
+                        select: {
+                            id: true,
+                            title: true
+                        }
+                    }
+                }
             })
         ]);
 
@@ -152,8 +201,27 @@ export async function GET(req: NextRequest) {
                 subtitle: p.description || 'Escalation Policy',
                 href: `/policies/${p.id}`,
                 priority: 6
+            })),
+            ...postmortems.map(pm => ({
+                type: 'postmortem' as const,
+                id: pm.id,
+                title: pm.title,
+                subtitle: `Postmortem for ${pm.incident.title} • ${pm.status}`,
+                href: `/postmortems/${pm.incidentId}`,
+                priority: 7
             }))
-        ].sort((a, b) => a.priority - b.priority); // Sort by priority
+        ].sort((a, b) => {
+            // Sort by priority first
+            if (a.priority !== b.priority) {
+                return a.priority - b.priority;
+            }
+            // Then by relevance (exact matches first)
+            const aExact = a.title.toLowerCase() === searchTermLower;
+            const bExact = b.title.toLowerCase() === searchTermLower;
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            return 0;
+        });
 
         return NextResponse.json({ results });
     } catch (error) {

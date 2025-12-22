@@ -120,60 +120,151 @@ export default function PostmortemForm({ incidentId, initialData, users = [] }: 
     return (
         <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
-                <FormField
-                    label="Title"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                />
+                {/* Basic Information */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-4)' }}>
+                        Basic Information
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                        <FormField
+                            label="Title"
+                            required
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="e.g., Database Connection Pool Exhaustion"
+                        />
 
-                <FormField
-                    label="Executive Summary"
-                    type="textarea"
-                    rows={4}
-                    value={formData.summary || ''}
-                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                    helperText="Brief overview of the incident and its impact"
-                />
+                        <FormField
+                            label="Executive Summary"
+                            type="textarea"
+                            rows={4}
+                            value={formData.summary || ''}
+                            onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                            helperText="Brief overview of the incident and its impact"
+                            placeholder="Provide a high-level summary for stakeholders..."
+                        />
 
-                <FormField
-                    label="Root Cause Analysis"
-                    type="textarea"
-                    rows={6}
-                    value={formData.rootCause || ''}
-                    onChange={(e) => setFormData({ ...formData, rootCause: e.target.value })}
-                    helperText="What was the underlying cause of this incident?"
-                />
+                        <FormField
+                            label="Status"
+                            type="select"
+                            value={formData.status || 'DRAFT'}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                            options={[
+                                { value: 'DRAFT', label: 'Draft' },
+                                { value: 'PUBLISHED', label: 'Published' },
+                                { value: 'ARCHIVED', label: 'Archived' },
+                            ]}
+                        />
+                    </div>
+                </div>
 
-                <FormField
-                    label="Resolution"
-                    type="textarea"
-                    rows={4}
-                    value={formData.resolution || ''}
-                    onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
-                    helperText="How was the incident resolved?"
-                />
+                {/* Timeline */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-4)' }}>
+                        Incident Timeline
+                    </h2>
+                    <PostmortemTimelineBuilder 
+                        events={timelineEvents} 
+                        onChange={setTimelineEvents} 
+                    />
+                </div>
 
-                <FormField
-                    label="Lessons Learned"
-                    type="textarea"
-                    rows={6}
-                    value={formData.lessons || ''}
-                    onChange={(e) => setFormData({ ...formData, lessons: e.target.value })}
-                    helperText="What did we learn? How can we prevent this in the future?"
-                />
+                {/* Impact Metrics */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <PostmortemImpactInput 
+                        metrics={impactMetrics} 
+                        onChange={setImpactMetrics} 
+                    />
+                </div>
 
-                <FormField
-                    label="Status"
-                    type="select"
-                    value={formData.status || 'DRAFT'}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    options={[
-                        { value: 'DRAFT', label: 'Draft' },
-                        { value: 'PUBLISHED', label: 'Published' },
-                        { value: 'ARCHIVED', label: 'Archived' },
-                    ]}
-                />
+                {/* Root Cause & Resolution */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-4)' }}>
+                        Analysis
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                        <FormField
+                            label="Root Cause Analysis"
+                            type="textarea"
+                            rows={6}
+                            value={formData.rootCause || ''}
+                            onChange={(e) => setFormData({ ...formData, rootCause: e.target.value })}
+                            helperText="What was the underlying cause of this incident?"
+                            placeholder="Describe the root cause in detail..."
+                        />
+
+                        <FormField
+                            label="Resolution"
+                            type="textarea"
+                            rows={4}
+                            value={formData.resolution || ''}
+                            onChange={(e) => setFormData({ ...formData, resolution: e.target.value })}
+                            helperText="How was the incident resolved?"
+                            placeholder="Describe the steps taken to resolve the incident..."
+                        />
+                    </div>
+                </div>
+
+                {/* Action Items */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <PostmortemActionItems 
+                        actionItems={actionItems} 
+                        onChange={setActionItems}
+                        users={users}
+                    />
+                </div>
+
+                {/* Lessons Learned */}
+                <div className="glass-panel" style={{ 
+                    padding: 'var(--spacing-6)', 
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-lg)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                }}>
+                    <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-4)' }}>
+                        Lessons Learned
+                    </h2>
+                    <FormField
+                        label="Lessons Learned"
+                        type="textarea"
+                        rows={6}
+                        value={formData.lessons || ''}
+                        onChange={(e) => setFormData({ ...formData, lessons: e.target.value })}
+                        helperText="What did we learn? How can we prevent this in the future?"
+                        placeholder="Document key learnings and preventive measures..."
+                    />
+                </div>
 
                 {error && (
                     <div style={{ padding: 'var(--spacing-3)', background: 'var(--color-error-light)', borderRadius: 'var(--radius-md)', color: 'var(--color-error-dark)' }}>
