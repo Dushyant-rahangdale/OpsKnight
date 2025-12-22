@@ -2,12 +2,14 @@ import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getUserPermissions } from '@/lib/rbac';
 import { addNote, addWatcher, removeWatcher, resolveIncidentWithNote, updateIncidentStatus, updateIncidentUrgency } from '../actions';
+import { getPostmortem } from '@/app/(app)/postmortems/actions';
 import Link from 'next/link';
 import IncidentHeader from '@/components/incident/IncidentHeader';
 import IncidentSidebar from '@/components/incident/detail/IncidentSidebar';
 import IncidentNotes from '@/components/incident/detail/IncidentNotes';
 import IncidentTimeline from '@/components/incident/detail/IncidentTimeline';
 import IncidentResolution from '@/components/incident/detail/IncidentResolution';
+import { Button } from '@/components/ui';
 
 
 export default async function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +35,11 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     const users = await prisma.user.findMany();
     const permissions = await getUserPermissions();
     const canManageIncident = permissions.isResponderOrAbove;
+    
+    // Check if postmortem exists for this incident
+    const postmortem = incident.status === 'RESOLVED' 
+        ? await getPostmortem(id)
+        : null;
 
     // Server actions
 
@@ -117,6 +124,54 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                                 canManage={canManageIncident}
                                 onResolve={handleResolve}
                             />
+                        </div>
+                    )}
+
+                    {/* Postmortem Section */}
+                    {incident.status === 'RESOLVED' && (
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <div className="glass-panel" style={{ 
+                                padding: '1.5rem', 
+                                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', 
+                                border: '1px solid #e6e8ef', 
+                                borderRadius: '0px',
+                                boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)' 
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <div>
+                                        <h4 style={{ fontWeight: '700', marginBottom: '0.25rem' }}>Postmortem</h4>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            Document lessons learned and improve incident response
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {postmortem ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+                                        <div style={{ 
+                                            padding: 'var(--spacing-3)', 
+                                            background: 'var(--color-success-light)', 
+                                            borderRadius: 'var(--radius-md)',
+                                            border: '1px solid var(--color-success)'
+                                        }}>
+                                            <p style={{ margin: 0, color: 'var(--color-success-dark)', fontSize: 'var(--font-size-sm)' }}>
+                                                ✓ Postmortem exists for this incident
+                                            </p>
+                                        </div>
+                                        <Link href={`/postmortems/${id}`}>
+                                            <Button variant="primary" fullWidth>
+                                                View Postmortem
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <Link href={`/postmortems/${id}`}>
+                                        <Button variant="primary" fullWidth>
+                                            Create Postmortem
+                                        </Button>
+                                    </Link>
+                                )}
+                            </div>
                         </div>
                     )}
 

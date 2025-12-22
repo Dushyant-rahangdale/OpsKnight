@@ -2,8 +2,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getAllPostmortems } from './actions';
+import { getUserPermissions } from '@/lib/rbac';
+import prisma from '@/lib/prisma';
 import Link from 'next/link';
-import { Card } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
 import { Badge } from '@/components/ui';
 
 export default async function PostmortemsPage({
@@ -20,16 +22,51 @@ export default async function PostmortemsPage({
     const status = params.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | undefined;
 
     const postmortems = await getAllPostmortems(status);
+    const permissions = await getUserPermissions();
+    const canCreate = permissions.isResponderOrAbove;
+
+    // Get resolved incidents without postmortems for quick create
+    const resolvedIncidentsWithoutPostmortems = canCreate
+        ? await prisma.incident.findMany({
+              where: {
+                  status: 'RESOLVED',
+                  postmortem: null,
+              },
+              select: {
+                  id: true,
+                  title: true,
+                  resolvedAt: true,
+              },
+              orderBy: { resolvedAt: 'desc' },
+              take: 10,
+          })
+        : [];
 
     return (
         <div style={{ padding: 'var(--spacing-6)' }}>
-            <div style={{ marginBottom: 'var(--spacing-6)' }}>
-                <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-2)' }}>
-                    Postmortems
-                </h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-base)' }}>
-                    Learn from incidents and improve your incident response process
-                </p>
+            <div style={{ marginBottom: 'var(--spacing-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-4)' }}>
+                <div>
+                    <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-2)' }}>
+                        Postmortems
+                    </h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-base)' }}>
+                        Learn from incidents and improve your incident response process
+                    </p>
+                </div>
+                {resolvedIncidentsWithoutPostmortems.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', minWidth: '200px' }}>
+                        <Link href={`/postmortems/${resolvedIncidentsWithoutPostmortems[0].id}`}>
+                            <Button variant="primary">
+                                Create Postmortem
+                            </Button>
+                        </Link>
+                        {resolvedIncidentsWithoutPostmortems.length > 1 && (
+                            <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', margin: 0, textAlign: 'center' }}>
+                                {resolvedIncidentsWithoutPostmortems.length} resolved incidents without postmortems
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Filters */}
@@ -79,11 +116,41 @@ export default async function PostmortemsPage({
             {postmortems.length === 0 ? (
                 <Card>
                     <div style={{ padding: 'var(--spacing-8)', textAlign: 'center' }}>
-                        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-base)' }}>
+                        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-base)', marginBottom: 'var(--spacing-4)' }}>
                             {status
                                 ? `No ${status.toLowerCase()} postmortems found.`
                                 : 'No postmortems found. Create one from a resolved incident.'}
                         </p>
+                        {resolvedIncidentsWithoutPostmortems.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', alignItems: 'center' }}>
+                                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginBottom: 'var(--spacing-2)' }}>
+                                    Resolved incidents available for postmortem:
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', width: '100%', maxWidth: '400px' }}>
+                                    {resolvedIncidentsWithoutPostmortems.slice(0, 5).map((incident) => (
+                                        <Link
+                                            key={incident.id}
+                                            href={`/postmortems/${incident.id}`}
+                                            style={{
+                                                padding: 'var(--spacing-3)',
+                                                background: 'var(--color-neutral-50)',
+                                                border: '1px solid var(--color-neutral-200)',
+                                                borderRadius: 'var(--radius-md)',
+                                                textDecoration: 'none',
+                                                display: 'block',
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)', marginBottom: 'var(--spacing-1)' }}>
+                                                {incident.title}
+                                            </div>
+                                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                                                Resolved {incident.resolvedAt?.toLocaleDateString()}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </Card>
             ) : (

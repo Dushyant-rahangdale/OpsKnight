@@ -147,6 +147,55 @@ export default function IncidentSidebar({
                     canManage={canManage}
                 />
             </div>
+
+            {/* Postmortem Section - Only show for resolved incidents */}
+            {incident.status === 'RESOLVED' && (
+                <div className="glass-panel" style={{ 
+                    padding: '1.5rem', 
+                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', 
+                    border: '1px solid #e6e8ef', 
+                    borderRadius: '0px',
+                    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)' 
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h4 style={{ fontWeight: '700', fontSize: '1.1rem' }}>Postmortem</h4>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                            Learning
+                        </span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                        Document what happened, why it happened, and how to prevent it in the future.
+                    </p>
+                    <Link 
+                        href={`/postmortems/${incident.id}`}
+                        style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            textDecoration: 'none',
+                            borderRadius: '0px',
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--primary-dark)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'var(--primary)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                        }}
+                    >
+                        {canManage ? 'Create Postmortem' : 'View Postmortem'}
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }
