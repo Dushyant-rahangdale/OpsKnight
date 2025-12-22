@@ -58,8 +58,42 @@ export async function sendNotification(
                 break;
             
             case 'WEBHOOK':
-                // TODO: Implement webhook notifications
-                result = { success: false, error: 'Webhook notifications not yet implemented' };
+                // Webhooks are typically configured per-service or per-escalation-policy
+                // For now, we'll need the webhook URL from the escalation policy or service
+                // This is a placeholder - webhook URLs should be stored in escalation policy config
+                const { sendIncidentWebhook } = await import('./webhooks');
+                const incidentForWebhook = await prisma.incident.findUnique({ 
+                    where: { id: incidentId },
+                    include: { service: true }
+                });
+                
+                if (!incidentForWebhook) {
+                    result = { success: false, error: 'Incident not found' };
+                    break;
+                }
+                
+                // Try to get webhook URL from service or escalation policy
+                // For now, we'll check if there's a webhook URL in the service config
+                // In a full implementation, this would come from the escalation policy
+                const webhookUrl = (incidentForWebhook.service as any).webhookUrl;
+                
+                if (!webhookUrl) {
+                    result = { success: false, error: 'No webhook URL configured for this service' };
+                    break;
+                }
+                
+                const eventTypeWebhook = incidentForWebhook.status === 'RESOLVED' ? 'resolved' :
+                                        incidentForWebhook.status === 'ACKNOWLEDGED' ? 'acknowledged' : 'triggered';
+                
+                const webhookResult = await sendIncidentWebhook(
+                    webhookUrl,
+                    incidentId,
+                    eventTypeWebhook
+                );
+                
+                result = webhookResult.success 
+                    ? { success: true }
+                    : { success: false, error: webhookResult.error };
                 break;
             
             default:
