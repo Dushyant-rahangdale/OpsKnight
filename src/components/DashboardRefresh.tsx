@@ -1,26 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function DashboardRefresh() {
+type DashboardRefreshProps = {
+  autoRefreshInterval?: number; // in seconds, default 60
+};
+
+export default function DashboardRefresh({ autoRefreshInterval = 60 }: DashboardRefreshProps) {
   const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  const [timeUntilRefresh, setTimeUntilRefresh] = useState(autoRefreshInterval);
+  const [mounted, setMounted] = useState(false);
+
+  // Only set time after component mounts on client
+  useEffect(() => {
+    setMounted(true);
+    setLastUpdated(new Date());
+  }, []);
+
+  // Load auto-refresh preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboard-auto-refresh');
+    if (saved !== null) {
+      setAutoRefreshEnabled(saved === 'true');
+    }
+  }, []);
+
+  // Auto-refresh timer
+  useEffect(() => {
+    if (!autoRefreshEnabled) {
+      setTimeUntilRefresh(autoRefreshInterval);
+      return;
+    }
+
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setTimeUntilRefresh((prev) => {
+        if (prev <= 1) {
+          return autoRefreshInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Auto-refresh interval
+    const refreshInterval = setInterval(() => {
+      setIsRefreshing(true);
+      router.refresh();
+      setLastUpdated(new Date());
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }, autoRefreshInterval * 1000);
+
+    return () => {
+      clearInterval(countdownInterval);
+      clearInterval(refreshInterval);
+    };
+  }, [router, autoRefreshInterval, autoRefreshEnabled]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     router.refresh();
+    setLastUpdated(new Date());
+    setTimeUntilRefresh(autoRefreshInterval); // Reset countdown
     setTimeout(() => {
       setIsRefreshing(false);
-      setLastUpdated(new Date());
     }, 500);
+  };
+
+  const toggleAutoRefresh = () => {
+    const newValue = !autoRefreshEnabled;
+    setAutoRefreshEnabled(newValue);
+    localStorage.setItem('dashboard-auto-refresh', String(newValue));
+    if (newValue) {
+      setTimeUntilRefresh(autoRefreshInterval);
+    }
   };
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
       <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: '500' }}>
-        Updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {mounted && lastUpdated ? (
+          <>
+            Updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {autoRefreshEnabled && (
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                (Auto: {timeUntilRefresh}s)
+              </span>
+            )}
+          </>
+        ) : (
+          <span>Updated: --:--</span>
+        )}
       </div>
       <button
         onClick={handleRefresh}
@@ -60,6 +135,27 @@ export default function DashboardRefresh() {
             to { transform: rotate(360deg); }
           }
         `}</style>
+      </button>
+      <button
+        onClick={toggleAutoRefresh}
+        style={{
+          padding: '0.4rem 0.75rem',
+          borderRadius: '8px',
+          fontSize: '0.75rem',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          background: autoRefreshEnabled ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+          color: 'white',
+          cursor: 'pointer',
+          fontWeight: '600',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem'
+        }}
+        title={autoRefreshEnabled ? 'Disable auto-refresh' : 'Enable auto-refresh'}
+      >
+        <span style={{ fontSize: '0.7rem' }}>🔄</span>
+        {autoRefreshEnabled ? 'Auto ON' : 'Auto OFF'}
       </button>
     </div>
   );

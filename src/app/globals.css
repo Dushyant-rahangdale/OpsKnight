@@ -3059,6 +3059,24 @@ a:hover {
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-md);
   border-radius: var(--radius);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced glass panel for dashboard widgets */
+.dashboard-sidebar .glass-panel,
+.dashboard-main-content .glass-panel {
+  background: #ffffff;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-sidebar .glass-panel:hover,
+.dashboard-main-content .glass-panel:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-color: rgba(17, 24, 39, 0.12);
+  transform: translateY(-1px);
 }
 
 .analytics-shell .glass-panel {
@@ -7225,19 +7243,50 @@ span:hover > .info-tooltip {
   padding-bottom: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
+}
+
+/* Enhanced filter panel styling */
+.dashboard-filters-panel,
+.glass-panel[style*="Filter Incidents"] {
+  border-radius: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.dashboard-filters-panel:hover,
+.glass-panel[style*="Filter Incidents"]:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Command Center Hero Section */
 .command-center-hero {
   background: linear-gradient(135deg, #8b1a1a 0%, #b91c1c 40%, #c92a2a 70%, #dc2626 100%);
   color: white;
-  padding: 1.5rem;
-  border-radius: 16px;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 8px 24px rgba(139, 26, 26, 0.3);
+  padding: 1.75rem;
+  border-radius: 18px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(139, 26, 26, 0.35), 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.command-center-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .command-center-header {
@@ -7245,7 +7294,9 @@ span:hover > .info-tooltip {
   justify-content: space-between;
   align-items: flex-start;
   gap: 2rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  z-index: 1;
 }
 
 .command-center-left {
@@ -7300,42 +7351,66 @@ span:hover > .info-tooltip {
 .command-center-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 .command-metric-card {
   background: rgba(185, 28, 28, 0.95);
-  border-radius: 10px;
-  padding: 1rem 0.75rem;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.command-metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.command-metric-card:hover::before {
+  left: 100%;
 }
 
 .command-metric-card:hover {
   background: rgba(185, 28, 28, 1);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .command-metric-value {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 800;
   color: white;
   line-height: 1;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .command-metric-label {
-  font-size: 0.7rem;
+  font-size: 0.725rem;
   color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
 }
 
 /* Dashboard Hero Section (Legacy - keeping for backwards compatibility) */
@@ -7367,6 +7442,62 @@ span:hover > .info-tooltip {
   .command-center-metrics {
     grid-template-columns: 1fr;
   }
+}
+
+/* Enhanced widget headers */
+.dashboard-sidebar h3,
+.dashboard-main-content h2,
+.dashboard-main-content h3 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/* Enhanced empty states */
+.dashboard-empty-state,
+.glass-panel [style*="text-align: center"][style*="padding: 3rem"] {
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+}
+
+/* Enhanced button hover effects */
+.glass-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.glass-button.primary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+}
+
+/* Smooth transitions for all interactive elements */
+.dashboard-sidebar a,
+.dashboard-main-content a,
+.dashboard-sidebar button,
+.dashboard-main-content button {
+  transition: all 0.2s ease;
+}
+
+/* Enhanced link hover states */
+.dashboard-sidebar a:hover,
+.dashboard-main-content a:hover {
+  opacity: 0.85;
+}
+
+/* Better focus states for accessibility */
+.dashboard-sidebar button:focus-visible,
+.dashboard-main-content button:focus-visible,
+.dashboard-sidebar a:focus-visible,
+.dashboard-main-content a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Responsive: Make two-column layout single column on smaller screens */

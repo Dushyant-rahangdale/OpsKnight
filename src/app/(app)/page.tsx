@@ -12,6 +12,10 @@ import DashboardExport from '@/components/DashboardExport';
 import DashboardFilterChips from '@/components/DashboardFilterChips';
 import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
 import DashboardStatusChart from '@/components/DashboardStatusChart';
+import DashboardSavedFilters from '@/components/DashboardSavedFilters';
+import DashboardNotifications from '@/components/DashboardNotifications';
+import DashboardTemplates from '@/components/DashboardTemplates';
+import DashboardTemplateWrapper from '@/components/DashboardTemplateWrapper';
 import { calculateSLAMetrics } from '@/lib/sla';
 import { Suspense } from 'react';
 
@@ -338,7 +342,29 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Filters Panel - White glass panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700', marginBottom: '1rem' }}>Filter Incidents</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ 
+                width: '36px', 
+                height: '36px', 
+                borderRadius: '10px', 
+                background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
+                  <path d="M3 6l3 3m0 0l3-3m-3 3v12m6-9h6m-6 3h6m-6 3h6m-6 3h6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0 }}>Filter Incidents</h2>
+            </div>
+            
+            {/* Saved Filters */}
+            <div style={{ marginBottom: '1rem' }}>
+              <Suspense fallback={null}>
+                <DashboardSavedFilters />
+              </Suspense>
+            </div>
             
             {/* Quick Filters */}
             <div style={{ marginBottom: '1rem' }}>
@@ -366,22 +392,87 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* Incidents Table Panel - White glass panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.15rem' }}>Incident Directory</h2>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Showing {skip + 1}-{Math.min(skip + INCIDENTS_PER_PAGE, totalCount)} of {totalCount} incidents
-                </p>
+            <div style={{ 
+              padding: '1.5rem', 
+              borderBottom: '1px solid var(--border)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              flexWrap: 'wrap', 
+              gap: '1rem',
+              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ 
+                  width: '36px', 
+                  height: '36px', 
+                  borderRadius: '10px', 
+                  background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.2rem 0' }}>Incident Directory</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Showing {skip + 1}-{Math.min(skip + INCIDENTS_PER_PAGE, totalCount)} of {totalCount} incidents
+                  </p>
+                </div>
               </div>
-              <Link href="/incidents" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>
-                View All Incidents →
+              <Link 
+                href="/incidents" 
+                style={{ 
+                  fontSize: '0.85rem', 
+                  color: 'var(--primary)', 
+                  textDecoration: 'none', 
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  background: 'white',
+                  border: '1px solid var(--border)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--primary)';
+                  e.currentTarget.style.color = 'white';
+                  e.currentTarget.style.borderColor = 'var(--primary)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(211, 47, 47, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                  e.currentTarget.style.color = 'var(--primary)';
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                View All <span>→</span>
               </Link>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
               {incidents.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <p style={{ fontSize: '0.9rem' }}>No incidents found matching your filters.</p>
+                <div style={{ 
+                  padding: '4rem 2rem', 
+                  textAlign: 'center', 
+                  color: 'var(--text-muted)',
+                  background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                  borderTop: '1px solid var(--border)',
+                  borderBottom: '1px solid var(--border)'
+                }}>
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3, margin: '0 auto 1rem' }}>
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <p style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>No incidents found</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Try adjusting your filters to see more results.</p>
                 </div>
               ) : (
                 <IncidentTable 
@@ -392,22 +483,33 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               )}
             </div>
 
-            {/* Pagination - Matching users page style */}
+            {/* Pagination - Enhanced style */}
             {totalPages > 1 && (
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  Page {page} of {totalPages}
+              <div style={{ 
+                padding: '1.25rem 1.5rem', 
+                borderTop: '1px solid var(--border)', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                gap: '1rem', 
+                flexWrap: 'wrap',
+                background: 'linear-gradient(135deg, #fafbfc 0%, #ffffff 100%)'
+              }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  Page <strong style={{ color: 'var(--text-primary)' }}>{page}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalPages}</strong>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <Link
                     href={buildPaginationUrl(baseParams, 1)}
                     className={`glass-button ${page === 1 ? 'disabled' : ''}`}
                     style={{
-                      padding: '0.4rem 0.8rem',
+                      padding: '0.5rem 0.9rem',
                       fontSize: '0.8rem',
                       textDecoration: 'none',
-                      opacity: page === 1 ? 0.5 : 1,
-                      pointerEvents: page === 1 ? 'none' : 'auto'
+                      opacity: page === 1 ? 0.4 : 1,
+                      pointerEvents: page === 1 ? 'none' : 'auto',
+                      borderRadius: '8px',
+                      fontWeight: '600'
                     }}
                   >
                     First
@@ -416,11 +518,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     href={buildPaginationUrl(baseParams, Math.max(1, page - 1))}
                     className={`glass-button ${page === 1 ? 'disabled' : ''}`}
                     style={{
-                      padding: '0.4rem 0.8rem',
+                      padding: '0.5rem 0.9rem',
                       fontSize: '0.8rem',
                       textDecoration: 'none',
-                      opacity: page === 1 ? 0.5 : 1,
-                      pointerEvents: page === 1 ? 'none' : 'auto'
+                      opacity: page === 1 ? 0.4 : 1,
+                      pointerEvents: page === 1 ? 'none' : 'auto',
+                      borderRadius: '8px',
+                      fontWeight: '600'
                     }}
                   >
                     Previous
@@ -429,11 +533,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     href={buildPaginationUrl(baseParams, Math.min(totalPages, page + 1))}
                     className={`glass-button ${page === totalPages ? 'disabled' : ''}`}
                     style={{
-                      padding: '0.4rem 0.8rem',
+                      padding: '0.5rem 0.9rem',
                       fontSize: '0.8rem',
                       textDecoration: 'none',
-                      opacity: page === totalPages ? 0.5 : 1,
-                      pointerEvents: page === totalPages ? 'none' : 'auto'
+                      opacity: page === totalPages ? 0.4 : 1,
+                      pointerEvents: page === totalPages ? 'none' : 'auto',
+                      borderRadius: '8px',
+                      fontWeight: '600'
                     }}
                   >
                     Next
@@ -442,11 +548,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                     href={buildPaginationUrl(baseParams, totalPages)}
                     className={`glass-button ${page === totalPages ? 'disabled' : ''}`}
                     style={{
-                      padding: '0.4rem 0.8rem',
+                      padding: '0.5rem 0.9rem',
                       fontSize: '0.8rem',
                       textDecoration: 'none',
-                      opacity: page === totalPages ? 0.5 : 1,
-                      pointerEvents: page === totalPages ? 'none' : 'auto'
+                      opacity: page === totalPages ? 0.4 : 1,
+                      pointerEvents: page === totalPages ? 'none' : 'auto',
+                      borderRadius: '8px',
+                      fontWeight: '600'
                     }}
                   >
                     Last
@@ -459,12 +567,37 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
         {/* Right Sidebar - All Widgets (matching users page style) */}
         <aside style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Dashboard Templates */}
+          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Dashboard Templates</h3>
+            <Suspense fallback={null}>
+              <DashboardTemplates />
+            </Suspense>
+          </div>
+
           {/* Quick Actions Panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>Quick Actions</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              {greeting}, {userName}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                borderRadius: '10px', 
+                background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: '0 0 0.15rem 0' }}>Quick Actions</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                  {greeting}, {userName}
+                </p>
+              </div>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <Link 
                 href="/incidents/create" 
@@ -503,12 +636,40 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
           </div>
 
-          {/* On-Call Widget */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Who is On-Call</h3>
-              <Link href="/schedules" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>
-                View All →
+          {/* On-Call Widget - Activity */}
+          <DashboardTemplateWrapper widgetType="showActivity">
+            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '8px', 
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Who is On-Call</h3>
+              </div>
+              <Link href="/schedules" style={{ 
+                fontSize: '0.85rem', 
+                color: 'var(--primary)', 
+                textDecoration: 'none', 
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                View All <span>→</span>
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -521,15 +682,56 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 </div>
               ) : (
                 activeShifts.slice(0, 3).map(shift => (
-                  <div key={shift.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.875rem' }}>
+                  <div 
+                    key={shift.id} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.75rem', 
+                      padding: '0.875rem', 
+                      background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                      borderRadius: '10px', 
+                      border: '1px solid var(--border)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%)';
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                      e.currentTarget.style.transform = 'translateX(2px)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(211, 47, 47, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)';
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.transform = 'translateX(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ 
+                      width: '40px', 
+                      height: '40px', 
+                      borderRadius: '10px', 
+                      background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%)', 
+                      color: 'var(--primary)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontWeight: '700', 
+                      fontSize: '0.9rem',
+                      border: '1px solid rgba(211, 47, 47, 0.2)'
+                    }}>
                       {shift.user.name.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.15rem' }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
                         {shift.user.name}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.5 }}>
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                         {shift.schedule.name}
                       </div>
                     </div>
@@ -538,18 +740,37 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               )}
             </div>
           </div>
+          </DashboardTemplateWrapper>
 
           {/* Performance Metrics Widget */}
-          <DashboardPerformanceMetrics
+          <DashboardTemplateWrapper widgetType="showPerformance">
+            <DashboardPerformanceMetrics
             mtta={mttaMinutes}
             mttr={slaMetrics.mttr}
             ackSlaRate={slaMetrics.ackCompliance}
             resolveSlaRate={slaMetrics.resolveCompliance}
-          />
+            />
+          </DashboardTemplateWrapper>
 
-          {/* Status Distribution */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Status Distribution</h3>
+          {/* Status Distribution - Charts */}
+          <DashboardTemplateWrapper widgetType="showCharts">
+            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ 
+                width: '32px', 
+                height: '32px', 
+                borderRadius: '8px', 
+                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
+                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Status Distribution</h3>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <DashboardStatusChart data={statusDistribution} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -565,9 +786,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </div>
             </div>
           </div>
+          </DashboardTemplateWrapper>
 
-          {/* Advanced Metrics */}
-          <DashboardAdvancedMetrics
+          {/* Advanced Metrics - Metrics */}
+          <DashboardTemplateWrapper widgetType="showMetrics">
+            <DashboardAdvancedMetrics
             totalIncidents={allIncidents.length}
             openIncidents={allOpenIncidentsCount}
             resolvedIncidents={allResolvedCount}
@@ -575,7 +798,19 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             criticalIncidents={allCriticalIncidentsCount}
             unassignedIncidents={unassignedCount}
             servicesCount={services.length}
-          />
+            />
+          </DashboardTemplateWrapper>
+
+          {/* Notifications Widget */}
+          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Browser Notifications</h3>
+            <Suspense fallback={null}>
+              <DashboardNotifications 
+                criticalCount={allCriticalIncidentsCount}
+                unassignedCount={unassignedCount}
+              />
+            </Suspense>
+          </div>
         </aside>
       </div>
     </main>
