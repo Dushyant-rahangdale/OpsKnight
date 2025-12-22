@@ -121,6 +121,7 @@ export default function PostmortemActionItems({ actionItems, onChange, users = [
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 'var(--spacing-2)' }}>
                         <FormField
+                            type="input"
                             label="Title"
                             value={newItem.title || ''}
                             onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
