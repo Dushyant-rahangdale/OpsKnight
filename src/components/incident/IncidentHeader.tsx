@@ -6,6 +6,7 @@ import EscalationStatusBadge from './EscalationStatusBadge';
 import PriorityBadge from './PriorityBadge';
 import AssigneeSection from './AssigneeSection';
 import { Incident, Service } from '@prisma/client';
+import { formatDateFriendly } from '@/lib/date-format';
 
 type IncidentHeaderProps = {
     incident: Incident & {
@@ -103,7 +104,7 @@ export default function IncidentHeader({ incident, users, canManage }: IncidentH
                         Created
                     </div>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {new Date(incident.createdAt).toLocaleString()}
+                        {formatDateFriendly(incident.createdAt)}
                     </div>
                     {incident.acknowledgedAt && (
                         <>
@@ -111,7 +112,7 @@ export default function IncidentHeader({ incident, users, canManage }: IncidentH
                                 Acknowledged
                             </div>
                             <div style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                {new Date(incident.acknowledgedAt).toLocaleString()}
+                                {formatDateFriendly(incident.acknowledgedAt)}
                             </div>
                         </>
                     )}
@@ -121,7 +122,7 @@ export default function IncidentHeader({ incident, users, canManage }: IncidentH
                                 Resolved
                             </div>
                             <div style={{ fontWeight: 600, color: 'var(--success)', fontSize: '0.9rem' }}>
-                                {new Date(incident.resolvedAt).toLocaleString()}
+                                {formatDateFriendly(incident.resolvedAt)}
                             </div>
                         </>
                     )}

@@ -207,20 +207,18 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                     />
 
                     {/* Custom Fields */}
-                    {customFields.length > 0 && (
-                        <div style={{ marginTop: '1.5rem' }}>
-                            <IncidentCustomFields
-                                incidentId={id}
-                                customFieldValues={incident.customFieldValues.map(v => ({
-                                    id: v.id,
-                                    value: v.value,
-                                    customField: v.customField,
-                                }))}
-                                allCustomFields={customFields}
-                                canManage={canManageIncident}
-                            />
-                        </div>
-                    )}
+                    <div style={{ marginTop: '1.5rem' }}>
+                        <IncidentCustomFields
+                            incidentId={id}
+                            customFieldValues={incident.customFieldValues?.map(v => ({
+                                id: v.id,
+                                value: v.value,
+                                customField: v.customField,
+                            })) || []}
+                            allCustomFields={customFields}
+                            canManage={canManageIncident}
+                        />
+                    </div>
                 </div>
 
                 {/* Sidebar */}
