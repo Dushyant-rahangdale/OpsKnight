@@ -59,14 +59,23 @@ export default function SidebarSearch() {
     // Handle global keyboard shortcut (Cmd/Ctrl + K)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k' && !isOpen) {
-                // Only trigger if not typing in an input/textarea
-                if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                // Only trigger if not typing in an input/textarea/contenteditable
+                const target = e.target as HTMLElement;
+                if (target instanceof HTMLInputElement || 
+                    target instanceof HTMLTextAreaElement ||
+                    target.isContentEditable) {
                     return;
                 }
                 e.preventDefault();
-                setIsOpen(true);
-                setTimeout(() => inputRef.current?.focus(), 0);
+                if (isOpen) {
+                    setIsOpen(false);
+                    setQuery('');
+                    setResults([]);
+                } else {
+                    setIsOpen(true);
+                    setTimeout(() => inputRef.current?.focus(), 0);
+                }
             }
         };
 
@@ -198,12 +207,17 @@ export default function SidebarSearch() {
                     }
                 } else {
                     // Navigate to selected result
+                    if (results.length === 0) return;
+                    
                     let currentIndex = 0;
                     for (const group of groupedResults) {
-                        if (selectedIndex < currentIndex + group.results.length) {
-                            const result = group.results[selectedIndex - currentIndex];
-                            navigateResult(result.href, result.title);
-                            return;
+                        if (selectedIndex >= currentIndex && selectedIndex < currentIndex + group.results.length) {
+                            const resultIndex = selectedIndex - currentIndex;
+                            const result = group.results[resultIndex];
+                            if (result) {
+                                navigateResult(result.href, result.title);
+                                return;
+                            }
                         }
                         currentIndex += group.results.length;
                     }
@@ -220,7 +234,13 @@ export default function SidebarSearch() {
         if (!isOpen) return;
 
         const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            if (containerRef.current && !containerRef.current.contains(target)) {
+                // Don't close if clicking on the trigger button
+                const triggerButton = document.querySelector('.topbar-search-trigger');
+                if (triggerButton && triggerButton.contains(target)) {
+                    return;
+                }
                 setIsOpen(false);
                 setQuery('');
                 setResults([]);
@@ -229,9 +249,16 @@ export default function SidebarSearch() {
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
+        // Use a slight delay to avoid closing when opening
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside);
+        }, 100);
+
+        return () => {
+            clearTimeout(timeoutId);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen, setIsOpen]);
 
     // Search API call with debouncing
     useEffect(() => {
@@ -301,7 +328,7 @@ export default function SidebarSearch() {
     const hasDropdownContent = query.length >= 2 
         ? (results.length > 0 || isLoading || error)
         : query.length === 0
-            ? true
+            ? (recentSearches.length > 0 || QUICK_ACTIONS.length > 0)
             : false;
 
     if (!isOpen) {
@@ -331,10 +358,15 @@ export default function SidebarSearch() {
     return (
         <>
             {/* Overlay */}
-            {hasDropdownContent && (
+            {hasDropdownContent && isOpen && (
                 <div
                     className="topbar-search-overlay"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                        setIsOpen(false);
+                        setQuery('');
+                        setResults([]);
+                        setSelectedIndex(0);
+                    }}
                 />
             )}
             <div ref={containerRef} className="topbar-search-container">
@@ -495,12 +527,12 @@ export default function SidebarSearch() {
                                                             <div className={`topbar-search-result-icon ${result.type}`}>
                                                                 {getTypeIcon(result.type)}
                                                             </div>
-                                                            <div className="topbar-search-result-content">
-                                                                <div className="topbar-search-result-title">{result.title}</div>
-                                                                {result.subtitle && (
-                                                                    <div className="topbar-search-result-subtitle">{result.subtitle}</div>
-                                                                )}
-                                                            </div>
+                                                    <div className="topbar-search-result-content">
+                                                        <div className="topbar-search-result-title">{highlightMatch(result.title, query)}</div>
+                                                        {result.subtitle && (
+                                                            <div className="topbar-search-result-subtitle">{result.subtitle}</div>
+                                                        )}
+                                                    </div>
                                                             <div className="topbar-search-result-badge">{result.type}</div>
                                                         </button>
                                                     );
