@@ -425,6 +425,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </div>
               <Link 
                 href="/incidents" 
+                className="dashboard-view-all-link"
                 style={{ 
                   fontSize: '0.85rem', 
                   color: 'var(--primary)', 
@@ -438,20 +439,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   background: 'white',
                   border: '1px solid var(--border)',
                   transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--primary)';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.borderColor = 'var(--primary)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(211, 47, 47, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.color = 'var(--primary)';
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 View All <span>→</span>
@@ -656,7 +643,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 </div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Who is On-Call</h3>
               </div>
-              <Link href="/schedules" style={{ 
+              <Link href="/schedules" className="dashboard-link-hover" style={{ 
                 fontSize: '0.85rem', 
                 color: 'var(--primary)', 
                 textDecoration: 'none', 
@@ -665,10 +652,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 alignItems: 'center',
                 gap: '0.25rem',
                 transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-              >
+              }}>
                 View All <span>→</span>
               </Link>
             </div>
@@ -684,6 +668,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 activeShifts.slice(0, 3).map(shift => (
                   <div 
                     key={shift.id} 
+                    className="dashboard-oncall-card"
                     style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -694,18 +679,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       border: '1px solid var(--border)',
                       transition: 'all 0.2s ease',
                       cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%)';
-                      e.currentTarget.style.borderColor = 'var(--primary)';
-                      e.currentTarget.style.transform = 'translateX(2px)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(211, 47, 47, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)';
-                      e.currentTarget.style.borderColor = 'var(--border)';
-                      e.currentTarget.style.transform = 'translateX(0)';
-                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
                     <div style={{ 

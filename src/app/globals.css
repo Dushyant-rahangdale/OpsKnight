@@ -7500,6 +7500,26 @@ span:hover > .info-tooltip {
   outline-offset: 2px;
 }
 
+/* Dashboard link hover effects */
+.dashboard-view-all-link:hover {
+  background: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.2);
+}
+
+.dashboard-link-hover:hover {
+  opacity: 0.8;
+}
+
+.dashboard-oncall-card:hover {
+  background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 100%) !important;
+  border-color: var(--primary) !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.1);
+}
+
 /* Responsive: Make two-column layout single column on smaller screens */
 @media (max-width: 1024px) {
   main > div[style*="grid-template-columns: minmax(0, 2fr) 320px"] {
