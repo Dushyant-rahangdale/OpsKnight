@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { formatDateFriendly } from '@/lib/date-format';
 import StatusBadge from './StatusBadge';
 import EscalationStatusBadge from './EscalationStatusBadge';
 import PriorityBadge from './PriorityBadge';
@@ -527,10 +528,21 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                         </div>
                                     </td>
                                     <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                        <div>{formatDateFriendly(incident.createdAt).split(',')[0]}</div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                                            {formatDateFriendly(incident.createdAt).split(',')[1]?.trim() || ''}
-                                        </div>
+                                        {(() => {
+                                            const formatted = formatDateFriendly(incident.createdAt);
+                                            // formatDateFriendly returns "DD/MM/YYYY HH:MM"
+                                            const [datePart, timePart] = formatted.split(' ');
+                                            return (
+                                                <>
+                                                    <div>{datePart || formatted}</div>
+                                                    {timePart && (
+                                                        <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                                                            {timePart}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                                         {canManageIncidents && (
