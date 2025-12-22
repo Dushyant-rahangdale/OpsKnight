@@ -2417,7 +2417,7 @@ body {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
   z-index: 1000;
   overflow: hidden;
   animation: dropdownFadeIn 0.15s ease-out;
@@ -8292,6 +8292,8 @@ span:hover > .info-tooltip {
   flex: 1;
   max-width: 600px;
   min-width: 0;
+  display: flex;
+  align-items: flex-start;
 }
 
 .topbar-search-trigger {
@@ -8354,10 +8356,8 @@ span:hover > .info-tooltip {
 }
 
 .topbar-search-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  width: 100%;
   z-index: 1000;
 }
 
@@ -8368,8 +8368,9 @@ span:hover > .info-tooltip {
   padding: 0.625rem 1rem;
   background: #ffffff;
   border: 2px solid var(--primary);
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(211, 47, 47, 0.2), 0 0 0 4px rgba(211, 47, 47, 0.1);
+  transition: all 0.2s ease;
 }
 
 .topbar-search-icon {
@@ -8393,6 +8394,16 @@ span:hover > .info-tooltip {
   opacity: 0.6;
 }
 
+.topbar-search-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
 .topbar-search-close {
   display: flex;
   align-items: center;
@@ -8414,12 +8425,26 @@ span:hover > .info-tooltip {
   color: var(--text-primary);
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 .topbar-search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(2px);
-  z-index: 999;
+  z-index: 997;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .topbar-search-results {
@@ -8427,16 +8452,22 @@ span:hover > .info-tooltip {
   top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  max-height: 400px;
+  max-height: 480px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
   z-index: 1001;
+  animation: slideInDown 0.2s ease-out;
+  margin-top: 0;
 }
 
 .topbar-search-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0.75rem 1rem;
   font-size: 0.75rem;
   font-weight: 700;
@@ -8466,7 +8497,9 @@ span:hover > .info-tooltip {
 
 .topbar-search-result:hover,
 .topbar-search-result.selected {
-  background: rgba(211, 47, 47, 0.05);
+  background: linear-gradient(90deg, rgba(211, 47, 47, 0.08) 0%, rgba(211, 47, 47, 0.03) 100%);
+  border-left: 3px solid var(--primary);
+  padding-left: calc(1rem - 3px);
 }
 
 .topbar-search-result-icon {
@@ -8555,6 +8588,69 @@ span:hover > .info-tooltip {
   opacity: 0.7;
 }
 
+.topbar-search-suggestions {
+  padding: 0.5rem;
+}
+
+.topbar-search-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.topbar-search-suggestion-item:hover {
+  background: rgba(211, 47, 47, 0.05);
+  transform: translateX(2px);
+}
+
+.topbar-search-suggestion-item svg {
+  flex-shrink: 0;
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.topbar-search-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+  background: rgba(220, 38, 38, 0.05);
+  border-left: 3px solid #dc2626;
+}
+
+.topbar-search-error svg {
+  flex-shrink: 0;
+}
+
+.topbar-search-clear-recent {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topbar-search-clear-recent:hover {
+  color: var(--primary);
+  background: rgba(211, 47, 47, 0.05);
+}
+
 /* Quick Actions Component */
 .topbar-actions-wrapper {
   display: flex;
@@ -8614,21 +8710,22 @@ span:hover > .info-tooltip {
 .quick-actions-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(3px);
   z-index: 998;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .quick-actions-menu {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  min-width: 280px;
-  max-width: 320px;
+  min-width: 300px;
+  max-width: 340px;
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(211, 47, 47, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 999;
   overflow: hidden;
   animation: slideInDown 0.2s ease-out;
@@ -8675,8 +8772,10 @@ span:hover > .info-tooltip {
 }
 
 .quick-actions-item:hover {
-  background: rgba(211, 47, 47, 0.05);
-  transform: translateX(2px);
+  background: linear-gradient(90deg, rgba(211, 47, 47, 0.1) 0%, rgba(211, 47, 47, 0.03) 100%);
+  transform: translateX(4px);
+  border-left: 3px solid var(--primary);
+  padding-left: calc(0.75rem - 3px);
 }
 
 .quick-actions-item-icon {

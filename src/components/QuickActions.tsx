@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalState } from '@/hooks/useModalState';
 
 type QuickAction = {
     label: string;
@@ -64,7 +65,7 @@ const quickActions: QuickAction[] = [
 ];
 
 export default function QuickActions() {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useModalState('quickActions');
     const router = useRouter();
     const menuRef = useRef<HTMLDivElement>(null);
 

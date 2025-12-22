@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { useModalState } from '@/hooks/useModalState';
 
 type Props = {
     name?: string | null;
@@ -37,7 +38,7 @@ function getRoleColor(role?: string | null) {
 }
 
 export default function TopbarUserMenu({ name, role, email }: Props) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useModalState('userMenu');
     const rootRef = useRef<HTMLDivElement | null>(null);
     const initials = useMemo(() => getInitials(name, email), [name, email]);
     const displayName = name?.trim() || email || 'Unknown User';

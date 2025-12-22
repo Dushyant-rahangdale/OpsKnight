@@ -17,126 +17,143 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ results: [] });
         }
 
-        const searchTerm = query.toLowerCase();
+        const searchTerm = query.trim().toLowerCase();
 
-        // Search incidents (including notes and events)
-        const incidents = await prisma.incident.findMany({
-            where: {
-                OR: [
-                    { title: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } },
-                    { notes: { some: { content: { contains: query, mode: 'insensitive' } } } },
-                    { events: { some: { message: { contains: query, mode: 'insensitive' } } } }
-                ]
-            },
-            take: 5,
-            select: {
-                id: true,
-                title: true,
-                status: true,
-                service: { select: { name: true } }
-            }
-        });
+        // Run all searches in parallel for better performance
+        const [incidents, services, teams, users, policies] = await Promise.all([
+            // Search incidents
+            prisma.incident.findMany({
+                where: {
+                    OR: [
+                        { title: { contains: searchTerm, mode: 'insensitive' } },
+                        { description: { contains: searchTerm, mode: 'insensitive' } }
+                    ]
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    title: true,
+                    status: true,
+                    urgency: true,
+                    service: { select: { id: true, name: true } }
+                }
+            }),
 
-        // Search services
-        const services = await prisma.service.findMany({
-            where: {
-                OR: [
-                    { name: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } }
-                ]
-            },
-            take: 5,
-            select: {
-                id: true,
-                name: true,
-                team: { select: { name: true } }
-            }
-        });
+            // Search services
+            prisma.service.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                        { description: { contains: searchTerm, mode: 'insensitive' } }
+                    ]
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    team: { select: { id: true, name: true } }
+                }
+            }),
 
-        // Search teams
-        const teams = await prisma.team.findMany({
-            where: {
-                OR: [
-                    { name: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } }
-                ]
-            },
-            take: 5,
-            select: {
-                id: true,
-                name: true
-            }
-        });
+            // Search teams
+            prisma.team.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                        { description: { contains: searchTerm, mode: 'insensitive' } }
+                    ]
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true
+                }
+            }),
 
-        // Search users
-        const users = await prisma.user.findMany({
-            where: {
-                OR: [
-                    { name: { contains: query, mode: 'insensitive' } },
-                    { email: { contains: query, mode: 'insensitive' } }
-                ]
-            },
-            take: 5,
-            select: {
-                id: true,
-                name: true,
-                email: true
-            }
-        });
+            // Search users
+            prisma.user.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                        { email: { contains: searchTerm, mode: 'insensitive' } }
+                    ]
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true
+                }
+            }),
 
-        // Search escalation policies
-        const policies = await prisma.escalationPolicy.findMany({
-            where: {
-                OR: [
-                    { name: { contains: query, mode: 'insensitive' } },
-                    { description: { contains: query, mode: 'insensitive' } }
-                ]
-            },
-            take: 5,
-            select: {
-                id: true,
-                name: true
-            }
-        });
+            // Search escalation policies
+            prisma.escalationPolicy.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                        { description: { contains: searchTerm, mode: 'insensitive' } }
+                    ]
+                },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true
+                }
+            })
+        ]);
 
+        // Format results with proper priorities (incidents first, then services, etc.)
         const results = [
             ...incidents.map(i => ({
                 type: 'incident' as const,
                 id: i.id,
                 title: i.title,
-                subtitle: `${i.service.name} • ${i.status}`,
-                href: `/incidents/${i.id}`
+                subtitle: `${i.service.name} • ${i.status}${i.urgency === 'HIGH' ? ' • High' : ''}`,
+                href: `/incidents/${i.id}`,
+                priority: i.urgency === 'HIGH' ? 1 : 2
             })),
             ...services.map(s => ({
                 type: 'service' as const,
                 id: s.id,
                 title: s.name,
-                subtitle: s.team?.name || 'No team',
-                href: `/services/${s.id}`
+                subtitle: `${s.team?.name || 'No team'} • ${s.status || 'Active'}`,
+                href: `/services/${s.id}`,
+                priority: 3
             })),
             ...teams.map(t => ({
                 type: 'team' as const,
                 id: t.id,
                 title: t.name,
-                subtitle: 'Team',
-                href: `/teams/${t.id}`
+                subtitle: t.description || 'Team',
+                href: `/teams/${t.id}`,
+                priority: 4
             })),
             ...users.map(u => ({
                 type: 'user' as const,
                 id: u.id,
-                title: u.name,
-                subtitle: u.email,
-                href: `/users`
+                title: u.name || u.email,
+                subtitle: u.email || `${u.role || 'User'}`,
+                href: `/users?highlight=${u.id}`,
+                priority: 5
             })),
             ...policies.map(p => ({
                 type: 'policy' as const,
                 id: p.id,
                 title: p.name,
-                subtitle: 'Escalation Policy',
-                href: `/policies/${p.id}`
+                subtitle: p.description || 'Escalation Policy',
+                href: `/policies/${p.id}`,
+                priority: 6
             }))
-        ];
+        ].sort((a, b) => a.priority - b.priority); // Sort by priority
 
         return NextResponse.json({ results });
     } catch (error) {
@@ -144,4 +161,3 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Search failed' }, { status: 500 });
     }
 }
-
