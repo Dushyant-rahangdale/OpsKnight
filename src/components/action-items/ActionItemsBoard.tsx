@@ -153,22 +153,46 @@ export default function ActionItemsBoard({ actionItems, users, canManage, view, 
                 </div>
 
                 {/* Kanban Board */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--spacing-5)' }}>
                     {Object.entries(groupedByStatus).map(([status, items]) => (
                         <div key={status} className="glass-panel" style={{
-                            padding: 'var(--spacing-4)',
+                            padding: 'var(--spacing-5)',
                             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
                             border: `2px solid ${STATUS_COLORS[status as keyof typeof STATUS_COLORS]}40`,
-                            borderRadius: 'var(--radius-lg)',
-                            minHeight: '400px',
+                            borderRadius: 'var(--radius-xl)',
+                            minHeight: '500px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
                         }}>
-                            <div style={{ marginBottom: 'var(--spacing-4)' }}>
+                            <div style={{ 
+                                marginBottom: 'var(--spacing-5)',
+                                paddingBottom: 'var(--spacing-4)',
+                                borderBottom: `2px solid ${STATUS_COLORS[status as keyof typeof STATUS_COLORS]}20`,
+                            }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-2)' }}>
-                                    <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600' }}>
+                                    <h3 style={{ 
+                                        fontSize: 'var(--font-size-lg)', 
+                                        fontWeight: '700',
+                                        color: STATUS_COLORS[status as keyof typeof STATUS_COLORS],
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 'var(--spacing-2)',
+                                    }}>
+                                        <span style={{
+                                            width: '8px',
+                                            height: '8px',
+                                            borderRadius: '50%',
+                                            background: STATUS_COLORS[status as keyof typeof STATUS_COLORS],
+                                            boxShadow: `0 0 8px ${STATUS_COLORS[status as keyof typeof STATUS_COLORS]}60`,
+                                        }} />
                                         {STATUS_LABELS[status as keyof typeof STATUS_LABELS]}
                                     </h3>
                                     <Badge
                                         variant={status === 'COMPLETED' ? 'success' : status === 'BLOCKED' ? 'danger' : 'default'}
+                                        style={{
+                                            background: `${STATUS_COLORS[status as keyof typeof STATUS_COLORS]}20`,
+                                            color: STATUS_COLORS[status as keyof typeof STATUS_COLORS],
+                                            fontWeight: '700',
+                                        }}
                                     >
                                         {items.length}
                                     </Badge>

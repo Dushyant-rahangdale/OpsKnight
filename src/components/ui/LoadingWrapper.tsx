@@ -1,8 +1,8 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Skeleton, SkeletonCard, SkeletonText } from './Skeleton';
-import { Spinner } from './Spinner';
+import Skeleton, { SkeletonCard, SkeletonText } from './Skeleton';
+import Spinner from './Spinner';
 
 interface LoadingWrapperProps {
   isLoading: boolean;
