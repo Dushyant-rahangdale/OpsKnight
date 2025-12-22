@@ -1,29 +1,148 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import DashboardFilters from '@/components/DashboardFilters';
 import IncidentTable from '@/components/IncidentTable';
+import IncidentTableMobile from '@/components/IncidentTableMobile';
+import DashboardPerformanceMetrics from '@/components/DashboardPerformanceMetrics';
+import DashboardQuickFilters from '@/components/DashboardQuickFilters';
+import DashboardTimeRange from '@/components/DashboardTimeRange';
+import DashboardRefresh from '@/components/DashboardRefresh';
+import DashboardExport from '@/components/DashboardExport';
+import DashboardFilterChips from '@/components/DashboardFilterChips';
+import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
+import DashboardStatusChart from '@/components/DashboardStatusChart';
+import { calculateSLAMetrics } from '@/lib/sla';
+import { Suspense } from 'react';
 
 export const revalidate = 30;
 
+const INCIDENTS_PER_PAGE = 20;
+
+function buildPaginationUrl(baseParams: URLSearchParams, page: number): string {
+  const params = new URLSearchParams(baseParams.toString());
+  if (page === 1) {
+    params.delete('page');
+  } else {
+    params.set('page', page.toString());
+  }
+  const queryString = params.toString();
+  return queryString ? `/?${queryString}` : '/';
+}
+
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const session = await getServerSession(authOptions);
   const awaitedSearchParams = await searchParams;
+  
+  // Extract search params
   const status = typeof awaitedSearchParams.status === 'string' ? awaitedSearchParams.status : undefined;
   const assignee = typeof awaitedSearchParams.assignee === 'string' ? awaitedSearchParams.assignee : undefined;
   const service = typeof awaitedSearchParams.service === 'string' ? awaitedSearchParams.service : undefined;
+  const urgency = typeof awaitedSearchParams.urgency === 'string' ? awaitedSearchParams.urgency : undefined;
+  const page = typeof awaitedSearchParams.page === 'string' ? parseInt(awaitedSearchParams.page) || 1 : 1;
+  const sortBy = typeof awaitedSearchParams.sortBy === 'string' ? awaitedSearchParams.sortBy : 'createdAt';
+  const sortOrder = typeof awaitedSearchParams.sortOrder === 'string' ? (awaitedSearchParams.sortOrder as 'asc' | 'desc') : 'desc';
+  const range = typeof awaitedSearchParams.range === 'string' ? awaitedSearchParams.range : '30';
+  const customStart = typeof awaitedSearchParams.startDate === 'string' ? awaitedSearchParams.startDate : undefined;
+  const customEnd = typeof awaitedSearchParams.endDate === 'string' ? awaitedSearchParams.endDate : undefined;
+
+  // Get user name for greeting
+  const email = session?.user?.email ?? null;
+  const user = email ? await prisma.user.findUnique({
+    where: { email },
+    select: { name: true }
+  }) : null;
+  const userName = user?.name || 'there';
+
+  // Build date filter
+  let dateFilter: any = {};
+  if (range && range !== 'all') {
+    if (range === 'custom' && customStart && customEnd) {
+      dateFilter.createdAt = {
+        gte: new Date(customStart),
+        lte: new Date(customEnd)
+      };
+    } else {
+      const days = parseInt(range);
+      if (!isNaN(days)) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        dateFilter.createdAt = {
+          gte: startDate
+        };
+      }
+    }
+  }
 
   // Build filter query
-  const where: any = {};
+  const where: any = { ...dateFilter };
   if (status && status !== 'ALL') where.status = status;
-  if (assignee) where.assigneeId = assignee;
+  if (assignee !== undefined) {
+    if (assignee === '') {
+      where.assigneeId = null;
+    } else {
+      where.assigneeId = assignee;
+    }
+  }
   if (service) where.serviceId = service;
+  if (urgency) where.urgency = urgency;
+
+  // Build orderBy
+  const orderBy: any = {};
+  if (sortBy === 'createdAt') {
+    orderBy.createdAt = sortOrder;
+  } else if (sortBy === 'status') {
+    orderBy.status = sortOrder;
+  } else if (sortBy === 'urgency') {
+    orderBy.urgency = sortOrder;
+  } else {
+    orderBy.createdAt = 'desc';
+  }
+
+  const skip = (page - 1) * INCIDENTS_PER_PAGE;
 
   // Fetch Data in Parallel
-  const [incidents, services, users, activeShifts] = await Promise.all([
+  const [
+    incidents,
+    totalCount,
+    services,
+    users,
+    activeShifts,
+    allIncidents,
+    allResolvedCount,
+    allOpenIncidentsCount,
+    allAcknowledgedCount,
+    allCriticalIncidentsCount,
+    unassignedCount,
+    slaMetrics
+  ] = await Promise.all([
     prisma.incident.findMany({
       where,
-      include: { service: true, assignee: true },
-      orderBy: { createdAt: 'desc' }
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        urgency: true,
+        createdAt: true,
+        service: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        assignee: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy,
+      skip,
+      take: INCIDENTS_PER_PAGE
     }),
+    prisma.incident.count({ where }),
     prisma.service.findMany(),
     prisma.user.findMany(),
     prisma.onCallShift.findMany({
@@ -32,97 +151,385 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         end: { gte: new Date() }
       },
       include: { user: true, schedule: true }
-    })
+    }),
+    prisma.incident.findMany({
+      select: { status: true, urgency: true, assigneeId: true }
+    }),
+    prisma.incident.count({
+      where: {
+        status: 'RESOLVED',
+        ...dateFilter
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: { not: 'RESOLVED' }
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: 'ACKNOWLEDGED'
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: { not: 'RESOLVED' },
+        urgency: 'HIGH'
+      }
+    }),
+    prisma.incident.count({
+      where: {
+        status: { not: 'RESOLVED' },
+        assigneeId: null
+      }
+    }),
+    calculateSLAMetrics()
   ]);
 
-  // Calculate system status based on incidents
-  const openIncidents = incidents.filter(i => i.status !== 'RESOLVED');
-  const criticalIncidents = openIncidents.filter(i => i.urgency === 'HIGH');
+  // Calculate MTTA
+  const acknowledgedIncidents = await prisma.incident.findMany({
+    where: {
+      acknowledgedAt: { not: null },
+      status: { not: 'RESOLVED' }
+    },
+    select: {
+      createdAt: true,
+      acknowledgedAt: true
+    }
+  });
+
+  let mttaMinutes: number | null = null;
+  if (acknowledgedIncidents.length > 0) {
+    const ackTimes = acknowledgedIncidents
+      .filter(i => i.acknowledgedAt && i.createdAt)
+      .map(i => {
+        const created = i.createdAt.getTime();
+        const acked = i.acknowledgedAt!.getTime();
+        return (acked - created) / (1000 * 60);
+      });
+    
+    if (ackTimes.length > 0) {
+      mttaMinutes = ackTimes.reduce((sum, time) => sum + time, 0) / ackTimes.length;
+    }
+  }
+
+  // Calculate status distribution
+  const statusCounts = allIncidents.reduce((acc, incident) => {
+    acc[incident.status] = (acc[incident.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const statusDistribution = [
+    { label: 'Open', value: statusCounts['OPEN'] || 0, color: '#ef4444' },
+    { label: 'Acknowledged', value: statusCounts['ACKNOWLEDGED'] || 0, color: '#3b82f6' },
+    { label: 'Resolved', value: statusCounts['RESOLVED'] || 0, color: '#22c55e' },
+    { label: 'Snoozed', value: statusCounts['SNOOZED'] || 0, color: '#eab308' },
+    { label: 'Suppressed', value: statusCounts['SUPPRESSED'] || 0, color: '#a855f7' }
+  ].filter(item => item.value > 0);
+
+  // Calculate system status
+  const openIncidentsList = incidents.filter(i => i.status !== 'RESOLVED');
+  const criticalIncidents = openIncidentsList.filter(i => i.urgency === 'HIGH');
 
   const systemStatus = criticalIncidents.length > 0
-    ? { label: 'CRITICAL', color: '#ef5350' }
-    : openIncidents.length > 0
-      ? { label: 'DEGRADED', color: '#ffa726' }
-      : { label: 'OPERATIONAL', color: '#81c784' };
+    ? { label: 'CRITICAL', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' }
+    : openIncidentsList.length > 0
+      ? { label: 'DEGRADED', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
+      : { label: 'OPERATIONAL', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)' };
+
+  const totalPages = Math.ceil(totalCount / INCIDENTS_PER_PAGE);
+  const baseParams = new URLSearchParams();
+  if (status && status !== 'ALL') baseParams.set('status', status);
+  if (assignee !== undefined) baseParams.set('assignee', assignee);
+  if (service) baseParams.set('service', service);
+  if (urgency) baseParams.set('urgency', urgency);
+  if (range && range !== 'all') baseParams.set('range', range);
+  if (customStart) baseParams.set('startDate', customStart);
+  if (customEnd) baseParams.set('endDate', customEnd);
+  if (sortBy !== 'createdAt' || sortOrder !== 'desc') {
+    baseParams.set('sortBy', sortBy);
+    baseParams.set('sortOrder', sortOrder);
+  }
+
+  // Get greeting based on time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  // Calculate total incidents for the selected range
+  const totalInRange = totalCount;
+  const getRangeLabel = () => {
+    if (range === '7') return '(7d)';
+    if (range === '30') return '(30d)';
+    if (range === '90') return '(90d)';
+    if (range === 'all') return '(All Time)';
+    return '(30d)';
+  };
 
   return (
-    <main style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '2rem' }}>
-      {/* Welcome Hero - Red Touch */}
-      <div style={{
-        background: 'var(--gradient-primary)',
-        color: 'white',
-        padding: '2rem',
-        borderRadius: '12px',
-        marginBottom: '2rem',
-        boxShadow: 'var(--shadow-lg)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Command Center</h1>
-          <p style={{ opacity: 0.9, fontSize: '1.1rem' }}>
-            System Status: <strong style={{ color: systemStatus.color }}>{systemStatus.label}</strong>
-            {openIncidents.length > 0 && (
-              <span style={{ marginLeft: '1rem', fontSize: '0.9rem', opacity: 0.8 }}>
-                ({openIncidents.length} active incident{openIncidents.length !== 1 ? 's' : ''})
-              </span>
-            )}
-          </p>
+    <main className="dashboard-container">
+      {/* Command Center Hero Section */}
+      <div className="command-center-hero">
+        <div className="command-center-header">
+          <div className="command-center-left">
+            <h1 className="command-center-title">Command Center</h1>
+            <div className="command-center-status">
+              <span className="system-status-label">System Status:</span>
+              <strong className="system-status-value" style={{ color: '#ff4444' }}>{systemStatus.label}</strong>
+              {allOpenIncidentsCount > 0 && (
+                <span className="system-status-count">
+                  ({allOpenIncidentsCount} active incident{allOpenIncidentsCount !== 1 ? 's' : ''})
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="command-center-actions">
+            <Suspense fallback={<div style={{ width: '100px', height: '40px' }} />}>
+              <DashboardRefresh />
+            </Suspense>
+            <Suspense fallback={<div style={{ width: '100px', height: '40px' }} />}>
+              <DashboardExport
+                incidents={incidents}
+                filters={{
+                  status: status || undefined,
+                  service: service || undefined,
+                  assignee: assignee || undefined,
+                  range: range !== 'all' ? range : undefined
+                }}
+                metrics={{
+                  totalOpen: allOpenIncidentsCount,
+                  totalResolved: allResolvedCount,
+                  totalAcknowledged: allAcknowledgedCount,
+                  unassigned: unassignedCount
+                }}
+              />
+            </Suspense>
+          </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '3rem', fontWeight: '800', lineHeight: 1 }}>99.9%</div>
-          <div style={{ fontSize: '0.9rem', opacity: 0.8 }}>UPTIME (Last 30 Days)</div>
+        
+        <div className="command-center-content">
+          <div className="command-center-main">
+            <div className="command-center-time-range">
+              <Suspense fallback={<div style={{ height: '40px' }} />}>
+                <DashboardTimeRange />
+              </Suspense>
+            </div>
+          </div>
+          
+          <div className="command-center-metrics">
+            <div className="command-metric-card">
+              <div className="command-metric-value">{totalInRange}</div>
+              <div className="command-metric-label">TOTAL {getRangeLabel()}</div>
+            </div>
+            <div className="command-metric-card">
+              <div className="command-metric-value">{allOpenIncidentsCount}</div>
+              <div className="command-metric-label">OPEN (All Time)</div>
+            </div>
+            <div className="command-metric-card">
+              <div className="command-metric-value">{allResolvedCount}</div>
+              <div className="command-metric-label">RESOLVED (All Time)</div>
+            </div>
+            <div className="command-metric-card">
+              <div className="command-metric-value">{unassignedCount}</div>
+              <div className="command-metric-label">UNASSIGNED</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Header Widget Area */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Main Hero / Stats */}
-        <div className="glass-panel" style={{ padding: '2rem', background: 'white', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Good Afternoon, Alice</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>You have <span style={{ fontWeight: 'bold', color: 'var(--danger)' }}>{incidents.filter(i => i.status !== 'RESOLVED').length} open incidents</span> across your services.</p>
-          <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-            <Link href="/incidents/create" className="glass-button primary">Trigger Incident</Link>
-            <Link href="/analytics" className="glass-button">View Analytics</Link>
+
+      {/* Filters Panel - White panel below command center */}
+      <div className="dashboard-filters-panel">
+        <div className="dashboard-filters-content">
+          {/* Quick Filters */}
+          <div style={{ marginBottom: '1rem' }}>
+            <Suspense fallback={<div style={{ height: '40px' }} />}>
+              <DashboardQuickFilters />
+            </Suspense>
+          </div>
+
+          {/* Filter Chips */}
+          <Suspense fallback={null}>
+            <DashboardFilterChips services={services} users={users} />
+          </Suspense>
+
+          {/* Dashboard Filters */}
+          <div style={{ marginTop: '1rem' }}>
+            <DashboardFilters
+              initialStatus={status}
+              initialService={service}
+              initialAssignee={assignee}
+              services={services}
+              users={users}
+            />
           </div>
         </div>
+      </div>
 
-        {/* Who is On Call Widget */}
-        <div className="glass-panel" style={{ padding: '1.5rem', background: 'white' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Who is On-Call</h3>
-            <Link href="/schedules" style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none' }}>View All</Link>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {activeShifts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No active shifts found.</p>
-            ) : activeShifts.slice(0, 3).map(shift => (
-              <div key={shift.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f0f0f0', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                  {shift.user.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{shift.user.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{shift.schedule.name}</div>
-                </div>
+      {/* Main Content Grid - Two Column Layout */}
+      <div className="dashboard-main-grid">
+        {/* Main Content Area */}
+        <div className="dashboard-main-content">
+          {/* Incidents Section */}
+          <div className="dashboard-incidents-section">
+            <div className="dashboard-section-header">
+              <h2 className="dashboard-section-title">Recent Incidents</h2>
+              <Link href="/incidents" className="dashboard-section-link">View All Incidents</Link>
+            </div>
+
+            {/* Desktop Table */}
+            <div className="incident-table-desktop">
+              <IncidentTable 
+                incidents={incidents} 
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+              />
+            </div>
+
+            {/* Mobile Table */}
+            <div className="incident-table-mobile">
+              <IncidentTableMobile 
+                incidents={incidents}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+              />
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '2rem' }}>
+                <Link
+                  href={buildPaginationUrl(baseParams, page - 1)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: page === 1 ? '#f3f4f6' : 'white',
+                    color: page === 1 ? '#9ca3af' : 'var(--text-primary)',
+                    textDecoration: 'none',
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    pointerEvents: page === 1 ? 'none' : 'auto'
+                  }}
+                >
+                  Previous
+                </Link>
+                <span style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Page {page} of {totalPages}
+                </span>
+                <Link
+                  href={buildPaginationUrl(baseParams, page + 1)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: page === totalPages ? '#f3f4f6' : 'white',
+                    color: page === totalPages ? '#9ca3af' : 'var(--text-primary)',
+                    textDecoration: 'none',
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                    pointerEvents: page === totalPages ? 'none' : 'auto'
+                  }}
+                >
+                  Next
+                </Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
+
+        {/* Right Sidebar - All Widgets */}
+        <div className="dashboard-sidebar">
+          {/* Welcome Section */}
+          <div className="dashboard-welcome-main">
+            <h2 className="dashboard-welcome-title">{greeting}, {userName}</h2>
+            <p className="dashboard-welcome-text">
+              You have <strong style={{ color: 'var(--danger)', fontWeight: '700' }}>{allOpenIncidentsCount} open incidents</strong> across your services.
+            </p>
+            <div className="dashboard-welcome-actions">
+              <Link href="/incidents/create" className="dashboard-action-button dashboard-action-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3 2.5 20h19L12 3Zm0 6 4.5 9h-9L12 9Zm0 3v4" strokeLinecap="round" />
+                </svg>
+                Trigger Incident
+              </Link>
+              <Link href="/analytics" className="dashboard-action-button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                View Analytics
+              </Link>
+            </div>
+          </div>
+
+          {/* On-Call Widget */}
+          <div className="dashboard-widget">
+            <div className="dashboard-widget-header">
+              <h3 className="dashboard-widget-title">Who is On-Call</h3>
+              <Link href="/schedules" className="dashboard-widget-link">View All</Link>
+            </div>
+            <div className="dashboard-widget-content">
+              {activeShifts.length === 0 ? (
+                <div className="dashboard-empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
+                    <path d="M7 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm10 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM3 19a4 4 0 0 1 8 0v1H3v-1Zm10 1v-1a4 4 0 0 1 8 0v1h-8Z" />
+                  </svg>
+                  <p>No active on-call shifts</p>
+                </div>
+              ) : (
+                <div className="dashboard-oncall-list">
+                  {activeShifts.slice(0, 3).map(shift => (
+                    <div key={shift.id} className="dashboard-oncall-item">
+                      <div className="dashboard-oncall-avatar">
+                        {shift.user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="dashboard-oncall-info">
+                        <div className="dashboard-oncall-name">{shift.user.name}</div>
+                        <div className="dashboard-oncall-schedule">{shift.schedule.name}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Performance Metrics Widget */}
+          <DashboardPerformanceMetrics
+            mtta={mttaMinutes}
+            mttr={slaMetrics.mttr}
+            ackSlaRate={slaMetrics.ackCompliance}
+            resolveSlaRate={slaMetrics.resolveCompliance}
+          />
+
+          {/* Status Distribution */}
+          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Status Distribution</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <DashboardStatusChart data={statusDistribution} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {statusDistribution.map((item) => (
+                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: item.color }} />
+                      <span>{item.label}</span>
+                    </div>
+                    <span style={{ fontWeight: '600' }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Advanced Metrics */}
+          <DashboardAdvancedMetrics
+            totalIncidents={allIncidents.length}
+            openIncidents={allOpenIncidentsCount}
+            resolvedIncidents={allResolvedCount}
+            acknowledgedIncidents={allAcknowledgedCount}
+            criticalIncidents={allCriticalIncidentsCount}
+            unassignedIncidents={unassignedCount}
+            servicesCount={services.length}
+          />
+        </div>
       </div>
-
-      {/* Filter Bar */}
-      <DashboardFilters
-        initialStatus={status}
-        initialService={service}
-        initialAssignee={assignee}
-        services={services}
-        users={users}
-      />
-
-      {/* Incident List Table */}
-      <IncidentTable incidents={incidents} />
     </main>
   );
 }
