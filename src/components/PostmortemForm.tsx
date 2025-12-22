@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react';
 import { upsertPostmortem, type PostmortemData } from '@/app/(app)/postmortems/actions';
 import { Button, Card, FormField } from '@/components/ui';
 import { useRouter } from 'next/navigation';
+import PostmortemTimelineBuilder, { type TimelineEvent } from './postmortem/PostmortemTimelineBuilder';
+import PostmortemImpactInput, { type ImpactMetrics } from './postmortem/PostmortemImpactInput';
+import PostmortemActionItems, { type ActionItem } from './postmortem/PostmortemActionItems';
 
 type PostmortemFormProps = {
     incidentId: string;
@@ -19,12 +22,53 @@ type PostmortemFormProps = {
         lessons?: string | null;
         status?: string;
     };
+    users?: Array<{ id: string; name: string; email: string }>;
 };
 
-export default function PostmortemForm({ incidentId, initialData }: PostmortemFormProps) {
+export default function PostmortemForm({ incidentId, initialData, users = [] }: PostmortemFormProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
+
+    // Parse initial data with proper types
+    const parseTimeline = (timeline: any): TimelineEvent[] => {
+        if (!timeline || !Array.isArray(timeline)) return [];
+        return timeline.map((e: any) => ({
+            id: e.id || `event-${Date.now()}-${Math.random()}`,
+            timestamp: e.timestamp || new Date().toISOString(),
+            type: e.type || 'DETECTION',
+            title: e.title || '',
+            description: e.description || '',
+            actor: e.actor,
+        }));
+    };
+
+    const parseImpact = (impact: any): ImpactMetrics => {
+        if (!impact || typeof impact !== 'object') return {};
+        return {
+            usersAffected: impact.usersAffected,
+            downtimeMinutes: impact.downtimeMinutes,
+            errorRate: impact.errorRate,
+            servicesAffected: Array.isArray(impact.servicesAffected) ? impact.servicesAffected : [],
+            slaBreaches: impact.slaBreaches,
+            revenueImpact: impact.revenueImpact,
+            apiErrors: impact.apiErrors,
+            performanceDegradation: impact.performanceDegradation,
+        };
+    };
+
+    const parseActionItems = (actionItems: any): ActionItem[] => {
+        if (!actionItems || !Array.isArray(actionItems)) return [];
+        return actionItems.map((item: any) => ({
+            id: item.id || `action-${Date.now()}-${Math.random()}`,
+            title: item.title || '',
+            description: item.description || '',
+            owner: item.owner,
+            dueDate: item.dueDate,
+            status: item.status || 'OPEN',
+            priority: item.priority || 'MEDIUM',
+        }));
+    };
 
     const [formData, setFormData] = useState<PostmortemData>({
         title: initialData?.title || '',
@@ -38,6 +82,10 @@ export default function PostmortemForm({ incidentId, initialData }: PostmortemFo
         actionItems: initialData?.actionItems || [],
     });
 
+    const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(parseTimeline(initialData?.timeline));
+    const [impactMetrics, setImpactMetrics] = useState<ImpactMetrics>(parseImpact(initialData?.impact));
+    const [actionItems, setActionItems] = useState<ActionItem[]>(parseActionItems(initialData?.actionItems));
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -47,9 +95,17 @@ export default function PostmortemForm({ incidentId, initialData }: PostmortemFo
             return;
         }
 
+        // Combine all data before submitting
+        const submitData: PostmortemData = {
+            ...formData,
+            timeline: timelineEvents,
+            impact: impactMetrics,
+            actionItems: actionItems,
+        };
+
         startTransition(async () => {
             try {
-                const result = await upsertPostmortem(incidentId, formData);
+                const result = await upsertPostmortem(incidentId, submitData);
                 if (result.success) {
                     router.refresh();
                 } else {
