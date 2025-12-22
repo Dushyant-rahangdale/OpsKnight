@@ -167,7 +167,9 @@ export async function GET(req: NextRequest) {
                     return [];
                 }
             })()
-        ]);
+        ];
+
+        const [incidents, services, teams, users, policies, postmortemsResult] = await Promise.all(searchPromises);
 
         // Format results with proper priorities (incidents first, then services, etc.)
         const results = [
@@ -211,7 +213,7 @@ export async function GET(req: NextRequest) {
                 href: `/policies/${p.id}`,
                 priority: 6
             })),
-            ...postmortems.map(pm => ({
+            ...(Array.isArray(postmortems) ? postmortems : []).map((pm: any) => ({
                 type: 'postmortem' as const,
                 id: pm.id,
                 title: pm.title,
