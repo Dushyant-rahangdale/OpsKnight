@@ -106,7 +106,12 @@ export async function processEvent(payload: EventPayload, serviceId: string, int
 
         const resolvedIncident = await prisma.incident.update({
             where: { id: existingIncident.id },
-            data: { status: 'RESOLVED' }
+            data: {
+                status: 'RESOLVED',
+                escalationStatus: 'COMPLETED',
+                nextEscalationAt: null,
+                resolvedAt: existingIncident.resolvedAt ?? new Date()
+            }
         });
 
         await prisma.incidentEvent.create({
@@ -130,7 +135,12 @@ export async function processEvent(payload: EventPayload, serviceId: string, int
 
         const ackIncident = await prisma.incident.update({
             where: { id: existingIncident.id },
-            data: { status: 'ACKNOWLEDGED' }
+            data: {
+                status: 'ACKNOWLEDGED',
+                escalationStatus: 'COMPLETED',
+                nextEscalationAt: null,
+                acknowledgedAt: existingIncident.acknowledgedAt ?? new Date()
+            }
         });
 
         await prisma.incidentEvent.create({

@@ -24,11 +24,14 @@ export async function GET() {
         }
 
         const serviceIds = statusPage.services.map(sp => sp.serviceId);
+        const effectiveServiceIds = serviceIds.length > 0
+            ? serviceIds
+            : (await prisma.service.findMany({ select: { id: true } })).map(s => s.id);
 
         // Get recent incidents (last 30 days)
         const incidents = await prisma.incident.findMany({
             where: {
-                serviceId: { in: serviceIds },
+                serviceId: { in: effectiveServiceIds },
                 createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
             },
             include: {

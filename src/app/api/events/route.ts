@@ -35,6 +35,34 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid Payload. Required: event_action, dedup_key, payload' }, { status: 400 });
         }
 
+        const eventAction = String(body.event_action);
+        const dedupKey = typeof body.dedup_key === 'string' ? body.dedup_key.trim() : '';
+        const payload = body.payload;
+
+        if (!['trigger', 'resolve', 'acknowledge'].includes(eventAction)) {
+            return NextResponse.json({ error: 'Invalid event_action.' }, { status: 400 });
+        }
+
+        if (!dedupKey) {
+            return NextResponse.json({ error: 'dedup_key must be a non-empty string.' }, { status: 400 });
+        }
+
+        if (typeof payload !== 'object' || payload === null) {
+            return NextResponse.json({ error: 'payload must be an object.' }, { status: 400 });
+        }
+
+        if (typeof payload.summary !== 'string' || payload.summary.trim() === '') {
+            return NextResponse.json({ error: 'payload.summary is required.' }, { status: 400 });
+        }
+
+        if (typeof payload.source !== 'string' || payload.source.trim() === '') {
+            return NextResponse.json({ error: 'payload.source is required.' }, { status: 400 });
+        }
+
+        if (!['critical', 'error', 'warning', 'info'].includes(payload.severity)) {
+            return NextResponse.json({ error: 'payload.severity is invalid.' }, { status: 400 });
+        }
+
         if (!serviceId) {
             if (!hasApiScopes(apiKeyScopes, ['events:write'])) {
                 return NextResponse.json({ error: 'API key missing scope: events:write.' }, { status: 403 });
@@ -52,7 +80,11 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Process Event
-        const result = await processEvent(body as EventPayload, serviceId, integrationId || 'api-key');
+        const result = await processEvent(
+            { ...body, event_action: eventAction, dedup_key: dedupKey } as EventPayload,
+            serviceId,
+            integrationId || 'api-key'
+        );
 
         return NextResponse.json({ status: 'success', result }, { status: 202 });
 

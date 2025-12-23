@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { assertResponderOrAbove } from '@/lib/rbac';
 import prisma from '@/lib/prisma';
 
 const formatMinutes = (ms: number | null) => (ms === null ? '--' : `${(ms / 1000 / 60).toFixed(1)}m`);
 const formatPercent = (value: number) => `${value.toFixed(0)}%`;
-const formatHours = (ms: number) => `${(ms / 1000 / 60 / 60).toFixed(1)}h`;
 
 function escapeCSV(value: string | number | null | undefined): string {
     if (value === null || value === undefined) return '';
@@ -41,8 +43,21 @@ function formatDate(date: Date): string {
 
 export async function GET(req: NextRequest) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        try {
+            await assertResponderOrAbove();
+        } catch (error) {
+            return NextResponse.json(
+                { error: error instanceof Error ? error.message : 'Unauthorized' },
+                { status: 403 }
+            );
+        }
+
         const searchParams = req.nextUrl.searchParams;
-        const format = searchParams.get('format') || 'csv';
         
         const teamId = searchParams.get('team') && searchParams.get('team') !== 'ALL' 
             ? searchParams.get('team') 
@@ -142,7 +157,10 @@ export async function GET(req: NextRequest) {
         const mttaMs = ackDiffs.length ? ackDiffs.reduce((sum, diff) => sum + diff, 0) / ackDiffs.length : null;
 
         const resolvedDiffs = resolvedIncidents
-            .map(i => i.updatedAt && i.createdAt ? i.updatedAt.getTime() - i.createdAt.getTime() : null)
+            .map(i => {
+                const resolvedAt = i.resolvedAt || i.updatedAt;
+                return resolvedAt && i.createdAt ? resolvedAt.getTime() - i.createdAt.getTime() : null;
+            })
             .filter((diff): diff is number => diff !== null);
         const mttrMs = resolvedDiffs.length ? resolvedDiffs.reduce((sum, diff) => sum + diff, 0) / resolvedDiffs.length : null;
 

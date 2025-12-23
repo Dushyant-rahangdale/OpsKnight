@@ -33,7 +33,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
 
         // Development: Log SMS instead of sending if no provider configured
         if (process.env.NODE_ENV === 'development' || !smsConfig.enabled) {
-            console.log('📱 SMS Notification:', {
+            console.log('SMS Notification:', {
                 to: options.to,
                 message: options.message.substring(0, 100),
                 provider: smsConfig.provider,
@@ -55,7 +55,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
             //     from: smsConfig.fromNumber,
             //     to: options.to
             // });
-            console.log('📱 Would send via Twilio:', { to: options.to, from: smsConfig.fromNumber });
+            console.log('Would send via Twilio:', { to: options.to, from: smsConfig.fromNumber });
             return { success: true };
         }
 
@@ -68,7 +68,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
             //     Message: options.message
             // });
             // await client.send(command);
-            console.log('📱 Would send via AWS SNS:', { to: options.to });
+            console.log('Would send via AWS SNS:', { to: options.to });
             return { success: true };
         }
 
@@ -112,9 +112,13 @@ export async function sendIncidentSMS(
         const incidentUrl = `${baseUrl}/incidents/${incidentId}`;
         
         const urgencyLabel = incident.urgency === 'HIGH' ? 'CRITICAL' : 'INFO';
-        const statusEmoji = eventType === 'resolved' ? '✅' : eventType === 'acknowledged' ? '👀' : '🚨';
+        const statusLabel = eventType === 'resolved'
+            ? '[RESOLVED]'
+            : eventType === 'acknowledged'
+                ? '[ACK]'
+                : '[TRIGGERED]';
         
-        const message = `${statusEmoji} [${urgencyLabel}] ${incident.title}\nService: ${incident.service.name}\nStatus: ${incident.status}\nView: ${incidentUrl}`;
+        const message = `${statusLabel} [${urgencyLabel}] ${incident.title}\nService: ${incident.service.name}\nStatus: ${incident.status}\nView: ${incidentUrl}`;
 
         return await sendSMS({
             to: user.phoneNumber,
@@ -125,9 +129,3 @@ export async function sendIncidentSMS(
         return { success: false, error: error.message };
     }
 }
-
-
-
-
-
-

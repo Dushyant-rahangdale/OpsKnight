@@ -164,6 +164,7 @@ model Service {
   teamId               String?
   escalationPolicyId   String?
   slackWebhookUrl      String? // Per-service Slack Webhook URL (only notification config at service level)
+  webhookUrl           String? // Per-service generic webhook URL
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 

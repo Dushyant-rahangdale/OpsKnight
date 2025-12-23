@@ -61,20 +61,27 @@ export default function StatusPageMetrics({
         const calculateUptime = (serviceId: string, periodStart: Date) => {
             const totalMinutes = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60);
             
-            // Get incidents for this service in the period
-            const serviceIncidents = incidents.filter(
-                inc => inc.serviceId === serviceId && 
-                       inc.createdAt >= periodStart &&
-                       (inc.resolvedAt || inc.createdAt) <= periodEnd
-            );
+            const serviceIncidents = incidents.filter((incident) => {
+                if (incident.status === 'SUPPRESSED' || incident.status === 'SNOOZED') {
+                    return false;
+                }
 
-            // Calculate downtime minutes
+                const incidentEnd = incident.resolvedAt || periodEnd;
+                return incident.serviceId === serviceId &&
+                    incident.createdAt < periodEnd &&
+                    incidentEnd > periodStart;
+            });
+
             let downtimeMinutes = 0;
-            serviceIncidents.forEach(incident => {
-                const start = incident.createdAt;
-                const end = incident.resolvedAt || periodEnd;
-                const incidentMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-                downtimeMinutes += incidentMinutes;
+            serviceIncidents.forEach((incident) => {
+                const incidentStart = incident.createdAt > periodStart ? incident.createdAt : periodStart;
+                const incidentEnd = (incident.resolvedAt || periodEnd) < periodEnd
+                    ? (incident.resolvedAt || periodEnd)
+                    : periodEnd;
+                const incidentMinutes = (incidentEnd.getTime() - incidentStart.getTime()) / (1000 * 60);
+                if (incidentMinutes > 0) {
+                    downtimeMinutes += incidentMinutes;
+                }
             });
 
             const uptimeMinutes = totalMinutes - downtimeMinutes;
@@ -108,8 +115,8 @@ export default function StatusPageMetrics({
                 <h2 style={{ 
                     fontSize: '1.5rem', 
                     fontWeight: '700', 
-                    marginBottom: '1.5rem',
-                    color: '#111827',
+                    marginBottom: '1rem',
+                    color: '#0f172a',
                 }}>
                     Uptime Metrics
                 </h2>
@@ -123,9 +130,9 @@ export default function StatusPageMetrics({
                             key={service.id}
                             style={{
                                 padding: '2rem',
-                                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                                background: '#ffffff',
                                 border: '1px solid #e5e7eb',
-                                borderRadius: '1rem',
+                                borderRadius: '0.75rem',
                             }}
                         >
                             <div style={{ 
@@ -146,8 +153,8 @@ export default function StatusPageMetrics({
             <h2 style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: '700', 
-                marginBottom: '1.5rem',
-                color: '#111827',
+                marginBottom: '1rem',
+                color: '#0f172a',
             }}>
                 Uptime Metrics
             </h2>
@@ -161,19 +168,18 @@ export default function StatusPageMetrics({
                         key={metric.service}
                         style={{
                             padding: '2rem',
-                            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                            background: '#ffffff',
                             border: '1px solid #e5e7eb',
-                            borderRadius: '1rem',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                            transition: 'all 0.3s ease',
+                            borderRadius: '0.75rem',
+                            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.08)';
+                            e.currentTarget.style.borderColor = '#cbd5f5';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.borderColor = '#e5e7eb';
                         }}
                     >
                         <h3 style={{ 
@@ -253,4 +259,3 @@ export default function StatusPageMetrics({
         </section>
     );
 }
-

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { assertResponderOrAbove } from '@/lib/rbac';
+import { assertResponderOrAbove, getUserPermissions } from '@/lib/rbac';
 import prisma from '@/lib/prisma';
 import { getAccessiblePresets, type FilterCriteria } from '@/lib/search-presets';
 
@@ -67,8 +67,13 @@ export async function POST(req: NextRequest) {
             sharedWithTeams = [],
         } = body;
 
+        const permissions = await getUserPermissions();
+        if (isPublic && !permissions.isAdmin) {
+            return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+        }
+
         // Validation
-        if (!name || name.trim().length === 0) {
+        if (typeof name !== 'string' || name.trim().length === 0) {
             return NextResponse.json(
                 { error: 'Preset name is required' },
                 { status: 400 }
@@ -128,4 +133,3 @@ export async function POST(req: NextRequest) {
         );
     }
 }
-

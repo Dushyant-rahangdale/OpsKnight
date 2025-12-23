@@ -14,7 +14,6 @@ import TopbarBreadcrumbs from '@/components/TopbarBreadcrumbs';
 import GlobalKeyboardHandlerWrapper from '@/components/GlobalKeyboardHandlerWrapper';
 import { ToastProvider } from '@/components/ToastProvider';
 import AppErrorBoundary from './error-boundary';
-import { getUserPermissions } from '@/lib/rbac';
 
 export const revalidate = 30;
 
@@ -40,8 +39,7 @@ export default async function AppLayout({
   const userEmail = session?.user?.email ?? null;
   const userRole = dbUser?.role || (session?.user as any)?.role || null;
 
-  const permissions = await getUserPermissions();
-  const canCreate = permissions.isResponderOrAbove;
+  const canCreate = userRole === 'ADMIN' || userRole === 'RESPONDER';
 
   const criticalOpenCount = await prisma.incident.count({
     where: {

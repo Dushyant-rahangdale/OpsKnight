@@ -26,11 +26,15 @@ import { processPendingJobs, getJobStats } from '@/lib/jobs/queue';
  */
 export async function GET(req: NextRequest) {
   try {
-    // Optional: Add authentication/authorization
-    // const authHeader = req.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
+    }
+
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Process escalations (legacy method - based on nextEscalationAt)
     const escalationResult = await processPendingEscalations();

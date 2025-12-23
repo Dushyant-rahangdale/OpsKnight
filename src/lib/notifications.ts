@@ -75,7 +75,7 @@ export async function sendNotification(
                 // Try to get webhook URL from service or escalation policy
                 // For now, we'll check if there's a webhook URL in the service config
                 // In a full implementation, this would come from the escalation policy
-                const webhookUrl = (incidentForWebhook.service as any).webhookUrl;
+                const webhookUrl = incidentForWebhook.service.webhookUrl;
                 
                 if (!webhookUrl) {
                     result = { success: false, error: 'No webhook URL configured for this service' };

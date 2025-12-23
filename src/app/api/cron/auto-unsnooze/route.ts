@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPendingJobs, processJob } from '@/lib/jobs/queue';
+import { claimPendingJobs, processJob } from '@/lib/jobs/queue';
 import { processAutoUnsnooze } from '@/app/(app)/incidents/snooze-actions';
 
 /**
@@ -14,15 +14,18 @@ import { processAutoUnsnooze } from '@/app/(app)/incidents/snooze-actions';
  */
 export async function GET(req: NextRequest) {
     try {
-        // Optional: Add authentication/authorization
-        // const authHeader = req.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        // }
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret) {
+            return NextResponse.json({ error: 'CRON_SECRET is not configured' }, { status: 500 });
+        }
+
+        const authHeader = req.headers.get('authorization');
+        if (authHeader !== `Bearer ${cronSecret}`) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         // Process AUTO_UNSNOOZE jobs from job queue
-        const jobs = await getPendingJobs(100);
-        const unsnoozeJobs = jobs.filter(job => job.type === 'AUTO_UNSNOOZE');
+        const unsnoozeJobs = await claimPendingJobs(100, 'AUTO_UNSNOOZE');
         
         let processedJobs = 0;
         let failedJobs = 0;

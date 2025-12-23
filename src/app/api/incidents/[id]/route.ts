@@ -39,6 +39,14 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
     }
 
     const body = await req.json();
+    const currentIncident = await prisma.incident.findUnique({
+        where: { id: context.params.id },
+        select: { id: true, status: true, acknowledgedAt: true, resolvedAt: true }
+    });
+
+    if (!currentIncident) {
+        return NextResponse.json({ error: 'Incident not found.' }, { status: 404 });
+    }
     const status: IncidentStatus | null = body.status ?? null;
     const urgency: IncidentUrgency | null = body.urgency ?? null;
     const assigneeId: string | null = typeof body.assigneeId === 'string' ? body.assigneeId : null;
@@ -50,6 +58,22 @@ export async function PATCH(req: NextRequest, context: { params: { id: string } 
             return NextResponse.json({ error: 'Invalid status.' }, { status: 400 });
         }
         updates.status = status;
+        if (status === 'ACKNOWLEDGED' && !currentIncident.acknowledgedAt) {
+            updates.acknowledgedAt = new Date();
+        }
+        if (status === 'RESOLVED' && !currentIncident.resolvedAt) {
+            updates.resolvedAt = new Date();
+        }
+        if (status === 'ACKNOWLEDGED' || status === 'RESOLVED') {
+            updates.escalationStatus = 'COMPLETED';
+            updates.nextEscalationAt = null;
+        } else if (status === 'SNOOZED' || status === 'SUPPRESSED') {
+            updates.escalationStatus = 'PAUSED';
+            updates.nextEscalationAt = null;
+        } else if (status === 'OPEN' && ['SNOOZED', 'SUPPRESSED', 'ACKNOWLEDGED'].includes(currentIncident.status)) {
+            updates.escalationStatus = 'ESCALATING';
+            updates.nextEscalationAt = new Date();
+        }
     }
     if (urgency) {
         const valid = ['LOW', 'HIGH'].includes(urgency);

@@ -17,14 +17,64 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user) {
+    if (!session?.user?.email) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
+    const prisma = (await import('@/lib/prisma')).default;
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+            id: true,
+            role: true,
+            teamMemberships: { select: { teamId: true } }
+        }
+    });
+
+    if (!user) {
         return new Response('Unauthorized', { status: 401 });
     }
 
     const searchParams = req.nextUrl.searchParams;
     const incidentId = searchParams.get('incidentId');
     const serviceId = searchParams.get('serviceId');
-    const userId = session.user.id;
+
+    const isPrivileged = user.role === 'ADMIN' || user.role === 'RESPONDER';
+    const hasTeamAccess = (teamId?: string | null) => {
+        if (!teamId) return true;
+        if (isPrivileged) return true;
+        return user.teamMemberships.some(membership => membership.teamId === teamId);
+    };
+
+    if (incidentId) {
+        const incident = await prisma.incident.findUnique({
+            where: { id: incidentId },
+            select: { id: true, service: { select: { teamId: true } } }
+        });
+
+        if (!incident) {
+            return new Response('Not Found', { status: 404 });
+        }
+
+        if (!hasTeamAccess(incident.service?.teamId || null)) {
+            return new Response('Forbidden', { status: 403 });
+        }
+    }
+
+    if (serviceId) {
+        const service = await prisma.service.findUnique({
+            where: { id: serviceId },
+            select: { id: true, teamId: true }
+        });
+
+        if (!service) {
+            return new Response('Not Found', { status: 404 });
+        }
+
+        if (!hasTeamAccess(service.teamId)) {
+            return new Response('Forbidden', { status: 403 });
+        }
+    }
 
     // Create a ReadableStream for SSE
     const stream = new ReadableStream({
@@ -43,8 +93,6 @@ export async function GET(req: NextRequest) {
             // Set up interval to check for updates
             const interval = setInterval(async () => {
                 try {
-                    const prisma = (await import('@/lib/prisma')).default;
-
                     if (incidentId) {
                         // Stream updates for a specific incident
                         const incident = await prisma.incident.findUnique({
@@ -98,8 +146,6 @@ export async function GET(req: NextRequest) {
                         });
                     } else {
                         // Stream dashboard updates
-                        const prisma = (await import('@/lib/prisma')).default;
-                        
                         const [openCount, acknowledgedCount, resolvedCount] = await Promise.all([
                             prisma.incident.count({ where: { status: 'OPEN' } }),
                             prisma.incident.count({ where: { status: 'ACKNOWLEDGED' } }),

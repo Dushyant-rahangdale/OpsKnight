@@ -23,8 +23,6 @@ export async function GET(req: NextRequest) {
         // Enhanced search with full-text search support
         // For PostgreSQL, we can use full-text search for better results
         const searchWords = searchTerm.split(/\s+/).filter(w => w.length > 0);
-        const searchPattern = searchWords.map(w => `%${w}%`).join(' ');
-
         // Run all searches in parallel for better performance
         // Note: Postmortem search is wrapped to handle missing model gracefully
         const searchPromises: Promise<any>[] = [
@@ -181,7 +179,7 @@ export async function GET(req: NextRequest) {
                 type: 'incident' as const,
                 id: i.id,
                 title: i.title,
-                subtitle: `${i.service?.name || 'No service'} • ${i.status}${i.urgency === 'HIGH' ? ' • High' : ''}`,
+                subtitle: `${i.service?.name || 'No service'} - ${i.status}${i.urgency === 'HIGH' ? ' - High' : ''}`,
                 href: `/incidents/${i.id}`,
                 priority: i.urgency === 'HIGH' ? 1 : 2
             })),
@@ -189,7 +187,7 @@ export async function GET(req: NextRequest) {
                 type: 'service' as const,
                 id: s.id,
                 title: s.name,
-                subtitle: `${s.team?.name || 'No team'} • ${s.status || 'Active'}`,
+                subtitle: `${s.team?.name || 'No team'} - ${s.status || 'Active'}`,
                 href: `/services/${s.id}`,
                 priority: 3
             })),
@@ -221,7 +219,7 @@ export async function GET(req: NextRequest) {
                 type: 'postmortem' as const,
                 id: pm.id,
                 title: pm.title,
-                subtitle: `Postmortem for ${pm.incident.title} • ${pm.status}`,
+                subtitle: `Postmortem for ${pm.incident.title} - ${pm.status}`,
                 href: `/postmortems/${pm.incidentId}`,
                 priority: 7
             }))

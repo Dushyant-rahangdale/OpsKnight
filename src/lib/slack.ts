@@ -23,9 +23,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_EMOJI: Record<string, string> = {
-    triggered: '🚨',
-    acknowledged: '👀',
-    resolved: '✅'
+    triggered: ':rotating_light:',
+    acknowledged: ':warning:',
+    resolved: ':white_check_mark:'
 };
 
 /**
@@ -44,7 +44,7 @@ export async function sendSlackNotification(
         return { success: false, error: 'No Slack webhook URL configured' };
     }
 
-    const emoji = STATUS_EMOJI[eventType] || '📢';
+    const emoji = STATUS_EMOJI[eventType] || ':information_source:';
     const color = STATUS_COLORS[eventType] || '#757575';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const incidentUrl = `${appUrl}/incidents/${incident.id}`;
@@ -97,7 +97,7 @@ export async function sendSlackNotification(
                                 type: 'button',
                                 text: {
                                     type: 'plain_text',
-                                    text: '🔗 View Incident',
+                                    text: 'View Incident',
                                     emoji: true
                                 },
                                 url: incidentUrl,

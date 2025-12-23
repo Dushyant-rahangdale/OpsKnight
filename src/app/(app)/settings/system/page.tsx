@@ -23,7 +23,7 @@ export default async function SystemSettingsPage() {
                     <div style={{
                         fontSize: '3rem',
                         marginBottom: '1rem'
-                    }}>🔒</div>
+                    }}>!</div>
                     <h3 style={{
                         fontSize: '1.25rem',
                         fontWeight: '600',
@@ -47,7 +47,7 @@ export default async function SystemSettingsPage() {
                         color: '#92400e',
                         marginTop: '1rem'
                     }}>
-                        ⚠️ Your current role: <strong>{permissions.role}</strong>. Admin role required.
+                         Your current role: <strong>{permissions.role}</strong>. Admin role required.
                     </div>
                     <p style={{
                         marginTop: '1.5rem',
@@ -86,3 +86,7 @@ export default async function SystemSettingsPage() {
         </SettingsSection>
     );
 }
+
+
+
+

@@ -74,7 +74,7 @@ export default function SettingsNav({ isAdmin = false }: Props) {
                                 marginTop: '0.25rem',
                                 fontStyle: 'italic'
                             }}>
-                                ⚠️ Admin required
+                                Admin required
                             </span>
                         </div>
                     );

@@ -29,6 +29,15 @@ type StatusPageConfigProps = {
                 name: string;
             };
         }>;
+        announcements: Array<{
+            id: string;
+            title: string;
+            message: string;
+            type: string;
+            startDate: string;
+            endDate?: string | null;
+            isActive: boolean;
+        }>;
     };
     allServices: Array<{
         id: string;
@@ -36,15 +45,25 @@ type StatusPageConfigProps = {
     }>;
 };
 
+const ANNOUNCEMENT_TYPES = [
+    { value: 'INCIDENT', label: 'Incident', color: '#ef4444', background: '#fee2e2' },
+    { value: 'MAINTENANCE', label: 'Maintenance', color: '#2563eb', background: '#dbeafe' },
+    { value: 'UPDATE', label: 'Update', color: '#10b981', background: '#dcfce7' },
+    { value: 'WARNING', label: 'Warning', color: '#f59e0b', background: '#fef3c7' },
+    { value: 'INFO', label: 'Information', color: '#64748b', background: '#f1f5f9' },
+];
+
 export default function StatusPageConfig({ statusPage, allServices }: StatusPageConfigProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('general');
+    const [announcementError, setAnnouncementError] = useState<string | null>(null);
+    const [isAnnouncementPending, startAnnouncementTransition] = useTransition();
 
     // Parse branding JSON
-    const branding = statusPage.branding && typeof statusPage.branding === 'object' 
-        ? statusPage.branding 
+    const branding = statusPage.branding && typeof statusPage.branding === 'object'
+        ? statusPage.branding
         : {};
 
     const [formData, setFormData] = useState({
@@ -70,9 +89,6 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         layout: branding.layout || 'default', // default, compact, wide
         showHeader: branding.showHeader !== false,
         showFooter: branding.showFooter !== false,
-        // Subscription
-        enableSubscriptions: branding.enableSubscriptions !== false,
-        subscriptionText: branding.subscriptionText || 'Subscribe to Updates',
         // SEO
         metaTitle: branding.metaTitle || statusPage.name,
         metaDescription: branding.metaDescription || `Status page for ${statusPage.name}`,
@@ -82,6 +98,16 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         showRssLink: branding.showRssLink !== false,
         showApiLink: branding.showApiLink !== false,
     });
+
+    const [announcementForm, setAnnouncementForm] = useState({
+        title: '',
+        message: '',
+        type: 'INFO',
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate: '',
+        isActive: true,
+    });
+    const [announcements, setAnnouncements] = useState(statusPage.announcements);
 
     const [selectedServices, setSelectedServices] = useState<Set<string>>(
         new Set(statusPage.services.map(s => s.serviceId))
@@ -114,8 +140,6 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                     layout: formData.layout,
                     showHeader: formData.showHeader,
                     showFooter: formData.showFooter,
-                    enableSubscriptions: formData.enableSubscriptions,
-                    subscriptionText: formData.subscriptionText,
                     metaTitle: formData.metaTitle,
                     metaDescription: formData.metaDescription,
                     autoRefresh: formData.autoRefresh,
@@ -157,6 +181,84 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         }));
     };
 
+    const handleAnnouncementCreate = async (e: React.FormEvent | React.MouseEvent) => {
+        e.preventDefault();
+        setAnnouncementError(null);
+
+        const title = announcementForm.title.trim();
+        const message = announcementForm.message.trim();
+        if (!title || !message) {
+            setAnnouncementError('Title and message are required.');
+            return;
+        }
+
+        startAnnouncementTransition(async () => {
+            try {
+                const response = await fetch('/api/settings/status-page/announcements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        statusPageId: statusPage.id,
+                        title,
+                        message,
+                        type: announcementForm.type,
+                        startDate: announcementForm.startDate,
+                        endDate: announcementForm.endDate || null,
+                        isActive: announcementForm.isActive,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to create announcement');
+                }
+
+                const data = await response.json();
+                if (data?.announcement) {
+                    setAnnouncements((current) => {
+                        const next = [data.announcement, ...current];
+                        return next.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+                    });
+                }
+
+                setAnnouncementForm({
+                    title: '',
+                    message: '',
+                    type: 'INFO',
+                    startDate: new Date().toISOString().slice(0, 10),
+                    endDate: '',
+                    isActive: true,
+                });
+
+            } catch (err: any) {
+                setAnnouncementError(err.message || 'Failed to create announcement');
+            }
+        });
+    };
+
+    const handleAnnouncementDelete = (id: string) => {
+        setAnnouncementError(null);
+
+        startAnnouncementTransition(async () => {
+            try {
+                const response = await fetch('/api/settings/status-page/announcements', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id }),
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete announcement');
+                }
+
+                setAnnouncements((current) => current.filter((announcement) => announcement.id !== id));
+            } catch (err: any) {
+                setAnnouncementError(err.message || 'Failed to delete announcement');
+            }
+        });
+    };
+
     return (
         <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
@@ -172,6 +274,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                         { id: 'appearance', label: 'Appearance' },
                         { id: 'services', label: 'Services' },
                         { id: 'content', label: 'Content' },
+                        { id: 'announcements', label: 'Announcements' },
                         { id: 'customization', label: 'Custom CSS' },
                         { id: 'advanced', label: 'Advanced' },
                     ].map(tab => (
@@ -318,8 +421,8 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                     borderRadius: 'var(--radius-md)',
                                                     display: 'inline-block',
                                                 }}>
-                                                    <img 
-                                                        src={formData.logoUrl} 
+                                                    <img
+                                                        src={formData.logoUrl}
                                                         alt="Logo preview"
                                                         style={{
                                                             height: '50px',
@@ -365,8 +468,8 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                     borderRadius: 'var(--radius-md)',
                                                     display: 'inline-block',
                                                 }}>
-                                                    <img 
-                                                        src={formData.faviconUrl} 
+                                                    <img
+                                                        src={formData.faviconUrl}
                                                         alt="Favicon preview"
                                                         style={{
                                                             width: '32px',
@@ -534,9 +637,9 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                     <span style={{ fontWeight: '600', flex: 1 }}>{service.name}</span>
                                                 </div>
                                                 {isSelected && (
-                                                    <div style={{ 
-                                                        display: 'grid', 
-                                                        gridTemplateColumns: '2fr 1fr 1fr', 
+                                                    <div style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: '2fr 1fr 1fr',
                                                         gap: 'var(--spacing-3)',
                                                         marginTop: 'var(--spacing-3)',
                                                         paddingTop: 'var(--spacing-3)',
@@ -597,38 +700,6 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                         label="Show Recent Incidents"
                                         helperText="Display recent incidents and their timeline"
                                     />
-                                    <Switch
-                                        checked={formData.showMetrics}
-                                        onChange={(checked) => setFormData({ ...formData, showMetrics: checked })}
-                                        label="Show Uptime Metrics"
-                                        helperText="Display 30-day and 90-day uptime statistics"
-                                    />
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card>
-                            <div style={{ padding: 'var(--spacing-6)' }}>
-                                <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-4)' }}>
-                                    Subscription Settings
-                                </h2>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                                    <Switch
-                                        checked={formData.enableSubscriptions}
-                                        onChange={(checked) => setFormData({ ...formData, enableSubscriptions: checked })}
-                                        label="Enable Email Subscriptions"
-                                        helperText="Allow users to subscribe to status updates via email"
-                                    />
-                                    {formData.enableSubscriptions && (
-                                        <FormField
-                                            type="input"
-                                            label="Subscription Text"
-                                            value={formData.subscriptionText}
-                                            onChange={(e) => setFormData({ ...formData, subscriptionText: e.target.value })}
-                                            placeholder="Subscribe to Updates"
-                                            helperText="Text displayed on the subscription form"
-                                        />
-                                    )}
                                 </div>
                             </div>
                         </Card>
@@ -676,6 +747,229 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                 </div>
                             </div>
                         </Card>
+                    </div>
+                )}
+
+                {/* Announcements */}
+                {activeTab === 'announcements' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
+                        <Card>
+                            <div style={{ padding: 'var(--spacing-6)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', flexWrap: 'wrap' }}>
+                                    <div>
+                                        <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', marginBottom: 'var(--spacing-2)' }}>
+                                            Announcements
+                                        </h2>
+                                        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
+                                            Publish maintenance, incident, and update notices on the status page.
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="/status"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            fontSize: 'var(--font-size-sm)',
+                                            color: 'var(--primary)',
+                                            textDecoration: 'none',
+                                            fontWeight: '600',
+                                        }}
+                                    >
+                                        View status page
+                                    </a>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                            gap: 'var(--spacing-6)',
+                        }}>
+                            <Card>
+                                <div style={{ padding: 'var(--spacing-6)' }}>
+                                    <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--spacing-4)' }}>
+                                        Create announcement
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                                        <FormField
+                                            type="input"
+                                            label="Title"
+                                            value={announcementForm.title}
+                                            onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                                            required
+                                        />
+                                        <FormField
+                                            type="textarea"
+                                            label="Message"
+                                            rows={4}
+                                            value={announcementForm.message}
+                                            onChange={(e) => setAnnouncementForm({ ...announcementForm, message: e.target.value })}
+                                            required
+                                        />
+
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                            gap: 'var(--spacing-4)',
+                                        }}>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
+                                                    Type
+                                                </label>
+                                                <select
+                                                    value={announcementForm.type}
+                                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value })}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: 'var(--spacing-3)',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        fontSize: 'var(--font-size-sm)',
+                                                        background: 'white',
+                                                    }}
+                                                >
+                                                    {ANNOUNCEMENT_TYPES.map((type) => (
+                                                        <option key={type.value} value={type.value}>
+                                                            {type.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
+                                                    Start Date
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    value={announcementForm.startDate}
+                                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, startDate: e.target.value })}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: 'var(--spacing-3)',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        fontSize: 'var(--font-size-sm)',
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', marginBottom: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
+                                                    End Date (optional)
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    value={announcementForm.endDate}
+                                                    onChange={(e) => setAnnouncementForm({ ...announcementForm, endDate: e.target.value })}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: 'var(--spacing-3)',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        fontSize: 'var(--font-size-sm)',
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={announcementForm.isActive}
+                                                onChange={(e) => setAnnouncementForm({ ...announcementForm, isActive: e.target.checked })}
+                                            />
+                                            Active
+                                        </label>
+
+                                        {announcementError && (
+                                            <div style={{ color: 'var(--color-error-dark)', fontSize: 'var(--font-size-sm)' }}>
+                                                {announcementError}
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                            <Button
+                                                type="button"
+                                                variant="primary"
+                                                isLoading={isAnnouncementPending}
+                                                onClick={handleAnnouncementCreate}
+                                            >
+                                                Add Announcement
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            <Card>
+                                <div style={{ padding: 'var(--spacing-6)' }}>
+                                    <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--spacing-4)' }}>
+                                        Recent announcements
+                                    </h3>
+                                    {announcements.length === 0 ? (
+                                        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
+                                            No announcements yet.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+                                            {announcements.map((announcement) => {
+                                                const typeConfig = ANNOUNCEMENT_TYPES.find((type) => type.value === announcement.type) || ANNOUNCEMENT_TYPES[4];
+                                                return (
+                                                    <div
+                                                        key={announcement.id}
+                                                        style={{
+                                                            padding: 'var(--spacing-4)',
+                                                            border: '1px solid #e5e7eb',
+                                                            borderRadius: 'var(--radius-md)',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: 'var(--spacing-2)',
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                                                            <span style={{
+                                                                padding: '0.2rem 0.6rem',
+                                                                borderRadius: '999px',
+                                                                fontSize: 'var(--font-size-xs)',
+                                                                fontWeight: '600',
+                                                                background: typeConfig.background,
+                                                                color: typeConfig.color,
+                                                            }}>
+                                                                {typeConfig.label}
+                                                            </span>
+                                                            {!announcement.isActive && (
+                                                                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
+                                                                    Inactive
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ fontWeight: '600' }}>
+                                                            {announcement.title}
+                                                        </div>
+                                                        <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
+                                                            {announcement.message}
+                                                        </div>
+                                                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--spacing-2)' }}>
+                                                            <span>
+                                                                {new Date(announcement.startDate).toLocaleDateString()} {announcement.endDate ? `- ${new Date(announcement.endDate).toLocaleDateString()}` : ''}
+                                                            </span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                onClick={() => handleAnnouncementDelete(announcement.id)}
+                                                                isLoading={isAnnouncementPending}
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        </div>
                     </div>
                 )}
 

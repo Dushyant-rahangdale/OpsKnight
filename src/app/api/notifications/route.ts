@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         }
 
         const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '50');
+        const limit = parseLimit(searchParams.get('limit'));
         const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
         const baseWhere = {
@@ -83,6 +83,12 @@ export async function GET(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+function parseLimit(value: string | null) {
+    const limit = Number(value);
+    if (Number.isNaN(limit) || limit <= 0) return 50;
+    return Math.min(limit, 200);
 }
 
 export async function PATCH(req: NextRequest) {

@@ -118,6 +118,12 @@ export async function PATCH(
         const updateData: any = {};
 
         if (name !== undefined) {
+            if (typeof name !== 'string') {
+                return NextResponse.json(
+                    { error: 'Preset name must be a string' },
+                    { status: 400 }
+                );
+            }
             if (name.trim().length === 0) {
                 return NextResponse.json(
                     { error: 'Preset name cannot be empty' },
@@ -231,4 +237,3 @@ export async function DELETE(
         );
     }
 }
-

@@ -12,6 +12,7 @@
  * - Works with existing database backups
  */
 
+import { Prisma } from '@prisma/client';
 import prisma from '../prisma';
 
 export type JobType = 'ESCALATION' | 'NOTIFICATION' | 'AUTO_UNSNOOZE' | 'SCHEDULED_TASK';
@@ -108,15 +109,46 @@ export async function getPendingJobs(limit: number = 50): Promise<any[]> {
       scheduledAt: {
         lte: now,
       },
-      attempts: {
-        lt: prisma.backgroundJob.fields.maxAttempts,
-      },
     },
     orderBy: {
       scheduledAt: 'asc',
     },
     take: limit,
   });
+}
+
+/**
+ * Atomically claim pending jobs for processing.
+ * Uses SKIP LOCKED to avoid concurrent workers claiming the same jobs.
+ */
+export async function claimPendingJobs(
+  limit: number = 50,
+  type?: JobType
+): Promise<any[]> {
+  const typeFilter = type ? Prisma.sql`AND "type" = ${type}` : Prisma.empty;
+  const jobs = await prisma.$queryRaw<any[]>(
+    Prisma.sql`
+      WITH cte AS (
+        SELECT "id"
+        FROM "BackgroundJob"
+        WHERE "status" = 'PENDING'
+          AND "scheduledAt" <= NOW()
+          AND "attempts" < "maxAttempts"
+          ${typeFilter}
+        ORDER BY "scheduledAt" ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT ${limit}
+      )
+      UPDATE "BackgroundJob"
+      SET "status" = 'PROCESSING',
+          "startedAt" = NOW(),
+          "attempts" = "attempts" + 1
+      WHERE "id" IN (SELECT "id" FROM cte)
+      RETURNING *;
+    `
+  );
+
+  return jobs;
 }
 
 /**
@@ -179,7 +211,9 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
  */
 export async function processJob(job: any): Promise<boolean> {
   try {
-    await markJobProcessing(job.id);
+    if (job.status !== 'PROCESSING') {
+      await markJobProcessing(job.id);
+    }
 
     switch (job.type) {
       case 'ESCALATION':
@@ -277,7 +311,7 @@ export async function processPendingJobs(limit: number = 50): Promise<{
   failed: number;
   total: number;
 }> {
-  const pendingJobs = await getPendingJobs(limit);
+  const pendingJobs = await claimPendingJobs(limit);
   let processed = 0;
   let failed = 0;
 

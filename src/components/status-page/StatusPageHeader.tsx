@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface StatusPageHeaderProps {
     statusPage: {
         name: string;
@@ -8,168 +10,142 @@ interface StatusPageHeaderProps {
     };
     overallStatus: 'operational' | 'degraded' | 'outage';
     branding?: any;
+    lastUpdated?: string;
 }
 
 const STATUS_CONFIG = {
     operational: {
-        bg: '#10b981',
+        badge: 'Operational',
         text: 'All systems operational',
-        icon: '✓',
-        gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        color: '#16a34a',
+        background: '#dcfce7',
+        border: '#86efac',
     },
     degraded: {
-        bg: '#f59e0b',
+        badge: 'Degraded',
         text: 'Some systems experiencing issues',
-        icon: '⚠',
-        gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        color: '#d97706',
+        background: '#fef3c7',
+        border: '#fcd34d',
     },
     outage: {
-        bg: '#ef4444',
+        badge: 'Outage',
         text: 'Some systems are down',
-        icon: '✕',
-        gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        color: '#dc2626',
+        background: '#fee2e2',
+        border: '#fca5a5',
     },
 };
 
-export default function StatusPageHeader({ statusPage, overallStatus, branding = {} }: StatusPageHeaderProps) {
+export default function StatusPageHeader({ statusPage, overallStatus, branding = {}, lastUpdated }: StatusPageHeaderProps) {
     const status = STATUS_CONFIG[overallStatus];
     const logoUrl = branding.logoUrl;
     const primaryColor = branding.primaryColor || '#667eea';
     const textColor = branding.textColor || '#111827';
+    const [updatedLabel, setUpdatedLabel] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!lastUpdated) {
+            setUpdatedLabel(null);
+            return;
+        }
+
+        const parsed = new Date(lastUpdated);
+        if (Number.isNaN(parsed.getTime())) {
+            setUpdatedLabel(null);
+            return;
+        }
+
+        const label = new Intl.DateTimeFormat(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(parsed);
+        setUpdatedLabel(label);
+    }, [lastUpdated]);
 
     return (
-        <header 
+        <header
             className="status-page-header"
             style={{
-                background: 'linear-gradient(180deg, #ffffff 0%, #f9fafb 100%)',
-                borderBottom: '2px solid #e5e7eb',
-                padding: '3rem 0',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-                position: 'relative',
-                overflow: 'hidden',
+                background: '#ffffff',
+                borderBottom: '1px solid #e2e8f0',
             }}
         >
-            {/* Decorative background elements */}
-            <div style={{
-                position: 'absolute',
-                top: '-50%',
-                right: '-10%',
-                width: '500px',
-                height: '500px',
-                background: `radial-gradient(circle, ${primaryColor}08 0%, transparent 70%)`,
-                borderRadius: '50%',
-            }} />
-            <div style={{
-                position: 'absolute',
-                bottom: '-30%',
-                left: '-5%',
-                width: '300px',
-                height: '300px',
-                background: `radial-gradient(circle, ${primaryColor}05 0%, transparent 70%)`,
-                borderRadius: '50%',
-            }} />
-
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
-                    <div style={{ flex: 1, minWidth: '300px', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ width: '100%', margin: '0 auto', padding: '2.5rem 2rem', boxSizing: 'border-box' }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '1.5rem',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '260px' }}>
                         {logoUrl && (
-                            <div style={{
-                                padding: '0.75rem',
-                                background: 'white',
-                                borderRadius: '0.75rem',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                border: '1px solid #e5e7eb',
-                            }}>
-                                <img 
-                                    src={logoUrl} 
-                                    alt={statusPage.name}
-                                    style={{
-                                        height: '60px',
-                                        maxWidth: '250px',
-                                        objectFit: 'contain',
-                                        display: 'block',
-                                    }}
-                                    onError={(e) => {
-                                        // Hide image if it fails to load
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                />
-                            </div>
+                            <img
+                                src={logoUrl}
+                                alt={statusPage.name}
+                                style={{
+                                    height: '40px',
+                                    maxWidth: '200px',
+                                    objectFit: 'contain',
+                                    display: 'block',
+                                }}
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                            />
                         )}
-                        <div style={{ flex: 1 }}>
+                        <div>
                             <h1 style={{
-                                fontSize: '3rem',
-                                fontWeight: '900',
-                                marginBottom: '1rem',
+                                fontSize: '2.25rem',
+                                fontWeight: '700',
+                                margin: 0,
                                 color: textColor,
-                                letterSpacing: '-0.03em',
-                                lineHeight: '1.1',
-                                background: logoUrl ? 'none' : `linear-gradient(135deg, ${textColor} 0%, ${textColor}dd 100%)`,
-                                WebkitBackgroundClip: logoUrl ? 'none' : 'text',
-                                WebkitTextFillColor: logoUrl ? textColor : 'transparent',
+                                letterSpacing: '-0.02em',
                             }}>
                                 {statusPage.name}
                             </h1>
-                            <div style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '1rem', 
-                                flexWrap: 'wrap',
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                }}>
-                                    <div style={{
-                                        width: '10px',
-                                        height: '10px',
-                                        borderRadius: '50%',
-                                        background: status.bg,
-                                    }}></div>
-                                    <span style={{
-                                        fontSize: '1rem',
-                                        color: '#374151',
-                                        fontWeight: '500',
-                                    }}>
-                                        {status.text}
-                                    </span>
-                                </div>
-                            </div>
+                            <p style={{ marginTop: '0.4rem', color: '#475569', fontSize: '0.95rem' }}>
+                                {status.text}
+                            </p>
+                            <p
+                                suppressHydrationWarning
+                                style={{ marginTop: '0.25rem', color: '#94a3b8', fontSize: '0.8rem' }}
+                            >
+                                {updatedLabel ? `Updated ${updatedLabel}` : ''}
+                            </p>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                        <span style={{
+                            padding: '0.4rem 0.85rem',
+                            background: status.background,
+                            color: status.color,
+                            border: `1px solid ${status.border}`,
+                            borderRadius: '999px',
+                            fontSize: '0.8125rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                        }}>
+                            {status.badge}
+                        </span>
                         {(statusPage.contactEmail || statusPage.contactUrl) && (
                             <a
                                 href={statusPage.contactUrl || `mailto:${statusPage.contactEmail}`}
                                 style={{
-                                    padding: '0.875rem 1.75rem',
-                                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`,
-                                    borderRadius: '0.75rem',
+                                    padding: '0.55rem 1rem',
+                                    borderRadius: '0.5rem',
+                                    border: `1px solid ${primaryColor}`,
+                                    color: primaryColor,
                                     textDecoration: 'none',
-                                    color: 'white',
-                                    fontSize: '0.9375rem',
-                                    fontWeight: '700',
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    boxShadow: `0 4px 16px ${primaryColor}40`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    letterSpacing: '0.01em',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = `0 8px 24px ${primaryColor}60`;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = `0 4px 16px ${primaryColor}40`;
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
                                 }}
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                                Contact Us
+                                Contact
                             </a>
                         )}
                     </div>

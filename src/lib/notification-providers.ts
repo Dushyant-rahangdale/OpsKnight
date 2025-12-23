@@ -276,7 +276,7 @@ export async function isChannelAvailable(channel: 'EMAIL' | 'SMS' | 'PUSH' | 'SL
         case 'EMAIL':
             return (await getEmailConfig()).enabled;
         case 'SMS':
-            return (await getTwilioConfig()).enabled;
+            return (await getSMSConfig()).enabled;
         case 'PUSH':
             return (await getPushConfig()).enabled;
         case 'SLACK':
@@ -286,4 +286,3 @@ export async function isChannelAvailable(channel: 'EMAIL' | 'SMS' | 'PUSH' | 'SL
             return false;
     }
 }
-

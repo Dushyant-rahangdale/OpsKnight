@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { processEvent } from '@/lib/events';
 import { transformAzureToEvent, AzureAlertData } from '@/lib/integrations/azure';
+import { isIntegrationAuthorized } from '@/lib/integrations/auth';
 
 /**
  * Azure Monitor Webhook Endpoint
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
 
         if (!integration) {
             return NextResponse.json({ error: 'Integration not found' }, { status: 404 });
+        }
+
+        if (!isIntegrationAuthorized(req, integration.key)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await req.json();

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 interface IncidentEvent {
     id: string;
@@ -71,10 +70,9 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                 gap: '1rem',
             }}>
                 <h2 style={{ 
-                    fontSize: '1.75rem', 
-                    fontWeight: '800', 
-                    color: '#111827',
-                    letterSpacing: '-0.02em',
+                    fontSize: '1.5rem', 
+                    fontWeight: '700', 
+                    color: '#0f172a',
                     margin: 0,
                 }}>
                     Recent Incidents
@@ -93,13 +91,13 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
             {paginatedIncidents.length === 0 ? (
                 <div style={{
                     padding: '4rem 2rem',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    background: '#ffffff',
                     border: '1px solid #e5e7eb',
-                    borderRadius: '1rem',
+                    borderRadius: '0.75rem',
                     textAlign: 'center',
                     color: '#6b7280',
                 }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✓</div>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>OK</div>
                     <p style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem', color: '#10b981' }}>
                         No incidents in the last 90 days
                     </p>
@@ -120,24 +118,21 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                                     key={incident.id}
                                     className="status-incident-card"
                                     style={{
-                                        padding: '2.5rem',
-                                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                                        border: `2px solid ${statusColor.border}20`,
-                                        borderRadius: '1.25rem',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        padding: '2rem',
+                                        background: '#ffffff',
+                                        border: `1px solid ${statusColor.border}40`,
+                                        borderRadius: '0.75rem',
+                                        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                                         position: 'relative',
                                         overflow: 'hidden',
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.boxShadow = `0 12px 32px ${statusColor.border}25`;
-                                        e.currentTarget.style.transform = 'translateY(-4px)';
-                                        e.currentTarget.style.borderColor = `${statusColor.border}40`;
+                                        e.currentTarget.style.boxShadow = `0 8px 20px ${statusColor.border}20`;
+                                        e.currentTarget.style.borderColor = `${statusColor.border}`;
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.borderColor = `${statusColor.border}20`;
+                                        e.currentTarget.style.boxShadow = 'none';
+                                        e.currentTarget.style.borderColor = `${statusColor.border}40`;
                                     }}
                                 >
                                     {/* Status indicator bar */}
@@ -185,7 +180,7 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                                                         {incident.service.name}
                                                     </span>
                                                 </div>
-                                                <span>•</span>
+                                                <span>|</span>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <circle cx="12" cy="12" r="10"></circle>
@@ -201,7 +196,7 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                                                 </span>
                                                 {incident.resolvedAt && (
                                                     <>
-                                                        <span>•</span>
+                                                        <span>|</span>
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#10b981' }}>
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="20 6 9 17 4 12"></polyline>

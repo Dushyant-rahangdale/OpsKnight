@@ -1,7 +1,7 @@
 'use client';
 
 type IconProps = {
-    name: 'profile' | 'preferences' | 'security' | 'api-keys' | 'system' | 'help';
+    name: 'profile' | 'preferences' | 'security' | 'api-keys' | 'system' | 'status-page' | 'help';
     className?: string;
 };
 
@@ -34,6 +34,15 @@ export default function SettingsIcon({ name, className = '' }: IconProps) {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
                 <path d="M12 2L2 7V12C2 17.55 6.84 22.74 12 24C17.16 22.74 22 17.55 22 12V7L12 2Z" fill="currentColor" fillOpacity="0.6"/>
                 <path d="M12 8C13.6569 8 15 9.34315 15 11C15 12.6569 13.6569 14 12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8Z" fill="currentColor"/>
+            </svg>
+        ),
+        'status-page': (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={className}>
+                <rect x="3" y="4" width="18" height="14" rx="2" fill="currentColor" fillOpacity="0.6" />
+                <path d="M7 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="9" cy="15" r="1.5" fill="currentColor" />
+                <circle cx="13" cy="15" r="1.5" fill="currentColor" />
+                <circle cx="17" cy="15" r="1.5" fill="currentColor" />
             </svg>
         ),
         help: (

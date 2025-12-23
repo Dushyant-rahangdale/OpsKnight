@@ -15,7 +15,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await assertAdmin();
+        try {
+            await assertAdmin();
+        } catch (error) {
+            return NextResponse.json(
+                { error: error instanceof Error ? error.message : 'Unauthorized' },
+                { status: 403 }
+            );
+        }
 
         const body = await req.json();
         const { name, key, type, required, defaultValue, options, showInList } = body;

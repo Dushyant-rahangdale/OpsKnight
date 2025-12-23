@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { processEvent } from '@/lib/events';
 import { transformPrometheusToEvent, PrometheusAlert } from '@/lib/integrations/prometheus';
+import { isIntegrationAuthorized } from '@/lib/integrations/auth';
 
 /**
  * Prometheus Alertmanager Webhook Endpoint
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest) {
 
         if (!integration) {
             return NextResponse.json({ error: 'Integration not found' }, { status: 404 });
+        }
+
+        if (!isIntegrationAuthorized(req, integration.key)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await req.json();

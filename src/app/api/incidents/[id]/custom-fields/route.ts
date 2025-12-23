@@ -23,6 +23,8 @@ export async function POST(
         const { id: incidentId } = await params;
         const body = await req.json();
         const { customFieldId, value } = body;
+        const normalizedValue = value === null || value === undefined ? null : String(value);
+        const trimmedValue = normalizedValue === null ? null : normalizedValue.trim();
 
         // Verify incident exists
         const incident = await prisma.incident.findUnique({
@@ -43,7 +45,7 @@ export async function POST(
         }
 
         // Validate required fields
-        if (customField.required && (!value || value.trim() === '')) {
+        if (customField.required && (!trimmedValue || trimmedValue === '')) {
             return NextResponse.json(
                 { error: `${customField.name} is required` },
                 { status: 400 }
@@ -59,12 +61,12 @@ export async function POST(
                 },
             },
             update: {
-                value: value || null,
+                value: trimmedValue || null,
             },
             create: {
                 incidentId,
                 customFieldId,
-                value: value || null,
+                value: trimmedValue || null,
             },
         });
 

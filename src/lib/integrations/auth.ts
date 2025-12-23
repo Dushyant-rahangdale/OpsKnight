@@ -1,0 +1,31 @@
+import crypto from 'crypto';
+import type { NextRequest } from 'next/server';
+
+function safeEqual(a: string, b: string): boolean {
+    const aBuf = Buffer.from(a);
+    const bBuf = Buffer.from(b);
+    if (aBuf.length !== bBuf.length) return false;
+    return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+export function extractIntegrationKey(req: NextRequest): string | null {
+    const authHeader = req.headers.get('authorization') || '';
+    const lower = authHeader.toLowerCase();
+
+    if (lower.startsWith('bearer ')) {
+        return authHeader.slice(7).trim();
+    }
+
+    if (lower.startsWith('token token=')) {
+        return authHeader.slice('token token='.length).trim();
+    }
+
+    const direct = req.headers.get('x-integration-key') || req.headers.get('x-api-key');
+    return direct?.trim() || null;
+}
+
+export function isIntegrationAuthorized(req: NextRequest, expectedKey: string): boolean {
+    const provided = extractIntegrationKey(req);
+    if (!provided) return false;
+    return safeEqual(provided, expectedKey);
+}

@@ -35,7 +35,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
 
         // Development: Log email instead of sending if no provider configured
         if (process.env.NODE_ENV === 'development' || !emailConfig.enabled) {
-            console.log('📧 Email Notification:', {
+            console.log('Email Notification:', {
                 to: options.to,
                 subject: options.subject,
                 preview: options.text || options.html.substring(0, 100),
@@ -69,13 +69,13 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
                     return { success: false, error: result.error.message || 'Resend API error' };
                 }
 
-                console.log('📧 Email sent via Resend:', { to: options.to, id: result.data?.id });
+                console.log('Email sent via Resend:', { to: options.to, id: result.data?.id });
                 return { success: true };
             } catch (error: any) {
                 // If resend package is not installed, fall back to console log
                 if (error.code === 'MODULE_NOT_FOUND') {
-                    console.log('📧 Resend package not installed. Install with: npm install resend');
-                    console.log('📧 Would send via Resend:', { to: options.to, from: emailConfig.fromEmail });
+                    console.log('Resend package not installed. Install with: npm install resend');
+                    console.log('Would send via Resend:', { to: options.to, from: emailConfig.fromEmail });
                     return { success: true };
                 }
                 console.error('Resend send error:', error);
@@ -88,7 +88,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
             // const sgMail = require('@sendgrid/mail');
             // sgMail.setApiKey(emailConfig.apiKey);
             // await sgMail.send({...});
-            console.log('📧 Would send via SendGrid:', { to: options.to, from: emailConfig.fromEmail });
+            console.log('Would send via SendGrid:', { to: options.to, from: emailConfig.fromEmail });
             return { success: true };
         }
 
@@ -97,7 +97,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
             // const nodemailer = require('nodemailer');
             // const transporter = nodemailer.createTransport({...});
             // await transporter.sendMail({...});
-            console.log('📧 Would send via SMTP:', { to: options.to, from: emailConfig.fromEmail, host: emailConfig.host });
+            console.log('Would send via SMTP:', { to: options.to, from: emailConfig.fromEmail, host: emailConfig.host });
             return { success: true };
         }
 
@@ -242,4 +242,3 @@ export async function sendIncidentEmail(
         return { success: false, error: error.message };
     }
 }
-

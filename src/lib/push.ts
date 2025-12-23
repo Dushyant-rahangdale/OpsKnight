@@ -46,7 +46,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
 
         // Development: Log push instead of sending if no provider configured
         if (process.env.NODE_ENV === 'development' || !pushConfig.enabled) {
-            console.log('🔔 Push Notification:', {
+            console.log('Push Notification:', {
                 userId: options.userId,
                 title: options.title,
                 body: options.body,
@@ -78,7 +78,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
             //     token: user.fcmToken,
             // };
             // await admin.messaging().send(message);
-            console.log('🔔 Would send via Firebase:', { userId: options.userId, title: options.title });
+            console.log('Would send via Firebase:', { userId: options.userId, title: options.title });
             return { success: true };
         }
 
@@ -92,7 +92,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
             //     include_external_user_ids: [options.userId],
             //     data: options.data,
             // });
-            console.log('🔔 Would send via OneSignal:', { userId: options.userId, title: options.title });
+            console.log('Would send via OneSignal:', { userId: options.userId, title: options.title });
             return { success: true };
         }
 
@@ -132,10 +132,14 @@ export async function sendIncidentPush(
         const incidentUrl = `${baseUrl}/incidents/${incidentId}`;
         
         const urgencyLabel = incident.urgency === 'HIGH' ? 'CRITICAL' : 'INFO';
-        const statusEmoji = eventType === 'resolved' ? '✅' : eventType === 'acknowledged' ? '👀' : '🚨';
+        const statusLabel = eventType === 'resolved'
+            ? '[RESOLVED]'
+            : eventType === 'acknowledged'
+                ? '[ACK]'
+                : '[TRIGGERED]';
         
-        const title = `${statusEmoji} [${urgencyLabel}] ${incident.title}`;
-        const body = `${incident.service.name} • ${incident.status}`;
+        const title = `${statusLabel} [${urgencyLabel}] ${incident.title}`;
+        const body = `${incident.service.name} -> ${incident.status}`;
 
         return await sendPush({
             userId,
@@ -155,9 +159,3 @@ export async function sendIncidentPush(
         return { success: false, error: error.message };
     }
 }
-
-
-
-
-
-

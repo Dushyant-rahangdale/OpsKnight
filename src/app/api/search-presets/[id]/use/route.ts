@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { trackPresetUsage } from '@/lib/search-presets';
+import prisma from '@/lib/prisma';
 
 /**
  * Track Preset Usage
@@ -18,6 +19,36 @@ export async function POST(
         }
 
         const { id } = await params;
+
+        const preset = await prisma.searchPreset.findUnique({
+            where: { id },
+        });
+
+        if (!preset) {
+            return NextResponse.json({ error: 'Preset not found' }, { status: 404 });
+        }
+
+        const userTeams = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+                teamMemberships: {
+                    select: {
+                        teamId: true,
+                    },
+                },
+            },
+        });
+
+        const userTeamIds = userTeams?.teamMemberships.map(t => t.teamId) || [];
+        const hasAccess =
+            preset.createdById === session.user.id ||
+            preset.isPublic ||
+            preset.isShared ||
+            preset.sharedWithTeams.some(teamId => userTeamIds.includes(teamId));
+
+        if (!hasAccess) {
+            return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+        }
 
         await trackPresetUsage(id, session.user.id);
 

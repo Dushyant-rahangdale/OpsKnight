@@ -18,6 +18,7 @@ const TYPE_COLORS = {
     INCIDENT: '#ef4444',
     WARNING: '#f59e0b',
     MAINTENANCE: '#3b82f6',
+    UPDATE: '#10b981',
     INFO: '#6b7280',
 };
 
@@ -25,6 +26,7 @@ const TYPE_LABELS = {
     INCIDENT: 'Incident',
     WARNING: 'Warning',
     MAINTENANCE: 'Maintenance',
+    UPDATE: 'Update',
     INFO: 'Information',
 };
 
@@ -36,8 +38,8 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
             <h2 style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: '700', 
-                marginBottom: '1.5rem',
-                color: '#111827',
+                marginBottom: '1rem',
+                color: '#0f172a',
             }}>
                 Announcements
             </h2>
@@ -52,19 +54,17 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                             style={{
                                 padding: '1.5rem',
                                 background: 'white',
-                                border: '1px solid #e5e7eb',
+                                border: `1px solid ${color}40`,
                                 borderRadius: '0.75rem',
-                                borderLeft: `4px solid ${color}`,
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                transition: 'all 0.2s ease',
+                                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.08)';
+                                e.currentTarget.style.borderColor = color;
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                                e.currentTarget.style.borderColor = `${color}40`;
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
