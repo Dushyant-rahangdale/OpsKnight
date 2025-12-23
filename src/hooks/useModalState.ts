@@ -8,14 +8,16 @@ let globalModalState: {
     quickActions: boolean;
     userMenu: boolean;
     sidebarMobileMenu: boolean;
+    notifications: boolean;
 } = {
     search: false,
     quickActions: false,
     userMenu: false,
-    sidebarMobileMenu: false
+    sidebarMobileMenu: false,
+    notifications: false
 };
 
-type ModalName = 'search' | 'quickActions' | 'userMenu' | 'sidebarMobileMenu';
+type ModalName = 'search' | 'quickActions' | 'userMenu' | 'sidebarMobileMenu' | 'notifications';
 const listeners = new Map<ModalName, Set<() => void>>();
 
 function notifyListeners(modalName: ModalName) {

@@ -8,6 +8,9 @@ import Sidebar from '@/components/Sidebar';
 import TopbarUserMenu from '@/components/TopbarUserMenu';
 import SidebarSearch from '@/components/SidebarSearch';
 import QuickActions from '@/components/QuickActions';
+import TopbarClock from '@/components/TopbarClock';
+import TopbarNotifications from '@/components/TopbarNotifications';
+import TopbarBreadcrumbs from '@/components/TopbarBreadcrumbs';
 import GlobalKeyboardHandlerWrapper from '@/components/GlobalKeyboardHandlerWrapper';
 import { ToastProvider } from '@/components/ToastProvider';
 import AppErrorBoundary from './error-boundary';
@@ -61,13 +64,18 @@ export default async function AppLayout({
           <Sidebar userName={userName} userEmail={userEmail} userRole={userRole} />
           <div className="content-shell">
             <header className="topbar-new">
-              <div className="topbar-section topbar-section-center">
+              <div className="topbar-section topbar-section-left">
                 <OperationalStatus tone={statusTone} label={statusLabel} detail={statusDetail} />
+                <TopbarBreadcrumbs />
+              </div>
+              <div className="topbar-section topbar-section-center">
                 <div className="topbar-search-wrapper">
                   <SidebarSearch />
                 </div>
               </div>
               <div className="topbar-section topbar-section-right">
+                <TopbarClock />
+                <TopbarNotifications />
                 <QuickActions canCreate={canCreate} />
                 <TopbarUserMenu name={userName} email={userEmail} role={userRole} />
               </div>

@@ -1,0 +1,245 @@
+'use client';
+
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useModalState } from '@/hooks/useModalState';
+
+type Notification = {
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    unread: boolean;
+    type: 'incident' | 'service' | 'schedule';
+    incidentId?: string;
+    channel?: string;
+    createdAt?: string;
+};
+
+export default function TopbarNotifications() {
+    const [open, setOpen] = useModalState('notifications');
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch notifications
+    useEffect(() => {
+        async function fetchNotifications() {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/notifications?limit=50');
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data.notifications || []);
+                    setUnreadCount(data.unreadCount || 0);
+                } else {
+                    console.error('Failed to fetch notifications');
+                }
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchNotifications();
+        
+        // Refresh notifications every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Mark notifications as read when dropdown opens
+    useEffect(() => {
+        if (!open || unreadCount === 0) return;
+
+        async function markAsRead() {
+            const unreadIds = notifications
+                .filter(n => n.unread)
+                .map(n => n.id);
+
+            if (unreadIds.length === 0) return;
+
+            try {
+                const response = await fetch('/api/notifications', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notificationIds: unreadIds })
+                });
+
+                if (response.ok) {
+                    // Update local state
+                    setNotifications((prev) =>
+                        prev.map((notification) =>
+                            notification.unread
+                                ? { ...notification, unread: false }
+                                : notification
+                        )
+                    );
+                    setUnreadCount(0);
+                }
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+            }
+        }
+
+        // Delay marking as read slightly to show the unread state briefly
+        const timer = setTimeout(markAsRead, 100);
+        return () => clearTimeout(timer);
+    }, [open, unreadCount, notifications]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const handleClick = (event: MouseEvent) => {
+            if (!containerRef.current) return;
+            if (containerRef.current.contains(event.target as Node)) return;
+            setOpen(false);
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClick);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClick);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [open, setOpen]);
+
+    return (
+        <div className="topbar-notifications-container" ref={containerRef}>
+            <button
+                type="button"
+                className={`topbar-notifications-trigger ${unreadCount > 0 ? 'has-unread' : ''}`}
+                onClick={() => setOpen(!open)}
+                aria-label="Notifications"
+                aria-expanded={open}
+            >
+                <svg
+                    className="topbar-notifications-icon"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                >
+                    <path
+                        d="M12 4a6 6 0 0 0-6 6v3.2l-1.4 2.2a1 1 0 0 0 .8 1.6h13.2a1 1 0 0 0 .8-1.6L18 13.2V10a6 6 0 0 0-6-6Z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                    <path
+                        d="M9.5 20a2.5 2.5 0 0 0 5 0"
+                        strokeLinecap="round"
+                    />
+                </svg>
+                {unreadCount > 0 && (
+                    <span className="topbar-notifications-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+            </button>
+
+            {open && (
+                <div className="topbar-notifications-dropdown">
+                    <div className="topbar-notifications-header">
+                        <h3>Notifications</h3>
+                        {unreadCount > 0 && (
+                            <span className="topbar-notifications-unread-count">
+                                {unreadCount} new
+                            </span>
+                        )}
+                    </div>
+                    <div className="topbar-notifications-list">
+                        {loading ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                Loading notifications...
+                            </div>
+                        ) : notifications.length === 0 ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <p>No notifications</p>
+                                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>You're all caught up!</p>
+                            </div>
+                        ) : (
+                            notifications.map((notification) => (
+                                <div
+                                    key={notification.id}
+                                    className={`topbar-notification-item ${notification.unread ? 'unread' : ''}`}
+                                    onClick={() => {
+                                        if (notification.incidentId) {
+                                            window.location.href = `/incidents/${notification.incidentId}`;
+                                        }
+                                    }}
+                                    style={{ cursor: notification.incidentId ? 'pointer' : 'default' }}
+                                >
+                                    <div className="topbar-notification-icon">
+                                        {notification.type === 'incident' && (
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M12 3 2.5 20h19L12 3Zm0 6 4.5 9h-9L12 9Zm0 3v4" strokeLinecap="round" />
+                                            </svg>
+                                        )}
+                                        {notification.type === 'service' && (
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M4 6h16v5H4V6Zm0 7h16v5H4v-5Z" />
+                                            </svg>
+                                        )}
+                                        {notification.type === 'schedule' && (
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M7 3v3m10-3v3M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" strokeLinecap="round" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <div className="topbar-notification-content">
+                                        <div className="topbar-notification-title">{notification.title}</div>
+                                        <div className="topbar-notification-message">{notification.message}</div>
+                                        <div className="topbar-notification-time">{notification.time}</div>
+                                    </div>
+                                    {notification.unread && (
+                                        <div className="topbar-notification-dot" />
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    {notifications.length > 0 && (
+                        <div className="topbar-notifications-footer">
+                            <button
+                                type="button"
+                                className="topbar-notifications-view-all"
+                                onClick={async () => {
+                                    if (unreadCount > 0) {
+                                        try {
+                                            await fetch('/api/notifications', {
+                                                method: 'PATCH',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ markAllAsRead: true })
+                                            });
+                                            setNotifications((prev) =>
+                                                prev.map((notification) =>
+                                                    notification.unread
+                                                        ? { ...notification, unread: false }
+                                                        : notification
+                                                )
+                                            );
+                                            setUnreadCount(0);
+                                        } catch (error) {
+                                            console.error('Error marking all as read:', error);
+                                        }
+                                    }
+                                    setOpen(false);
+                                }}
+                            >
+                                {unreadCount > 0 ? 'Mark all as read' : 'View all notifications'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
