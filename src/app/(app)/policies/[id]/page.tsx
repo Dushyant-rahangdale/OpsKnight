@@ -217,9 +217,18 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                                         }}
                                         policyId={policy.id}
                                         canManagePolicies={canManagePolicies}
-                                        updateStep={updatePolicyStep}
-                                        deleteStep={deletePolicyStep}
-                                        moveStep={movePolicyStep}
+                                        updateStep={async (stepId, formData) => {
+                                            await updatePolicyStep(stepId, formData);
+                                            return undefined;
+                                        }}
+                                        deleteStep={async (stepId) => {
+                                            await deletePolicyStep(stepId);
+                                            return undefined;
+                                        }}
+                                        moveStep={async (stepId, direction) => {
+                                            await movePolicyStep(stepId, direction);
+                                            return undefined;
+                                        }}
                                         isFirst={index === 0}
                                         isLast={index === policy.steps.length - 1}
                                     />
@@ -233,7 +242,10 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                                 users={users}
                                 teams={teams}
                                 schedules={schedules}
-                                addStep={addPolicyStep}
+                                addStep={async (policyId, formData) => {
+                                    await addPolicyStep(policyId, formData);
+                                    return undefined;
+                                }}
                             />
                         )}
                     </section>
@@ -371,4 +383,3 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
         </main>
     );
 }
-

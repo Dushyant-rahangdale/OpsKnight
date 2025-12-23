@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
 import { randomBytes } from 'crypto';
 import { getCurrentUser, assertAdmin, assertAdminOrResponder, assertNotSelf } from '@/lib/rbac';
+import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 
 async function assertUserIsNotSoleOwner(userId: string) {
     const ownedMemberships = await prisma.teamMember.findMany({

@@ -6,13 +6,14 @@ import { redirect } from 'next/navigation';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
 import { notifySlackForIncident } from '@/lib/slack';
 import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from '@/lib/rbac';
+import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus) {
     try {
         // Check resource-level authorization
         await assertCanModifyIncident(id);
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     const currentIncident = await prisma.$transaction(async (tx) => {
         // Get current incident to check if we're setting acknowledgedAt for the first time
@@ -22,7 +23,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
         });
 
         if (!incident) {
-            throw new Error('Incident not found.');
+            throw new Error(getUserFriendlyError('Incident not found.'));
         }
 
         // Build update data
@@ -101,18 +102,18 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
         // Check resource-level authorization
         await assertCanModifyIncident(id);
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     const trimmedResolution = resolution?.trim();
     const minLength = 10;
     const maxLength = 1000;
 
     if (!trimmedResolution || trimmedResolution.length < minLength) {
-        throw new Error(`Resolution note must be at least ${minLength} characters.`);
+        throw new Error(`Resolution note must be at least ${minLength} characters. Please provide more details about how the incident was resolved.`);
     }
 
     if (trimmedResolution.length > maxLength) {
-        throw new Error(`Resolution note must be ${maxLength} characters or fewer.`);
+        throw new Error(`Resolution note must be ${maxLength} characters or fewer. Please shorten your description.`);
     }
     const user = await getCurrentUser();
 
@@ -120,7 +121,7 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
         // Get current incident to check if we're setting resolvedAt for the first time
         const currentIncident = await tx.incident.findUnique({ where: { id } });
         if (!currentIncident) {
-            throw new Error('Incident not found.');
+            throw new Error(getUserFriendlyError('Incident not found.'));
         }
 
         await tx.incident.update({
@@ -179,7 +180,7 @@ export async function updateIncidentUrgency(id: string, urgency: string) {
         // Check resource-level authorization
         await assertCanModifyIncident(id);
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     const parsedUrgency: IncidentUrgency = urgency === 'LOW' ? 'LOW' : 'HIGH';
     await prisma.incident.update({
@@ -203,7 +204,7 @@ export async function createIncident(formData: FormData) {
     try {
         await assertResponderOrAbove();
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
@@ -304,7 +305,7 @@ export async function addNote(incidentId: string, content: string) {
     try {
         await assertResponderOrAbove();
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     const user = await getCurrentUser();
 
@@ -333,7 +334,7 @@ export async function reassignIncident(incidentId: string, assigneeId: string) {
         // Check resource-level authorization
         await assertCanModifyIncident(incidentId);
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     
     // Handle unassigning (empty assigneeId)
@@ -361,7 +362,7 @@ export async function reassignIncident(incidentId: string, assigneeId: string) {
     await prisma.$transaction(async (tx) => {
         const assigneeRecord = await tx.user.findUnique({ where: { id: assigneeId } });
         if (!assigneeRecord) {
-            throw new Error('Assignee not found');
+            throw new Error(getUserFriendlyError('Assignee not found. The selected user may have been deleted.'));
         }
 
         await tx.incident.update({
@@ -386,7 +387,7 @@ export async function addWatcher(incidentId: string, userId: string, role: strin
     try {
         await assertResponderOrAbove();
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     if (!userId) return;
 
@@ -423,7 +424,7 @@ export async function removeWatcher(incidentId: string, watcherId: string) {
     try {
         await assertResponderOrAbove();
     } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+        throw new Error(getUserFriendlyError(error));
     }
     await prisma.$transaction(async (tx) => {
         await tx.incidentWatcher.delete({
