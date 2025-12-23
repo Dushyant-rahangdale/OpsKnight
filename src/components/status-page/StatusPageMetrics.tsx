@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import LoadingWrapper from '@/components/ui/LoadingWrapper';
+import Skeleton, { SkeletonCard } from '@/components/ui/Skeleton';
 
 interface Incident {
     id: string;
@@ -107,46 +109,8 @@ export default function StatusPageMetrics({
     }, [services, incidents, thirtyDaysAgo, ninetyDaysAgo]);
 
     if (services.length === 0) return null;
-    
-    // Show loading state during initial render to avoid hydration mismatch
-    if (!isClient || metrics.length === 0) {
-        return (
-            <section style={{ marginBottom: '3rem' }}>
-                <h2 style={{ 
-                    fontSize: '1.5rem', 
-                    fontWeight: '700', 
-                    marginBottom: '1rem',
-                    color: '#0f172a',
-                }}>
-                    Uptime Metrics
-                </h2>
-                <div style={{ 
-                    display: 'grid', 
-                    gap: '1rem',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                }}>
-                    {services.map((service) => (
-                        <div
-                            key={service.id}
-                            style={{
-                                padding: '2rem',
-                                background: '#ffffff',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '0.75rem',
-                            }}
-                        >
-                            <div style={{ 
-                                height: '100px', 
-                                background: '#f3f4f6', 
-                                borderRadius: '0.5rem',
-                                animation: 'skeleton-pulse 1.5s ease-in-out infinite'
-                            }} />
-                        </div>
-                    ))}
-                </div>
-            </section>
-        );
-    }
+
+    const isLoading = !isClient || metrics.length === 0;
 
     return (
         <section style={{ marginBottom: '4rem' }}>
@@ -168,12 +132,28 @@ export default function StatusPageMetrics({
                     Service availability and performance statistics
                 </p>
             </div>
-            <div style={{ 
-                display: 'grid', 
-                gap: '1.5rem',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-            }}>
-                {metrics.map((metric) => {
+            <LoadingWrapper 
+                isLoading={isLoading}
+                variant="skeleton"
+                skeletonLines={1}
+                fallback={
+                    <div style={{ 
+                        display: 'grid', 
+                        gap: '1rem',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                    }}>
+                        {services.map((service) => (
+                            <SkeletonCard key={service.id} height={200} />
+                        ))}
+                    </div>
+                }
+            >
+                <div style={{ 
+                    display: 'grid', 
+                    gap: '1.5rem',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+                }}>
+                    {metrics.map((metric) => {
                     const getUptimeColor = (uptime: number) => {
                         if (uptime >= 99.9) return { bg: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' };
                         if (uptime >= 99) return { bg: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' };

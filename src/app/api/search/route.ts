@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { logger } from '@/lib/logger';
+import type { QueryMode } from '@prisma/client';
+
+const INSENSITIVE_MODE: QueryMode = 'insensitive';
 
 export async function GET(req: NextRequest) {
     try {
