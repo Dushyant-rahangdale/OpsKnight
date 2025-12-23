@@ -1021,7 +1021,7 @@ This document provides a comprehensive analysis of the OpsGuard incident managem
 ---
 
 **Last Updated:** January 2025
-**Status:** Active Development - 88% Complete Overall
+**Status:** Active Development - 89% Complete Overall
 **Latest Updates (January 2025):**
 - ✅ Fixed N+1 query issues in user notifications
 - ✅ Added resource-level authorization to incident actions
@@ -1090,6 +1090,31 @@ This document provides a comprehensive analysis of the OpsGuard incident managem
 - **Files Created:**
   - `src/components/ui/LoadingWrapper.tsx` - Reusable loading wrapper
 - **Status:** Ready for implementation in data-heavy components
+
+### Accessibility Improvements ✅
+**Date:** January 2025
+
+**Implementation:**
+- **ARIA Labels:**
+  - Added ARIA labels to LayerHelpPanel buttons
+  - Added aria-label and aria-busy to TestNotificationButton
+  - Enhanced Button component with aria-disabled and aria-busy
+  - Added aria-hidden to decorative icons
+  - Improved screen reader support
+- **Keyboard Navigation:**
+  - Created accessibility utilities with keyboard handlers
+  - Added keyboard event handlers for common interactions
+  - Support for Enter/Space, Escape, and Arrow keys
+- **Accessibility Utilities:**
+  - Created `src/lib/accessibility.ts` with:
+    - ARIA label generators
+    - Common ARIA label constants
+    - Keyboard navigation helpers
+- **Files Created/Modified:**
+  - `src/lib/accessibility.ts` - Accessibility utilities
+  - `src/components/ui/Button.tsx` - Enhanced with ARIA attributes
+  - `src/components/LayerHelpPanel.tsx` - Added ARIA labels
+  - `src/components/TestNotificationButton.tsx` - Improved accessibility
 
 ---
 
