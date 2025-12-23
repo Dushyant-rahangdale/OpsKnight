@@ -3,10 +3,39 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { assertAdminOrResponder } from '@/lib/rbac';
+import { createInAppNotifications, getScheduleUserIds } from '@/lib/in-app-notifications';
 type ScheduleFormState = {
     error?: string | null;
     success?: boolean;
 };
+
+async function getScheduleName(scheduleId: string) {
+    const schedule = await prisma.onCallSchedule.findUnique({
+        where: { id: scheduleId },
+        select: { name: true }
+    });
+    return schedule?.name || 'On-call schedule';
+}
+
+async function notifyScheduleMembers(
+    scheduleId: string,
+    title: string,
+    message: string,
+    userIds?: string[]
+) {
+    const recipients = userIds && userIds.length > 0
+        ? userIds
+        : await getScheduleUserIds(scheduleId);
+
+    await createInAppNotifications({
+        userIds: recipients,
+        type: 'SCHEDULE',
+        title,
+        message,
+        entityType: 'SCHEDULE',
+        entityId: scheduleId
+    });
+}
 
 export async function createSchedule(_prevState: ScheduleFormState, formData: FormData): Promise<ScheduleFormState> {
     try {
@@ -72,6 +101,13 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
             }
         });
 
+        const scheduleName = await getScheduleName(scheduleId);
+        await notifyScheduleMembers(
+            scheduleId,
+            'Schedule updated',
+            `Layer "${name}" added to ${scheduleName}`
+        );
+
         revalidatePath(`/schedules/${scheduleId}`);
         revalidatePath('/schedules');
     } catch (error) {
@@ -86,6 +122,11 @@ export async function deleteLayer(scheduleId: string, layerId: string): Promise<
         return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     try {
+        const layer = await prisma.onCallLayer.findUnique({
+            where: { id: layerId },
+            select: { name: true }
+        });
+
         await prisma.$transaction([
             prisma.onCallLayerUser.deleteMany({
                 where: { layerId }
@@ -94,6 +135,13 @@ export async function deleteLayer(scheduleId: string, layerId: string): Promise<
                 where: { id: layerId }
             })
         ]);
+
+        const scheduleName = await getScheduleName(scheduleId);
+        await notifyScheduleMembers(
+            scheduleId,
+            'Schedule updated',
+            `Layer "${layer?.name || 'Layer'}" removed from ${scheduleName}`
+        );
 
         revalidatePath(`/schedules/${scheduleId}`);
         revalidatePath('/schedules');
@@ -162,6 +210,14 @@ export async function addLayerUser(layerId: string, formData: FormData): Promise
     });
 
     if (layer) {
+        const scheduleName = await getScheduleName(layer.scheduleId);
+        await notifyScheduleMembers(
+            layer.scheduleId,
+            'Schedule updated',
+            `You were added to ${scheduleName}`,
+            [userId]
+        );
+
         revalidatePath(`/schedules/${layer.scheduleId}`);
         revalidatePath('/schedules');
     }
@@ -212,6 +268,13 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
         });
 
         if (layer) {
+            const scheduleName = await getScheduleName(layer.scheduleId);
+            await notifyScheduleMembers(
+                layer.scheduleId,
+                'Schedule updated',
+                `Layer "${name}" updated in ${scheduleName}`
+            );
+
             revalidatePath(`/schedules/${layer.scheduleId}`);
             revalidatePath('/schedules');
         }
@@ -282,6 +345,14 @@ export async function removeLayerUser(layerId: string, userId: string): Promise<
         });
 
         if (layer) {
+            const scheduleName = await getScheduleName(layer.scheduleId);
+            await notifyScheduleMembers(
+                layer.scheduleId,
+                'Schedule updated',
+                `You were removed from ${scheduleName}`,
+                [userId]
+            );
+
             revalidatePath(`/schedules/${layer.scheduleId}`);
         }
     } catch (error) {
@@ -326,6 +397,17 @@ export async function createOverride(scheduleId: string, formData: FormData): Pr
             }
         });
 
+        const scheduleName = await getScheduleName(scheduleId);
+        const recipientIds = replacesUserId && replacesUserId !== userId
+            ? [userId, replacesUserId]
+            : [userId];
+        await notifyScheduleMembers(
+            scheduleId,
+            'Schedule override',
+            `Override set on ${scheduleName}`,
+            recipientIds
+        );
+
         revalidatePath(`/schedules/${scheduleId}`);
     } catch (error) {
         return { error: error instanceof Error ? error.message : 'Failed to create override.' };
@@ -339,9 +421,27 @@ export async function deleteOverride(scheduleId: string, overrideId: string): Pr
         return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
     }
     try {
+        const override = await prisma.onCallOverride.findUnique({
+            where: { id: overrideId },
+            select: { userId: true, replacesUserId: true }
+        });
+
         await prisma.onCallOverride.delete({
             where: { id: overrideId }
         });
+
+        if (override) {
+            const scheduleName = await getScheduleName(scheduleId);
+            const recipientIds = override.replacesUserId && override.replacesUserId !== override.userId
+                ? [override.userId, override.replacesUserId]
+                : [override.userId];
+            await notifyScheduleMembers(
+                scheduleId,
+                'Schedule override',
+                `Override removed from ${scheduleName}`,
+                recipientIds
+            );
+        }
 
         revalidatePath(`/schedules/${scheduleId}`);
     } catch (error) {

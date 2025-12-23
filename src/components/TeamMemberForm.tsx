@@ -30,7 +30,9 @@ export default function TeamMemberForm({
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
+        // Capture the form element before the async transition so we don't rely on the event later
+        const form = e.currentTarget;
+        const formData = new FormData(form);
         const userId = formData.get('userId') as string;
         const role = formData.get('role') as string;
         const userName = availableUsers.find(u => u.id === userId)?.name || 'User';
@@ -41,7 +43,7 @@ export default function TeamMemberForm({
                 showToast(result.error, 'error');
             } else {
                 showToast(`${userName} added as ${role}`, 'success');
-                e.currentTarget.reset();
+                form.reset();
             }
         });
     };
