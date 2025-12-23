@@ -419,13 +419,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   return (
     <main style={{ paddingBottom: '2rem' }}>
-      {/* Command Center Hero Section */}
       <div className="command-center-hero" style={{
-        background: systemStatus.label === 'OPERATIONAL'
-          ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' // Green for operational
-          : systemStatus.label === 'DEGRADED'
-            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // Orange for degraded
-            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'  // Red for critical
+        background: 'var(--gradient-primary)', // Match sidebar theme
+        boxShadow: '4px 0 24px rgba(211, 47, 47, 0.15)' // Match sidebar shadow
       }}>
         <div className="command-center-header">
           <div className="command-center-left">
