@@ -1,73 +1,65 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Skeleton, { SkeletonCard, SkeletonText } from './Skeleton';
+import Skeleton, { SkeletonText } from './Skeleton';
 import Spinner from './Spinner';
 
 interface LoadingWrapperProps {
   isLoading: boolean;
   children: ReactNode;
-  skeleton?: 'default' | 'card' | 'text' | 'custom';
-  customSkeleton?: ReactNode;
-  spinner?: boolean;
-  spinnerSize?: 'sm' | 'md' | 'lg';
-  minHeight?: string;
+  fallback?: ReactNode;
+  variant?: 'skeleton' | 'spinner' | 'custom';
+  skeletonLines?: number;
+  className?: string;
 }
 
 /**
- * LoadingWrapper component for handling loading states
+ * LoadingWrapper component for conditional loading states
  * 
  * @example
- * <LoadingWrapper isLoading={loading} skeleton="card">
- *   <YourContent />
+ * <LoadingWrapper isLoading={isLoading} variant="skeleton" skeletonLines={3}>
+ *   <DataComponent data={data} />
  * </LoadingWrapper>
  */
 export default function LoadingWrapper({
   isLoading,
   children,
-  skeleton = 'default',
-  customSkeleton,
-  spinner = false,
-  spinnerSize = 'md',
-  minHeight = '200px',
+  fallback,
+  variant = 'spinner',
+  skeletonLines = 3,
+  className = '',
 }: LoadingWrapperProps) {
   if (isLoading) {
-    if (spinner) {
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+
+    if (variant === 'skeleton') {
       return (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight,
-            padding: 'var(--spacing-8)',
-          }}
-        >
-          <Spinner size={spinnerSize} variant="primary" />
+        <div className={className}>
+          <SkeletonText lines={skeletonLines} />
         </div>
       );
     }
 
-    if (customSkeleton) {
-      return <>{customSkeleton}</>;
+    if (variant === 'spinner') {
+      return (
+        <div 
+          className={className}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '2rem',
+          }}
+        >
+          <Spinner size="md" variant="primary" />
+        </div>
+      );
     }
 
-    switch (skeleton) {
-      case 'card':
-        return <SkeletonCard />;
-      case 'text':
-        return <SkeletonText lines={3} />;
-      case 'custom':
-        return <>{customSkeleton}</>;
-      default:
-        return (
-          <div style={{ minHeight, padding: 'var(--spacing-4)' }}>
-            <Skeleton variant="rectangular" width="100%" height={minHeight} />
-          </div>
-        );
-    }
+    return null;
   }
 
   return <>{children}</>;
 }
-

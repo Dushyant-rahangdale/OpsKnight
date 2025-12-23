@@ -59,9 +59,18 @@ export default async function StatusPageSettingsPage() {
         orderBy: { name: 'asc' },
     });
 
+    const formattedStatusPage = {
+        ...statusPage,
+        announcements: statusPage.announcements.map((announcement) => ({
+            ...announcement,
+            startDate: announcement.startDate.toISOString(),
+            endDate: announcement.endDate ? announcement.endDate.toISOString() : null
+        }))
+    };
+
     return (
         <StatusPageConfig
-            statusPage={statusPage}
+            statusPage={formattedStatusPage}
             allServices={allServices}
         />
     );

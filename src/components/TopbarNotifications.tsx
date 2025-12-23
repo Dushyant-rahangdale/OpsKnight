@@ -20,6 +20,8 @@ export default function TopbarNotifications() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // Import LoadingWrapper dynamically to avoid SSR issues
     const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchNotifications = useCallback(async () => {
