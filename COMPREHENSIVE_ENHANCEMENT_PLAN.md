@@ -1021,7 +1021,7 @@ This document provides a comprehensive analysis of the OpsGuard incident managem
 ---
 
 **Last Updated:** January 2025
-**Status:** Active Development - 80% Complete Overall
+**Status:** Active Development - 87% Complete Overall
 **Latest Updates (January 2025):**
 - ✅ Fixed N+1 query issues in user notifications
 - ✅ Added resource-level authorization to incident actions
@@ -1050,6 +1050,29 @@ This document provides a comprehensive analysis of the OpsGuard incident managem
 - Created `server-action-helpers.ts` utility for consistent error handling
 - Better validation error messages with context
 - Added unit tests for error message utilities
+
+### Input Validation Improvements ✅
+**Date:** January 2025
+
+**Implementation:**
+- **Email Validation:**
+  - Added email validators to `validation.ts` (Zod schemas)
+  - Created `form-validation.ts` with client-side validation helpers
+  - Real-time email validation in UserCreateForm
+  - Server-side email format validation in users/actions.ts
+- **URL Validation:**
+  - URL validators added to validation schemas
+  - Client-side URL validation helpers
+  - Proper URL format checking (http:// or https://)
+- **Additional Validation:**
+  - Dedup key format validation
+  - Phone number validation helpers
+  - Better error messages for all validation failures
+- **Files Created/Modified:**
+  - `src/lib/form-validation.ts` - Client-side validation utilities
+  - `src/lib/validation.ts` - Enhanced with email/URL validators
+  - `src/components/UserCreateForm.tsx` - Real-time validation
+  - `src/app/(app)/users/actions.ts` - Server-side email validation
 
 ---
 
