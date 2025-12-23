@@ -67,7 +67,7 @@ export default function UserCreateForm({ action, className = '' }: Props) {
             <SubmitButton />
             {state?.error && (
                 <div className="form-error">
-                    {state.error}
+                    {getUserFriendlyError(state.error)}
                 </div>
             )}
             {state?.inviteUrl && (

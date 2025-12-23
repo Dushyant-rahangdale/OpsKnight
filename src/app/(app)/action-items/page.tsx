@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -33,7 +34,7 @@ export default async function ActionItemsPage({
     const postmortems = await prisma.postmortem.findMany({
         where: {
             actionItems: {
-                not: null,
+                not: Prisma.JsonNull,
             },
         },
         include: {
@@ -180,4 +181,3 @@ export default async function ActionItemsPage({
         </div>
     );
 }
-

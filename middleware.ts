@@ -30,6 +30,9 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith('/api')) {
         const originAllowed = origin && CORS_ALLOWED_ORIGINS.includes(origin);
         const applyRateLimit = !pathname.startsWith('/api/cron') && !pathname.startsWith('/api/events/stream');
+        const clientId = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            || req.headers.get('x-real-ip')
+            || 'unknown';
 
         if (originAllowed) {
             const corsHeaders = {
@@ -45,7 +48,7 @@ export async function middleware(req: NextRequest) {
             }
 
             if (applyRateLimit) {
-                const rateKey = `ip:${req.ip || 'unknown'}:${pathname}`;
+                const rateKey = `ip:${clientId}:${pathname}`;
                 const rate = checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
                 if (!rate.allowed) {
                     const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
@@ -64,7 +67,7 @@ export async function middleware(req: NextRequest) {
         }
 
         if (applyRateLimit) {
-            const rateKey = `ip:${req.ip || 'unknown'}:${pathname}`;
+            const rateKey = `ip:${clientId}:${pathname}`;
             const rate = checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
             if (!rate.allowed) {
                 const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);

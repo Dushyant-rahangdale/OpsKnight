@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authenticateApiKey, hasApiScopes } from '@/lib/api-auth';
-import { checkRateLimit } from '@/lib/rate-limit';
 import { jsonError, jsonOk } from '@/lib/api-response';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { IncidentPatchSchema } from '@/lib/validation';
 import { logger } from '@/lib/logger';
 

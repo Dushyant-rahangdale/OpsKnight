@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 
 type FormState = {
     error?: string | null;
@@ -45,7 +46,7 @@ export default function TeamCreateForm({ action }: Props) {
                 <SubmitButton />
                 {state?.error ? (
                     <span style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>
-                        {state.error}
+                        {getUserFriendlyError(state.error)}
                     </span>
                 ) : null}
             </div>

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import MetricCard from '@/components/analytics/MetricCard';
 import ChartCard from '@/components/analytics/ChartCard';
@@ -146,8 +147,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
 
     const teamServiceIdList = teamServiceIds?.map((service) => service.id) ?? null;
 
-    const statusWhere = statusFilter !== 'ALL' ? { status: statusFilter } : null;
-    const urgencyWhere = urgencyFilter !== 'ALL' ? { urgency: urgencyFilter } : null;
+    const statusValue = statusFilter !== 'ALL' ? (statusFilter as (typeof allowedStatus)[number]) : null;
+    const urgencyValue = urgencyFilter !== 'ALL' ? (urgencyFilter as (typeof allowedUrgency)[number]) : null;
+    const statusWhere = statusValue ? { status: statusValue } : null;
+    const urgencyWhere = urgencyValue ? { urgency: urgencyValue } : null;
     const serviceWhere = serviceId
         ? { serviceId }
         : teamServiceIdList
@@ -155,8 +158,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
             : null;
     const assigneeWhere = assigneeId ? { assigneeId } : null;
 
-    const activeStatusWhere = statusFilter !== 'ALL' ? { status: statusFilter } : { status: { not: 'RESOLVED' } };
-    const activeWhere = {
+    const activeStatusWhere = statusValue ? { status: statusValue } : { status: { not: 'RESOLVED' as const } };
+    const activeWhere: Prisma.IncidentWhereInput = {
         ...activeStatusWhere,
         ...(serviceWhere ?? {}),
         ...(urgencyWhere ?? {}),
