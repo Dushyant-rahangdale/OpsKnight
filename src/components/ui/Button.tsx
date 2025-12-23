@@ -135,6 +135,8 @@ export default function Button({
       className={`ui-button ui-button-${variant} ui-button-${size} ${className}`}
       style={combinedStyles}
       disabled={isDisabled}
+      aria-disabled={isDisabled}
+      aria-busy={isLoading}
       onMouseEnter={(e) => {
         if (!isDisabled) {
           Object.assign(e.currentTarget.style, hoverStyles[variant]);
