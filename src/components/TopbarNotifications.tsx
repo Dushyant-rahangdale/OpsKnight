@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useModalState } from '@/hooks/useModalState';
 
 type Notification = {
@@ -22,53 +22,45 @@ export default function TopbarNotifications() {
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Fetch notifications
-    useEffect(() => {
-        async function fetchNotifications() {
-            try {
-                setLoading(true);
-                const response = await fetch('/api/notifications?limit=50');
-                if (response.ok) {
-                    const data = await response.json();
-                    setNotifications(data.notifications || []);
-                    setUnreadCount(data.unreadCount || 0);
-                } else {
-                    console.error('Failed to fetch notifications');
-                }
-            } catch (error) {
-                console.error('Error fetching notifications:', error);
-            } finally {
-                setLoading(false);
+    const fetchNotifications = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/notifications?limit=50');
+            if (response.ok) {
+                const data = await response.json();
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
+            } else {
+                console.error('Failed to fetch notifications');
             }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoading(false);
         }
+    }, []);
 
+    useEffect(() => {
         fetchNotifications();
         
         // Refresh notifications every 30 seconds
         const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchNotifications]);
 
     // Mark notifications as read when dropdown opens
     useEffect(() => {
         if (!open || unreadCount === 0) return;
 
         async function markAsRead() {
-            const unreadIds = notifications
-                .filter(n => n.unread)
-                .map(n => n.id);
-
-            if (unreadIds.length === 0) return;
-
             try {
                 const response = await fetch('/api/notifications', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ notificationIds: unreadIds })
+                    body: JSON.stringify({ markAllAsRead: true })
                 });
 
                 if (response.ok) {
-                    // Update local state
                     setNotifications((prev) =>
                         prev.map((notification) =>
                             notification.unread
@@ -83,10 +75,9 @@ export default function TopbarNotifications() {
             }
         }
 
-        // Delay marking as read slightly to show the unread state briefly
         const timer = setTimeout(markAsRead, 100);
         return () => clearTimeout(timer);
-    }, [open, unreadCount, notifications]);
+    }, [open, unreadCount]);
 
     useEffect(() => {
         if (!open) return;
@@ -230,10 +221,10 @@ export default function TopbarNotifications() {
                                             console.error('Error marking all as read:', error);
                                         }
                                     }
-                                    setOpen(false);
+                                    await fetchNotifications();
                                 }}
                             >
-                                {unreadCount > 0 ? 'Mark all as read' : 'View all notifications'}
+                                {unreadCount > 0 ? 'Mark all as read' : 'Refresh notifications'}
                             </button>
                         </div>
                     )}
@@ -242,4 +233,3 @@ export default function TopbarNotifications() {
         </div>
     );
 }
-

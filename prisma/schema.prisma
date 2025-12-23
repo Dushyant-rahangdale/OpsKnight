@@ -63,6 +63,13 @@ enum NotificationChannel {
   WEBHOOK
 }
 
+enum InAppNotificationType {
+  INCIDENT
+  SCHEDULE
+  TEAM
+  SERVICE
+}
+
 enum DigestLevel {
   HIGH
   ALL
@@ -107,6 +114,7 @@ model User {
   incidentNotes        IncidentNote[]
   postmortems          Postmortem[]
   notifications        Notification[]
+  inAppNotifications   InAppNotification[]
   incidentWatchers     IncidentWatcher[]
   auditLogs            AuditLog[]
   overrides            OnCallOverride[]       @relation("OverrideUser")
@@ -469,6 +477,23 @@ model Notification {
   @@index([userId]) // For querying notifications by user
   @@index([status, createdAt]) // For querying pending/failed notifications
   @@index([channel, status]) // For querying by channel and status
+}
+
+model InAppNotification {
+  id         String                 @id @default(cuid())
+  userId     String
+  type       InAppNotificationType
+  title      String
+  message    String
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  createdAt  DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model AuditLog {

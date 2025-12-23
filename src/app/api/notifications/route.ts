@@ -23,76 +23,58 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
-        // Build where clause
-        const where: any = {
+        const baseWhere = {
             userId: user.id
         };
 
-        // Fetch notifications with incident details
-        const notifications = await prisma.notification.findMany({
-            where,
-            take: limit,
-            orderBy: { createdAt: 'desc' },
-            include: {
-                incident: {
-                    select: {
-                        id: true,
-                        title: true,
-                        status: true,
-                        urgency: true,
-                        priority: true
-                    }
-                }
-            }
-        });
+        const where = unreadOnly
+            ? { ...baseWhere, readAt: null }
+            : baseWhere;
 
-        // Transform notifications to match component format
+        const [notifications, unreadCount, total] = await Promise.all([
+            prisma.inAppNotification.findMany({
+                where,
+                take: limit,
+                orderBy: { createdAt: 'desc' }
+            }),
+            prisma.inAppNotification.count({
+                where: { ...baseWhere, readAt: null }
+            }),
+            prisma.inAppNotification.count({
+                where: baseWhere
+            })
+        ]);
+
         const formattedNotifications = notifications.map((notification) => {
-            const incident = notification.incident;
             const timeAgo = getTimeAgo(notification.createdAt);
-            
-            // Determine notification type and content based on incident status
-            let type: 'incident' | 'service' | 'schedule' = 'incident';
-            let title = 'Incident Update';
-            let message = notification.message || '';
-
-            if (incident) {
-                if (incident.status === 'RESOLVED') {
-                    title = 'Incident Resolved';
-                    message = message || `Incident "${incident.title}" has been resolved`;
-                } else if (incident.status === 'ACKNOWLEDGED') {
-                    title = 'Incident Acknowledged';
-                    message = message || `Incident "${incident.title}" has been acknowledged`;
-                } else {
-                    title = 'New Incident';
-                    message = message || `New incident "${incident.title}" requires attention`;
-                }
-            }
+            const typeKey = notification.type.toLowerCase();
+            const typeMap: Record<string, 'incident' | 'service' | 'schedule'> = {
+                incident: 'incident',
+                schedule: 'schedule',
+                service: 'service',
+                team: 'service'
+            };
+            const type = typeMap[typeKey] || 'incident';
+            const incidentId = notification.entityType === 'INCIDENT'
+                ? notification.entityId
+                : null;
 
             return {
                 id: notification.id,
-                title,
-                message,
+                title: notification.title,
+                message: notification.message,
                 time: timeAgo,
-                unread: notification.status === 'PENDING' || notification.status === 'SENT',
+                unread: !notification.readAt,
                 type,
-                incidentId: notification.incidentId,
-                channel: notification.channel,
+                incidentId,
                 createdAt: notification.createdAt.toISOString()
             };
         });
 
-        // Filter unread if requested
-        const filteredNotifications = unreadOnly
-            ? formattedNotifications.filter(n => n.unread)
-            : formattedNotifications;
-
-        const unreadCount = formattedNotifications.filter(n => n.unread).length;
-
         return NextResponse.json({
-            notifications: filteredNotifications,
+            notifications: formattedNotifications,
             unreadCount,
-            total: notifications.length
+            total
         });
     } catch (error) {
         console.error('Notifications API error:', error);
@@ -123,15 +105,13 @@ export async function PATCH(req: NextRequest) {
         const { notificationIds, markAllAsRead } = body;
 
         if (markAllAsRead) {
-            // Mark all user notifications as delivered (read)
-            await prisma.notification.updateMany({
+            await prisma.inAppNotification.updateMany({
                 where: {
                     userId: user.id,
-                    status: { in: ['PENDING', 'SENT'] }
+                    readAt: null
                 },
                 data: {
-                    status: 'DELIVERED',
-                    deliveredAt: new Date()
+                    readAt: new Date()
                 }
             });
 
@@ -139,15 +119,13 @@ export async function PATCH(req: NextRequest) {
         }
 
         if (notificationIds && Array.isArray(notificationIds)) {
-            // Mark specific notifications as read
-            await prisma.notification.updateMany({
+            await prisma.inAppNotification.updateMany({
                 where: {
                     id: { in: notificationIds },
                     userId: user.id
                 },
                 data: {
-                    status: 'DELIVERED',
-                    deliveredAt: new Date()
+                    readAt: new Date()
                 }
             });
 

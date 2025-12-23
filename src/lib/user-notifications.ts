@@ -12,6 +12,7 @@ import prisma from './prisma';
 import { sendNotification, NotificationChannel } from './notifications';
 import { notifySlackForIncident } from './slack';
 import { isChannelAvailable } from './notification-providers';
+import { createInAppNotifications } from './in-app-notifications';
 
 /**
  * Get user's enabled notification channels based on their preferences
@@ -140,6 +141,24 @@ export async function sendServiceNotifications(
         // Remove duplicates
         const uniqueRecipients = [...new Set(recipients)];
 
+        const eventTitle = eventType === 'triggered'
+            ? 'New Incident'
+            : eventType === 'acknowledged'
+                ? 'Incident Acknowledged'
+                : eventType === 'resolved'
+                    ? 'Incident Resolved'
+                    : 'Incident Updated';
+        const eventMessage = `[${incident.service.name}] ${incident.title}`;
+
+        await createInAppNotifications({
+            userIds: uniqueRecipients,
+            type: 'INCIDENT',
+            title: eventTitle,
+            message: eventMessage,
+            entityType: 'INCIDENT',
+            entityId: incident.id
+        });
+
         if (uniqueRecipients.length === 0) {
             // No specific recipients, but still send service-level Slack notification if configured
             if (incident.service.slackWebhookUrl) {
@@ -175,4 +194,3 @@ export async function sendServiceNotifications(
         return { success: false, errors: [error.message] };
     }
 }
-
