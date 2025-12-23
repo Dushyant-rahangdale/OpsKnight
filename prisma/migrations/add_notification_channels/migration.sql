@@ -9,3 +9,6 @@ ALTER TABLE "Service" ADD COLUMN "notificationChannels" TEXT[] DEFAULT ARRAY['EM
 
 
 
+
+
+

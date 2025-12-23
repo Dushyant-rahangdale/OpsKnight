@@ -60,3 +60,6 @@ ALTER TABLE "SearchPresetUsage" ADD CONSTRAINT "SearchPresetUsage_presetId_fkey"
 -- AddForeignKey
 ALTER TABLE "SearchPresetUsage" ADD CONSTRAINT "SearchPresetUsage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
+
+

@@ -51,3 +51,6 @@ After setup, verify the models are available:
 - Visit `/settings/search-presets` to manage presets
 - Check that you can create and use search presets
 
+
+
+

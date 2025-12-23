@@ -32,3 +32,6 @@ CREATE INDEX "BackgroundJob_status_scheduledAt_idx" ON "BackgroundJob"("status",
 -- CreateIndex
 CREATE INDEX "BackgroundJob_scheduledAt_idx" ON "BackgroundJob"("scheduledAt");
 
+
+
+

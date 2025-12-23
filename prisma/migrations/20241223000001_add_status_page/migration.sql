@@ -81,3 +81,6 @@ ALTER TABLE "StatusPageAnnouncement" ADD CONSTRAINT "StatusPageAnnouncement_stat
 -- AddForeignKey
 ALTER TABLE "StatusPageAnnouncement" ADD CONSTRAINT "StatusPageAnnouncement_incidentId_fkey" FOREIGN KEY ("incidentId") REFERENCES "Incident"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+
+
+

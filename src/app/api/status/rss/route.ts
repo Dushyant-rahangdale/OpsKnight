@@ -89,3 +89,6 @@ function escapeXml(unsafe: string | null): string {
         .replace(/'/g, '&apos;');
 }
 
+
+
+

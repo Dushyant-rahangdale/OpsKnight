@@ -14,11 +14,9 @@ import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
 import DashboardStatusChart from '@/components/DashboardStatusChart';
 import DashboardSavedFilters from '@/components/DashboardSavedFilters';
 import DashboardNotifications from '@/components/DashboardNotifications';
-import DashboardTemplates from '@/components/DashboardTemplates';
 import DashboardPeriodComparison from '@/components/DashboardPeriodComparison';
 import DashboardServiceHealth from '@/components/DashboardServiceHealth';
 import DashboardUrgencyDistribution from '@/components/DashboardUrgencyDistribution';
-import DashboardTemplateWrapper from '@/components/DashboardTemplateWrapper';
 import DashboardSLAMetrics from '@/components/DashboardSLAMetrics';
 import { calculateSLAMetrics } from '@/lib/sla';
 import { Suspense } from 'react';
@@ -41,7 +39,7 @@ function buildPaginationUrl(baseParams: URLSearchParams, page: number): string {
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const session = await getServerSession(authOptions);
   const awaitedSearchParams = await searchParams;
-  
+
   // Extract search params
   const status = typeof awaitedSearchParams.status === 'string' ? awaitedSearchParams.status : undefined;
   const assignee = typeof awaitedSearchParams.assignee === 'string' ? awaitedSearchParams.assignee : undefined;
@@ -219,7 +217,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         const acked = i.acknowledgedAt!.getTime();
         return (acked - created) / (1000 * 60);
       });
-    
+
     if (ackTimes.length > 0) {
       mttaMinutes = ackTimes.reduce((sum, time) => sum + time, 0) / ackTimes.length;
     }
@@ -349,7 +347,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     if (range === 'all') return { current: 'All Time', previous: 'All Time' };
     const days = getDaysFromRange(range);
     if (days === 0) return { current: 'All Time', previous: 'All Time' };
-    
+
     return {
       current: `Last ${days} days`,
       previous: `Previous ${days} days`
@@ -388,7 +386,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   // Calculate total incidents for the selected range
   const totalInRange = totalCount;
-  
+
   // Calculate current period metrics (filtered by date range)
   const currentPeriodOpen = await prisma.incident.count({
     where: {
@@ -396,14 +394,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       ...dateFilter
     }
   });
-  
+
   const currentPeriodAcknowledged = await prisma.incident.count({
     where: {
       status: 'ACKNOWLEDGED',
       ...dateFilter
     }
   });
-  
+
   const currentPeriodCritical = await prisma.incident.count({
     where: {
       status: { not: 'RESOLVED' },
@@ -422,7 +420,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   return (
     <main style={{ maxWidth: '1400px', margin: '0 auto', paddingBottom: '2rem' }}>
       {/* Command Center Hero Section */}
-      <div className="command-center-hero">
+      <div className="command-center-hero" style={{
+        background: systemStatus.label === 'OPERATIONAL'
+          ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' // Green for operational
+          : systemStatus.label === 'DEGRADED'
+            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // Orange for degraded
+            : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'  // Red for critical
+      }}>
         <div className="command-center-header">
           <div className="command-center-left">
             <h1 className="command-center-title">Command Center</h1>
@@ -437,16 +441,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <div className="command-center-time-range">
               <Suspense fallback={
-                <div style={{ 
-                  height: '40px', 
-                  display: 'flex', 
+                <div style={{
+                  height: '40px',
+                  display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--spacing-2)'
                 }}>
-                  <div style={{ 
-                    width: '120px', 
-                    height: '32px', 
-                    background: 'var(--color-neutral-200)', 
+                  <div style={{
+                    width: '120px',
+                    height: '32px',
+                    background: 'var(--color-neutral-200)',
                     borderRadius: 'var(--radius-md)',
                     animation: 'skeleton-pulse 1.5s ease-in-out infinite'
                   }} />
@@ -458,8 +462,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </div>
           <div className="command-center-actions">
             <Suspense fallback={
-              <div style={{ 
-                width: '100px', 
+              <div style={{
+                width: '100px',
                 height: '40px',
                 background: 'var(--color-neutral-200)',
                 borderRadius: 'var(--radius-md)',
@@ -469,8 +473,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               <DashboardRefresh />
             </Suspense>
             <Suspense fallback={
-              <div style={{ 
-                width: '100px', 
+              <div style={{
+                width: '100px',
                 height: '40px',
                 background: 'var(--color-neutral-200)',
                 borderRadius: 'var(--radius-md)',
@@ -495,7 +499,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </Suspense>
           </div>
         </div>
-        
+
         {/* Metrics in one line */}
         <div className="command-center-metrics">
           <div className="command-metric-card">
@@ -519,32 +523,36 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
 
       {/* Main Content Grid - Two Column Layout (matching users page) */}
-      <div className="dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 320px', gap: '1.5rem' }}>
+      <div className="dashboard-main-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr)', // Mobile: single column
+        gap: '1.5rem'
+      }}>
         {/* Left Column - Filters and Table */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Filters Panel - White glass panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ 
-                width: '36px', 
-                height: '36px', 
-                borderRadius: '10px', 
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                  <path d="M3 6l3 3m0 0l3-3m-3 3v12m6-9h6m-6 3h6m-6 3h6m-6 3h6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 6l3 3m0 0l3-3m-3 3v12m6-9h6m-6 3h6m-6 3h6m-6 3h6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h2 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0 }}>Filter Incidents</h2>
             </div>
-            
+
             {/* Saved Filters */}
             <div style={{ marginBottom: '1rem' }}>
               <Suspense fallback={
-                <div style={{ 
+                <div style={{
                   height: '32px',
                   background: 'var(--color-neutral-200)',
                   borderRadius: 'var(--radius-md)',
@@ -555,11 +563,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 <DashboardSavedFilters />
               </Suspense>
             </div>
-            
+
             {/* Quick Filters */}
             <div style={{ marginBottom: '1rem' }}>
               <Suspense fallback={
-                <div style={{ 
+                <div style={{
                   display: 'flex',
                   gap: 'var(--spacing-2)',
                   height: '40px'
@@ -584,7 +592,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
             {/* Filter Chips */}
             <Suspense fallback={
-              <div style={{ 
+              <div style={{
                 display: 'flex',
                 gap: 'var(--spacing-2)',
                 flexWrap: 'wrap',
@@ -621,28 +629,28 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* Incidents Table Panel - White glass panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '0', overflow: 'hidden' }}>
-            <div style={{ 
-              padding: '1.5rem', 
-              borderBottom: '1px solid var(--border)', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              flexWrap: 'wrap', 
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
               gap: '1rem',
               background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ 
-                  width: '36px', 
-                  height: '36px', 
-                  borderRadius: '10px', 
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
                   background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div>
@@ -652,13 +660,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   </p>
                 </div>
               </div>
-              <Link 
-                href="/incidents" 
+              <Link
+                href="/incidents"
                 className="dashboard-view-all-link"
-                style={{ 
-                  fontSize: '0.85rem', 
-                  color: 'var(--primary)', 
-                  textDecoration: 'none', 
+                style={{
+                  fontSize: '0.85rem',
+                  color: 'var(--primary)',
+                  textDecoration: 'none',
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
@@ -674,29 +682,29 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </Link>
             </div>
 
-            <div 
+            <div
               className="incident-table-scroll"
-              style={{ 
+              style={{
                 overflowX: 'auto'
               }}>
               {incidents.length === 0 ? (
-                <div style={{ 
-                  padding: '4rem 2rem', 
-                  textAlign: 'center', 
+                <div style={{
+                  padding: '4rem 2rem',
+                  textAlign: 'center',
                   color: 'var(--text-muted)',
                   background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
                   borderTop: '1px solid var(--border)',
                   borderBottom: '1px solid var(--border)'
                 }}>
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3, margin: '0 auto 1rem' }}>
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <p style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>No incidents found</p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Try adjusting your filters to see more results.</p>
                 </div>
               ) : (
-                <IncidentTable 
-                  incidents={incidents} 
+                <IncidentTable
+                  incidents={incidents}
                   sortBy={sortBy}
                   sortOrder={sortOrder}
                 />
@@ -705,13 +713,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
             {/* Pagination - Enhanced style */}
             {totalPages > 1 && (
-              <div style={{ 
-                padding: '1.25rem 1.5rem', 
-                borderTop: '1px solid var(--border)', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                gap: '1rem', 
+              <div style={{
+                padding: '1.25rem 1.5rem',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '1rem',
                 flexWrap: 'wrap',
                 background: 'linear-gradient(135deg, #fafbfc 0%, #ffffff 100%)'
               }}>
@@ -787,28 +795,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
         {/* Right Sidebar - All Widgets (matching users page style) */}
         <aside className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Dashboard Templates */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Dashboard Templates</h3>
-            <Suspense fallback={null}>
-              <DashboardTemplates />
-            </Suspense>
-          </div>
-
           {/* Quick Actions Panel */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '10px', 
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div>
@@ -819,13 +819,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Link 
-                href="/incidents/create" 
-                className="glass-button primary" 
-                style={{ 
-                  textDecoration: 'none', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+              <Link
+                href="/incidents/create"
+                className="glass-button primary"
+                style={{
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
                   padding: '0.6rem 1rem'
@@ -836,20 +836,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 </svg>
                 Trigger Incident
               </Link>
-              <Link 
-                href="/analytics" 
-                className="glass-button" 
-                style={{ 
-                  textDecoration: 'none', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+              <Link
+                href="/analytics"
+                className="glass-button"
+                style={{
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
                   padding: '0.6rem 1rem'
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 View Analytics
               </Link>
@@ -857,20 +857,19 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           </div>
 
           {/* On-Call Widget - Activity */}
-          <DashboardTemplateWrapper widgetType="showActivity">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -878,10 +877,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </h3>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-              <Link href="/schedules" className="dashboard-link-hover" style={{ 
-                fontSize: '0.85rem', 
-                color: 'var(--primary)', 
-                textDecoration: 'none', 
+              <Link href="/schedules" className="dashboard-link-hover" style={{
+                fontSize: '0.85rem',
+                color: 'var(--primary)',
+                textDecoration: 'none',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
@@ -900,31 +899,31 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 </div>
               ) : (
                 activeShifts.slice(0, 3).map(shift => (
-                  <div 
-                    key={shift.id} 
+                  <div
+                    key={shift.id}
                     className="dashboard-oncall-card"
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0.75rem', 
-                      padding: '0.875rem', 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.875rem',
                       background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                      borderRadius: '10px', 
+                      borderRadius: '10px',
                       border: '1px solid var(--border)',
                       transition: 'all 0.2s ease',
                       cursor: 'pointer'
                     }}
                   >
-                    <div style={{ 
-                      width: '40px', 
-                      height: '40px', 
-                      borderRadius: '10px', 
-                      background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%)', 
-                      color: 'var(--primary)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      fontWeight: '700', 
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, rgba(211, 47, 47, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%)',
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '700',
                       fontSize: '0.9rem',
                       border: '1px solid rgba(211, 47, 47, 0.2)'
                     }}>
@@ -936,8 +935,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity: 0.5 }}>
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round"/>
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         {shift.schedule.name}
                       </div>
@@ -947,23 +946,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               )}
             </div>
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Performance Metrics Widget */}
-          <DashboardTemplateWrapper widgetType="showPerformance">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -977,35 +974,31 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               resolveSlaRate={slaMetrics.resolveCompliance}
             />
           </div>
-          </DashboardTemplateWrapper>
 
           {/* SLA Metrics Widget - Enhanced SLA Tracking */}
-          <DashboardTemplateWrapper widgetType="showMetrics">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Loading SLA metrics...</div>}>
-              <DashboardSLAMetrics 
+              <DashboardSLAMetrics
                 metrics={slaMetrics}
                 period={range === 'all' ? 'All time' : range === 'custom' ? 'Custom period' : `Last ${range} days`}
               />
             </Suspense>
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Status Distribution - Charts */}
-          <DashboardTemplateWrapper widgetType="showCharts">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
-                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1027,23 +1020,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </div>
             </div>
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Advanced Metrics - Metrics */}
-          <DashboardTemplateWrapper widgetType="showMetrics">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2">
-                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1057,26 +1048,24 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               acknowledgedIncidents={allAcknowledgedCount}
               criticalIncidents={allCriticalIncidentsCount}
               unassignedIncidents={unassignedCount}
-                servicesCount={services.length}
-              />
+              servicesCount={services.length}
+            />
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Period Comparison Widget - Comparison */}
-          <DashboardTemplateWrapper widgetType="showComparison">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1102,23 +1091,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               previousPeriodLabel={periodLabels.previous}
             />
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Service Health Widget - Service Health */}
-          <DashboardTemplateWrapper widgetType="showServiceHealth">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1127,23 +1114,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <DashboardServiceHealth services={servicesWithIncidents} />
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Urgency Distribution - Charts */}
-          <DashboardTemplateWrapper widgetType="showCharts">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1152,23 +1137,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </div>
             <DashboardUrgencyDistribution data={urgencyDistribution} />
           </div>
-          </DashboardTemplateWrapper>
 
           {/* Notifications Widget */}
-          <DashboardTemplateWrapper widgetType="showActivity">
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ 
-                width: '32px', 
-                height: '32px', 
-                borderRadius: '8px', 
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
@@ -1176,13 +1159,12 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
               </h3>
             </div>
             <Suspense fallback={null}>
-              <DashboardNotifications 
+              <DashboardNotifications
                 criticalCount={allCriticalIncidentsCount}
                 unassignedCount={unassignedCount}
               />
             </Suspense>
           </div>
-          </DashboardTemplateWrapper>
         </aside>
       </div>
     </main>

@@ -37,3 +37,6 @@ ALTER TABLE "Postmortem" ADD CONSTRAINT "Postmortem_incidentId_fkey" FOREIGN KEY
 -- AddForeignKey
 ALTER TABLE "Postmortem" ADD CONSTRAINT "Postmortem_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+
+
+

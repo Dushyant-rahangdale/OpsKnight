@@ -122,3 +122,6 @@
 - Mobile browsers (iOS Safari, Chrome Mobile)
 - Responsive design works across all screen sizes
 
+
+
+

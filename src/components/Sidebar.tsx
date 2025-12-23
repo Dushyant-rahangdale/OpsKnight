@@ -198,12 +198,11 @@ export default function Sidebar() {
     const renderNavItem = (item: NavItem) => {
         const active = isActive(item.href);
         const showBadge = item.href === '/incidents' && activeIncidentsCount !== null && activeIncidentsCount > 0;
-        
+
         return (
             <Link
                 key={item.href}
                 href={item.href}
-                className={`nav-item ${active ? 'active' : ''}`}
                 className={`nav-item ${active ? 'active' : ''}`}
                 style={{
                     padding: '0.75rem 1rem',
@@ -227,13 +226,13 @@ export default function Sidebar() {
                     }
                 }}
             >
-                <span 
-                    className="nav-icon" 
-                    style={{ 
-                        width: '22px', 
-                        height: '22px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                <span
+                    className="nav-icon"
+                    style={{
+                        width: '22px',
+                        height: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
                         opacity: active ? 1 : 0.9,
@@ -244,22 +243,22 @@ export default function Sidebar() {
                 </span>
                 <span style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', flex: 1 }}>{item.label}</span>
                 {showBadge && (
-                    <span 
+                    <span
                         aria-label={`${activeIncidentsCount} active incidents`}
                         style={{
-                        minWidth: '20px',
-                        height: '20px',
-                        padding: '0 6px',
-                        background: '#ef4444',
-                        color: 'white',
-                        fontSize: '0.7rem',
-                        fontWeight: '700',
-                        borderRadius: 'var(--radius-full)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}>
+                            minWidth: '20px',
+                            height: '20px',
+                            padding: '0 6px',
+                            background: '#ef4444',
+                            color: 'white',
+                            fontSize: '0.7rem',
+                            fontWeight: '700',
+                            borderRadius: 'var(--radius-full)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}>
                         {activeIncidentsCount > 99 ? '99+' : activeIncidentsCount}
                     </span>
                 )}
@@ -355,7 +354,7 @@ export default function Sidebar() {
         <>
             <MobileMenuButton />
             <MobileBackdrop />
-            <aside 
+            <aside
                 className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
                 style={{
                     width: isMobile ? '280px' : 'var(--sidebar-width)',
@@ -366,211 +365,212 @@ export default function Sidebar() {
                     height: '100vh',
                     position: isMobile ? 'fixed' : 'sticky',
                     top: 0,
-                    left: isMobile ? (isMobileMenuOpen ? 0 : '-280px') : 0,
+                    left: 0,
                     color: 'white',
                     boxShadow: '4px 0 24px rgba(211, 47, 47, 0.15)',
                     overflow: 'hidden',
                     zIndex: 1000,
-                    transition: isMobile ? 'left var(--transition-slow) var(--ease-out)' : 'none',
-                    transform: isMobile && !isMobileMenuOpen ? 'translateX(-100%)' : 'translateX(0)'
+                    transition: isMobile ? 'transform var(--transition-slow) var(--ease-out)' : 'none',
+                    transform: isMobile && !isMobileMenuOpen ? 'translateX(-100%)' : 'translateX(0)',
+                    visibility: isMobile && !isMobileMenuOpen ? 'hidden' : 'visible'
                 }}
                 aria-label="Main navigation"
             >
-            {/* Branding Header - Fixed */}
-            <div style={{ 
-                padding: '1.5rem',
-                paddingBottom: '1rem',
-                flexShrink: 0,
-                borderBottom: '1px solid rgba(255,255,255,0.1)'
-            }}>
-                <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                        {/* Logo */}
-                        <div style={{
-                            width: '44px',
-                            height: '44px',
+                {/* Branding Header - Fixed */}
+                <div style={{
+                    padding: '1.5rem',
+                    paddingBottom: '1rem',
+                    flexShrink: 0,
+                    borderBottom: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                    <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                            {/* Logo */}
+                            <div style={{
+                                width: '44px',
+                                height: '44px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'rgba(255,255,255,0.15)',
+                                borderRadius: 'var(--radius-md)',
+                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+                                flexShrink: 0
+                            }}>
+                                <img
+                                    src="/logo.svg"
+                                    alt="OpsGuard Shield"
+                                    style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <h1 style={{
+                                    fontSize: '1.35rem',
+                                    fontWeight: '800',
+                                    color: 'white',
+                                    letterSpacing: '-0.5px',
+                                    margin: 0,
+                                    lineHeight: '1.2',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                                }}>OpsGuard</h1>
+                                <span style={{
+                                    fontSize: '0.65rem',
+                                    opacity: 0.9,
+                                    fontWeight: '600',
+                                    letterSpacing: '1.2px',
+                                    background: 'rgba(255,255,255,0.2)',
+                                    padding: '2px 6px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    width: 'fit-content',
+                                    marginTop: '3px'
+                                }}>ENTERPRISE</span>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+
+                {/* Scrollable Navigation Area */}
+                <nav
+                    className="sidebar-nav"
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        flex: 1,
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        padding: '1rem 0 1.5rem 0',
+                        gap: '0.5rem'
+                    }}
+                >
+                    {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
+                </nav>
+
+                {/* Close button for mobile */}
+                {isMobile && isMobileMenuOpen && (
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        aria-label="Close navigation menu"
+                        style={{
+                            position: 'absolute',
+                            top: '1rem',
+                            right: '1rem',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: 'white',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'rgba(255,255,255,0.15)',
-                            borderRadius: 'var(--radius-md)',
-                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
-                            flexShrink: 0
-                        }}>
-                            <img
-                                src="/logo.svg"
-                                alt="OpsGuard Shield"
-                                style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    objectFit: 'contain'
-                                }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                            <h1 style={{
-                                fontSize: '1.35rem',
-                                fontWeight: '800',
-                                color: 'white',
-                                letterSpacing: '-0.5px',
-                                margin: 0,
-                                lineHeight: '1.2',
-                                textShadow: '0 2px 4px rgba(0,0,0,0.15)'
-                            }}>OpsGuard</h1>
-                            <span style={{
-                                fontSize: '0.65rem',
-                                opacity: 0.9,
-                                fontWeight: '600',
-                                letterSpacing: '1.2px',
-                                background: 'rgba(255,255,255,0.2)',
-                                padding: '2px 6px',
-                                borderRadius: 'var(--radius-sm)',
-                                width: 'fit-content',
-                                marginTop: '3px'
-                            }}>ENTERPRISE</span>
-                        </div>
-                    </div>
-                </Link>
-            </div>
-
-            {/* Scrollable Navigation Area */}
-            <nav 
-                className="sidebar-nav" 
-                style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    flex: 1,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    padding: '1rem 0 1.5rem 0',
-                    gap: '0.5rem'
-                }}
-            >
-                {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
-            </nav>
-            
-            {/* Close button for mobile */}
-            {isMobile && isMobileMenuOpen && (
-                <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    aria-label="Close navigation menu"
-                    style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        right: '1rem',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'rgba(255,255,255,0.1)',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'all var(--transition-base)'
-                    }}
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                </button>
-            )}
-
-            {/* Useful Footer - Quick Links & Help */}
-            <div style={{
-                padding: '1rem 1.5rem',
-                background: 'rgba(0,0,0,0.2)',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-                fontSize: '0.75rem',
-                color: 'rgba(255,255,255,0.9)',
-                flexShrink: 0
-            }}>
-                <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '0.75rem'
-                }}>
-                    <Link 
-                        href="/help"
-                        onClick={() => isMobile && setIsMobileMenuOpen(false)}
-                        aria-label="Help and documentation"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: 'rgba(255,255,255,0.85)',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
-                    >
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m0 4h.01" />
-                        </svg>
-                        <span>Help & Documentation</span>
-                    </Link>
-                    <Link 
-                        href="/settings"
-                        onClick={() => isMobile && setIsMobileMenuOpen(false)}
-                        aria-label="Settings"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: 'rgba(255,255,255,0.85)',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
-                    >
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="3" />
-                            <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-                        </svg>
-                        <span>Settings</span>
-                    </Link>
-                    <button
-                        onClick={() => {
-                            // Trigger keyboard shortcut modal via custom event
-                            window.dispatchEvent(new CustomEvent('toggleKeyboardShortcuts'));
-                            if (isMobile) setIsMobileMenuOpen(false);
-                        }}
-                        aria-label="Show keyboard shortcuts"
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: 'rgba(255,255,255,0.85)',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            background: 'transparent',
-                            border: 'none',
                             cursor: 'pointer',
-                            padding: '0.5rem 0',
-                            transition: 'color 0.2s',
-                            fontSize: '0.75rem'
+                            transition: 'all var(--transition-base)'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
                     >
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="4" y="2" width="16" height="20" rx="2" />
-                            <path d="M9 6h6m-6 4h6m-2 4h2" />
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
-                        <span>Keyboard Shortcuts</span>
                     </button>
-                </div>
-            </div>
+                )}
 
-        </aside>
+                {/* Useful Footer - Quick Links & Help */}
+                <div style={{
+                    padding: '1rem 1.5rem',
+                    background: 'rgba(0,0,0,0.2)',
+                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                    fontSize: '0.85rem',
+                    color: 'rgba(255,255,255,0.9)',
+                    flexShrink: 0
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.75rem'
+                    }}>
+                        <Link
+                            href="/help"
+                            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                            aria-label="Help and documentation"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: 'rgba(255,255,255,0.85)',
+                                textDecoration: 'none',
+                                fontWeight: '500',
+                                transition: 'color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
+                        >
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m0 4h.01" />
+                            </svg>
+                            <span>Help & Documentation</span>
+                        </Link>
+                        <Link
+                            href="/settings"
+                            onClick={() => isMobile && setIsMobileMenuOpen(false)}
+                            aria-label="Settings"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: 'rgba(255,255,255,0.85)',
+                                textDecoration: 'none',
+                                fontWeight: '500',
+                                transition: 'color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
+                        >
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+                            </svg>
+                            <span>Settings</span>
+                        </Link>
+                        <button
+                            onClick={() => {
+                                // Trigger keyboard shortcut modal via custom event
+                                window.dispatchEvent(new CustomEvent('toggleKeyboardShortcuts'));
+                                if (isMobile) setIsMobileMenuOpen(false);
+                            }}
+                            aria-label="Show keyboard shortcuts"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                color: 'rgba(255,255,255,0.85)',
+                                textDecoration: 'none',
+                                fontWeight: '500',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '0.5rem 0',
+                                transition: 'color 0.2s',
+                                fontSize: '0.85rem'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = 'rgba(255,255,255,1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
+                        >
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="4" y="2" width="16" height="20" rx="2" />
+                                <path d="M9 6h6m-6 4h6m-2 4h2" />
+                            </svg>
+                            <span>Keyboard Shortcuts</span>
+                        </button>
+                    </div>
+                </div>
+
+            </aside>
         </>
     );
 }

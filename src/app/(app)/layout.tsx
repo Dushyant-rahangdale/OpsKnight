@@ -61,18 +61,14 @@ export default async function AppLayout({
           <Sidebar />
           <div className="content-shell">
             <header className="topbar-new">
-              <div className="topbar-section topbar-section-left">
-                <OperationalStatus tone={statusTone} label={statusLabel} detail={statusDetail} />
-              </div>
               <div className="topbar-section topbar-section-center">
+                <OperationalStatus tone={statusTone} label={statusLabel} detail={statusDetail} />
                 <div className="topbar-search-wrapper">
                   <SidebarSearch />
                 </div>
-                <div className="topbar-actions-wrapper">
-                  <QuickActions canCreate={canCreate} />
-                </div>
               </div>
               <div className="topbar-section topbar-section-right">
+                <QuickActions canCreate={canCreate} />
                 <TopbarUserMenu name={userName} email={userEmail} role={userRole} />
               </div>
             </header>
