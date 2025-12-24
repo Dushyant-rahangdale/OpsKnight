@@ -29,7 +29,15 @@ type Metric = {
 export default function WebVitalsReporter() {
   useEffect(() => {
     // Function to send metrics to our API
-    const reportMetric = async (metric: Metric) => {
+    const reportMetric = async (metric: any) => {
+      // Validate that we received a proper metric object
+      if (!metric || typeof metric !== 'object' || !metric.name || typeof metric.value !== 'number') {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Invalid Web Vital metric received:', metric);
+        }
+        return;
+      }
+
       // Only report in production or when explicitly enabled
       if (process.env.NODE_ENV !== 'production' && !process.env.NEXT_PUBLIC_ENABLE_WEB_VITALS) {
         return;
@@ -45,10 +53,10 @@ export default function WebVitalsReporter() {
           body: JSON.stringify({
             name: metric.name,
             value: metric.value,
-            id: metric.id,
-            rating: metric.rating,
-            delta: metric.delta,
-            navigationType: metric.navigationType,
+            id: metric.id || '',
+            rating: metric.rating || 'unknown',
+            delta: metric.delta || 0,
+            navigationType: metric.navigationType || 'unknown',
             // Additional context
             url: window.location.pathname,
             timestamp: Date.now(),
@@ -59,7 +67,8 @@ export default function WebVitalsReporter() {
       } catch (error) {
         // Silently fail - don't impact user experience
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to report Web Vital:', error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn('Failed to report Web Vital:', errorMessage);
         }
       }
     };
@@ -81,12 +90,14 @@ export default function WebVitalsReporter() {
 
         // Log metrics in development for debugging
         if (process.env.NODE_ENV === 'development') {
-          const logMetric = (metric: Metric) => {
-            console.log(`[Web Vitals] ${metric.name}:`, {
-              value: `${metric.value.toFixed(2)}ms`,
-              rating: metric.rating,
-              id: metric.id,
-            });
+          const logMetric = (metric: any) => {
+            if (metric && typeof metric === 'object' && metric.name && typeof metric.value === 'number') {
+              console.log(`[Web Vitals] ${metric.name}:`, {
+                value: `${metric.value.toFixed(2)}ms`,
+                rating: metric.rating || 'unknown',
+                id: metric.id || 'unknown',
+              });
+            }
           };
 
           if (webVitals.onCLS) webVitals.onCLS(logMetric);
@@ -110,7 +121,9 @@ export default function WebVitalsReporter() {
         } catch (fallbackError) {
           // Silently fail if web-vitals is not available
           if (process.env.NODE_ENV === 'development') {
-            console.warn('Web Vitals not available:', error);
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const fallbackMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+            console.warn('Web Vitals not available. Primary error:', errorMsg, 'Fallback error:', fallbackMsg);
           }
         }
       }

@@ -1,5 +1,8 @@
 'use client';
 
+import { useBrowserTimezone } from '@/contexts/TimezoneContext';
+import { formatDateTime } from '@/lib/timezone';
+
 interface Announcement {
     id: string;
     title: string;
@@ -31,6 +34,8 @@ const TYPE_LABELS = {
 };
 
 export default function StatusPageAnnouncements({ announcements }: StatusPageAnnouncementsProps) {
+    const browserTimeZone = useBrowserTimezone();
+    
     if (announcements.length === 0) return null;
 
     return (
@@ -147,11 +152,7 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
-                                    {new Date(announcement.startDate).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                    })}
+                                    {formatDateTime(announcement.startDate, browserTimeZone, { format: 'date' })}
                                 </div>
                             </div>
                             <p style={{ 

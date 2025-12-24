@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { updatePreferences } from '@/app/(app)/settings/actions';
+import { getAllTimeZones } from '@/lib/timezone';
 
 type Props = {
     timeZone: string;
@@ -15,21 +16,6 @@ type State = {
     error?: string | null;
     success?: boolean;
 };
-
-const TIMEZONES = [
-    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    { value: 'America/New_York', label: 'America/New_York (Eastern Time)' },
-    { value: 'America/Chicago', label: 'America/Chicago (Central Time)' },
-    { value: 'America/Denver', label: 'America/Denver (Mountain Time)' },
-    { value: 'America/Los_Angeles', label: 'America/Los_Angeles (Pacific Time)' },
-    { value: 'Europe/London', label: 'Europe/London (GMT)' },
-    { value: 'Europe/Paris', label: 'Europe/Paris (CET)' },
-    { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
-    { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT)' },
-    { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
-    { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST)' }
-];
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -43,6 +29,13 @@ function SubmitButton() {
 export default function PreferencesForm({ timeZone, dailySummary, incidentDigest }: Props) {
     const [state, formAction] = useActionState<State, FormData>(updatePreferences, { error: null, success: false });
     const router = useRouter();
+    const [timezones, setTimezones] = useState<Array<{ value: string; label: string }>>([]);
+
+    // Load timezones on mount
+    useEffect(() => {
+        const tz = getAllTimeZones();
+        setTimezones(tz);
+    }, []);
 
     // Refresh the page after successful update
     useEffect(() => {
@@ -65,7 +58,7 @@ export default function PreferencesForm({ timeZone, dailySummary, incidentDigest
                 <div className="settings-field">
                     <label>Timezone</label>
                     <select name="timeZone" defaultValue={timeZone} key={timeZone}>
-                        {TIMEZONES.map(tz => (
+                        {timezones.map(tz => (
                             <option key={tz.value} value={tz.value}>{tz.label}</option>
                         ))}
                     </select>

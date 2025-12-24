@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useBrowserTimezone } from '@/contexts/TimezoneContext';
+import { formatDateTime } from '@/lib/timezone';
 
 interface IncidentEvent {
     id: string;
@@ -30,6 +32,7 @@ interface StatusPageIncidentsProps {
 const INCIDENTS_PER_PAGE = 10;
 
 export default function StatusPageIncidents({ incidents }: StatusPageIncidentsProps) {
+    const browserTimeZone = useBrowserTimezone();
     const [expandedIncidents, setExpandedIncidents] = useState<Set<string>>(new Set());
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -211,13 +214,7 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                                                         <circle cx="12" cy="12" r="10"></circle>
                                                         <polyline points="12 6 12 12 16 14"></polyline>
                                                     </svg>
-                                                    {new Date(incident.createdAt).toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
+                                                    {formatDateTime(incident.createdAt, browserTimeZone, { format: 'datetime' })}
                                                 </span>
                                                 {incident.resolvedAt && (
                                                     <>
@@ -226,10 +223,7 @@ export default function StatusPageIncidents({ incidents }: StatusPageIncidentsPr
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="20 6 9 17 4 12"></polyline>
                                                             </svg>
-                                                            Resolved {new Date(incident.resolvedAt).toLocaleDateString('en-US', {
-                                                                month: 'short',
-                                                                day: 'numeric',
-                                                            })}
+                                                            Resolved {formatDateTime(incident.resolvedAt, browserTimeZone, { format: 'short' })}
                                                         </span>
                                                     </>
                                                 )}
