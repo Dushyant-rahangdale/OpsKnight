@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useToast } from './ToastProvider';
+import VirtualList from './ui/VirtualList';
 
 type User = {
     id: string;
@@ -150,52 +151,122 @@ export default function BulkTeamMemberActions({
             </div>
 
             <div style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
                 border: '1px solid #e2e8f0',
                 borderRadius: '8px',
                 background: 'white',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
+                overflow: 'hidden'
             }}>
-                {availableUsers.map((user) => (
-                    <label
-                        key={user.id}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.6rem 0.75rem',
-                            borderBottom: '1px solid #f1f5f9',
-                            cursor: 'pointer',
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                    >
-                        <input
-                            type="checkbox"
-                            checked={selectedUsers.has(user.id)}
-                            onChange={() => handleToggleUser(user.id)}
-                            style={{ cursor: 'pointer' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{user.name}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.email}</div>
-                        </div>
-                        {user.status === 'DISABLED' && (
-                            <span style={{
-                                fontSize: '0.7rem',
-                                padding: '0.2rem 0.4rem',
-                                borderRadius: '4px',
-                                background: '#fee2e2',
-                                color: '#991b1b',
-                                fontWeight: '600'
-                            }}>
-                                Disabled
-                            </span>
+                {availableUsers.length > 10 ? (
+                    // Use virtual scrolling for large lists
+                    <VirtualList
+                        items={availableUsers}
+                        itemHeight={60}
+                        containerHeight={200}
+                        overscan={3}
+                        style={{ border: 'none' }}
+                        renderItem={(user, index) => (
+                            <label
+                                key={user.id}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.6rem 0.75rem',
+                                    borderBottom: index < availableUsers.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    background: selectedUsers.has(user.id) ? '#f0f9ff' : 'white'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!selectedUsers.has(user.id)) {
+                                        e.currentTarget.style.background = '#f8fafc';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!selectedUsers.has(user.id)) {
+                                        e.currentTarget.style.background = 'white';
+                                    }
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={selectedUsers.has(user.id)}
+                                    onChange={() => handleToggleUser(user.id)}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{user.name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                                </div>
+                                {user.status === 'DISABLED' && (
+                                    <span style={{
+                                        fontSize: '0.7rem',
+                                        padding: '0.2rem 0.4rem',
+                                        borderRadius: '4px',
+                                        background: '#fee2e2',
+                                        color: '#991b1b',
+                                        fontWeight: '600'
+                                    }}>
+                                        Disabled
+                                    </span>
+                                )}
+                            </label>
                         )}
-                    </label>
-                ))}
+                    />
+                ) : (
+                    // Regular rendering for small lists
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {availableUsers.map((user, index) => (
+                            <label
+                                key={user.id}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '0.6rem 0.75rem',
+                                    borderBottom: index < availableUsers.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    background: selectedUsers.has(user.id) ? '#f0f9ff' : 'white'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!selectedUsers.has(user.id)) {
+                                        e.currentTarget.style.background = '#f8fafc';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!selectedUsers.has(user.id)) {
+                                        e.currentTarget.style.background = 'white';
+                                    }
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={selectedUsers.has(user.id)}
+                                    onChange={() => handleToggleUser(user.id)}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{user.name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                                </div>
+                                {user.status === 'DISABLED' && (
+                                    <span style={{
+                                        fontSize: '0.7rem',
+                                        padding: '0.2rem 0.4rem',
+                                        borderRadius: '4px',
+                                        background: '#fee2e2',
+                                        color: '#991b1b',
+                                        fontWeight: '600'
+                                    }}>
+                                        Disabled
+                                    </span>
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <button

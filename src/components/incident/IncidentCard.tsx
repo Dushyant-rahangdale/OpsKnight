@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { memo } from 'react';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
 import SLAIndicator from './SLAIndicator';
@@ -18,7 +19,7 @@ type IncidentCardProps = {
     compact?: boolean;
 };
 
-export default function IncidentCard({ 
+function IncidentCard({ 
     incident, 
     showSLA = false, 
     showEscalation = false,
@@ -199,3 +200,20 @@ export default function IncidentCard({
         </Link>
     );
 }
+
+// Memoize IncidentCard to prevent unnecessary re-renders in lists
+export default memo(IncidentCard, (prevProps, nextProps) => {
+    // Custom comparison for better performance
+    return (
+        prevProps.incident.id === nextProps.incident.id &&
+        prevProps.incident.status === nextProps.incident.status &&
+        prevProps.incident.urgency === nextProps.incident.urgency &&
+        prevProps.incident.priority === nextProps.incident.priority &&
+        prevProps.incident.title === nextProps.incident.title &&
+        prevProps.incident.assignee?.id === nextProps.incident.assignee?.id &&
+        prevProps.incident.service.id === nextProps.incident.service.id &&
+        prevProps.showSLA === nextProps.showSLA &&
+        prevProps.showEscalation === nextProps.showEscalation &&
+        prevProps.compact === nextProps.compact
+    );
+});
