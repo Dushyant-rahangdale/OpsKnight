@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 type EscalationStatusBadgeProps = {
     status: string | null | undefined;
     currentStep: number | null | undefined;
@@ -7,7 +9,7 @@ type EscalationStatusBadgeProps = {
     size?: 'sm' | 'md';
 };
 
-export default function EscalationStatusBadge({ 
+function EscalationStatusBadge({ 
     status, 
     currentStep, 
     nextEscalationAt,
@@ -72,6 +74,9 @@ export default function EscalationStatusBadge({
         </div>
     );
 }
+
+// Memoize EscalationStatusBadge to prevent unnecessary re-renders
+export default memo(EscalationStatusBadge);
 
 
 

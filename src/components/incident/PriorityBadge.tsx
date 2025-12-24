@@ -1,12 +1,14 @@
 'use client';
 
+import { memo } from 'react';
+
 type PriorityBadgeProps = {
     priority: string | null | undefined;
     size?: 'sm' | 'md' | 'lg';
     showLabel?: boolean;
 };
 
-export default function PriorityBadge({ priority, size = 'md', showLabel = false }: PriorityBadgeProps) {
+function PriorityBadge({ priority, size = 'md', showLabel = false }: PriorityBadgeProps) {
     if (!priority) {
         return null;
     }
@@ -94,6 +96,9 @@ export default function PriorityBadge({ priority, size = 'md', showLabel = false
         </span>
     );
 }
+
+// Memoize PriorityBadge to prevent unnecessary re-renders
+export default memo(PriorityBadge);
 
 
 
