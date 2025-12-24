@@ -45,47 +45,74 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata (test channel)
-        id: meta_test
+      - name: Docker metadata (test channel - PR)
+        if: github.event_name == 'pull_request'
+        id: meta_test_pr
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME_TEST }}
           tags: |
-            # Publishes: opsguard-test:latest (and sha for traceability) from main.
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,format=short,prefix=sha-,enable={{is_default_branch}}
-
-            # For PR builds (not pushed), still produce a tag so the build step is consistent.
             type=ref,event=pr,prefix=pr-
 
-      - name: Docker metadata (release channel)
-        id: meta_release
+      - name: Docker metadata (test channel - main)
+        if: github.ref == 'refs/heads/main'
+        id: meta_test_main
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_TEST }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short,prefix=sha-
+
+      - name: Docker metadata (release channel - version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: meta_release_tag
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME_RELEASE }}
           tags: |
             # Publishes: opsguard:latest + version tags from git tags (e.g. v1.2.3)
-            type=raw,value=latest,enable={{is_tag}}
-            type=semver,pattern={{version}},enable={{is_tag}}
-            type=semver,pattern={{major}}.{{minor}},enable={{is_tag}}
-            type=semver,pattern={{major}},enable={{is_tag}}
-            type=sha,format=short,prefix=sha-,enable={{is_tag}}
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=short,prefix=sha-
 
-            # For PR builds (not pushed), still produce a tag so the build step is consistent.
-            type=ref,event=pr,prefix=pr-
-
-      - name: Build (and push when applicable)
+      - name: Build (PR validation - no push)
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ steps.meta_test.outputs.tags }}
-            ${{ steps.meta_release.outputs.tags }}
-          labels: |
-            ${{ steps.meta_test.outputs.labels }}
-            ${{ steps.meta_release.outputs.labels }}
+          push: false
+          tags: ${{ steps.meta_test_pr.outputs.tags }}
+          labels: ${{ steps.meta_test_pr.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build + push (test channel - main)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_test_main.outputs.tags }}
+          labels: ${{ steps.meta_test_main.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build + push (release channel - version tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_release_tag.outputs.tags }}
+          labels: ${{ steps.meta_release_tag.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
