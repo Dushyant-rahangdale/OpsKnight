@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import StatusBadge from '../incident/StatusBadge';
 
 type ServiceCardProps = {
@@ -19,13 +19,22 @@ type ServiceCardProps = {
     compact?: boolean;
 };
 
-export default function ServiceCard({ service, compact = false }: ServiceCardProps) {
+function ServiceCard({ service, compact = false }: ServiceCardProps) {
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
-    const openIncidents = service.incidents || [];
-    const hasCritical = openIncidents.some(i => i.urgency === 'HIGH');
-    const status = service.dynamicStatus || 
-        (hasCritical ? 'CRITICAL' : openIncidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL');
+    
+    // Memoize computed values to prevent recalculation on every render
+    const { openIncidents, hasCritical, status } = useMemo(() => {
+        const incidents = service.incidents || [];
+        const critical = incidents.some(i => i.urgency === 'HIGH');
+        const calculatedStatus = service.dynamicStatus || 
+            (critical ? 'CRITICAL' : incidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL');
+        return {
+            openIncidents: incidents,
+            hasCritical: critical,
+            status: calculatedStatus
+        };
+    }, [service.incidents, service.dynamicStatus]);
 
     if (compact) {
         const [compactHovered, setCompactHovered] = useState(false);
@@ -282,3 +291,32 @@ export default function ServiceCard({ service, compact = false }: ServiceCardPro
         </div>
     );
 }
+
+// Memoize ServiceCard with custom comparison to prevent re-renders when props haven't changed
+export default memo(ServiceCard, (prevProps, nextProps) => {
+    // Custom comparison function for better performance
+    const prevIncidents = prevProps.service.incidents || [];
+    const nextIncidents = nextProps.service.incidents || [];
+    
+    // Compare incidents array length and IDs
+    const incidentsEqual = prevIncidents.length === nextIncidents.length &&
+        prevIncidents.every((inc, i) => 
+            inc.id === nextIncidents[i]?.id && 
+            inc.urgency === nextIncidents[i]?.urgency
+        );
+    
+    return (
+        prevProps.service.id === nextProps.service.id &&
+        prevProps.service.name === nextProps.service.name &&
+        prevProps.service.description === nextProps.service.description &&
+        prevProps.service.status === nextProps.service.status &&
+        prevProps.service.dynamicStatus === nextProps.service.dynamicStatus &&
+        prevProps.service.team?.id === nextProps.service.team?.id &&
+        prevProps.service.team?.name === nextProps.service.team?.name &&
+        prevProps.service.policy?.id === nextProps.service.policy?.id &&
+        prevProps.service.policy?.name === nextProps.service.policy?.name &&
+        prevProps.service._count?.incidents === nextProps.service._count?.incidents &&
+        incidentsEqual &&
+        prevProps.compact === nextProps.compact
+    );
+});

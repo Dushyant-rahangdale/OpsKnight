@@ -1,3 +1,4 @@
+import { memo } from 'react';
 
 interface MetricCardProps {
     label: string;
@@ -11,7 +12,7 @@ interface MetricCardProps {
     tooltip?: string;
 }
 
-export default function MetricCard({
+function MetricCard({
     label,
     value,
     detail,
@@ -63,4 +64,7 @@ export default function MetricCard({
         </article>
     );
 }
+
+// Memoize MetricCard to prevent unnecessary re-renders on dashboard
+export default memo(MetricCard);
 

@@ -1,12 +1,14 @@
 'use client';
 
+import { memo } from 'react';
+
 type StatusBadgeProps = {
     status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED' | 'OPERATIONAL' | 'DEGRADED' | 'CRITICAL';
     size?: 'sm' | 'md' | 'lg';
     showDot?: boolean;
 };
 
-export default function StatusBadge({ status, size = 'md', showDot = false }: StatusBadgeProps) {
+function StatusBadge({ status, size = 'md', showDot = false }: StatusBadgeProps) {
     const sizeStyles = {
         sm: { padding: '0.2rem 0.5rem', fontSize: '0.7rem' },
         md: { padding: '0.25rem 0.75rem', fontSize: '0.8rem' },
@@ -98,6 +100,9 @@ export default function StatusBadge({ status, size = 'md', showDot = false }: St
         </span>
     );
 }
+
+// Memoize StatusBadge to prevent unnecessary re-renders
+export default memo(StatusBadge);
 
 
 
