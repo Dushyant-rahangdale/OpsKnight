@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, HTMLAttributes, useCallback } from 'react';
+import { ReactNode, HTMLAttributes, useCallback, useMemo } from 'react';
 
 type CardVariant = 'default' | 'elevated' | 'outlined' | 'flat';
 
@@ -30,14 +30,15 @@ export default function Card({
   style,
   ...props
 }: CardProps) {
-  const baseStyles: React.CSSProperties = {
+  // Memoize styles to prevent recreation on every render
+  const baseStyles: React.CSSProperties = useMemo(() => ({
     background: 'var(--bg-secondary)',
     borderRadius: 'var(--radius-lg)',
     overflow: 'hidden',
     transition: hover ? 'all var(--transition-base) var(--ease-out)' : undefined,
-  };
+  }), [hover]);
 
-  const variantStyles: Record<CardVariant, React.CSSProperties> = {
+  const variantStyles: Record<CardVariant, React.CSSProperties> = useMemo(() => ({
     default: {
       border: '1px solid var(--border)',
       boxShadow: 'var(--shadow-sm)',
@@ -55,14 +56,14 @@ export default function Card({
       boxShadow: 'none',
       background: 'transparent',
     },
-  };
+  }), []);
 
-  const hoverStyles: React.CSSProperties = hover
+  const hoverStyles: React.CSSProperties = useMemo(() => hover
     ? {
         boxShadow: 'var(--shadow-xl)',
         transform: 'translateY(-2px)',
       }
-    : {};
+    : {}, [hover]);
 
   // Memoize event handlers to prevent unnecessary re-renders
   const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
