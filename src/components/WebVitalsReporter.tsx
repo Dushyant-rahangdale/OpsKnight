@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { onCLS, onFID, onFCP, onLCP, onTTFB, onINP, Metric } from 'next/web-vitals';
+
+// Type definition for Web Vitals Metric
+type Metric = {
+  name: string;
+  value: number;
+  id: string;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  delta: number;
+  navigationType: string;
+};
 
 /**
  * Web Vitals Reporter Component
@@ -55,31 +64,59 @@ export default function WebVitalsReporter() {
       }
     };
 
-    // Register all Web Vitals
-    onCLS(reportMetric); // Cumulative Layout Shift
-    onFID(reportMetric); // First Input Delay (legacy, but still useful)
-    onFCP(reportMetric); // First Contentful Paint
-    onLCP(reportMetric); // Largest Contentful Paint
-    onTTFB(reportMetric); // Time to First Byte
-    onINP(reportMetric); // Interaction to Next Paint (new metric)
+    // Dynamically import web-vitals to avoid SSR issues
+    // Use web-vitals package directly if next/web-vitals is not available
+    const initWebVitals = async () => {
+      try {
+        // Try to import from next/web-vitals first
+        const webVitals = await import('next/web-vitals');
+        
+        // Register all Web Vitals if available
+        if (webVitals.onCLS) webVitals.onCLS(reportMetric);
+        if (webVitals.onFID) webVitals.onFID(reportMetric);
+        if (webVitals.onFCP) webVitals.onFCP(reportMetric);
+        if (webVitals.onLCP) webVitals.onLCP(reportMetric);
+        if (webVitals.onTTFB) webVitals.onTTFB(reportMetric);
+        if (webVitals.onINP) webVitals.onINP(reportMetric);
 
-    // Log metrics in development for debugging
-    if (process.env.NODE_ENV === 'development') {
-      const logMetric = (metric: Metric) => {
-        console.log(`[Web Vitals] ${metric.name}:`, {
-          value: `${metric.value.toFixed(2)}ms`,
-          rating: metric.rating,
-          id: metric.id,
-        });
-      };
+        // Log metrics in development for debugging
+        if (process.env.NODE_ENV === 'development') {
+          const logMetric = (metric: Metric) => {
+            console.log(`[Web Vitals] ${metric.name}:`, {
+              value: `${metric.value.toFixed(2)}ms`,
+              rating: metric.rating,
+              id: metric.id,
+            });
+          };
 
-      onCLS(logMetric);
-      onFID(logMetric);
-      onFCP(logMetric);
-      onLCP(logMetric);
-      onTTFB(logMetric);
-      onINP(logMetric);
-    }
+          if (webVitals.onCLS) webVitals.onCLS(logMetric);
+          if (webVitals.onFID) webVitals.onFID(logMetric);
+          if (webVitals.onFCP) webVitals.onFCP(logMetric);
+          if (webVitals.onLCP) webVitals.onLCP(logMetric);
+          if (webVitals.onTTFB) webVitals.onTTFB(logMetric);
+          if (webVitals.onINP) webVitals.onINP(logMetric);
+        }
+      } catch (error) {
+        // Fallback: try using web-vitals package directly
+        try {
+          const webVitals = await import('web-vitals');
+          
+          if (webVitals.onCLS) webVitals.onCLS(reportMetric);
+          if (webVitals.onFID) webVitals.onFID(reportMetric);
+          if (webVitals.onFCP) webVitals.onFCP(reportMetric);
+          if (webVitals.onLCP) webVitals.onLCP(reportMetric);
+          if (webVitals.onTTFB) webVitals.onTTFB(reportMetric);
+          if (webVitals.onINP) webVitals.onINP(reportMetric);
+        } catch (fallbackError) {
+          // Silently fail if web-vitals is not available
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Web Vitals not available:', error);
+          }
+        }
+      }
+    };
+
+    initWebVitals();
   }, []);
 
   // This component doesn't render anything

@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { formatTimeMinutes, formatTimeMinutesMs } from './time-format';
 
 export type SLAMetrics = {
     mttr: number | null; // Mean Time To Resolve (minutes)
@@ -237,30 +238,8 @@ export async function checkIncidentSLA(incidentId: string): Promise<{
 /**
  * Format time in minutes to human-readable string
  */
-export function formatTimeMinutes(minutes: number): string {
-    if (minutes < 1) {
-        return '< 1 min';
-    } else if (minutes < 60) {
-        return `${Math.round(minutes)} min`;
-    } else if (minutes < 1440) {
-        const hours = Math.floor(minutes / 60);
-        const mins = Math.round(minutes % 60);
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    } else {
-        const days = Math.floor(minutes / 1440);
-        const hours = Math.floor((minutes % 1440) / 60);
-        return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
-    }
-}
-
-/**
- * Format time in milliseconds to human-readable string (for minutes)
- */
-export function formatTimeMinutesMs(ms: number | null): string {
-    if (ms === null) return '--';
-    const minutes = ms / 1000 / 60;
-    return formatTimeMinutes(minutes);
-}
+// Re-export for backward compatibility
+export { formatTimeMinutes, formatTimeMinutesMs } from './time-format';
 
 /**
  * Calculate Mean Time To Acknowledge (MTTA) for a single incident
