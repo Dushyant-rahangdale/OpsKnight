@@ -25,7 +25,7 @@ export default function BootstrapSetupForm() {
             action={formAction}
             style={{ display: 'grid', gap: '1rem' }}
         >
-            <div>
+            <div suppressHydrationWarning>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
                     Full name
                 </label>

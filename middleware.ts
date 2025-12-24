@@ -125,25 +125,55 @@ export async function middleware(req: NextRequest) {
         }
     }
 
-    if (isPublicPath(pathname)) {
+    // Check authentication status
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const isAuthenticated = !!token;
+
+    // Handle authenticated users trying to access public auth pages
+    if (isAuthenticated) {
+        // Redirect authenticated users away from auth-related pages
+        if (pathname === '/login' || pathname.startsWith('/login')) {
+            // Redirect authenticated users away from login page
+            const callbackUrl = req.nextUrl.searchParams.get('callbackUrl');
+            const redirectUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
+                ? callbackUrl
+                : '/'; // Default to dashboard
+            const redirectResponse = NextResponse.redirect(new URL(redirectUrl, req.url));
+            // Apply security headers to redirect
+            Object.entries(securityHeaders).forEach(([key, value]) => {
+                redirectResponse.headers.set(key, value);
+            });
+            return redirectResponse;
+        }
+        if (pathname === '/setup') {
+            // Redirect authenticated users away from setup page (bootstrap only)
+            const redirectResponse = NextResponse.redirect(new URL('/', req.url));
+            // Apply security headers to redirect
+            Object.entries(securityHeaders).forEach(([key, value]) => {
+                redirectResponse.headers.set(key, value);
+            });
+            return redirectResponse;
+        }
+        // Authenticated user accessing protected route - allow
         return response;
     }
 
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-    if (!token) {
-        const url = req.nextUrl.clone();
-        url.pathname = '/login';
-        url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
-        const redirectResponse = NextResponse.redirect(url);
-        // Apply security headers to redirect
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-            redirectResponse.headers.set(key, value);
-        });
-        return redirectResponse;
+    // Handle unauthenticated users
+    if (isPublicPath(pathname)) {
+        // Allow access to public paths
+        return response;
     }
 
-    return response;
+    // Unauthenticated user trying to access protected route - redirect to login
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
+    const redirectResponse = NextResponse.redirect(url);
+    // Apply security headers to redirect
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+        redirectResponse.headers.set(key, value);
+    });
+    return redirectResponse;
 }
 
 export const config = {

@@ -10,7 +10,7 @@ RUN apk add --no-cache openssl
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Copy prisma schema
 COPY prisma ./prisma/
