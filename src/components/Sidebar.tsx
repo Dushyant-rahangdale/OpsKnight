@@ -144,6 +144,21 @@ const navigationItems: NavItem[] = [
             </svg>
         ),
         section: 'INSIGHTS'
+    },
+    {
+        href: '/monitoring',
+        label: 'Monitoring',
+        icon: (
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="7" cy="16" r="1" />
+                <circle cx="11" cy="12" r="1" />
+                <circle cx="15" cy="12" r="1" />
+                <circle cx="21" cy="6" r="1" />
+            </svg>
+        ),
+        section: 'INSIGHTS',
+        requiresRole: ['ADMIN']
     }
 ];
 
@@ -191,8 +206,15 @@ export default function Sidebar({ userName, userEmail, userRole }: SidebarProps 
         return false;
     };
 
-    // Group items by section
+    // Group items by section and filter by role
     const groupedItems = navigationItems.reduce((acc, item) => {
+        // Filter by role requirements
+        if (item.requiresRole && userRole) {
+            if (!item.requiresRole.includes(userRole)) {
+                return acc; // Skip this item
+            }
+        }
+        
         const section = item.section || 'MAIN';
         if (!acc[section]) {
             acc[section] = [];
