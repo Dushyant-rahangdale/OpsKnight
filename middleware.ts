@@ -23,9 +23,50 @@ function isPublicPath(pathname: string) {
     return /\.[^/]+$/.test(pathname);
 }
 
+/**
+ * Security headers to apply to all responses
+ */
+function getSecurityHeaders(): Record<string, string> {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    return {
+        // Prevent MIME type sniffing
+        'X-Content-Type-Options': 'nosniff',
+        // Prevent clickjacking
+        'X-Frame-Options': 'DENY',
+        // XSS protection (legacy but still useful)
+        'X-XSS-Protection': '1; mode=block',
+        // Referrer policy
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        // Permissions policy (formerly Feature-Policy)
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+        // Content Security Policy (basic)
+        'Content-Security-Policy': [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval
+            "style-src 'self' 'unsafe-inline'", // Next.js requires unsafe-inline for styles
+            "img-src 'self' data: https:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+        ].join('; '),
+        // HSTS (only in production with HTTPS)
+        ...(isProduction && {
+            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+        }),
+    };
+}
+
 export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     const origin = req.headers.get('origin');
+
+    // Create response with security headers
+    const response = NextResponse.next();
+    const securityHeaders = getSecurityHeaders();
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+    });
 
     if (pathname.startsWith('/api')) {
         const originAllowed = origin && CORS_ALLOWED_ORIGINS.includes(origin);
@@ -59,11 +100,16 @@ export async function middleware(req: NextRequest) {
                 }
             }
 
-            const response = NextResponse.next();
+            const apiResponse = NextResponse.next();
+            // Apply CORS headers
             Object.entries(corsHeaders).forEach(([key, value]) => {
-                response.headers.set(key, value);
+                apiResponse.headers.set(key, value);
             });
-            return response;
+            // Apply security headers
+            Object.entries(securityHeaders).forEach(([key, value]) => {
+                apiResponse.headers.set(key, value);
+            });
+            return apiResponse;
         }
 
         if (applyRateLimit) {
@@ -80,7 +126,7 @@ export async function middleware(req: NextRequest) {
     }
 
     if (isPublicPath(pathname)) {
-        return NextResponse.next();
+        return response;
     }
 
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -89,10 +135,15 @@ export async function middleware(req: NextRequest) {
         const url = req.nextUrl.clone();
         url.pathname = '/login';
         url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
-        return NextResponse.redirect(url);
+        const redirectResponse = NextResponse.redirect(url);
+        // Apply security headers to redirect
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+            redirectResponse.headers.set(key, value);
+        });
+        return redirectResponse;
     }
 
-    return NextResponse.next();
+    return response;
 }
 
 export const config = {
