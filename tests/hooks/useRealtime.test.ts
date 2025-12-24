@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useRealtime } from '@/hooks/useRealtime';
 
@@ -24,10 +24,6 @@ global.EventSource = vi.fn().mockImplementation(() => {
 describe('useRealtime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('should initialize with disconnected state', () => {
