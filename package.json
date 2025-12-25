@@ -30,9 +30,12 @@
         "web-vitals": "^5.1.0",
         "zod": "^3.23.8"
     },
+    "optionalDependencies": {
+        "twilio": "^5.11.1"
+    },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.1.0",
-        "@testing-library/react": "^14.0.0",
+        "@testing-library/react": "^16.0.0",
         "@types/bcryptjs": "^2.4.6",
         "@types/node": "^20",
         "@types/react": "^19",

@@ -56,14 +56,21 @@ export default function LayerCreateForm({
         }
     };
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
         startTransition(async () => {
-            const result = await createLayer(scheduleId, formData);
-            if (result?.error) {
-                showToast(result.error, 'error');
-            } else {
-                showToast('Layer created successfully', 'success');
-                router.refresh();
+            try {
+                const result = await createLayer(scheduleId, formData);
+                if (result?.error) {
+                    showToast(result.error, 'error');
+                } else {
+                    showToast('Layer created successfully', 'success');
+                    router.refresh();
+                }
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                showToast(errorMessage || 'Failed to create layer', 'error');
             }
         });
     };
@@ -174,7 +181,7 @@ export default function LayerCreateForm({
                     </span>
                 </div>
             <form 
-                action={handleSubmit} 
+                onSubmit={handleSubmit} 
                 style={{ display: 'grid', gap: '0.75rem' }}
                 onChange={(e) => {
                     const form = e.currentTarget;

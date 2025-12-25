@@ -158,6 +158,9 @@ spec:
         # This matches docker-compose.yml format: postgresql://user:pass@host:port/db?sslmode=prefer
         - name: NEXT_TELEMETRY_DISABLED
           value: "1"
+        # NOTE: Notification providers (Twilio, Email, Push) are configured via UI
+        # Environment variables are NOT used - configure at Settings → System → Notification Providers
+        # All provider credentials are stored securely in the database
         # Security context for container
         securityContext:
           allowPrivilegeEscalation: false

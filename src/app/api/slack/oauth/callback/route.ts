@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
         const response = NextResponse.redirect(
             serviceId 
                 ? `/services/${serviceId}/settings?slack_connected=true`
-                : '/services?slack_connected=true'
+                : '/settings/integrations/slack?slack_connected=true'
         );
         response.cookies.delete('slack_oauth_state');
         response.cookies.delete('slack_oauth_service_id');

@@ -40,6 +40,8 @@ services:
       - HOSTNAME=0.0.0.0
       # Security headers
       - NEXT_TELEMETRY_DISABLED=1
+      # NOTE: Notification providers (Twilio, Email, Push) are configured via UI
+      # Environment variables are NOT used - configure at Settings → System → Notification Providers
     depends_on:
       opsguard-db:
         condition: service_healthy

@@ -25,15 +25,22 @@ export default function ScheduleEditForm({
     const [isEditing, setIsEditing] = useState(false);
     const [isPending, startTransition] = useTransition();
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
         startTransition(async () => {
-            const result = await updateSchedule(scheduleId, formData);
-            if (result?.error) {
-                showToast(result.error, 'error');
-            } else {
-                showToast('Schedule updated successfully', 'success');
-                setIsEditing(false);
-                router.refresh();
+            try {
+                const result = await updateSchedule(scheduleId, formData);
+                if (result?.error) {
+                    showToast(result.error, 'error');
+                } else {
+                    showToast('Schedule updated successfully', 'success');
+                    setIsEditing(false);
+                    router.refresh();
+                }
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                showToast(errorMessage || 'Failed to update schedule', 'error');
             }
         });
     };
@@ -61,7 +68,7 @@ export default function ScheduleEditForm({
 
     return (
         <form
-            action={handleSubmit}
+            onSubmit={handleSubmit}
             style={{
                 marginTop: '1rem',
                 padding: '1rem',

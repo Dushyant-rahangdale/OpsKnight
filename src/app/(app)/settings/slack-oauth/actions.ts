@@ -16,7 +16,8 @@ export async function saveSlackOAuthConfig(formData: FormData): Promise<{ error?
     const clientId = formData.get('clientId') as string;
     const clientSecret = formData.get('clientSecret') as string;
     const redirectUri = formData.get('redirectUri') as string;
-    const enabled = formData.get('enabled') === 'on';
+    const enabledValue = formData.get('enabled');
+    const enabled = enabledValue === 'on' || enabledValue === 'true' || enabledValue === true;
 
     if (!clientId) {
         return { error: 'Client ID is required' };
@@ -66,7 +67,7 @@ export async function saveSlackOAuthConfig(formData: FormData): Promise<{ error?
         details: { enabled, clientId: clientId.substring(0, 10) + '...', configType: 'slack-oauth' }
     });
 
-    revalidatePath('/settings/slack-oauth');
+    revalidatePath('/settings/integrations/slack');
     revalidatePath('/services');
 
     return undefined; // Success

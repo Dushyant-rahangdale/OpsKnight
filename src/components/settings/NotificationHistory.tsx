@@ -143,7 +143,16 @@ export default function NotificationHistory() {
             </div>
 
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                    type="button"
+                    onClick={() => fetchNotifications()}
+                    className="glass-button"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                    disabled={loading}
+                >
+                    🔄 Refresh
+                </button>
                 <select
                     value={filterChannel}
                     onChange={(e) => {

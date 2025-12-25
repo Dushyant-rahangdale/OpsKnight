@@ -363,7 +363,9 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
             escalationProcessingAt: null
         };
 
-        if (currentStepIndex === 0 && targetUserIds.length > 0) {
+        // Assign the first user from the first step that resolves to users
+        // Only assign if the incident doesn't already have an assignee
+        if (!incident.assigneeId && targetUserIds.length > 0) {
             updateData.assignee = { connect: { id: targetUserIds[0] } };
         }
 

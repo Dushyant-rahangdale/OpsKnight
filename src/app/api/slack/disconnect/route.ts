@@ -109,9 +109,33 @@ export async function DELETE(request: NextRequest) {
 
             return NextResponse.json({ success: true });
         } else {
+            // Disconnect global integration (no serviceId)
+            const globalIntegration = await prisma.slackIntegration.findFirst({
+                where: { service: null }
+            });
+
+            if (globalIntegration) {
+                // Clear all service references to this integration
+                await prisma.service.updateMany({
+                    where: { slackIntegrationId: globalIntegration.id },
+                    data: { slackIntegrationId: null }
+                });
+
+                await prisma.slackIntegration.delete({
+                    where: { id: globalIntegration.id }
+                });
+
+                logger.info('[Slack] Global integration disconnected', {
+                    integrationId: globalIntegration.id,
+                    userId: user.id
+                });
+
+                return NextResponse.json({ success: true });
+            }
+
             return NextResponse.json(
-                { error: 'integrationId or serviceId required' },
-                { status: 400 }
+                { error: 'No integration found to disconnect' },
+                { status: 404 }
             );
         }
     } catch (error: any) {

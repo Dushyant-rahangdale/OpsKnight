@@ -64,6 +64,32 @@ export default async function SettingsOverviewPage() {
                             <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                     </Link>
+                    
+                    <Link href="/settings/notifications/history" className="settings-card-modern">
+                        <div className="settings-card-icon">
+                            <SettingsIcon name="notifications" />
+                        </div>
+                        <div className="settings-card-content">
+                            <h3>Notification Status</h3>
+                            <p>View notification delivery history and status</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="settings-card-arrow">
+                            <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    </Link>
+                    
+                    <Link href="/settings/integrations/slack" className="settings-card-modern">
+                        <div className="settings-card-icon">
+                            <SettingsIcon name="slack" />
+                        </div>
+                        <div className="settings-card-content">
+                            <h3>Slack Integration</h3>
+                            <p>Connect Slack workspace for incident notifications</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="settings-card-arrow">
+                            <path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    </Link>
                 </div>
             </SettingsSection>
 

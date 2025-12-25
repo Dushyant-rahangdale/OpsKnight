@@ -53,6 +53,12 @@ Generate new secrets:
 echo -n 'your-db-username' | base64
 echo -n 'your-secure-password' | base64
 echo -n 'your-nextauth-secret' | base64
+
+# Optional: Twilio SMS/WhatsApp secrets (if using Twilio)
+echo -n 'your-twilio-account-sid' | base64
+echo -n 'your-twilio-auth-token' | base64
+echo -n '+1234567890' | base64  # For TWILIO_FROM_NUMBER
+echo -n 'whatsapp:+1234567890' | base64  # For TWILIO_WHATSAPP_NUMBER (optional)
 ```
 
 Or create secrets via kubectl:
@@ -61,8 +67,14 @@ kubectl create secret generic opsguard-secrets \
   --from-literal=POSTGRES_USER=opsguard \
   --from-literal=POSTGRES_PASSWORD=your-secure-password \
   --from-literal=NEXTAUTH_SECRET=$(openssl rand -base64 32) \
+  --from-literal=TWILIO_ACCOUNT_SID=your-twilio-account-sid \
+  --from-literal=TWILIO_AUTH_TOKEN=your-twilio-auth-token \
+  --from-literal=TWILIO_FROM_NUMBER=+1234567890 \
+  --from-literal=TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890 \
   -n opsguard --dry-run=client -o yaml > k8s/secret.yaml
 ```
+
+**Note:** Twilio secrets are optional. Only include them if you want to enable SMS/WhatsApp notifications.
 
 ### 4. Deploy to Kubernetes
 
@@ -145,6 +157,39 @@ Access at: `http://localhost:3000`
 Configure your DNS to point to the Ingress controller's IP, then access via your domain.
 
 ## Detailed Configuration
+
+### Optional: Twilio SMS/WhatsApp Configuration
+
+If you want to enable SMS and WhatsApp notifications via Twilio:
+
+1. **Install Twilio package** (optional - will be installed automatically if in package.json):
+   ```bash
+   npm install twilio
+   ```
+
+2. **Add Twilio secrets** to `k8s/secret.yaml`:
+   ```yaml
+   data:
+     TWILIO_ACCOUNT_SID: <base64-encoded-account-sid>
+     TWILIO_AUTH_TOKEN: <base64-encoded-auth-token>
+     TWILIO_FROM_NUMBER: <base64-encoded-from-number>  # E.g., +1234567890
+     TWILIO_WHATSAPP_NUMBER: <base64-encoded-whatsapp-number>  # Optional: whatsapp:+1234567890
+   ```
+
+3. **Uncomment Twilio environment variables** in `k8s/opsguard-deployment.yaml`:
+   ```yaml
+   - name: TWILIO_ACCOUNT_SID
+     valueFrom:
+       secretKeyRef:
+         name: opsguard-secrets
+         key: TWILIO_ACCOUNT_SID
+         optional: true
+   # ... (repeat for other Twilio vars)
+   ```
+
+4. **Configure in UI**: After deployment, go to Settings → Notification Providers and configure Twilio.
+
+**Note:** The application will work without Twilio. SMS/WhatsApp features will be disabled if Twilio is not configured.
 
 ### Storage
 

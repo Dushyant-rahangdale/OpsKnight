@@ -3,7 +3,7 @@
  * 
  * Architecture:
  * - Users configure their notification preferences (email, SMS, push)
- * - System-level providers are configured via env vars (Twilio, SMTP, etc.)
+ * - System-level providers are configured via database (Settings → System → Notification Providers)
  * - Service-level: Only Slack webhook URL
  * - When sending notifications, check user preferences and system provider availability
  */

@@ -54,6 +54,12 @@ const SystemIcon = () => (
 export default function SettingsNav({ isAdmin = false }: Props) {
     const pathname = usePathname();
 
+    const SlackIcon = () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165V11.91h5.042v3.255zm1.271 0a2.527 2.527 0 0 1 2.521-2.523 2.527 2.527 0 0 1 2.52 2.523v6.745H6.313v-6.745zm2.521-5.306V5.841a2.528 2.528 0 0 1 2.52-2.523h2.522a2.528 2.528 0 0 1 2.521 2.523v4.018H10.355zm5.208 0V5.841a2.528 2.528 0 0 0-2.521-2.523h-2.522a2.528 2.528 0 0 0-2.52 2.523v4.018h7.563zm2.522 5.306V11.91H24v3.255a2.528 2.528 0 0 1-2.521 2.523 2.528 2.528 0 0 1-2.52-2.523zm-2.522-5.306V5.841A2.528 2.528 0 0 0 15.624 3.318h-2.522a2.528 2.528 0 0 0-2.521 2.523v4.018h7.563z" fill="currentColor" fillOpacity="0.6"/>
+        </svg>
+    );
+
     const accountSettings: NavItem[] = [
         { 
             href: '/settings/profile', 
@@ -78,6 +84,12 @@ export default function SettingsNav({ isAdmin = false }: Props) {
             label: 'API Keys', 
             description: 'Access tokens',
             icon: <ApiKeyIcon />
+        },
+        { 
+            href: '/settings/integrations/slack', 
+            label: 'Slack Integration', 
+            description: 'Connect Slack workspace',
+            icon: <SlackIcon />
         }
     ];
 

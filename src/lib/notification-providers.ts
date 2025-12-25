@@ -10,6 +10,7 @@ export interface SMSConfig {
     accountSid?: string;
     authToken?: string;
     fromNumber?: string;
+    whatsappNumber?: string; // WhatsApp Business API number (optional)
     // AWS SNS config
     region?: string;
     accessKeyId?: string;
@@ -42,38 +43,65 @@ export interface EmailConfig {
 export type NotificationChannelType = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP';
 
 export async function getEmailConfig(): Promise<EmailConfig> {
-    const defaultFromEmail = process.env.EMAIL_FROM || `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'opsguard.com'}`;
+    const defaultFromEmail = `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'opsguard.com'}`;
 
-    if (process.env.RESEND_API_KEY) {
-        return {
-            enabled: true,
-            provider: 'resend',
-            apiKey: process.env.RESEND_API_KEY,
-            fromEmail: process.env.RESEND_FROM_EMAIL || defaultFromEmail,
-            source: 'resend'
-        };
-    }
+    try {
+        // Check Resend first
+        const resendProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'resend' }
+        });
 
-    if (process.env.SENDGRID_API_KEY) {
-        return {
-            enabled: true,
-            provider: 'sendgrid',
-            apiKey: process.env.SENDGRID_API_KEY,
-            fromEmail: process.env.SENDGRID_FROM_EMAIL || defaultFromEmail,
-            source: 'sendgrid'
-        };
-    }
+        if (resendProvider && resendProvider.enabled && resendProvider.config) {
+            const config = resendProvider.config as any;
+            if (config.apiKey) {
+                return {
+                    enabled: true,
+                    provider: 'resend',
+                    apiKey: config.apiKey,
+                    fromEmail: config.fromEmail || defaultFromEmail,
+                    source: 'resend'
+                };
+            }
+        }
 
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
-        return {
-            enabled: true,
-            provider: 'smtp',
-            apiKey: process.env.SMTP_PASSWORD,
-            fromEmail: process.env.SMTP_FROM_EMAIL || defaultFromEmail,
-            source: 'smtp'
-            ,
-            host: process.env.SMTP_HOST
-        };
+        // Check SendGrid
+        const sendgridProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'sendgrid' }
+        });
+
+        if (sendgridProvider && sendgridProvider.enabled && sendgridProvider.config) {
+            const config = sendgridProvider.config as any;
+            if (config.apiKey) {
+                return {
+                    enabled: true,
+                    provider: 'sendgrid',
+                    apiKey: config.apiKey,
+                    fromEmail: config.fromEmail || defaultFromEmail,
+                    source: 'sendgrid'
+                };
+            }
+        }
+
+        // Check SMTP
+        const smtpProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'smtp' }
+        });
+
+        if (smtpProvider && smtpProvider.enabled && smtpProvider.config) {
+            const config = smtpProvider.config as any;
+            if (config.host && config.user && config.password) {
+                return {
+                    enabled: true,
+                    provider: 'smtp',
+                    apiKey: config.password,
+                    fromEmail: config.fromEmail || defaultFromEmail,
+                    source: 'smtp',
+                    host: config.host
+                };
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load Email config from database:', error);
     }
 
     return {
@@ -100,29 +128,46 @@ export async function isChannelAvailable(channel: NotificationChannelType): Prom
 }
 
 /**
- * Get SMS configuration from environment variables
- * In production, this could be stored in database
+ * Get SMS configuration from database only
  */
 export async function getSMSConfig(): Promise<SMSConfig> {
-    // Check environment variables first
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-        return {
-            enabled: true,
-            provider: 'twilio',
-            accountSid: process.env.TWILIO_ACCOUNT_SID,
-            authToken: process.env.TWILIO_AUTH_TOKEN,
-            fromNumber: process.env.TWILIO_FROM_NUMBER,
-        };
-    }
+    try {
+        const twilioProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'twilio' }
+        });
 
-    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-        return {
-            enabled: true,
-            provider: 'aws-sns',
-            region: process.env.AWS_REGION || 'us-east-1',
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        };
+        if (twilioProvider && twilioProvider.enabled && twilioProvider.config) {
+            const config = twilioProvider.config as any;
+            if (config.accountSid && config.authToken) {
+                return {
+                    enabled: true,
+                    provider: 'twilio',
+                    accountSid: config.accountSid,
+                    authToken: config.authToken,
+                    fromNumber: config.fromNumber,
+                    whatsappNumber: config.whatsappNumber,
+                };
+            }
+        }
+
+        const awsProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'aws-sns' }
+        });
+
+        if (awsProvider && awsProvider.enabled && awsProvider.config) {
+            const config = awsProvider.config as any;
+            if (config.accessKeyId && config.secretAccessKey) {
+                return {
+                    enabled: true,
+                    provider: 'aws-sns',
+                    region: config.region || 'us-east-1',
+                    accessKeyId: config.accessKeyId,
+                    secretAccessKey: config.secretAccessKey,
+                };
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load SMS config from database:', error);
     }
 
     return {
@@ -132,28 +177,44 @@ export async function getSMSConfig(): Promise<SMSConfig> {
 }
 
 /**
- * Get Push notification configuration from environment variables
- * In production, this could be stored in database
+ * Get Push notification configuration from database only
  */
 export async function getPushConfig(): Promise<PushConfig> {
-    // Check environment variables first
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
-        return {
-            enabled: true,
-            provider: 'firebase',
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        };
-    }
+    try {
+        const firebaseProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'firebase' }
+        });
 
-    if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
-        return {
-            enabled: true,
-            provider: 'onesignal',
-            appId: process.env.ONESIGNAL_APP_ID,
-            restApiKey: process.env.ONESIGNAL_REST_API_KEY,
-        };
+        if (firebaseProvider && firebaseProvider.enabled && firebaseProvider.config) {
+            const config = firebaseProvider.config as any;
+            if (config.projectId && config.privateKey) {
+                return {
+                    enabled: true,
+                    provider: 'firebase',
+                    projectId: config.projectId,
+                    privateKey: config.privateKey,
+                    clientEmail: config.clientEmail,
+                };
+            }
+        }
+
+        const onesignalProvider = await prisma.notificationProvider.findUnique({
+            where: { provider: 'onesignal' }
+        });
+
+        if (onesignalProvider && onesignalProvider.enabled && onesignalProvider.config) {
+            const config = onesignalProvider.config as any;
+            if (config.appId && config.restApiKey) {
+                return {
+                    enabled: true,
+                    provider: 'onesignal',
+                    appId: config.appId,
+                    restApiKey: config.restApiKey,
+                };
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load Push config from database:', error);
     }
 
     return {

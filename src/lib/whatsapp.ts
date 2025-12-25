@@ -60,10 +60,12 @@ export async function sendIncidentWhatsApp(
         }
 
         const whatsappNumber = `whatsapp:${phoneNumber}`;
+        // Get WhatsApp from number from database config
+        const whatsappFromNumber = (smsConfig as any).whatsappNumber;
         const fromNumber = smsConfig.fromNumber 
             ? `whatsapp:${smsConfig.fromNumber}`
-            : process.env.TWILIO_WHATSAPP_NUMBER 
-                ? `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`
+            : whatsappFromNumber
+                ? `whatsapp:${whatsappFromNumber}`
                 : null;
 
         if (!fromNumber) {
@@ -78,16 +80,88 @@ export async function sendIncidentWhatsApp(
                           eventType === 'acknowledged' ? '⚠️' :
                           '✅';
         
-        const message = `${eventEmoji} *OpsGuard Incident ${eventType.toUpperCase()}*\n\n` +
-                       `*${incident.title}*\n\n` +
-                       `Service: ${incident.service.name}\n` +
-                       `Status: ${incident.status}\n` +
-                       `Urgency: ${incident.urgency}\n` +
-                       (incident.assignee ? `Assignee: ${incident.assignee.name}\n` : '') +
-                       `\nView: ${incidentUrl}`;
+        const statusLabel = eventType === 'resolved' ? 'RES' :
+                           eventType === 'acknowledged' ? 'ACK' :
+                           'TRIG';
+        
+        const urgencyLabel = incident.urgency === 'HIGH' ? 'CRIT' : 'INFO';
+
+        // Build concise message for Twilio trial (keep under 300 chars)
+        const titleMaxLength = 50;
+        const serviceMaxLength = 20;
+        
+        let title = incident.title.length > titleMaxLength 
+            ? incident.title.substring(0, titleMaxLength - 3) + '...' 
+            : incident.title;
+        
+        let service = incident.service.name.length > serviceMaxLength
+            ? incident.service.name.substring(0, serviceMaxLength - 3) + '...'
+            : incident.service.name;
+        
+        // Shorten URL if needed
+        let url = incidentUrl;
+        if (url.length > 30) {
+            url = '...' + url.substring(url.length - 27);
+        }
+        
+        // Build message: EMOJI *Status* Title | Service | URL
+        let message = `${eventEmoji} *${statusLabel} ${urgencyLabel}*\n`;
+        message += `*${title}*\n`;
+        message += `${service}\n`;
+        message += `${url}`;
+        
+        // Add assignee if available (truncate name if needed)
+        if (incident.assignee) {
+            let assignee = incident.assignee.name.length > 15
+                ? incident.assignee.name.substring(0, 15 - 3) + '...'
+                : incident.assignee.name;
+            message = `${eventEmoji} *${statusLabel} ${urgencyLabel}*\n`;
+            message += `*${title}*\n`;
+            message += `${service} | ${assignee}\n`;
+            message += `${url}`;
+        }
+        
+        // Final safety check - rebuild if too long
+        if (message.length > 280) {
+            const excess = message.length - 280;
+            title = title.substring(0, Math.max(10, title.length - excess - 3)) + '...';
+            if (incident.assignee) {
+                let assignee = incident.assignee.name.length > 15
+                    ? incident.assignee.name.substring(0, 15 - 3) + '...'
+                    : incident.assignee.name;
+                message = `${eventEmoji} *${statusLabel} ${urgencyLabel}*\n`;
+                message += `*${title}*\n`;
+                message += `${service} | ${assignee}\n`;
+                message += `${url}`;
+            } else {
+                message = `${eventEmoji} *${statusLabel} ${urgencyLabel}*\n`;
+                message += `*${title}*\n`;
+                message += `${service}\n`;
+                message += `${url}`;
+            }
+        }
 
         // Send via Twilio WhatsApp API
-        const twilio = require('twilio');
+        // Use dynamic require wrapped in a function to prevent webpack from statically analyzing it
+        let twilio: any;
+        try {
+            // Wrap in function to prevent webpack static analysis
+            const loadTwilio = () => {
+                try {
+                    return require('twilio');
+                } catch {
+                    return null;
+                }
+            };
+            twilio = loadTwilio();
+            if (!twilio) {
+                throw new Error('Twilio package not installed');
+            }
+        } catch (error: any) {
+            logger.warn('Twilio package not installed', { error: error?.message });
+            return { success: false, error: 'Twilio package not installed. Install it with: npm install twilio' };
+        }
+        
         const client = twilio(smsConfig.accountSid, smsConfig.authToken);
 
         try {
@@ -167,10 +241,12 @@ export async function sendWhatsApp(
         }
 
         const whatsappTo = `whatsapp:${toNumber}`;
+        // Get WhatsApp from number from database config
+        const whatsappFromNumber = (smsConfig as any).whatsappNumber;
         const whatsappFrom = from 
             ? `whatsapp:${from}`
-            : process.env.TWILIO_WHATSAPP_NUMBER
-                ? `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`
+            : whatsappFromNumber
+                ? `whatsapp:${whatsappFromNumber}`
                 : smsConfig.fromNumber
                     ? `whatsapp:${smsConfig.fromNumber}`
                     : null;
@@ -179,7 +255,26 @@ export async function sendWhatsApp(
             return { success: false, error: 'WhatsApp from number not configured' };
         }
 
-        const twilio = require('twilio');
+        // Use dynamic require wrapped in a function to prevent webpack from statically analyzing it
+        let twilio: any;
+        try {
+            // Wrap in function to prevent webpack static analysis
+            const loadTwilio = () => {
+                try {
+                    return require('twilio');
+                } catch {
+                    return null;
+                }
+            };
+            twilio = loadTwilio();
+            if (!twilio) {
+                throw new Error('Twilio package not installed');
+            }
+        } catch (error: any) {
+            logger.warn('Twilio package not installed', { error: error?.message });
+            return { success: false, error: 'Twilio package not installed. Install it with: npm install twilio' };
+        }
+        
         const client = twilio(smsConfig.accountSid, smsConfig.authToken);
 
         const messageResult = await client.messages.create({

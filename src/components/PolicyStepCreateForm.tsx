@@ -27,7 +27,9 @@ export default function PolicyStepCreateForm({
     const [notificationChannels, setNotificationChannels] = useState<string[]>([]);
     const [notifyOnlyTeamLead, setNotifyOnlyTeamLead] = useState(false);
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
         startTransition(async () => {
             try {
                 const result = await addStep(policyId, formData);
@@ -39,7 +41,8 @@ export default function PolicyStepCreateForm({
                     router.refresh();
                 }
             } catch (error) {
-                showToast(error instanceof Error ? error.message : 'Failed to add step', 'error');
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                showToast(errorMessage || 'Failed to add step', 'error');
             }
         });
     };
@@ -83,7 +86,7 @@ export default function PolicyStepCreateForm({
                     ×
                 </button>
             </div>
-            <form action={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
                 <div>
                     <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '500' }}>
                         Target Type *

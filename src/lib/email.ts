@@ -2,15 +2,15 @@
  * Email Notification Service
  * Sends email notifications for incidents
  * 
+ * Email providers are configured via the UI at Settings → System → Notification Providers
+ * 
  * To use with Resend (recommended):
  * 1. Install: npm install resend
- * 2. Set RESEND_API_KEY in .env
- * 3. Uncomment the Resend implementation below
+ * 2. Configure Resend in Settings → System → Notification Providers
  * 
  * To use with SendGrid:
  * 1. Install: npm install @sendgrid/mail
- * 2. Set SENDGRID_API_KEY in .env
- * 3. Use SendGrid implementation
+ * 2. Configure SendGrid in Settings → System → Notification Providers
  */
 
 import prisma from './prisma';
@@ -87,21 +87,75 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
         }
 
         if (emailConfig.provider === 'sendgrid') {
-            // TODO: Implement SendGrid when npm package is installed
-            // const sgMail = require('@sendgrid/mail');
-            // sgMail.setApiKey(emailConfig.apiKey);
-            // await sgMail.send({...});
-            console.log('Would send via SendGrid:', { to: options.to, from: emailConfig.fromEmail });
-            return { success: true };
+            try {
+                // Use runtime require to avoid build-time dependency
+                const requireFunc = eval('require') as (id: string) => any;
+                const sgMail = requireFunc('@sendgrid/mail');
+                sgMail.setApiKey(emailConfig.apiKey);
+
+                const result = await sgMail.send({
+                    to: options.to,
+                    from: emailConfig.fromEmail,
+                    subject: options.subject,
+                    html: options.html,
+                    text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+                });
+
+                console.log('Email sent via SendGrid:', { to: options.to, statusCode: result[0]?.statusCode });
+                return { success: true };
+            } catch (error: any) {
+                // If SendGrid package is not installed, fall back to console log
+                if (error.code === 'MODULE_NOT_FOUND') {
+                    console.error('SendGrid package not installed. Install with: npm install @sendgrid/mail');
+                    return { success: false, error: 'SendGrid package not installed. Install with: npm install @sendgrid/mail' };
+                }
+                console.error('SendGrid send error:', error);
+                return { success: false, error: error.message || 'SendGrid API error' };
+            }
         }
 
         if (emailConfig.provider === 'smtp') {
-            // TODO: Implement SMTP when nodemailer is installed
-            // const nodemailer = require('nodemailer');
-            // const transporter = nodemailer.createTransport({...});
-            // await transporter.sendMail({...});
-            console.log('Would send via SMTP:', { to: options.to, from: emailConfig.fromEmail, host: emailConfig.host });
-            return { success: true };
+            try {
+                // Use runtime require to avoid build-time dependency
+                const requireFunc = eval('require') as (id: string) => any;
+                const nodemailer = requireFunc('nodemailer');
+
+                // Validate required SMTP config
+                if (!emailConfig.host || !emailConfig.port || !emailConfig.user || !emailConfig.password) {
+                    return { success: false, error: 'SMTP configuration incomplete. Please configure Host, Port, Username, and Password in Settings → System → Notification Providers' };
+                }
+
+                // Create transporter
+                const transporter = nodemailer.createTransport({
+                    host: emailConfig.host,
+                    port: parseInt(emailConfig.port.toString()),
+                    secure: emailConfig.secure || false, // true for 465, false for other ports
+                    auth: {
+                        user: emailConfig.user,
+                        pass: emailConfig.password,
+                    },
+                });
+
+                // Send email
+                const info = await transporter.sendMail({
+                    from: emailConfig.fromEmail,
+                    to: options.to,
+                    subject: options.subject,
+                    html: options.html,
+                    text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+                });
+
+                console.log('Email sent via SMTP:', { to: options.to, messageId: info.messageId });
+                return { success: true };
+            } catch (error: any) {
+                // If nodemailer package is not installed, fall back to console log
+                if (error.code === 'MODULE_NOT_FOUND') {
+                    console.error('Nodemailer package not installed. Install with: npm install nodemailer');
+                    return { success: false, error: 'Nodemailer package not installed. Install with: npm install nodemailer' };
+                }
+                console.error('SMTP send error:', error);
+                return { success: false, error: error.message || 'SMTP send error' };
+            }
         }
 
         // No provider configured

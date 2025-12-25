@@ -224,6 +224,29 @@ export default function NotificationProviderSettings() {
                                         helperText="E.164 format (e.g., +1234567890)"
                                         fullWidth
                                     />
+                                    <div style={{
+                                        padding: '0.75rem',
+                                        background: '#eff6ff',
+                                        border: '1px solid #3b82f6',
+                                        borderRadius: '6px',
+                                        fontSize: '0.85rem',
+                                        color: '#1e40af',
+                                        marginTop: '0.5rem'
+                                    }}>
+                                        <strong>ℹ️ Twilio Trial Account Note:</strong>
+                                        <br />
+                                        Trial accounts can only send SMS to verified phone numbers. 
+                                        Verify recipient numbers at{' '}
+                                        <a 
+                                            href="https://twilio.com/user/account/phone-numbers/verified" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            style={{ color: '#2563eb', textDecoration: 'underline' }}
+                                        >
+                                            twilio.com/user/account/phone-numbers/verified
+                                        </a>
+                                        {' '}or upgrade your Twilio account to send to any number.
+                                    </div>
                                 </>
                             )}
 
