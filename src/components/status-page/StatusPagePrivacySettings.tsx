@@ -5,6 +5,7 @@ import { Card, FormField, Switch, Button } from '@/components/ui';
 
 interface PrivacySettings {
     privacyMode: 'PUBLIC' | 'RESTRICTED' | 'PRIVATE' | 'CUSTOM';
+    requireAuth: boolean;
     showIncidentDetails: boolean;
     showIncidentTitles: boolean;
     showIncidentDescriptions: boolean;
@@ -248,6 +249,14 @@ export default function StatusPagePrivacySettings({
                         Advanced Privacy Settings
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+                        <div style={{ padding: 'var(--spacing-4)', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 'var(--radius-md)' }}>
+                            <Switch
+                                checked={localSettings.requireAuth}
+                                onChange={(checked) => updateSetting('requireAuth', checked)}
+                                label="Require Authentication"
+                                helperText="When enabled, users must log in to view the status page. Recommended for internal status pages."
+                            />
+                        </div>
                         <Switch
                             checked={localSettings.showRecentIncidents}
                             onChange={(checked) => updateSetting('showRecentIncidents', checked)}
@@ -326,7 +335,7 @@ export default function StatusPagePrivacySettings({
                             Current privacy mode: <strong>{localSettings.privacyMode}</strong>
                         </div>
                         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)' }}>
-                            These settings control what information is visible on your public status page. 
+                            These settings control what information is visible on your public status page.
                             Changes take effect immediately after saving.
                         </div>
                     </div>
