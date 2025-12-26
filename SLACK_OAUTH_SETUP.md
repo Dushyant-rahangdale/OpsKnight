@@ -12,7 +12,7 @@ The Slack integration supports two methods:
 
 1. Go to https://api.slack.com/apps
 2. Click "Create New App" → "From scratch"
-3. Name your app (e.g., "OpsSure") and select your workspace
+3. Name your app (e.g., "OpsSentinal") and select your workspace
 4. Click "Create App"
 
 ### 2. Configure OAuth & Permissions

@@ -67,15 +67,15 @@ export async function sendWebhook(
         // Prepare headers
         const requestHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
-            'User-Agent': 'OpsSure/1.0',
+            'User-Agent': 'OpsSentinal/1.0',
             ...headers,
         };
 
         // Add signature if secret provided
         if (secret) {
             const signature = generateSignature(payloadString, secret);
-            requestHeaders['X-OpsSure-Signature'] = `sha256=${signature}`;
-            requestHeaders['X-OpsSure-Timestamp'] = Date.now().toString();
+            requestHeaders['X-OpsSentinal-Signature'] = `sha256=${signature}`;
+            requestHeaders['X-OpsSentinal-Timestamp'] = Date.now().toString();
         }
 
         // Use retry logic for improved reliability
@@ -438,7 +438,7 @@ export function formatDiscordPayload(
                 ],
                 timestamp: new Date().toISOString(),
                 footer: {
-                    text: 'OpsSure'
+                    text: 'OpsSentinal'
                 }
             }
         ]

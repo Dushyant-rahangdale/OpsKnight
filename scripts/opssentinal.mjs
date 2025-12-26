@@ -6,10 +6,10 @@ import dotenv from 'dotenv';
 function printHelp() {
     const lines = [
         'Usage:',
-        '  opssentinal --user <name> --email <email> --password <password> [--role <role>] [--update]',
+        '  OpsSentinal --user <name> --email <email> --password <password> [--role <role>] [--update]',
         '',
         'Examples:',
-        '  opssentinal --user admin --password admin --email admin@example.com --role admin',
+        '  OpsSentinal --user admin --password admin --email admin@example.com --role admin',
         '',
         'Notes:',
         '  - Role values: admin, responder, user',

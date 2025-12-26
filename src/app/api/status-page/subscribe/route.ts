@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
 
                 const emailTemplate = getVerificationEmailTemplate({
                     statusPageName: statusPage.name,
+                    organizationName: statusPage.organizationName || undefined,
                     statusPageUrl: `${baseUrl}/status`,
                     verificationUrl,
                 });

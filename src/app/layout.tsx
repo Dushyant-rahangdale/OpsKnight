@@ -4,7 +4,7 @@ import VersionCheck from '@/components/VersionCheck';
 import WebVitalsReporter from '@/components/WebVitalsReporter';
 
 export const metadata: Metadata = {
-  title: 'OpsSure | Enterprise Incident Management',
+  title: 'OpsSentinal | Enterprise Incident Management',
   description: 'PagerDuty Clone',
 };
 

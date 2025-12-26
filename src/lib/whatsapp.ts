@@ -72,10 +72,10 @@ export async function sendIncidentWhatsApp(
         const baseUrl = getBaseUrl();
         const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
 
-        // Build professional opssentinal branded message for WhatsApp
+        // Build professional OpsSentinal branded message for WhatsApp
         // Using WhatsApp formatting: *bold*, _italics_, ~strikethrough~, ```monospace```
 
-        let header = `*[opssentinal]*`;
+        let header = `*[OpsSentinal]*`;
         let statusLine = '';
 
         if (eventType === 'triggered') {

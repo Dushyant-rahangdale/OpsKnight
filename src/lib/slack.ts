@@ -38,7 +38,7 @@ async function getSlackBotToken(serviceId?: string): Promise<string | null> {
 
     // Try global integration (one not linked to any service)
     const globalIntegration = await prisma.slackIntegration.findFirst({
-        where: { 
+        where: {
             enabled: true,
             service: null // Not linked to any service
         }
@@ -303,7 +303,7 @@ function buildSlackBlocks(
         elements: [
             {
                 type: 'mrkdwn',
-                text: `*OpsSure* | Incident #${incident.id.slice(-5).toUpperCase()}`
+                text: `*OpsSentinal* | Incident #${incident.id.slice(-5).toUpperCase()}`
             }
         ]
     });
@@ -323,7 +323,7 @@ export async function sendSlackMessageToChannel(
 ): Promise<{ success: boolean; error?: string }> {
     // Get bot token (from OAuth integration or env fallback)
     const botToken = await getSlackBotToken(serviceId);
-    
+
     if (!botToken) {
         logger.warn('[Slack] No bot token configured, falling back to webhook');
         // Fallback to webhook if API token not available

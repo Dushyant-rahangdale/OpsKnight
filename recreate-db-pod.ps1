@@ -2,7 +2,7 @@
 # This script provides options to recreate the database pod in Kubernetes
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet("restart", "delete", "fresh")]
     [string]$Mode = "restart"
 )
@@ -20,7 +20,8 @@ Write-Host ""
 try {
     $kubectlVersion = kubectl version --client --short 2>&1
     Write-Host "✓ kubectl found" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "✗ kubectl not found. Please install kubectl first." -ForegroundColor Red
     exit 1
 }
@@ -49,7 +50,8 @@ switch ($Mode) {
             Write-Host ""
             Write-Host "Watching pod status (Ctrl+C to stop):" -ForegroundColor Yellow
             kubectl get pods -n $Namespace -l $LabelSelector -w
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to delete pod" -ForegroundColor Red
             exit 1
         }
@@ -74,7 +76,8 @@ switch ($Mode) {
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ Deployment recreated. Watching pod status..." -ForegroundColor Green
             kubectl get pods -n $Namespace -l $LabelSelector -w
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to recreate deployment" -ForegroundColor Red
             exit 1
         }
@@ -111,7 +114,8 @@ switch ($Mode) {
             Write-Host "⚠️  IMPORTANT: You need to run Prisma migrations now!" -ForegroundColor Yellow
             Write-Host "   kubectl exec -it -n $Namespace <app-pod> -- npx prisma migrate deploy" -ForegroundColor Cyan
             kubectl get pods -n $Namespace -l $LabelSelector -w
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to recreate deployment" -ForegroundColor Red
             exit 1
         }

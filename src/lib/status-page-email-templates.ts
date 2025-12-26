@@ -1,5 +1,5 @@
 /**
- * Modern Email templates for Status Page using OpsSure Brand Colors
+ * Modern Email templates for Status Page using OpsSentinal Brand Colors
  * Brand Colors: Primary Red (#d32f2f), Dark (#0b0b0f), Accent Red (#ff5252)
  */
 
@@ -18,6 +18,7 @@ import {
 
 export interface EmailTemplateData {
     statusPageName: string;
+    organizationName?: string;
     statusPageUrl: string;
     incidentTitle?: string;
     incidentDescription?: string;
@@ -31,10 +32,11 @@ export interface EmailTemplateData {
  * Verification Email Template
  */
 export function getVerificationEmailTemplate(data: EmailTemplateData & { verificationUrl: string }): { subject: string; html: string; text: string } {
-    const subject = `[${data.statusPageName}] 🔐 Verify your subscription`;
+    const displayName = data.organizationName || data.statusPageName;
+    const subject = `[${displayName}] 🔐 Verify your subscription`;
 
     const content = `
-        ${EmailHeader('Verify Your Email', data.statusPageName)}
+        ${SubscriberEmailHeader(displayName, 'Email Verification', 'Confirm your subscription to receive status updates')}
         ${EmailContent(`
             <!-- Welcome Message -->
             <div style="text-align: center; margin-bottom: 32px;">
@@ -45,7 +47,7 @@ export function getVerificationEmailTemplate(data: EmailTemplateData & { verific
                     Welcome to Status Updates!
                 </h2>
                 <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
-                    You're one click away from receiving important updates about <strong style="color: #d32f2f;">${data.statusPageName}</strong>
+                    You're one click away from receiving important updates about <strong style="color: #d32f2f;">${displayName}</strong>
                 </p>
             </div>
             
@@ -79,15 +81,15 @@ export function getVerificationEmailTemplate(data: EmailTemplateData & { verific
                 </p>
             </div>
         `)}
-        ${EmailFooter(data.unsubscribeUrl)}
+        ${SubscriberEmailFooter(data.unsubscribeUrl || '#', displayName)}
     `;
 
     const html = EmailContainer(content);
 
     const text = `
-${data.statusPageName} - Verify Your Email Subscription
+${displayName} - Verify Your Email Subscription
 
-Thank you for subscribing to ${data.statusPageName} status updates!
+Thank you for subscribing to ${displayName} status updates!
 
 To complete your subscription, please verify your email address by visiting:
 ${data.verificationUrl}

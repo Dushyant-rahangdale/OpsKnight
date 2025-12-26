@@ -15,7 +15,7 @@
         "test:ui": "vitest --ui",
         "test:coverage": "vitest --coverage",
         "test:run": "vitest run",
-        "opssentinal": "node ./scripts/opssentinal.mjs",
+        "OpsSentinal": "node ./scripts/OpsSentinal.mjs",
         "prepare": "husky install"
     },
     "dependencies": {
@@ -60,6 +60,6 @@
         "vitest": "^2.1.9"
     },
     "bin": {
-        "opssentinal": "./scripts/opssentinal.mjs"
+        "OpsSentinal": "./scripts/OpsSentinal.mjs"
     }
 }

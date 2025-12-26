@@ -35,7 +35,7 @@ export default async function SetupPage() {
                         <ul style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
                             <li>The database server is running</li>
                             <li>The DATABASE_URL environment variable is correctly configured</li>
-                            <li>If using Docker Compose, run: <code style={{ background: '#f3f4f6', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>docker-compose up -d opssentinal-db</code></li>
+                            <li>If using Docker Compose, run: <code style={{ background: '#f3f4f6', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>docker-compose up -d OpsSentinal-db</code></li>
                         </ul>
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>
                             Error: {errorMessage}
@@ -59,7 +59,7 @@ export default async function SetupPage() {
             background: 'radial-gradient(circle at top right, rgba(211,47,47,0.18), transparent 45%), radial-gradient(circle at bottom left, rgba(17,24,39,0.08), transparent 45%), #f8fafc'
         }}>
             <div className="glass-panel" style={{ maxWidth: '520px', width: '100%', padding: '2.5rem', background: 'white' }}>
-                <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.35rem' }}>Bootstrapping opssentinal</h1>
+                <h1 style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: '0.35rem' }}>Bootstrapping OpsSentinal</h1>
                 <div style={{
                     marginBottom: '1.5rem',
                     padding: '0.75rem',

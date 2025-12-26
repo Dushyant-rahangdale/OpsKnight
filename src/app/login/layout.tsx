@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Sign In | OpsSure',
-  description: 'Sign in to OpsSure - Command incidents. Stay ahead.',
+  title: 'Sign In | OpsSentinal',
+  description: 'Sign in to OpsSentinal - Command incidents. Stay ahead.',
   robots: {
     index: false,
     follow: false,

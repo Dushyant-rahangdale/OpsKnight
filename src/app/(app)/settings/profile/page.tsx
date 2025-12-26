@@ -8,12 +8,12 @@ import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 export default async function ProfileSettingsPage() {
     const session = await getServerSession(authOptions);
     const email = session?.user?.email ?? null;
-    
+
     // Fetch user data from database to get the latest name
     const user = email
         ? await prisma.user.findUnique({
             where: { email },
-            select: { 
+            select: {
                 name: true,
                 role: true,
                 createdAt: true,
@@ -30,7 +30,7 @@ export default async function ProfileSettingsPage() {
     return (
         <SettingsSection
             title="Profile"
-            description="Identity details tied to your OpsSure account."
+            description="Identity details tied to your OpsSentinal account."
         >
             <ProfileForm
                 name={name}
@@ -39,7 +39,7 @@ export default async function ProfileSettingsPage() {
                 memberSince={memberSince}
             />
             <div className="settings-note" style={{ marginTop: '1.5rem' }}>
-                Updates are managed by your identity provider or an OpsSure administrator.
+                Updates are managed by your identity provider or an OpsSentinal administrator.
             </div>
         </SettingsSection>
     );

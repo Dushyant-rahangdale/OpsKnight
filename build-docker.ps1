@@ -1,5 +1,5 @@
 # Temporary build script to work around OneDrive file locking issues
-$tempDir = "$env:TEMP\opssentinal-build-$(Get-Date -Format 'yyyyMMddHHmmss')"
+$tempDir = "$env:TEMP\OpsSentinal-build-$(Get-Date -Format 'yyyyMMddHHmmss')"
 $sourceDir = $PSScriptRoot
 
 Write-Host "Copying files to temporary location: $tempDir"

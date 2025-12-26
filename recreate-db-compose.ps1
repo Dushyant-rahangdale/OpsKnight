@@ -1,11 +1,11 @@
 # Recreate Database Container - Docker Compose Script
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet("restart", "recreate", "fresh")]
     [string]$Mode = "restart",
     
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [switch]$Dev = $false
 )
 
@@ -22,7 +22,8 @@ Write-Host ""
 try {
     $dockerComposeVersion = docker-compose --version 2>&1
     Write-Host "✓ docker-compose found" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "✗ docker-compose not found. Please install Docker Compose first." -ForegroundColor Red
     exit 1
 }
@@ -35,7 +36,8 @@ try {
         exit 1
     }
     Write-Host "✓ Docker is running" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "✗ Docker is not running. Please start Docker Desktop." -ForegroundColor Red
     exit 1
 }
@@ -56,7 +58,8 @@ switch ($Mode) {
             Write-Host ""
             Write-Host "Container status:" -ForegroundColor Yellow
             docker-compose -f $ComposeFile ps $ServiceName
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to restart container" -ForegroundColor Red
             exit 1
         }
@@ -76,7 +79,8 @@ switch ($Mode) {
             Write-Host ""
             Write-Host "Container logs:" -ForegroundColor Yellow
             docker-compose -f $ComposeFile logs --tail=20 $ServiceName
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to recreate container" -ForegroundColor Red
             exit 1
         }
@@ -117,7 +121,8 @@ switch ($Mode) {
             Write-Host "   npx prisma migrate deploy" -ForegroundColor Cyan
             Write-Host "   or" -ForegroundColor Cyan
             Write-Host "   npx prisma migrate reset --force" -ForegroundColor Cyan
-        } else {
+        }
+        else {
             Write-Host "✗ Failed to recreate container" -ForegroundColor Red
             exit 1
         }

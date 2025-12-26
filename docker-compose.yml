@@ -15,7 +15,7 @@ services:
     volumes:
       - opssentinal_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-opssentinal} -d ${POSTGRES_DB:-opssentinal_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-opssentinal} -d ${POSTGRES_DB:-opssentinal_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,7 +46,7 @@ services:
       opssentinal-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health', (r) => {let data='';r.on('data',(c)=>data+=c);r.on('end',()=>{try{const res=JSON.parse(data);process.exit(res.status==='healthy'?0:1)}catch(e){process.exit(1)}});}).on('error',()=>process.exit(1))\""]
+      test: [ "CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api/health', (r) => {let data='';r.on('data',(c)=>data+=c);r.on('end',()=>{try{const res=JSON.parse(data);process.exit(res.status==='healthy'?0:1)}catch(e){process.exit(1)}});}).on('error',()=>process.exit(1))\"" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,11 +59,10 @@ services:
 volumes:
   opssentinal_postgres_data:
 
+
 networks:
   opssentinal-network:
     driver: bridge
     driver_opts:
       com.docker.network.bridge.name: opssentinal-br0
       com.docker.network.driver.mtu: 1500
-
-

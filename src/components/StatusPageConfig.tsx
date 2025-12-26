@@ -629,8 +629,8 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                     label="Organization Name"
                                                     value={formData.organizationName}
                                                     onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
-                                                    helperText="Used in email headers (e.g., 'OpsSure'). Overrides Status Page Name if set."
-                                                    placeholder="e.g. OpsSure"
+                                                    helperText="Used in email headers (e.g., 'OpsSentinal'). Overrides Status Page Name if set."
+                                                    placeholder="e.g. OpsSentinal"
                                                 />
 
                                                 <Switch

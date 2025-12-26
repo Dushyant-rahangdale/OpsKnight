@@ -29,7 +29,7 @@ async function deliverWebhook(url: string, secret: string, payload: WebhookPaylo
                 'Content-Type': 'application/json',
                 'X-Webhook-Signature': `sha256=${signature}`,
                 'X-Webhook-Event': payload.event,
-                'User-Agent': 'OpsSure-StatusPage/1.0',
+                'User-Agent': 'OpsSentinal-StatusPage/1.0',
             },
             body: payloadString,
             signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -162,14 +162,14 @@ export async function triggerWebhooksForService(
 ): Promise<void> {
     try {
         const statusPageIds = await getStatusPagesForService(serviceId);
-        
+
         // If no status pages are associated, try to trigger for the default enabled status page
         if (statusPageIds.length === 0) {
             const defaultStatusPage = await prisma.statusPage.findFirst({
                 where: { enabled: true },
                 select: { id: true },
             });
-            
+
             if (defaultStatusPage) {
                 await triggerStatusPageWebhooks(defaultStatusPage.id, event, incidentData);
             }

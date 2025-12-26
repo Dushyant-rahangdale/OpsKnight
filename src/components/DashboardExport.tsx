@@ -26,14 +26,14 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
 
   const exportToCSV = () => {
     setIsExporting(true);
-    
+
     const csvRows: string[] = [];
-    
+
     // Header
-    csvRows.push('OpsSure Dashboard Export');
+    csvRows.push('OpsSentinal Dashboard Export');
     csvRows.push(`Generated: ${formatDateTime(new Date(), userTimeZone, { format: 'datetime' })}`);
     csvRows.push('');
-    
+
     // Filters
     csvRows.push('Active Filters:');
     if (filters.status) csvRows.push(`Status: ${filters.status}`);
@@ -41,7 +41,7 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
     if (filters.assignee) csvRows.push(`Assignee: ${filters.assignee}`);
     if (filters.range) csvRows.push(`Time Range: ${filters.range} days`);
     csvRows.push('');
-    
+
     // Metrics Summary
     csvRows.push('Metrics Summary:');
     csvRows.push(`Open Incidents,${metrics.totalOpen}`);
@@ -49,7 +49,7 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
     csvRows.push(`Acknowledged Incidents,${metrics.totalAcknowledged}`);
     csvRows.push(`Unassigned Incidents,${metrics.unassigned}`);
     csvRows.push('');
-    
+
     // Incidents Data
     csvRows.push('Incidents:');
     csvRows.push('ID,Title,Status,Urgency,Service,Assignee,Created At');
@@ -65,7 +65,7 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
       ];
       csvRows.push(row.join(','));
     });
-    
+
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -76,7 +76,7 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     setTimeout(() => setIsExporting(false), 500);
   };
 
@@ -111,9 +111,9 @@ export default function DashboardExport({ incidents, filters, metrics }: ExportP
       }}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round"/>
-        <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points="7 10 12 15 17 10" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="12" y1="15" x2="12" y2="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       {isExporting ? 'Exporting...' : 'Export CSV'}
     </button>

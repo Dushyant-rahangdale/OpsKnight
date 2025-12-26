@@ -57,11 +57,11 @@ export function validateProductionEnv(): void {
         },
         {
             name: 'NEXTAUTH_URL',
-            description: 'Full URL of your application (e.g., https://opssentinal.yourdomain.com)'
+            description: 'Full URL of your application (e.g., https://OpsSentinal.yourdomain.com)'
         },
         {
             name: 'NEXTAUTH_URL',
-            description: 'Full URL of your application (e.g., https://opssentinal.yourdomain.com)'
+            description: 'Full URL of your application (e.g., https://OpsSentinal.yourdomain.com)'
         }
     ];
 
@@ -124,7 +124,7 @@ export function getFromEmail(): string {
         logger.warn('EMAIL_FROM not set and cannot derive from NEXT_PUBLIC_APP_URL. Using default.');
     }
 
-    return 'noreply@opssentinal.local';
+    return 'noreply@OpsSentinal.local';
 }
 
 

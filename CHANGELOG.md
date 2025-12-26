@@ -1,6 +1,6 @@
-# Changelog - OpsSure Enhancement Implementation
+# Changelog - OpsSentinal Enhancement Implementation
 
-This document tracks all the enhancements and features implemented in the OpsSure application.
+This document tracks all the enhancements and features implemented in the OpsSentinal application.
 
 ## December 2024 - Major Enhancement Phase
 

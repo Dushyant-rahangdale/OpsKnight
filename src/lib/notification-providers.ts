@@ -43,7 +43,7 @@ export interface EmailConfig {
 export type NotificationChannelType = 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP';
 
 export async function getEmailConfig(): Promise<EmailConfig> {
-    const defaultFromEmail = `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'opssentinal.com'}`;
+    const defaultFromEmail = `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'OpsSentinal.com'}`;
 
     try {
         // Check Resend first
@@ -115,7 +115,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
  * Respects the emailProvider setting from StatusPage
  */
 export async function getStatusPageEmailConfig(statusPageId?: string): Promise<EmailConfig> {
-    const defaultFromEmail = `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'opssentinal.com'}`;
+    const defaultFromEmail = `noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'OpsSentinal.com'}`;
 
     try {
         // Get status page email provider preference

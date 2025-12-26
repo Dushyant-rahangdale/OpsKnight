@@ -1,4 +1,4 @@
-# Development Dockerfile for OpsSure
+# Development Dockerfile for OpsSentinal
 FROM node:20-alpine
 
 WORKDIR /app

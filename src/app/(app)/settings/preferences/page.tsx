@@ -11,9 +11,9 @@ export default async function PreferencesSettingsPage() {
     const user = email
         ? await prisma.user.findUnique({
             where: { email },
-            select: { 
-                timeZone: true, 
-                dailySummary: true, 
+            select: {
+                timeZone: true,
+                dailySummary: true,
                 incidentDigest: true,
                 emailNotificationsEnabled: true,
                 smsNotificationsEnabled: true,
@@ -27,7 +27,7 @@ export default async function PreferencesSettingsPage() {
     return (
         <SettingsSection
             title="Preferences"
-            description="Personalize how OpsSure appears and notifies you."
+            description="Personalize how OpsSentinal appears and notifies you."
         >
             <div style={{ marginBottom: '2rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text-primary)' }}>
