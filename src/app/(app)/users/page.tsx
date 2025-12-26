@@ -337,6 +337,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                                 action={bulkUpdateUsers}
                                 formId="bulk-users-form"
                                 className="bulk-actions-form-inline"
+                                disabled={!isAdmin}
                             />
                         </div>
                     </div>
