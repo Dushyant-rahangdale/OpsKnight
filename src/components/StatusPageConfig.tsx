@@ -634,9 +634,9 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
 
                                                 <Switch
                                                     checked={formData.enabled}
-                                                    onChange={(checked) => setFormData({ ...formData, enabled: checked })}
+                                                    onChange={(checked) => setFormData({ ...formData, enabled: checked, requireAuth: !checked })}
                                                     label="Enable Status Page"
-                                                    helperText="When enabled, the status page will be publicly accessible by default. To require authentication, enable 'Require Authentication' in Privacy & Data settings."
+                                                    helperText="When enabled, the status page will be publicly accessible (no authentication required)."
                                                 />
                                             </div>
                                         </div>
