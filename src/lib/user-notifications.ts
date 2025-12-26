@@ -106,7 +106,7 @@ export async function sendUserNotification(
         return {
             success: false,
             channelsUsed: [],
-            errors: ['No notification channels available for user']
+            errors: ['User has not enabled any notification channels. Please configure notification preferences in Settings.']
         };
     }
 
@@ -256,7 +256,7 @@ export async function sendServiceNotifications(
             }
 
             if (channels.length === 0) {
-                return { userId, success: false, error: 'No notification channels available' };
+                return { userId, success: false, error: 'User has not enabled any notification channels. Please configure notification preferences in Settings.' };
             }
 
             // Send via all enabled channels
