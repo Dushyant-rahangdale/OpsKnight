@@ -15,16 +15,21 @@ export function getBaseUrl(): string {
     const url = process.env.NEXT_PUBLIC_APP_URL;
 
     if (!url) {
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error(
-                'NEXT_PUBLIC_APP_URL environment variable is required in production. ' +
-                'This is used for notification links, webhooks, and RSS feeds. ' +
-                'Please set it to your application URL (e.g., https://opssentinal.yourdomain.com)'
-            );
+        // Fallback to NEXTAUTH_URL if available
+        if (process.env.NEXTAUTH_URL) {
+            return process.env.NEXTAUTH_URL.replace(/\/$/, '');
         }
 
-        // Development fallback
-        logger.warn('NEXT_PUBLIC_APP_URL not set, using localhost fallback (development only)');
+        if (process.env.NODE_ENV === 'production') {
+            logger.warn(
+                'NEXT_PUBLIC_APP_URL environment variable is not set. ' +
+                'Using localhost fallback. Set this to your application URL for correct notification links.'
+            );
+        } else {
+            // Development fallback
+            logger.warn('NEXT_PUBLIC_APP_URL not set, using localhost fallback (development only)');
+        }
+
         return 'http://localhost:3000';
     }
 

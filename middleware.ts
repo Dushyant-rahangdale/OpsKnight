@@ -164,6 +164,13 @@ export async function middleware(req: NextRequest) {
         return response;
     }
 
+    // Allow the root page to render for unauthenticated users
+    // This allows the root page's server component to decide whether to redirect to /login or /setup
+    // based on whether users exist in the database.
+    if (pathname === '/') {
+        return response;
+    }
+
     // Unauthenticated user trying to access protected route - redirect to login
     const url = req.nextUrl.clone();
     url.pathname = '/login';
