@@ -221,7 +221,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                     borderRadius: '0px',
                     border: '1px solid var(--border)'
                 }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+
                     <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                         No services found
                     </h3>
