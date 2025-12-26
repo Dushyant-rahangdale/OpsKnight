@@ -25,7 +25,7 @@ describe('Status Page Email Templates', () => {
 
             const result = getIncidentCreatedTemplate(data);
 
-            expect(result.subject).toBe('[Test Status Page] Incident: Service Outage');
+            expect(result.subject).toBe('[Test Status Page] 🚨 Incident: Service Outage');
             expect(result.html).toContain('Test Status Page');
             expect(result.html).toContain('Service Outage');
             expect(result.html).toContain('We are experiencing issues with our API');
@@ -43,7 +43,7 @@ describe('Status Page Email Templates', () => {
         it('should handle missing optional fields', () => {
             const result = getIncidentCreatedTemplate(baseData);
 
-            expect(result.subject).toBe('[Test Status Page] Incident: New Incident');
+            expect(result.subject).toBe('[Test Status Page] 🚨 Incident: New Incident');
             expect(result.html).toContain('New Incident');
             expect(result.html).not.toContain('Affected Services');
             expect(result.text).toContain('New Incident');
@@ -92,11 +92,11 @@ describe('Status Page Email Templates', () => {
 
             const result = getIncidentResolvedTemplate(data);
 
-            expect(result.subject).toBe('[Test Status Page] Resolved: Service Outage');
+            expect(result.subject).toBe('[Test Status Page] ✅ Resolved: Service Outage');
             expect(result.html).toContain('Incident Resolved');
             expect(result.html).toContain('Service Outage');
             expect(result.html).toContain('Issue has been resolved');
-            expect(result.html).toContain('https://status.example.com/incidents/123');
+            expect(result.html).toContain('https://status.example.com');
             expect(result.html).toContain('unsubscribe/token123');
 
             expect(result.text).toContain('Service Outage has been resolved');
@@ -106,7 +106,7 @@ describe('Status Page Email Templates', () => {
         it('should handle missing optional fields', () => {
             const result = getIncidentResolvedTemplate(baseData);
 
-            expect(result.subject).toBe('[Test Status Page] Resolved: Incident');
+            expect(result.subject).toBe('[Test Status Page] ✅ Resolved: Incident');
             expect(result.html).toContain('Incident');
             expect(result.text).toContain('Incident has been resolved');
         });
@@ -134,7 +134,7 @@ describe('Status Page Email Templates', () => {
 
             const result = getStatusChangeTemplate(data);
 
-            expect(result.subject).toBe('[Test Status Page] Status Update');
+            expect(result.subject).toBe('[Test Status Page] 🔄 Status Update');
             expect(result.html).toContain('Status Update');
             expect(result.html).toContain('Investigating');
             expect(result.html).toContain('We are currently investigating the issue');

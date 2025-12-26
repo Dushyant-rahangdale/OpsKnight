@@ -8,23 +8,24 @@ export function getUserFriendlyError(error: string | Error | unknown): string {
   if (error && typeof error === 'object' && 'type' in error && 'target' in error) {
     return 'An unexpected error occurred. Please try again.';
   }
-  
+
   // Handle Error instances
   if (error instanceof Error) {
-    return error.message || 'An unexpected error occurred.';
+    // return error.message || 'An unexpected error occurred.';
+    error = error.message || 'An unexpected error occurred.';
   }
-  
+
   // Handle strings
-  if (typeof error === 'string') {
-    return error;
-  }
-  
+  // if (typeof error === 'string') {
+  //   return error;
+  // }
+
   // Handle objects that stringify to "[object ...]"
   const errorString = String(error);
   if (errorString.startsWith('[object ') && errorString.endsWith(']')) {
     return 'An unexpected error occurred. Please try again.';
   }
-  
+
   const errorMessage = errorString;
 
   // Database/Prisma errors
