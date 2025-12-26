@@ -160,7 +160,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     const currentUserRole = (currentUser?.role as Role) || 'USER';
     const isAdmin = currentUserRole === 'ADMIN';
     const isAdminOrResponder = currentUserRole === 'ADMIN' || currentUserRole === 'RESPONDER';
-    
+
     // Get user timezone for date formatting
     const userTimeZone = getUserTimeZone(currentUser ?? undefined);
 
@@ -465,7 +465,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                             Add responders with a role and send a secure invite instantly.
                         </p>
-                        <UserCreateForm action={addUser} />
+                        <UserCreateForm action={addUser} disabled={!isAdmin} />
                     </div>
 
                     {/* Audit Log Panel - Matches User Directory Height */}
