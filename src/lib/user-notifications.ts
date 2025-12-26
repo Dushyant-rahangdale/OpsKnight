@@ -53,8 +53,8 @@ export async function getUserNotificationChannels(userId: string): Promise<Notif
 
     // WhatsApp: Check user preference and system availability (Twilio)
     if (user.whatsappNotificationsEnabled && user.phoneNumber) {
-        const smsConfig = await import('./notification-providers').then(m => m.getSMSConfig());
-        if (smsConfig.enabled && smsConfig.provider === 'twilio') {
+        const whatsappConfig = await import('./notification-providers').then(m => m.getWhatsAppConfig());
+        if (whatsappConfig.enabled && whatsappConfig.provider === 'twilio') {
             channels.push('WHATSAPP');
         }
     }
@@ -83,13 +83,13 @@ export async function sendUserNotification(
     escalationChannels?: NotificationChannel[]
 ): Promise<{ success: boolean; channelsUsed: NotificationChannel[]; errors?: string[] }> {
     let channels: NotificationChannel[];
-    
+
     // If escalation step specifies channels, use those (filtered by user preferences and availability)
     if (escalationChannels && escalationChannels.length > 0) {
         const userChannels = await getUserNotificationChannels(userId);
         // Intersection: only use channels that are both in escalation step AND available for user
         channels = escalationChannels.filter(ch => userChannels.includes(ch));
-        
+
         // If no intersection, fall back to user preferences
         if (channels.length === 0) {
             channels = userChannels;
@@ -98,7 +98,7 @@ export async function sendUserNotification(
         // Use user preferences
         channels = await getUserNotificationChannels(userId);
     }
-    
+
     const errors: string[] = [];
     const channelsUsed: NotificationChannel[] = [];
 
@@ -133,7 +133,7 @@ export async function sendUserNotification(
  */
 export async function sendServiceNotifications(
     incidentId: string,
-    eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated'
+    eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated', excludeUserIds: string[] = []
 ): Promise<{ success: boolean; errors?: string[] }> {
     try {
         const incident = await prisma.incident.findUnique({
@@ -173,7 +173,7 @@ export async function sendServiceNotifications(
         }
 
         // Remove duplicates
-        const uniqueRecipients = [...new Set(recipients)];
+        const uniqueRecipients = [...new Set(recipients)].filter(id => !excludeUserIds.includes(id));
 
         const eventTitle = eventType === 'triggered'
             ? 'New Incident'
@@ -223,10 +223,10 @@ export async function sendServiceNotifications(
             isChannelAvailable('SMS'),
             isChannelAvailable('PUSH')
         ]);
-        
+
         // Check WhatsApp availability (requires Twilio)
-        const smsConfig = await import('./notification-providers').then(m => m.getSMSConfig());
-        const whatsappAvailable = smsConfig.enabled && smsConfig.provider === 'twilio';
+        const whatsappConfig = await import('./notification-providers').then(m => m.getWhatsAppConfig());
+        const whatsappAvailable = whatsappConfig.enabled && whatsappConfig.provider === 'twilio';
 
         // Create a map for quick lookup
         const userMap = new Map(users.map(u => [u.id, u]));
@@ -276,18 +276,28 @@ export async function sendServiceNotifications(
         });
 
         const notificationResults = await Promise.all(notificationPromises);
-        
+
         for (const result of notificationResults) {
             if (!result.success) {
                 errors.push(`User ${result.userId}: ${result.error || result.errors?.join(', ') || 'Failed'}`);
             }
         }
 
-        // Send service-level Slack notification (if configured)
+        // Send service-level Slack notification (if configured legacy way)
         if (incident.service.slackWebhookUrl && eventType !== 'updated') {
             await notifySlackForIncident(incidentId, eventType).catch(err => {
                 errors.push(`Slack notification failed: ${err.message}`);
             });
+        }
+
+        // Trigger Service Webhook Integrations (Slack/Generic/Teams)
+        // This connects the "User Notification" flow to the "Service Integration" flow
+        try {
+            const { sendServiceNotifications: sendIntegrationNotifications } = await import('./service-notifications');
+            await sendIntegrationNotifications(incidentId, eventType);
+        } catch (err: any) {
+            console.error('Failed to send service integration notifications:', err);
+            // Don't block the response, just log it
         }
 
         return {
