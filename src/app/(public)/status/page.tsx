@@ -56,7 +56,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PublicStatusPage() {
     // Get the status page configuration
     const statusPage = await prisma.statusPage.findFirst({
-        where: { enabled: true },
         include: {
             services: {
                 include: {
@@ -77,6 +76,21 @@ export default async function PublicStatusPage() {
             },
         },
     });
+
+    // Check if status page is disabled
+    if (statusPage && !statusPage.enabled) {
+        return (
+            <div style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚫</div>
+                <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '1rem', color: '#111827' }}>
+                    Status Page Disabled
+                </h1>
+                <p style={{ fontSize: '1.1rem', color: '#6b7280', lineHeight: 1.6 }}>
+                    The status page is currently disabled by the administrator.
+                </p>
+            </div>
+        );
+    }
 
     // Check if authentication is required
     if (statusPage?.requireAuth) {
