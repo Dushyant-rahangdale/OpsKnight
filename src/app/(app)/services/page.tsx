@@ -19,14 +19,12 @@ async function createService(formData: FormData) {
     }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
-    const slackWebhookUrl = formData.get('slackWebhookUrl') as string;
     const teamId = formData.get('teamId') as string;
 
     const service = await prisma.service.create({
         data: {
             name,
             description,
-            slackWebhookUrl: slackWebhookUrl || undefined,
             teamId: teamId || undefined
         }
     });
