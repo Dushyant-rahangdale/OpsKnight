@@ -449,7 +449,7 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                     const memberCount = team.members.length;
                     const canManageNotifications = permissions.isAdmin ||
                         team.members.some((member) => member.userId === permissions.id && member.role === 'OWNER') ||
-                        (permissions.isAdminOrResponder && team.members.some((member) => member.userId === permissions.id));
+                        (team.teamLeadId === permissions.id);
 
                     return (
                         <TeamCard
