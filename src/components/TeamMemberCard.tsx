@@ -110,13 +110,13 @@ function TeamMemberCard({
     };
 
     return (
-        <div 
-            style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '1rem', 
-                border: `1px solid ${roleInfo.border}`, 
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                border: `1px solid ${roleInfo.border}`,
                 borderRadius: '12px',
                 background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
                 transition: 'all 0.2s',
@@ -126,21 +126,21 @@ function TeamMemberCard({
         >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
                 {/* User Avatar */}
-                <Link 
+                <Link
                     href={`/users?q=${encodeURIComponent(member.user.email)}`}
                     style={{ textDecoration: 'none' }}
                 >
-                    <div 
-                        style={{ 
-                            width: '40px', 
-                            height: '40px', 
-                            borderRadius: '50%', 
+                    <div
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
                             background: `linear-gradient(135deg, ${roleInfo.bg} 0%, ${roleInfo.border} 100%)`,
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            fontWeight: 'bold', 
-                            fontSize: '0.9rem', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
                             color: roleInfo.color,
                             border: `2px solid ${roleInfo.border}`,
                             cursor: 'pointer',
@@ -157,10 +157,10 @@ function TeamMemberCard({
                 {/* User Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <Link 
+                        <Link
                             href={`/users?q=${encodeURIComponent(member.user.email)}`}
-                            style={{ 
-                                fontWeight: '600', 
+                            style={{
+                                fontWeight: '600',
                                 color: 'var(--text-primary)',
                                 textDecoration: 'none',
                                 fontSize: '0.95rem'
@@ -169,11 +169,11 @@ function TeamMemberCard({
                             {member.user.name}
                         </Link>
                         {member.user.status === 'DISABLED' && (
-                            <span style={{ 
-                                fontSize: '0.65rem', 
-                                padding: '0.15rem 0.4rem', 
-                                borderRadius: '999px', 
-                                background: '#fee2e2', 
+                            <span style={{
+                                fontSize: '0.65rem',
+                                padding: '0.15rem 0.4rem',
+                                borderRadius: '999px',
+                                background: '#fee2e2',
                                 color: '#991b1b',
                                 fontWeight: '600'
                             }}>
@@ -190,7 +190,7 @@ function TeamMemberCard({
                                 fontWeight: '600',
                                 border: '1px solid #fed7aa'
                             }}>
-                                No channels enabled
+                                Set notification preferences
                             </span>
                         )}
                     </div>
@@ -231,14 +231,14 @@ function TeamMemberCard({
                         Team notify
                     </label>
                     {canEditRole ? (
-                        <select 
-                            name="role" 
-                            defaultValue={member.role} 
+                        <select
+                            name="role"
+                            defaultValue={member.role}
                             onChange={handleRoleChange}
                             disabled={isPending || isNotifyPending}
-                            style={{ 
-                                padding: '0.4rem 0.75rem', 
-                                border: `1px solid ${roleInfo.border}`, 
+                            style={{
+                                padding: '0.4rem 0.75rem',
+                                border: `1px solid ${roleInfo.border}`,
                                 borderRadius: '8px',
                                 background: roleInfo.bg,
                                 color: roleInfo.color,
@@ -253,9 +253,9 @@ function TeamMemberCard({
                             <option value="MEMBER">Member</option>
                         </select>
                     ) : (
-                        <span 
-                            style={{ 
-                                padding: '0.4rem 0.75rem', 
+                        <span
+                            style={{
+                                padding: '0.4rem 0.75rem',
                                 borderRadius: '8px',
                                 background: roleInfo.bg,
                                 color: roleInfo.color,
@@ -268,7 +268,7 @@ function TeamMemberCard({
                             {member.role}
                         </span>
                     )}
-                    
+
                     {isSoleOwner && (
                         <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '500' }}>
                             ⚠️ Last owner
@@ -283,18 +283,18 @@ function TeamMemberCard({
 
                 {/* Remove Button */}
                 {canManageMembers ? (
-                    <button 
+                    <button
                         onClick={handleRemove}
                         disabled={isSoleOwner || isRemoving}
                         title={isSoleOwner ? 'Reassign owner before removing' : 'Remove member from team'}
-                        style={{ 
-                            background: isSoleOwner ? '#f3f4f6' : '#fee2e2', 
-                            color: isSoleOwner ? '#9ca3af' : '#dc2626', 
-                            border: 'none', 
-                            padding: '0.4rem 0.75rem', 
-                            borderRadius: '8px', 
-                            cursor: isSoleOwner || isRemoving ? 'not-allowed' : 'pointer', 
-                            fontWeight: '600', 
+                        style={{
+                            background: isSoleOwner ? '#f3f4f6' : '#fee2e2',
+                            color: isSoleOwner ? '#9ca3af' : '#dc2626',
+                            border: 'none',
+                            padding: '0.4rem 0.75rem',
+                            borderRadius: '8px',
+                            cursor: isSoleOwner || isRemoving ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
                             fontSize: '0.75rem',
                             opacity: isSoleOwner || isRemoving ? 0.6 : 1,
                             transition: 'all 0.2s'
