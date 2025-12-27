@@ -737,6 +737,7 @@ model StatusPage {
   showServices  Boolean @default(true)
   showIncidents Boolean @default(true)
   showMetrics   Boolean @default(true)
+  showSubscribe Boolean @default(true)
   branding      Json? // Logo, colors, favicon
   footerText    String?
   contactEmail  String?

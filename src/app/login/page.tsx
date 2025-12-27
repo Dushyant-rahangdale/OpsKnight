@@ -15,15 +15,18 @@ import prisma from '@/lib/prisma';
 
 export default async function LoginPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
     // Bootstrap check: If no users exist, redirect to setup
+    let userCount = 0;
     try {
-        const userCount = await prisma.user.count();
-        if (userCount === 0) {
-            redirect('/setup');
-        }
+        userCount = await prisma.user.count();
     } catch (error) {
         // If DB is not ready, we might want to let the login page load or show error
         // But for now, let's just log it and proceed to login
         console.error('Failed to check user count:', error);
+    }
+
+    // Redirect outside try-catch so Next.js redirect error can bubble up
+    if (userCount === 0) {
+        redirect('/setup');
     }
 
     // Server-side check: If user is already authenticated, redirect them away

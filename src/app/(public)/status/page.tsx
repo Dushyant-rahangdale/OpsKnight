@@ -199,6 +199,7 @@ async function renderStatusPage(statusPage: any) {
     const showApiLink = branding.showApiLink !== false;
     const autoRefresh = branding.autoRefresh !== false;
     const refreshInterval = branding.refreshInterval || 60;
+    const showSubscribe = statusPage.showSubscribe !== false;
 
     // Get current service statuses
     const serviceIds = statusPage.services
@@ -378,7 +379,7 @@ async function renderStatusPage(statusPage: any) {
                 className="status-page-container"
                 style={{
                     minHeight: '100vh',
-                    background: '#f8fafc',
+                    background: backgroundColor,
                 }}
             >
                 {/* Header */}
@@ -515,39 +516,116 @@ async function renderStatusPage(statusPage: any) {
                         </>
                     )}
 
-                    {/* Subscription */}
-                    <section style={{ marginBottom: 'clamp(2rem, 6vw, 4rem)' }}>
-                        <div style={{
-                            padding: 'clamp(1.5rem, 4vw, 2rem)',
-                            background: backgroundColor,
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '0.75rem',
-                            maxWidth: '500px',
-                            width: '100%',
-                            margin: '0 auto',
-                            boxSizing: 'border-box',
-                        }}>
-                            <h2 style={{
-                                fontSize: 'clamp(1.125rem, 3vw, 1.25rem)',
-                                fontWeight: '700',
-                                marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                                color: textColor,
-                                textAlign: 'center',
-                            }}>
-                                Subscribe to Updates
-                            </h2>
-                            <p style={{
-                                fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)',
-                                color: '#6b7280',
-                                marginBottom: 'clamp(1.25rem, 3vw, 1.5rem)',
-                                textAlign: 'center',
-                            }}>
-                                Get notified when incidents occur or status changes
-                            </p>
-                            <StatusPageSubscribe statusPageId={statusPage.id} />
-                        </div>
-                    </section>
-
+                    {showSubscribe && (
+                        <>
+                            {/* Subscription */}
+                            <section style={{ marginBottom: 'clamp(2.5rem, 7vw, 5rem)' }}>
+                                <div style={{
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    borderRadius: '1rem',
+                                    border: '1px solid #e5e7eb',
+                                    background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)',
+                                    padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                    boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
+                                }}>
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '-60px',
+                                        right: '-60px',
+                                        width: '180px',
+                                        height: '180px',
+                                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)',
+                                        pointerEvents: 'none',
+                                    }} />
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '-80px',
+                                        left: '-80px',
+                                        width: '220px',
+                                        height: '220px',
+                                        background: 'radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%)',
+                                        pointerEvents: 'none',
+                                    }} />
+                                    <div style={{
+                                        position: 'relative',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                        flexWrap: 'wrap',
+                                    }}>
+                                        <div style={{
+                                            flex: '1 1 260px',
+                                            minWidth: '240px',
+                                        }}>
+                                            <div style={{
+                                                fontSize: '0.75rem',
+                                                letterSpacing: '0.12em',
+                                                textTransform: 'uppercase',
+                                                color: primaryColor,
+                                                fontWeight: '700',
+                                                marginBottom: '0.5rem',
+                                            }}>
+                                                Stay in the loop
+                                            </div>
+                                            <h2 style={{
+                                                fontSize: 'clamp(1.35rem, 3vw, 1.75rem)',
+                                                fontWeight: '700',
+                                                marginBottom: '0.75rem',
+                                                color: textColor,
+                                            }}>
+                                                Subscribe to Updates
+                                            </h2>
+                                            <p style={{
+                                                fontSize: 'clamp(0.9rem, 2.2vw, 1rem)',
+                                                color: '#4b5563',
+                                                marginBottom: '1rem',
+                                                lineHeight: 1.6,
+                                            }}>
+                                                Get incident alerts, maintenance notices, and recovery updates the moment they happen.
+                                            </p>
+                                            <div style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                padding: '0.35rem 0.75rem',
+                                                borderRadius: '999px',
+                                                background: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                color: '#374151',
+                                                fontSize: '0.8125rem',
+                                                fontWeight: '600',
+                                            }}>
+                                                Email notifications only
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            flex: '1 1 320px',
+                                            minWidth: '280px',
+                                        }}>
+                                            <div style={{
+                                                padding: 'clamp(1rem, 3vw, 1.5rem)',
+                                                background: '#ffffff',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '0.875rem',
+                                                boxShadow: '0 12px 25px rgba(15, 23, 42, 0.12)',
+                                            }}>
+                                                <StatusPageSubscribe statusPageId={statusPage.id} />
+                                            </div>
+                                            <p style={{
+                                                marginTop: '0.75rem',
+                                                fontSize: '0.8125rem',
+                                                color: '#6b7280',
+                                                textAlign: 'center',
+                                            }}>
+                                                We'll never share your email. Unsubscribe anytime.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </>
+                    )}
                     {/* Footer */}
                     {showFooter && (statusPage.footerText || showRssLink || showApiLink) && (
                         <footer style={{
@@ -632,3 +710,6 @@ function buildServiceUptime(
 
     return uptimeByService;
 }
+
+
+

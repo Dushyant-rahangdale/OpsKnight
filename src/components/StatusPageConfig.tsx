@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { Card, Button, FormField, Switch, Checkbox } from '@/components/ui';
 import StatusPageLivePreview from '@/components/status-page/StatusPageLivePreview';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,7 @@ type StatusPageConfigProps = {
         showServices: boolean;
         showIncidents: boolean;
         showMetrics: boolean;
+        showSubscribe?: boolean;
         footerText?: string | null;
         contactEmail?: string | null;
         contactUrl?: string | null;
@@ -63,6 +64,76 @@ const ANNOUNCEMENT_TYPES = [
     { value: 'INFO', label: 'Information', color: '#64748b', background: '#f1f5f9' },
 ];
 
+type TemplateCategory = 'professional' | 'colorful' | 'dark' | 'pastel' | 'minimal';
+
+type StatusPageTemplate = {
+    id: string;
+    name: string;
+    file: string;
+    colors: string[];
+    category: TemplateCategory;
+};
+
+const TEMPLATE_FILTERS: Array<{ id: 'all' | TemplateCategory; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'professional', label: 'Professional' },
+    { id: 'colorful', label: 'Colorful' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'pastel', label: 'Pastel' },
+    { id: 'minimal', label: 'Minimal' },
+];
+
+const STATUS_PAGE_TEMPLATES: StatusPageTemplate[] = [
+    { id: 'aurora-bright', name: 'Aurora Bright', file: 'aurora-bright.css', colors: ['#ff6a00', '#00c2ff', '#7c3aed'], category: 'colorful' },
+    { id: 'redline', name: 'Redline', file: 'redline.css', colors: ['#ef4444', '#b91c1c', '#fee2e2'], category: 'colorful' },
+    { id: 'ocean-glass', name: 'Ocean Glass', file: 'ocean-glass.css', colors: ['#0ea5e9', '#22d3ee', '#e0f2fe'], category: 'colorful' },
+    { id: 'sunset-bloom', name: 'Sunset Bloom', file: 'sunset-bloom.css', colors: ['#fb7185', '#f59e0b', '#ec4899'], category: 'pastel' },
+    { id: 'midnight-neon', name: 'Midnight Neon', file: 'midnight-neon.css', colors: ['#22d3ee', '#a855f7', '#f472b6'], category: 'dark' },
+    { id: 'minimal-warm', name: 'Minimal Warm', file: 'minimal-warm.css', colors: ['#f97316', '#fb923c', '#fff7ed'], category: 'minimal' },
+    { id: 'emerald-dawn', name: 'Emerald Dawn', file: 'emerald-dawn.css', colors: ['#10b981', '#84cc16', '#ecfdf5'], category: 'colorful' },
+    { id: 'royal-blueprint', name: 'Royal Blueprint', file: 'royal-blueprint.css', colors: ['#2563eb', '#4338ca', '#eef2ff'], category: 'colorful' },
+    { id: 'citrus-pop', name: 'Citrus Pop', file: 'citrus-pop.css', colors: ['#f97316', '#eab308', '#fef9c3'], category: 'colorful' },
+    { id: 'lavender-mist', name: 'Lavender Mist', file: 'lavender-mist.css', colors: ['#a855f7', '#7c3aed', '#faf5ff'], category: 'pastel' },
+    { id: 'graphite-gold', name: 'Graphite Gold', file: 'graphite-gold.css', colors: ['#111827', '#f59e0b', '#f9fafb'], category: 'minimal' },
+    { id: 'forest-glow', name: 'Forest Glow', file: 'forest-glow.css', colors: ['#166534', '#22c55e', '#dcfce7'], category: 'colorful' },
+    { id: 'coral-reef', name: 'Coral Reef', file: 'coral-reef.css', colors: ['#f43f5e', '#14b8a6', '#f0fdfa'], category: 'colorful' },
+    { id: 'slate-mint', name: 'Slate Mint', file: 'slate-mint.css', colors: ['#334155', '#2dd4bf', '#f8fafc'], category: 'minimal' },
+    { id: 'sunlit-sky', name: 'Sunlit Sky', file: 'sunlit-sky.css', colors: ['#facc15', '#38bdf8', '#fefce8'], category: 'colorful' },
+    { id: 'magma-pulse', name: 'Magma Pulse', file: 'magma-pulse.css', colors: ['#ef4444', '#f59e0b', '#ffedd5'], category: 'colorful' },
+    { id: 'denim-rose', name: 'Denim Rose', file: 'denim-rose.css', colors: ['#1d4ed8', '#fb7185', '#eff6ff'], category: 'colorful' },
+    { id: 'glacier', name: 'Glacier', file: 'glacier.css', colors: ['#38bdf8', '#22d3ee', '#ecfeff'], category: 'pastel' },
+    { id: 'copper-patina', name: 'Copper Patina', file: 'copper-patina.css', colors: ['#c2410c', '#0f766e', '#f0fdfa'], category: 'colorful' },
+    { id: 'sandstorm', name: 'Sandstorm', file: 'sandstorm.css', colors: ['#d97706', '#a3e635', '#fef3c7'], category: 'colorful' },
+    { id: 'berry-soda', name: 'Berry Soda', file: 'berry-soda.css', colors: ['#a21caf', '#ec4899', '#fdf4ff'], category: 'colorful' },
+    { id: 'monochrome-ink', name: 'Monochrome Ink', file: 'monochrome-ink.css', colors: ['#0f172a', '#334155', '#f3f4f6'], category: 'minimal' },
+    { id: 'pastel-garden', name: 'Pastel Garden', file: 'pastel-garden.css', colors: ['#fda4af', '#86efac', '#ecfccb'], category: 'pastel' },
+    { id: 'steel-sunset', name: 'Steel Sunset', file: 'steel-sunset.css', colors: ['#475569', '#fb7185', '#f8fafc'], category: 'minimal' },
+    { id: 'teal-amber', name: 'Teal Amber', file: 'teal-amber.css', colors: ['#14b8a6', '#f59e0b', '#ecfeff'], category: 'colorful' },
+    { id: 'violet-cyan', name: 'Violet Cyan', file: 'violet-cyan.css', colors: ['#8b5cf6', '#22d3ee', '#f5f3ff'], category: 'colorful' },
+    { id: 'ruby-navy', name: 'Ruby Navy', file: 'ruby-navy.css', colors: ['#e11d48', '#1e3a8a', '#eff6ff'], category: 'colorful' },
+    { id: 'charcoal-lime', name: 'Charcoal Lime', file: 'charcoal-lime.css', colors: ['#111827', '#84cc16', '#f7fee7'], category: 'minimal' },
+    { id: 'blush-cream', name: 'Blush Cream', file: 'blush-cream.css', colors: ['#f472b6', '#fde68a', '#fdf2f8'], category: 'pastel' },
+    { id: 'neon-lime', name: 'Neon Lime', file: 'neon-lime.css', colors: ['#a3e635', '#22d3ee', '#ecfeff'], category: 'colorful' },
+    { id: 'coffee-cream', name: 'Coffee Cream', file: 'coffee-cream.css', colors: ['#7c2d12', '#f59e0b', '#fef9c3'], category: 'minimal' },
+    { id: 'arctic-night', name: 'Arctic Night', file: 'arctic-night.css', colors: ['#38bdf8', '#0f172a', '#111827'], category: 'dark' },
+    { id: 'retro-pop', name: 'Retro Pop', file: 'retro-pop.css', colors: ['#f97316', '#14b8a6', '#fff7ed'], category: 'colorful' },
+    { id: 'mint-lilac', name: 'Mint Lilac', file: 'mint-lilac.css', colors: ['#34d399', '#c084fc', '#faf5ff'], category: 'pastel' },
+    { id: 'ocean-sunset', name: 'Ocean Sunset', file: 'ocean-sunset.css', colors: ['#0ea5e9', '#f97316', '#fff7ed'], category: 'colorful' },
+    { id: 'amber-slate', name: 'Amber Slate', file: 'amber-slate.css', colors: ['#f59e0b', '#475569', '#fef3c7'], category: 'colorful' },
+    { id: 'pastel-sky', name: 'Pastel Sky', file: 'pastel-sky.css', colors: ['#93c5fd', '#fbcfe8', '#eff6ff'], category: 'pastel' },
+    { id: 'jade-ink', name: 'Jade Ink', file: 'jade-ink.css', colors: ['#22c55e', '#15803d', '#f0fdf4'], category: 'colorful' },
+    { id: 'electric-blue', name: 'Electric Blue', file: 'electric-blue.css', colors: ['#3b82f6', '#06b6d4', '#ecfeff'], category: 'colorful' },
+    { id: 'graphite-teal', name: 'Graphite Teal', file: 'graphite-teal.css', colors: ['#1f2937', '#14b8a6', '#f1f5f9'], category: 'minimal' },
+    { id: 'desert-night', name: 'Desert Night', file: 'desert-night.css', colors: ['#f59e0b', '#0f172a', '#1e293b'], category: 'dark' },
+    { id: 'tangerine-aqua', name: 'Tangerine Aqua', file: 'tangerine-aqua.css', colors: ['#f97316', '#22d3ee', '#ecfeff'], category: 'colorful' },
+    { id: 'corporate-blue', name: 'Corporate Blue', file: 'corporate-blue.css', colors: ['#1d4ed8', '#0f172a', '#f8fafc'], category: 'professional' },
+    { id: 'enterprise-gray', name: 'Enterprise Gray', file: 'enterprise-gray.css', colors: ['#111827', '#374151', '#f3f4f6'], category: 'professional' },
+    { id: 'slate-executive', name: 'Slate Executive', file: 'slate-executive.css', colors: ['#334155', '#3b82f6', '#f1f5f9'], category: 'professional' },
+    { id: 'clean-white', name: 'Clean White', file: 'clean-white.css', colors: ['#2563eb', '#111827', '#ffffff'], category: 'professional' },
+    { id: 'navy-silver', name: 'Navy Silver', file: 'navy-silver.css', colors: ['#1e3a8a', '#1d4ed8', '#f1f5f9'], category: 'professional' },
+    { id: 'indigo-mint-pro', name: 'Indigo Mint', file: 'indigo-mint-pro.css', colors: ['#4f46e5', '#10b981', '#f8fafc'], category: 'professional' },
+];
+
 export default function StatusPageConfig({ statusPage, allServices }: StatusPageConfigProps) {
     const { browserTimeZone } = useTimezone();
     const router = useRouter();
@@ -74,6 +145,11 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
     const [announcementError, setAnnouncementError] = useState<string | null>(null);
     const [isAnnouncementPending, startAnnouncementTransition] = useTransition();
     const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+    const [templateLoadingId, setTemplateLoadingId] = useState<string | null>(null);
+    const [templateError, setTemplateError] = useState<string | null>(null);
+    const [templateFilter, setTemplateFilter] = useState<'all' | TemplateCategory>('all');
+    const [templateCssMap, setTemplateCssMap] = useState<Record<string, string>>({});
+    const templateFetchRef = useRef<Set<string>>(new Set());
 
     // Parse branding JSON
     const branding = statusPage.branding && typeof statusPage.branding === 'object'
@@ -90,6 +166,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         showServices: statusPage.showServices,
         showIncidents: statusPage.showIncidents,
         showMetrics: statusPage.showMetrics,
+        showSubscribe: statusPage.showSubscribe !== false,
         uptimeExcellentThreshold: (statusPage as any).uptimeExcellentThreshold ?? 99.9,
         uptimeGoodThreshold: (statusPage as any).uptimeGoodThreshold ?? 99.0,
         footerText: statusPage.footerText || '',
@@ -292,6 +369,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                         showServices: formData.showServices,
                         showIncidents: formData.showIncidents,
                         showMetrics: formData.showMetrics,
+                        showSubscribe: formData.showSubscribe,
                         uptimeExcellentThreshold: formData.uptimeExcellentThreshold,
                         uptimeGoodThreshold: formData.uptimeGoodThreshold,
                         footerText: formData.footerText || null,
@@ -459,6 +537,136 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         });
     };
 
+    const getTemplateGradient = (colors: string[]) => {
+        const primary = colors[0] || '#ffffff';
+        const secondary = colors[1] || primary;
+        const tertiary = colors[2] || secondary;
+        return `linear-gradient(135deg, ${primary} 0%, ${secondary} 55%, ${tertiary} 100%)`;
+    };
+
+    const visibleTemplates = templateFilter === 'all'
+        ? STATUS_PAGE_TEMPLATES
+        : STATUS_PAGE_TEMPLATES.filter((template) => template.category === templateFilter);
+
+    const buildTemplatePreviewHtml = (css: string, name: string) => `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body { font-family: Arial, Helvetica, sans-serif; }
+      .preview-root { min-height: 100%; }
+      .status-page-container { min-height: 100%; padding: 10px; }
+      .status-page-header { padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .status-page-header h1 { font-size: 13px; margin: 0; }
+      .status-page-header p { margin: 4px 0 0 0; font-size: 9px; }
+      .status-page-header a { font-size: 9px; text-decoration: none; padding: 4px 8px; border-radius: 999px; }
+      main { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+      h2 { font-size: 10px; margin: 0; text-transform: uppercase; letter-spacing: 0.06em; }
+      .status-service-card, .status-incident-card { padding: 8px; border-radius: 10px; }
+      .status-service-card div, .status-incident-card div { font-size: 10px; font-weight: 600; }
+      .status-announce-card { padding: 8px; border-radius: 10px; border: 1px solid rgba(15, 23, 42, 0.08); }
+      .status-announce-card div { font-size: 10px; font-weight: 600; }
+      .status-metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .status-metric { padding: 6px; border-radius: 8px; border: 1px solid rgba(15, 23, 42, 0.08); font-size: 9px; text-align: center; }
+      .status-legend { display: flex; gap: 6px; font-size: 9px; }
+      .status-dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; margin-right: 4px; }
+      footer { margin-top: 6px; font-size: 9px; text-align: center; }
+      form { margin-top: 4px; }
+      form button { width: 100%; padding: 6px; font-size: 9px; border-radius: 10px; }
+    </style>
+    <style>${css}</style>
+  </head>
+  <body>
+    <div class="preview-root">
+      <div class="status-page-container">
+        <header class="status-page-header">
+          <div>
+            <h1>${name}</h1>
+            <p>All systems operational</p>
+          </div>
+          <a href="#">Contact</a>
+        </header>
+        <main>
+          <h2>Announcements</h2>
+          <div class="status-announce-card"><div>Planned maintenance</div></div>
+          <h2>Services</h2>
+          <div class="status-service-card"><div>API Gateway</div></div>
+          <div class="status-legend">
+            <span><span class="status-dot" style="background:#22c55e;"></span>Operational</span>
+            <span><span class="status-dot" style="background:#f59e0b;"></span>Degraded</span>
+            <span><span class="status-dot" style="background:#ef4444;"></span>Outage</span>
+          </div>
+          <h2>Metrics</h2>
+          <div class="status-metric-row">
+            <div class="status-metric">Latency 120ms</div>
+            <div class="status-metric">Uptime 99.99%</div>
+            <div class="status-metric">Incidents 0</div>
+          </div>
+          <h2>Incidents</h2>
+          <div class="status-incident-card"><div>Minor latency</div></div>
+          <form><button type="submit">Subscribe</button></form>
+          <footer>status.example.com</footer>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
+`;
+
+    const handleApplyTemplate = async (template: StatusPageTemplate) => {
+        setTemplateError(null);
+        setTemplateLoadingId(template.id);
+        try {
+            const response = await fetch(`/status-page-templates/${template.file}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error('Failed to load template');
+            }
+            const css = await response.text();
+            setFormData((prev) => ({ ...prev, customCss: css }));
+            setSuccessMessage(`Template loaded: ${template.name}. Remember to save settings.`);
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch {
+            setTemplateError('Failed to load template. Please try again.');
+        } finally {
+            setTemplateLoadingId(null);
+        }
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadTemplates = async () => {
+            for (const template of visibleTemplates) {
+                if (templateCssMap[template.id] || templateFetchRef.current.has(template.id)) {
+                    continue;
+                }
+                templateFetchRef.current.add(template.id);
+                try {
+                    const response = await fetch(`/status-page-templates/${template.file}`, { cache: 'force-cache' });
+                    if (!response.ok) {
+                        throw new Error('Template preview fetch failed');
+                    }
+                    const css = await response.text();
+                    if (!cancelled) {
+                        setTemplateCssMap((prev) => ({ ...prev, [template.id]: css }));
+                    }
+                } catch {
+                    // Ignore preview failures; button still loads full CSS on demand.
+                } finally {
+                    templateFetchRef.current.delete(template.id);
+                }
+            }
+        };
+
+        loadTemplates();
+        return () => {
+            cancelled = true;
+        };
+    }, [visibleTemplates, templateCssMap]);
+
     // Prepare privacy settings for preview
     const previewPrivacySettings = {
         privacyMode: privacySettings.privacyMode || 'PUBLIC',
@@ -501,6 +709,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         incidents: [],
         showServices: formData.showServices,
         showIncidents: formData.showIncidents,
+        showSubscribe: formData.showSubscribe,
         showHeader: formData.showHeader,
         showFooter: formData.showFooter,
         footerText: formData.footerText || null,
@@ -1091,6 +1300,12 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                     label="Show Metrics"
                                                     helperText="Display uptime and performance metrics"
                                                 />
+                                                <Switch
+                                                    checked={formData.showSubscribe}
+                                                    onChange={(checked) => setFormData({ ...formData, showSubscribe: checked })}
+                                                    label="Show Subscribe to Updates"
+                                                    helperText="Display the email subscription section"
+                                                />
 
                                                 {formData.showMetrics && (
                                                     <div style={{
@@ -1452,6 +1667,150 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)', marginBottom: 'var(--spacing-4)' }}>
                                                 Add custom CSS to fully customize your status page appearance. This CSS will be injected into the status page.
                                             </p>
+                                            <div style={{ marginBottom: 'var(--spacing-5)' }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    marginBottom: 'var(--spacing-3)',
+                                                    flexWrap: 'wrap',
+                                                    gap: 'var(--spacing-3)',
+                                                }}>
+                                                    <div>
+                                                        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '700', margin: 0 }}>
+                                                            Templates
+                                                        </h3>
+                                                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                            {visibleTemplates.length} of {STATUS_PAGE_TEMPLATES.length} templates
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
+                                                        {TEMPLATE_FILTERS.map((filter) => (
+                                                            <button
+                                                                key={filter.id}
+                                                                type="button"
+                                                                onClick={() => setTemplateFilter(filter.id)}
+                                                                style={{
+                                                                    padding: '6px 12px',
+                                                                    borderRadius: '999px',
+                                                                    border: `1px solid ${templateFilter === filter.id ? 'var(--primary)' : '#e5e7eb'}`,
+                                                                    background: templateFilter === filter.id ? 'var(--primary)' : 'white',
+                                                                    color: templateFilter === filter.id ? 'white' : 'var(--text-muted)',
+                                                                    fontSize: 'var(--font-size-xs)',
+                                                                    fontWeight: templateFilter === filter.id ? '600' : '500',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.2s ease',
+                                                                }}
+                                                            >
+                                                                {filter.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {templateError && (
+                                                    <div style={{
+                                                        padding: 'var(--spacing-2) var(--spacing-3)',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        background: '#fee2e2',
+                                                        border: '1px solid #fecaca',
+                                                        color: '#991b1b',
+                                                        fontSize: 'var(--font-size-sm)',
+                                                        marginBottom: 'var(--spacing-3)',
+                                                    }}>
+                                                        {templateError}
+                                                    </div>
+                                                )}
+                                                <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                                                    gap: 'var(--spacing-4)',
+                                                }}>
+                                                    {visibleTemplates.map((template) => (
+                                                        <div key={template.id} style={{
+                                                            borderRadius: 'var(--radius-lg)',
+                                                            overflow: 'hidden',
+                                                            border: '1px solid #e2e8f0',
+                                                            background: 'white',
+                                                            boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            minHeight: '270px',
+                                                        }}>
+                                                            <div style={{
+                                                                height: '170px',
+                                                                background: getTemplateGradient(template.colors),
+                                                                position: 'relative',
+                                                                overflow: 'hidden',
+                                                            }}>
+                                                                {templateCssMap[template.id] ? (
+                                                                    <iframe
+                                                                        title={`${template.name} preview`}
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            width: '100%',
+                                                                            height: '100%',
+                                                                            display: 'block',
+                                                                            background: 'transparent',
+                                                                        }}
+                                                                        sandbox=""
+                                                                        srcDoc={buildTemplatePreviewHtml(templateCssMap[template.id], template.name)}
+                                                                    />
+                                                                ) : (
+                                                                    <div style={{
+                                                                        position: 'absolute',
+                                                                        inset: 0,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontSize: 'var(--font-size-xs)',
+                                                                        color: 'rgba(15, 23, 42, 0.6)',
+                                                                        fontWeight: '600',
+                                                                    }}>
+                                                                        Loading preview...
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ padding: 'var(--spacing-3)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)', flex: 1 }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-2)' }}>
+                                                                    <div style={{ fontWeight: '700', fontSize: 'var(--font-size-sm)' }}>
+                                                                        {template.name}
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                                                        {template.colors.slice(0, 3).map((color) => (
+                                                                            <span
+                                                                                key={`${template.id}-${color}`}
+                                                                                style={{
+                                                                                    width: '12px',
+                                                                                    height: '12px',
+                                                                                    borderRadius: '999px',
+                                                                                    background: color,
+                                                                                    border: '1px solid rgba(15, 23, 42, 0.15)',
+                                                                                }}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{
+                                                                    fontSize: '10px',
+                                                                    textTransform: 'uppercase',
+                                                                    letterSpacing: '0.08em',
+                                                                    color: 'var(--text-muted)',
+                                                                }}>
+                                                                    {template.category}
+                                                                </div>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="secondary"
+                                                                    onClick={() => handleApplyTemplate(template)}
+                                                                    isLoading={templateLoadingId === template.id}
+                                                                >
+                                                                    Use Template
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                             <div style={{ marginBottom: 'var(--spacing-4)' }}>
                                                 <label style={{ display: 'block', marginBottom: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
                                                     Custom CSS Code

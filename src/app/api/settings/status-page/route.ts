@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
             showServices,
             showIncidents,
             showMetrics,
+            showSubscribe,
             footerText,
             contactEmail,
             contactUrl,
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
                     showServices: showServices !== false,
                     showIncidents: showIncidents !== false,
                     showMetrics: showMetrics !== false,
+                    showSubscribe: showSubscribe !== false,
                 },
             });
         }
@@ -92,6 +94,7 @@ export async function POST(req: NextRequest) {
             showServices: showServices !== false,
             showIncidents: showIncidents !== false,
             showMetrics: showMetrics !== false,
+            showSubscribe: showSubscribe !== false,
             footerText: footerText && footerText.trim() ? footerText.trim() : null,
             contactEmail: contactEmail && contactEmail.trim() ? contactEmail.trim() : null,
             contactUrl: contactUrl && contactUrl.trim() ? contactUrl.trim() : null
@@ -134,6 +137,7 @@ export async function POST(req: NextRequest) {
         if (emailProvider !== undefined) {
             updateData.emailProvider = emailProvider && emailProvider.trim() ? emailProvider.trim() : null;
         }
+        if (showSubscribe !== undefined) updateData.showSubscribe = showSubscribe;
 
         await prisma.statusPage.update({
             where: { id: statusPage.id },

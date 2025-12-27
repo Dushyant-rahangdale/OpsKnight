@@ -52,6 +52,7 @@ export const StatusPageSettingsSchema = z.object({
     showServices: z.boolean().optional(),
     showIncidents: z.boolean().optional(),
     showMetrics: z.boolean().optional(),
+    showSubscribe: z.boolean().optional(),
     footerText: z.string().trim().max(1000).optional().nullable(),
     contactEmail: emailValidator.optional().nullable(),
     contactUrl: optionalUrlValidator,

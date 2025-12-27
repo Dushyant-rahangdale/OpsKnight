@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import StatusPageHeader from '@/components/status-page/StatusPageHeader';
@@ -21,6 +21,7 @@ interface StatusPageLivePreviewProps {
         incidents: any[];
         showServices: boolean;
         showIncidents: boolean;
+        showSubscribe?: boolean;
         showHeader: boolean;
         showFooter: boolean;
         footerText?: string | null;
@@ -145,6 +146,8 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
     // For the inner content max-width (inside the scaled container)
     // Always use 100% for tablet and mobile, use contentMaxWidthStr for desktop
     const contentMaxWidth = deviceView === 'desktop' ? contentMaxWidthStr : '100%';
+    const previewPrimaryColor = previewData.branding?.primaryColor || '#667eea';
+    const previewTextColor = previewData.branding?.textColor || '#111827';
 
     return (
         <>
@@ -210,7 +213,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                                 }}
                                 title="Zoom Out"
                             >
-                                −
+                                âˆ’
                             </button>
                             <button
                                 type="button"
@@ -264,6 +267,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                 >
                     {/* Scaled Content Frame */}
                     <div
+                        className="status-page-container"
                         style={{
                             width: `${targetWidth}px`,
                             minWidth: `${targetWidth}px`,
@@ -321,6 +325,154 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                                     />
                                 )}
 
+                                {previewData.showSubscribe !== false && (
+                                    <section style={{ marginBottom: 'clamp(2.5rem, 7vw, 5rem)' }}>
+                                        <div style={{
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            borderRadius: '1rem',
+                                            border: '1px solid #e5e7eb',
+                                            background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)',
+                                            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                            boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
+                                        }}>
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '-60px',
+                                                right: '-60px',
+                                                width: '180px',
+                                                height: '180px',
+                                                background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)',
+                                                pointerEvents: 'none',
+                                            }} />
+                                            <div style={{
+                                                position: 'absolute',
+                                                bottom: '-80px',
+                                                left: '-80px',
+                                                width: '220px',
+                                                height: '220px',
+                                                background: 'radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%)',
+                                                pointerEvents: 'none',
+                                            }} />
+                                            <div style={{
+                                                position: 'relative',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                                flexWrap: 'wrap',
+                                            }}>
+                                                <div style={{
+                                                    flex: '1 1 260px',
+                                                    minWidth: '240px',
+                                                }}>
+                                                    <div style={{
+                                                        fontSize: '0.75rem',
+                                                        letterSpacing: '0.12em',
+                                                        textTransform: 'uppercase',
+                                                        color: previewPrimaryColor,
+                                                        fontWeight: '700',
+                                                        marginBottom: '0.5rem',
+                                                    }}>
+                                                        Stay in the loop
+                                                    </div>
+                                                    <h2 style={{
+                                                        fontSize: 'clamp(1.35rem, 3vw, 1.75rem)',
+                                                        fontWeight: '700',
+                                                        marginBottom: '0.75rem',
+                                                        color: previewTextColor,
+                                                    }}>
+                                                        Subscribe to Updates
+                                                    </h2>
+                                                    <p style={{
+                                                        fontSize: 'clamp(0.9rem, 2.2vw, 1rem)',
+                                                        color: '#4b5563',
+                                                        marginBottom: '1rem',
+                                                        lineHeight: 1.6,
+                                                    }}>
+                                                        Get incident alerts, maintenance notices, and recovery updates the moment they happen.
+                                                    </p>
+                                                    <div style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '999px',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #e5e7eb',
+                                                        color: '#374151',
+                                                        fontSize: '0.8125rem',
+                                                        fontWeight: '600',
+                                                    }}>
+                                                        Email notifications only
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    flex: '1 1 320px',
+                                                    minWidth: '280px',
+                                                }}>
+                                                    <div style={{
+                                                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: '0.875rem',
+                                                        boxShadow: '0 12px 25px rgba(15, 23, 42, 0.12)',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: 'var(--spacing-3)',
+                                                    }}>
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '0.5rem',
+                                                        }}>
+                                                            <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: '600', color: previewTextColor }}>
+                                                                Subscribe to Updates
+                                                            </label>
+                                                            <input
+                                                                type="email"
+                                                                placeholder="your@email.com"
+                                                                disabled
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '0.65rem 0.75rem',
+                                                                    borderRadius: '0.5rem',
+                                                                    border: '1px solid #e5e7eb',
+                                                                    background: '#f9fafb',
+                                                                    color: '#9ca3af',
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '0.65rem 0.75rem',
+                                                                borderRadius: '0.5rem',
+                                                                border: '1px solid #e5e7eb',
+                                                                background: '#e5e7eb',
+                                                                color: '#9ca3af',
+                                                                fontWeight: '600',
+                                                                cursor: 'not-allowed',
+                                                            }}
+                                                        >
+                                                            Subscribe
+                                                        </button>
+                                                    </div>
+                                                    <p style={{
+                                                        marginTop: '0.75rem',
+                                                        fontSize: '0.8125rem',
+                                                        color: '#6b7280',
+                                                        textAlign: 'center',
+                                                    }}>
+                                                        We'll never share your email. Unsubscribe anytime.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+
                                 {previewData.showFooter && (
                                     <footer
                                         style={{
@@ -357,3 +509,4 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
         </>
     );
 }
+

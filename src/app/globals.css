@@ -1751,9 +1751,10 @@ select option {
 }
 
 .settings-shell {
-  max-width: 1100px;
+  max-width: min(1400px, 96vw);
+  width: 100%;
   margin: 0 auto;
-  padding: 0.75rem 0 1rem;
+  padding: clamp(1rem, 2.2vw, 1.5rem) clamp(1rem, 2.5vw, 2rem) clamp(1.5rem, 3.5vw, 2.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -1770,8 +1771,8 @@ select option {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: clamp(220px, 22vw, 320px) minmax(0, 1fr);
+  gap: clamp(1rem, 2.5vw, 2rem);
   align-items: start;
 }
 
@@ -3951,9 +3952,10 @@ select option {
    ============================================ */
 
 .settings-shell {
-  max-width: 1200px;
+  max-width: min(1400px, 96vw);
+  width: 100%;
   margin: 0 auto;
-  padding: 2rem 1.5rem 3rem;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 3vw, 2.5rem) clamp(2rem, 4vw, 3rem);
 }
 
 .settings-header {
@@ -3978,8 +3980,8 @@ select option {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 2.5rem;
+  grid-template-columns: clamp(220px, 22vw, 320px) minmax(0, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
   align-items: start;
 }
 
@@ -4899,7 +4901,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-width: 1800px;
+  max-width: min(1800px, 92vw);
   margin: 0 auto;
   padding: 0 0.5rem;
 }
@@ -12109,3 +12111,4 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
     gap: 0.75rem !important;
   }
 }
+
