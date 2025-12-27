@@ -91,7 +91,7 @@ const nextConfig: NextConfig = {
         })
       );
     }
-    
+
     // Only apply optimizations in production builds
     if (!isServer && process.env.NODE_ENV === 'production') {
       // Optimize client-side bundle
