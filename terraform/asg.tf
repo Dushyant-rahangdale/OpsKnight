@@ -19,8 +19,6 @@ resource "aws_launch_template" "app_lt" {
   instance_type = var.instance_type
   key_name      = var.ssh_key_name
 
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
-
   # Spot Instance Configuration
   instance_market_options {
     market_type = "spot"
