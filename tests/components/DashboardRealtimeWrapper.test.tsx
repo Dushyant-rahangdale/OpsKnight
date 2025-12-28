@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import DashboardRealtimeWrapper from '@/components/DashboardRealtimeWrapper';
 
-// Mock useRealtime hook
+// Mock useRealtime hook (overridden per test as needed)
+const useRealtimeMock = vi.fn(() => ({
+  isConnected: true,
+  metrics: { open: 5, acknowledged: 3, resolved24h: 10, highUrgency: 2 },
+  recentIncidents: [],
+  error: null
+}));
+
 vi.mock('@/hooks/useRealtime', () => ({
-  useRealtime: () => ({
-    isConnected: true,
-    metrics: { open: 5, acknowledged: 3, resolved24h: 10, highUrgency: 2 },
-    recentIncidents: [],
-    error: null
-  })
+  useRealtime: () => useRealtimeMock()
 }));
 
 // Mock next/navigation
@@ -51,6 +53,12 @@ describe('DashboardRealtimeWrapper', () => {
 
   it('should call onIncidentsUpdate when incidents change', () => {
     const onIncidentsUpdate = vi.fn();
+    useRealtimeMock.mockReturnValueOnce({
+      isConnected: true,
+      metrics: { open: 5, acknowledged: 3, resolved24h: 10, highUrgency: 2 },
+      recentIncidents: [{ id: '1', title: 'Test Incident' }],
+      error: null
+    });
     
     render(
       <DashboardRealtimeWrapper onIncidentsUpdate={onIncidentsUpdate}>

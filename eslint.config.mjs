@@ -56,7 +56,8 @@ const eslintConfig = defineConfig([
       // Next.js specific
       '@next/next/no-html-link-for-pages': 'warn', // Warn instead of error
       '@next/next/no-img-element': 'warn',
-      '@next/next/no-unescaped-entities': 'warn',
+      // Next.js used to provide this rule, but in newer versions it's enforced via React's rule set.
+      'react/no-unescaped-entities': 'warn',
     },
   },
   // Override default ignores of eslint-config-next.

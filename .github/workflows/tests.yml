@@ -1,0 +1,124 @@
+name: Tests (lint + unit)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opssentinal_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opssentinal_test?schema=public
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          # CI doesn't need git hooks; this also avoids husky-related setup issues.
+          HUSKY: '0'
+        run: npm ci --legacy-peer-deps
+
+      - name: Prepare test database schema
+        # Migrations in this repo may lag behind schema.prisma; for CI tests we need the latest schema.
+        run: npx prisma db push --force-reset --accept-data-loss --skip-generate
+
+      - name: Unit tests
+        # DB-backed tests share a single database; run files serially to avoid cross-test contention.
+        run: mkdir -p reports && npm run test:ci
+
+      - name: Upload test report artifact (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-junit
+          path: reports/junit.xml
+
+      - name: Publish test results to GitHub Checks
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Unit tests (Vitest)
+          path: reports/junit.xml
+          reporter: java-junit
+
+      - name: Summarize JUnit results for PR comment
+        id: junit_summary
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const xml = fs.readFileSync('reports/junit.xml', 'utf8');
+          const head = (xml.match(/<testsuites[^>]*>/) || [''])[0];
+
+          const get = (key) => {
+            const m = head.match(new RegExp(`${key}="(\\d+)"`));
+            return m ? Number(m[1]) : 0;
+          };
+
+          const tests = get('tests');
+          const failures = get('failures');
+          const errors = get('errors');
+          const skipped = get('skipped');
+          const passed = Math.max(0, tests - failures - errors - skipped);
+
+          const status = failures || errors ? '❌ Failed' : '✅ Passed';
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+          const md = [
+            `## ${status} Vitest results`,
+            '',
+            `- **Total**: ${tests}`,
+            `- **Passed**: ${passed}`,
+            `- **Failed**: ${failures + errors}`,
+            `- **Skipped**: ${skipped}`,
+            '',
+            `**Run**: ${runUrl}`,
+            '**JUnit artifact**: `vitest-junit` (`reports/junit.xml`)',
+            '',
+          ].join('\n');
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `markdown<<EOF\n${md}\nEOF\n`);
+          NODE
+
+      - name: Post results to PR conversation (sticky)
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vitest
+          message: ${{ steps.junit_summary.outputs.markdown }}

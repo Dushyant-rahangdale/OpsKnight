@@ -16,7 +16,7 @@ const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN; // Bot token for Slack API 
 /**
  * Get Slack bot token for a service (from OAuth integration or env fallback)
  */
-async function getSlackBotToken(serviceId?: string): Promise<string | null> {
+export async function getSlackBotToken(serviceId?: string): Promise<string | null> {
     // Try to get from service-specific integration first
     if (serviceId) {
         const service = await prisma.service.findUnique({
@@ -69,7 +69,7 @@ interface IncidentDetails {
 
 interface SlackBlock {
     type: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -100,10 +100,8 @@ export async function sendSlackNotification(
         return { success: false, error: 'No Slack webhook URL configured' };
     }
 
-    const emoji = STATUS_EMOJI[eventType] || ':information_source:';
     const color = STATUS_COLORS[eventType] || '#757575';
     const appUrl = getBaseUrl();
-    const incidentUrl = `${appUrl}/incidents/${incident.id}`;
 
     const blocks = buildSlackBlocks(incident, eventType, additionalMessage, false); // No interactive buttons in webhook mode
 
@@ -157,9 +155,10 @@ export async function sendSlackNotification(
 
         console.log(`[Slack] Notification sent via ${webhookUrl ? 'Service' : 'Global'} Webhook: ${eventType} - ${incident.title}`);
         return { success: true };
-    } catch (error: any) {
-        console.error('[Slack] Webhook error after retries:', error.message);
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.error('[Slack] Webhook error after retries:', err.message);
+        return { success: false, error: err.message || 'Slack webhook error' };
     }
 }
 
@@ -379,9 +378,10 @@ export async function sendSlackMessageToChannel(
 
         logger.info(`[Slack] Message sent to channel ${channel} via API: ${eventType} - ${incident.title}`);
         return { success: true };
-    } catch (error: any) {
-        logger.error('[Slack] API error', { error: error.message, channel });
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        logger.error('[Slack] API error', { error: err.message, channel });
+        return { success: false, error: err.message || 'Slack API error' };
     }
 }
 
