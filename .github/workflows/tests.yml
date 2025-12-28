@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   checks: write
+  pull-requests: write
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -74,3 +75,50 @@ jobs:
           name: Unit tests (Vitest)
           path: reports/junit.xml
           reporter: java-junit
+
+      - name: Summarize JUnit results for PR comment
+        id: junit_summary
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const xml = fs.readFileSync('reports/junit.xml', 'utf8');
+          const head = (xml.match(/<testsuites[^>]*>/) || [''])[0];
+
+          const get = (key) => {
+            const m = head.match(new RegExp(`${key}="(\\d+)"`));
+            return m ? Number(m[1]) : 0;
+          };
+
+          const tests = get('tests');
+          const failures = get('failures');
+          const errors = get('errors');
+          const skipped = get('skipped');
+          const passed = Math.max(0, tests - failures - errors - skipped);
+
+          const status = failures || errors ? '❌ Failed' : '✅ Passed';
+          const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+          const md = [
+            `## ${status} Vitest results`,
+            '',
+            `- **Total**: ${tests}`,
+            `- **Passed**: ${passed}`,
+            `- **Failed**: ${failures + errors}`,
+            `- **Skipped**: ${skipped}`,
+            '',
+            `**Run**: ${runUrl}`,
+            '**JUnit artifact**: `vitest-junit` (`reports/junit.xml`)',
+            '',
+          ].join('\n');
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `markdown<<EOF\n${md}\nEOF\n`);
+          NODE
+
+      - name: Post results to PR conversation (sticky)
+        if: github.event_name == 'pull_request' && always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: vitest
+          message: ${{ steps.junit_summary.outputs.markdown }}
