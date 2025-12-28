@@ -16,6 +16,20 @@ import { executeEscalation } from '../../src/lib/escalation';
 
 describe('Notification Flow Integration Tests', () => {
   beforeEach(async () => {
+    // Ensure notification channels are "available" for these integration tests.
+    // Email availability is driven by NotificationProvider.enabled (see isChannelAvailable).
+    await prisma.notificationProvider.deleteMany();
+    await prisma.notificationProvider.create({
+      data: {
+        provider: 'resend',
+        enabled: true,
+        config: {
+          apiKey: 'test-api-key',
+          fromEmail: 'alerts@example.com',
+        },
+      },
+    });
+
     await prisma.notification.deleteMany();
     await prisma.incident.deleteMany();
     await prisma.onCallLayerUser.deleteMany();
