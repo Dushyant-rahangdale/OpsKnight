@@ -389,43 +389,65 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                 {/* Device & Zoom Controls */}
                 <div
                     style={{
-                        padding: 'var(--spacing-3)',
-                        borderBottom: '1px solid #e5e7eb',
+                        padding: 'var(--spacing-3) var(--spacing-4)',
+                        borderBottom: '1px solid #e2e8f0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        background: '#f9fafb',
+                        background: '#ffffff',
                         flexWrap: 'wrap',
-                        gap: 'var(--spacing-2)',
+                        gap: 'var(--spacing-3)',
                     }}
                 >
-                    <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
-                        {(['desktop', 'tablet', 'mobile'] as DeviceView[]).map((device) => (
-                            <button
-                                key={device}
-                                type="button"
-                                onClick={() => {
-                                    setDeviceView(device);
-                                    setZoomMode('fit'); // Auto-fit on switch
-                                }}
-                                style={{
-                                    padding: 'var(--spacing-2) var(--spacing-3)',
-                                    background: deviceView === device ? 'white' : 'transparent',
-                                    border: '1px solid',
-                                    borderColor: deviceView === device ? '#e5e7eb' : 'transparent',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontSize: 'var(--font-size-xs)',
-                                    fontWeight: deviceView === device ? '600' : '500',
-                                    color: deviceView === device ? 'var(--text-primary)' : 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    textTransform: 'capitalize',
-                                    transition: 'all 0.2s ease',
-                                }}
-                                title={deviceLabels[device]}
-                            >
-                                {device}
-                            </button>
-                        ))}
+                    {/* Segmented control makes device toggles more scannable */}
+                    <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        padding: '0.2rem',
+                        borderRadius: '999px',
+                        border: '1px solid #cbd5e1',
+                        background: '#e2e8f0',
+                    }}>
+                        {(['desktop', 'tablet', 'mobile'] as DeviceView[]).map((device) => {
+                            const isActive = deviceView === device;
+                            return (
+                                <button
+                                    key={device}
+                                    type="button"
+                                    onClick={() => {
+                                        setDeviceView(device);
+                                        setZoomMode('fit'); // Auto-fit on switch
+                                    }}
+                                    onMouseEnter={(event) => {
+                                        if (!isActive) {
+                                            event.currentTarget.style.background = 'rgba(255, 255, 255, 0.7)';
+                                        }
+                                    }}
+                                    onMouseLeave={(event) => {
+                                        if (!isActive) {
+                                            event.currentTarget.style.background = 'transparent';
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '0.45rem 0.95rem',
+                                        background: isActive ? '#ffffff' : 'transparent',
+                                        border: '1px solid transparent',
+                                        borderRadius: '999px',
+                                        fontSize: 'var(--font-size-xs)',
+                                        fontWeight: isActive ? '700' : '600',
+                                        color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        textTransform: 'capitalize',
+                                        transition: 'all 0.18s ease',
+                                        boxShadow: isActive ? '0 1px 2px rgba(15, 23, 42, 0.12)' : 'none',
+                                    }}
+                                    title={deviceLabels[device]}
+                                >
+                                    {device}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
@@ -443,7 +465,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                                 }}
                                 title="Zoom Out"
                             >
-                                âˆ’
+                                -
                             </button>
                             <button
                                 type="button"
@@ -487,7 +509,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                     style={{
                         flex: 1,
                         overflow: 'hidden',
-                        background: '#e2e8f0',
+                        background: '#eef2f7',
                         display: 'flex',
                         position: 'relative',
                         alignItems: 'flex-start',
@@ -505,7 +527,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                             borderRadius: deviceView === 'mobile' ? '28px' : deviceView === 'tablet' ? '16px' : '10px',
                             border: deviceView !== 'desktop' ? '8px solid #1f2937' : '1px solid #cbd5e1',
                             background: previewData.branding?.backgroundColor || '#ffffff',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                            boxShadow: '0 12px 20px rgba(15, 23, 42, 0.12)',
                             boxSizing: 'border-box',
                         }}
                     >
