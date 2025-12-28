@@ -13088,6 +13088,25 @@ span:hover>.info-tooltip {
   color: #ffffff;
 }
 
+.status-page-config-tab-icon {
+  font-size: 1rem;
+  opacity: 0.85;
+  transition: transform 0.2s ease;
+}
+
+.status-page-config-tab:hover .status-page-config-tab-icon {
+  transform: scale(1.1);
+}
+
+.status-page-config-tab.is-active .status-page-config-tab-icon {
+  opacity: 1;
+}
+
+.status-page-config-sticky-bar {
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
+}
+
 .status-page-config-body {
   gap: 0;
   min-width: 0;
