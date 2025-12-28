@@ -45,14 +45,14 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                     fontSize: 'clamp(1.5rem, 4vw, 1.875rem)', 
                     fontWeight: '800', 
                     marginBottom: '0.25rem',
-                    color: '#0f172a',
+                    color: 'var(--status-text-strong, #0f172a)',
                     letterSpacing: '-0.02em',
                 }}>
                     Announcements
                 </h2>
                 <p style={{ 
                     fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
-                    color: '#64748b',
+                    color: 'var(--status-text-muted, #64748b)',
                     margin: 0,
                 }}>
                     Important updates and notifications
@@ -68,22 +68,22 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                             key={announcement.id}
                             style={{
                                 padding: 'clamp(1.25rem, 3vw, 1.75rem)',
-                                background: 'white',
-                                border: `2px solid ${color}30`,
-                                borderRadius: '1rem',
+                                background: 'var(--status-panel-bg, #ffffff)',
+                                border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                borderRadius: '0.875rem',
                                 transition: 'all 0.3s ease',
                                 position: 'relative',
                                 overflow: 'hidden',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                                boxShadow: 'var(--status-card-shadow, 0 4px 12px rgba(15, 23, 42, 0.05))',
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = `0 12px 24px ${color}20, 0 0 0 1px ${color}40`;
-                                e.currentTarget.style.borderColor = color;
-                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.06))';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
-                                e.currentTarget.style.borderColor = `${color}30`;
+                                e.currentTarget.style.boxShadow = 'var(--status-card-shadow, 0 4px 12px rgba(15, 23, 42, 0.05))';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
                                 e.currentTarget.style.transform = 'translateY(0)';
                             }}
                         >
@@ -93,7 +93,7 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                 left: 0,
                                 top: 0,
                                 bottom: 0,
-                                width: '4px',
+                                width: '3px',
                                 background: `linear-gradient(180deg, ${color} 0%, ${color}dd 100%)`,
                             }} />
                             
@@ -116,12 +116,12 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                 }}>
                                     <span style={{
                                         padding: 'clamp(0.25rem, 1vw, 0.375rem) clamp(0.625rem, 2vw, 0.875rem)',
-                                        borderRadius: '0.5rem',
+                                        borderRadius: '0.45rem',
                                         fontSize: 'clamp(0.6875rem, 1.5vw, 0.75rem)',
                                         fontWeight: '700',
                                         background: `linear-gradient(135deg, ${color}20 0%, ${color}15 100%)`,
                                         color: color,
-                                        border: `1px solid ${color}40`,
+                                        border: `1px solid ${color}35`,
                                         textTransform: 'uppercase',
                                         letterSpacing: '0.08em',
                                         whiteSpace: 'nowrap',
@@ -131,7 +131,7 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                     <h3 style={{ 
                                         fontSize: 'clamp(1.125rem, 3vw, 1.25rem)', 
                                         fontWeight: '700', 
-                                        color: '#111827', 
+                                        color: 'var(--status-text, #111827)', 
                                         margin: 0,
                                         letterSpacing: '-0.01em',
                                         wordBreak: 'break-word',
@@ -144,7 +144,7 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                     alignItems: 'center',
                                     gap: '0.5rem',
                                     fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
-                                    color: '#6b7280',
+                                    color: 'var(--status-text-muted, #6b7280)',
                                     flexShrink: 0,
                                 }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,7 +155,7 @@ export default function StatusPageAnnouncements({ announcements }: StatusPageAnn
                                 </div>
                             </div>
                             <p style={{ 
-                                color: '#374151', 
+                                color: 'var(--status-text, #374151)', 
                                 lineHeight: '1.75', 
                                 whiteSpace: 'pre-wrap',
                                 margin: 0,

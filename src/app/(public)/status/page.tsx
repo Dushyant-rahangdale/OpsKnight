@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+﻿import prisma from '@/lib/prisma';
 import { Metadata } from 'next';
 import { getBaseUrl } from '@/lib/env-validation';
 import { getServerSession } from 'next-auth';
@@ -188,9 +188,8 @@ async function renderStatusPage(statusPage: any) {
         ? statusPage.branding as Record<string, any>
         : {};
 
-    const primaryColor = branding.primaryColor || '#667eea';
     const backgroundColor = branding.backgroundColor || '#ffffff';
-    const textColor = branding.textColor || '#111827';
+    const textColor = branding.textColor || 'var(--status-text, #111827)';
     const customCss = branding.customCss || '';
     const layout = branding.layout || 'default';
     const showHeader = branding.showHeader !== false;
@@ -322,6 +321,14 @@ async function renderStatusPage(statusPage: any) {
     const hasOutage = activeIncidents.some((inc: any) => inc.urgency === 'HIGH');
     const hasDegraded = activeIncidents.some((inc: any) => inc.urgency === 'LOW');
     const overallStatus = hasOutage ? 'outage' : hasDegraded ? 'degraded' : 'operational';
+    const affectedServices = services.filter((service) => service.status && service.status !== 'OPERATIONAL').length;
+    const activeIncidentCount = activeIncidents.length;
+    const statusSummary = overallStatus === 'outage'
+        ? { label: 'Major Outage', color: '#dc2626', background: '#fee2e2', border: '#fecaca' }
+        : overallStatus === 'degraded'
+            ? { label: 'Degraded Performance', color: '#d97706', background: '#fef3c7', border: '#fde68a' }
+            : { label: 'All Systems Operational', color: '#16a34a', background: '#dcfce7', border: '#86efac' };
+    const lastUpdatedLabel = now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 
     const serviceUptime90 = buildServiceUptime(allIncidents, services, ninetyDaysAgo, now);
     const incidentsForHistory = allIncidents.map((incident) => ({
@@ -331,6 +338,55 @@ async function renderStatusPage(statusPage: any) {
         status: incident.status,
         urgency: incident.urgency,
     }));
+
+    const normalizeRegions = (region?: string | null) => {
+        if (!region) return [];
+        return region
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+    };
+
+    const regionSummaries = (() => {
+        const severityRank: Record<string, number> = {
+            OPERATIONAL: 0,
+            MAINTENANCE: 1,
+            DEGRADED: 2,
+            PARTIAL_OUTAGE: 2,
+            MAJOR_OUTAGE: 3,
+        };
+        const summaryMap = new Map<string, { total: number; impacted: number; severity: number }>();
+
+        services.forEach((service) => {
+            const regions = normalizeRegions(service.region);
+            if (regions.length === 0) return;
+            const status = service.status || 'OPERATIONAL';
+            const impacted = status !== 'OPERATIONAL';
+            const severity = severityRank[status] ?? 0;
+
+            regions.forEach((region) => {
+                const entry = summaryMap.get(region) || { total: 0, impacted: 0, severity: 0 };
+                entry.total += 1;
+                if (impacted) {
+                    entry.impacted += 1;
+                }
+                entry.severity = Math.max(entry.severity, severity);
+                summaryMap.set(region, entry);
+            });
+        });
+
+        const summaries = Array.from(summaryMap.entries()).map(([region, summary]) => ({
+            region,
+            ...summary,
+        }));
+
+        summaries.sort((a, b) => {
+            if (a.impacted !== b.impacted) return b.impacted - a.impacted;
+            return a.region.localeCompare(b.region);
+        });
+
+        return summaries;
+    })();
 
     // Determine max width based on layout
     const maxWidth = layout === 'wide' ? '1600px' : layout === 'compact' ? '900px' : '1280px';
@@ -403,7 +459,165 @@ async function renderStatusPage(statusPage: any) {
                     paddingTop: 'clamp(1.5rem, 4vw, 2rem)',
                     paddingBottom: 'clamp(1.5rem, 4vw, 2rem)',
                     boxSizing: 'border-box',
+                    ['--status-card-shadow' as any]: '0 6px 16px rgba(15, 23, 42, 0.05)',
                 }}>
+                    <section style={{ marginBottom: 'clamp(2rem, 6vw, 3rem)' }}>
+                        <div style={{
+                            display: 'grid',
+                            gap: '1rem',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            padding: 'clamp(1rem, 3vw, 1.5rem)',
+                            background: 'var(--status-panel-bg, #ffffff)',
+                            border: '1px solid var(--status-panel-border, #e2e8f0)',
+                            borderRadius: '0.875rem',
+                            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)',
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--status-text-muted, #64748b)', fontWeight: '600' }}>
+                                    Overall Status
+                                </div>
+                                <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.4rem 0.75rem',
+                                    borderRadius: '999px',
+                                    background: statusSummary.background,
+                                    color: statusSummary.color,
+                                    border: `1px solid ${statusSummary.border}`,
+                                    fontWeight: '700',
+                                    fontSize: '0.8125rem',
+                                }}>
+                                    {statusSummary.label}
+                                </span>
+                                <div style={{ fontSize: '0.8125rem', color: 'var(--status-text-muted, #6b7280)' }}>
+                                    Last updated: {lastUpdatedLabel}
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--status-text-muted, #64748b)', fontWeight: '600' }}>
+                                    Services
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--status-text, #111827)' }}>
+                                    {services.length}
+                                </div>
+                                <div style={{ fontSize: '0.8125rem', color: 'var(--status-text-muted, #6b7280)' }}>
+                                    {affectedServices} affected
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--status-text-muted, #64748b)', fontWeight: '600' }}>
+                                    Active Incidents
+                                </div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--status-text, #111827)' }}>
+                                    {activeIncidentCount}
+                                </div>
+                                <div style={{ fontSize: '0.8125rem', color: 'var(--status-text-muted, #6b7280)' }}>
+                                    Last 90 days: {recentIncidents.length}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    {statusPage.showServices && statusPage.showServiceRegions !== false && regionSummaries.length > 0 && (
+                        <section style={{ marginBottom: 'clamp(2rem, 6vw, 3rem)' }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
+                                flexWrap: 'wrap',
+                                gap: '1rem',
+                            }}>
+                                <div>
+                                    <h2 style={{
+                                        fontSize: 'clamp(1.5rem, 4vw, 1.875rem)',
+                                        fontWeight: '800',
+                                        color: 'var(--status-text-strong, #0f172a)',
+                                        margin: 0,
+                                        marginBottom: '0.25rem',
+                                        letterSpacing: '-0.02em',
+                                    }}>
+                                        Regions
+                                    </h2>
+                                    <p style={{
+                                        fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)',
+                                        color: 'var(--status-text-muted, #64748b)',
+                                        margin: 0,
+                                    }}>
+                                        Service health by hosting region
+                                    </p>
+                                </div>
+                            </div>
+                            <div style={{
+                                display: 'grid',
+                                gap: '1rem',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            }}>
+                                {regionSummaries.map((region) => {
+                                    const severityStyle = region.severity >= 3
+                                        ? { color: '#dc2626', background: '#fee2e2', border: '#fecaca' }
+                                        : region.severity >= 2
+                                            ? { color: '#d97706', background: '#fef3c7', border: '#fde68a' }
+                                            : { color: '#16a34a', background: '#dcfce7', border: '#86efac' };
+                                    return (
+                                        <div
+                                            key={region.region}
+                                            style={{
+                                                padding: '1rem 1.25rem',
+                                                background: 'var(--status-panel-bg, #ffffff)',
+                                                border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                                borderRadius: '0.875rem',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.6rem',
+                                                boxShadow: 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.05))',
+                                            }}
+                                        >
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                gap: '0.75rem',
+                                                flexWrap: 'wrap',
+                                            }}>
+                                                <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--status-text, #111827)' }}>
+                                                    {region.region}
+                                                </div>
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.4rem',
+                                                    padding: '0.25rem 0.6rem',
+                                                    borderRadius: '999px',
+                                                    background: severityStyle.background,
+                                                    color: severityStyle.color,
+                                                    border: `1px solid ${severityStyle.border}`,
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '700',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.05em',
+                                                }}>
+                                                    {region.impacted > 0 ? 'Impacted' : 'Operational'}
+                                                </span>
+                                            </div>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.75rem',
+                                                fontSize: '0.8125rem',
+                                                color: 'var(--status-text-muted, #64748b)',
+                                            }}>
+                                                <span>{region.total} service{region.total !== 1 ? 's' : ''}</span>
+                                                <span>•</span>
+                                                <span>{region.impacted} impacted</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
+
                     {/* Announcements */}
                     {statusPage.announcements.length > 0 && (
                         <StatusPageAnnouncements announcements={statusPage.announcements} />
@@ -421,6 +635,7 @@ async function renderStatusPage(statusPage: any) {
                                     privacySettings={{
                                         showServiceMetrics: statusPage.showServiceMetrics !== false,
                                         showServiceDescriptions: statusPage.showServiceDescriptions !== false,
+                                        showServiceRegions: statusPage.showServiceRegions !== false,
                                         showUptimeHistory: statusPage.showUptimeHistory !== false,
                                     }}
                                 />
@@ -437,10 +652,10 @@ async function renderStatusPage(statusPage: any) {
                                     <div style={{
                                         padding: '3rem',
                                         background: backgroundColor,
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid var(--status-panel-border, #e5e7eb)',
                                         borderRadius: '0.75rem',
                                         textAlign: 'center',
-                                        color: '#6b7280',
+                                        color: 'var(--status-text-muted, #6b7280)',
                                     }}>
                                         <p>No services configured for this status page.</p>
                                         <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
@@ -482,6 +697,7 @@ async function renderStatusPage(statusPage: any) {
                                             showIncidentTitles: statusPage.showIncidentTitles !== false,
                                             showIncidentDescriptions: statusPage.showIncidentDescriptions !== false,
                                             showAffectedServices: statusPage.showAffectedServices !== false,
+                                            showServiceRegions: statusPage.showServiceRegions !== false,
                                             showIncidentTimestamps: statusPage.showIncidentTimestamps !== false,
                                             showIncidentUrgency: statusPage.showIncidentUrgency !== false,
                                             showIncidentDetails: statusPage.showIncidentDetails !== false,
@@ -501,10 +717,10 @@ async function renderStatusPage(statusPage: any) {
                                     <div style={{
                                         padding: '3rem',
                                         background: backgroundColor,
-                                        border: '1px solid #e5e7eb',
+                                        border: '1px solid var(--status-panel-border, #e5e7eb)',
                                         borderRadius: '0.75rem',
                                         textAlign: 'center',
-                                        color: '#6b7280',
+                                        color: 'var(--status-text-muted, #6b7280)',
                                     }}>
                                         <p>No incidents in the last 90 days.</p>
                                         <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: '#10b981' }}>
@@ -523,11 +739,12 @@ async function renderStatusPage(statusPage: any) {
                                 <div style={{
                                     position: 'relative',
                                     overflow: 'hidden',
-                                    borderRadius: '1rem',
-                                    border: '1px solid #e5e7eb',
-                                    background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)',
+                                    borderRadius: '0.875rem',
+                                    border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                    borderTop: '3px solid var(--status-primary, var(--primary))',
+                                    background: 'var(--status-panel-bg, #ffffff)',
                                     padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                                    boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
+                                    boxShadow: 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.05))',
                                 }}>
                                     <div style={{
                                         position: 'absolute',
@@ -535,7 +752,7 @@ async function renderStatusPage(statusPage: any) {
                                         right: '-60px',
                                         width: '180px',
                                         height: '180px',
-                                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)',
+                                        background: 'radial-gradient(circle, rgba(148, 163, 184, 0.14) 0%, transparent 70%)',
                                         pointerEvents: 'none',
                                     }} />
                                     <div style={{
@@ -544,7 +761,7 @@ async function renderStatusPage(statusPage: any) {
                                         left: '-80px',
                                         width: '220px',
                                         height: '220px',
-                                        background: 'radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%)',
+                                        background: 'radial-gradient(circle, rgba(148, 163, 184, 0.12) 0%, transparent 70%)',
                                         pointerEvents: 'none',
                                     }} />
                                     <div style={{
@@ -562,7 +779,7 @@ async function renderStatusPage(statusPage: any) {
                                                 fontSize: '0.75rem',
                                                 letterSpacing: '0.12em',
                                                 textTransform: 'uppercase',
-                                                color: primaryColor,
+                                                color: 'var(--status-primary, var(--primary))',
                                                 fontWeight: '700',
                                                 marginBottom: '0.5rem',
                                             }}>
@@ -578,7 +795,7 @@ async function renderStatusPage(statusPage: any) {
                                             </h2>
                                             <p style={{
                                                 fontSize: 'clamp(0.9rem, 2.2vw, 1rem)',
-                                                color: '#4b5563',
+                                                color: 'var(--status-text-muted, #4b5563)',
                                                 marginBottom: '1rem',
                                                 lineHeight: 1.6,
                                             }}>
@@ -590,9 +807,9 @@ async function renderStatusPage(statusPage: any) {
                                                 gap: '0.5rem',
                                                 padding: '0.35rem 0.75rem',
                                                 borderRadius: '999px',
-                                                background: '#ffffff',
-                                                border: '1px solid #e5e7eb',
-                                                color: '#374151',
+                                                background: 'var(--status-panel-bg, #ffffff)',
+                                                border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                                color: 'var(--status-text, #374151)',
                                                 fontSize: '0.8125rem',
                                                 fontWeight: '600',
                                             }}>
@@ -605,8 +822,8 @@ async function renderStatusPage(statusPage: any) {
                                         }}>
                                             <div style={{
                                                 padding: 'clamp(1rem, 3vw, 1.5rem)',
-                                                background: '#ffffff',
-                                                border: '1px solid #e5e7eb',
+                                                background: 'var(--status-panel-bg, #ffffff)',
+                                                border: '1px solid var(--status-panel-border, #e5e7eb)',
                                                 borderRadius: '0.875rem',
                                                 boxShadow: '0 12px 25px rgba(15, 23, 42, 0.12)',
                                             }}>
@@ -615,7 +832,7 @@ async function renderStatusPage(statusPage: any) {
                                             <p style={{
                                                 marginTop: '0.75rem',
                                                 fontSize: '0.8125rem',
-                                                color: '#6b7280',
+                                                color: 'var(--status-text-muted, #6b7280)',
                                                 textAlign: 'center',
                                             }}>
                                                 We'll never share your email. Unsubscribe anytime.
@@ -630,28 +847,86 @@ async function renderStatusPage(statusPage: any) {
                     {showFooter && (statusPage.footerText || showRssLink || showApiLink) && (
                         <footer style={{
                             marginTop: '4rem',
-                            paddingTop: '2rem',
-                            borderTop: '1px solid #e5e7eb',
-                            textAlign: 'center',
-                            color: '#6b7280',
-                            fontSize: '0.875rem',
+                            color: 'var(--status-text-muted, #6b7280)',
+                            fontSize: '0.9rem',
                         }}>
-                            {statusPage.footerText && <p style={{ marginBottom: '1rem' }}>{statusPage.footerText}</p>}
-                            {(showRssLink || showApiLink) && (
-                                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                    {showRssLink && (
-                                        <a href="/api/status/rss" style={{ color: '#6b7280', textDecoration: 'none' }}>
-                                            RSS Feed
-                                        </a>
-                                    )}
-                                    {showRssLink && showApiLink && <span>|</span>}
-                                    {showApiLink && (
-                                        <a href="/api/status" style={{ color: '#6b7280', textDecoration: 'none' }}>
-                                            JSON API
-                                        </a>
-                                    )}
+                            <div style={{
+                                padding: '1rem 0',
+                                borderTop: '1px solid var(--status-panel-border, #e5e7eb)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '1rem',
+                                flexWrap: 'wrap',
+                                textAlign: 'center',
+                                flexDirection: 'column',
+                            }}>
+                                <div style={{
+                                    width: '56px',
+                                    height: '2px',
+                                    borderRadius: '999px',
+                                    background: 'var(--status-primary, var(--primary))',
+                                    opacity: 0.6,
+                                }} />
+                                {statusPage.footerText && (
+                                    <p style={{ margin: 0, color: 'var(--status-text-muted, #6b7280)', fontWeight: '600' }}>
+                                        {statusPage.footerText}
+                                    </p>
+                                )}
+                                <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.8125rem',
+                                    color: 'var(--status-text-subtle, #94a3b8)',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.02em',
+                                }}>
+                                    <span style={{
+                                        width: '22px',
+                                        height: '22px',
+                                        borderRadius: '4px',
+                                        background: 'var(--status-panel-muted-bg, #f8fafc)',
+                                        border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                    }}>
+                                        <img
+                                            src="/logo.svg"
+                                            alt="OpsSentinel"
+                                            style={{ width: '16px', height: '16px', display: 'block' }}
+                                        />
+                                    </span>
+                                    Powered by OpsSentinel
                                 </div>
-                            )}
+                                {(showRssLink || showApiLink) && (
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                        {showRssLink && (
+                                            <a href="/api/status/rss" className="status-footer-link" style={{ color: 'var(--status-text-muted, #6b7280)', textDecoration: 'none', fontWeight: '600' }}>
+                                                RSS Feed
+                                            </a>
+                                        )}
+                                        {showRssLink && showApiLink && (
+                                            <span style={{ color: 'var(--status-text-subtle, #94a3b8)' }}>•</span>
+                                        )}
+                                        {showApiLink && (
+                                            <a href="/api/status" className="status-footer-link" style={{ color: 'var(--status-text-muted, #6b7280)', textDecoration: 'none', fontWeight: '600' }}>
+                                                JSON API
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <style dangerouslySetInnerHTML={{
+                                __html: `
+                                .status-footer-link:hover {
+                                    text-decoration: underline;
+                                    text-decoration-thickness: 2px;
+                                    text-underline-offset: 3px;
+                                }
+                            `}} />
                         </footer>
                     )}
                 </main>

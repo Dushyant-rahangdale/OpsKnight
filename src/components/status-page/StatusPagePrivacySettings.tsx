@@ -13,6 +13,7 @@ interface PrivacySettings {
     showIncidentTimestamps: boolean;
     showServiceMetrics: boolean;
     showServiceDescriptions: boolean;
+    showServiceRegions: boolean;
     showTeamInformation: boolean;
     showCustomFields: boolean;
     showIncidentAssignees: boolean;
@@ -42,6 +43,7 @@ const PRIVACY_PRESETS = {
             showIncidentTimestamps: true,
             showServiceMetrics: true,
             showServiceDescriptions: true,
+            showServiceRegions: true,
             showTeamInformation: false,
             showCustomFields: false,
             showIncidentAssignees: false,
@@ -61,6 +63,7 @@ const PRIVACY_PRESETS = {
             showIncidentTimestamps: true,
             showServiceMetrics: true,
             showServiceDescriptions: false,
+            showServiceRegions: true,
             showTeamInformation: false,
             showCustomFields: false,
             showIncidentAssignees: false,
@@ -80,6 +83,7 @@ const PRIVACY_PRESETS = {
             showIncidentTimestamps: false,
             showServiceMetrics: false,
             showServiceDescriptions: false,
+            showServiceRegions: false,
             showTeamInformation: false,
             showCustomFields: false,
             showIncidentAssignees: false,
@@ -87,6 +91,11 @@ const PRIVACY_PRESETS = {
             showUptimeHistory: false,
             showRecentIncidents: true,
         },
+    },
+    CUSTOM: {
+        label: 'Custom',
+        description: 'Mix and match individual settings',
+        settings: {},
     },
 };
 
@@ -225,6 +234,12 @@ export default function StatusPagePrivacySettings({
                             onChange={(checked) => updateSetting('showServiceDescriptions', checked)}
                             label="Show Service Descriptions"
                             helperText="Display service descriptions and details"
+                        />
+                        <Switch
+                            checked={localSettings.showServiceRegions}
+                            onChange={(checked) => updateSetting('showServiceRegions', checked)}
+                            label="Show Service Regions"
+                            helperText="Display hosting regions for each service"
                         />
                         <Switch
                             checked={localSettings.showUptimeHistory}

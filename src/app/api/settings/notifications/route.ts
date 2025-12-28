@@ -66,14 +66,17 @@ export async function GET(req: NextRequest) {
             };
         }
 
-        // Get WhatsApp config from database
+        // Get WhatsApp config from Twilio provider config (independent of SMS enablement)
         const whatsappProvider = twilioProvider?.config as any;
         const whatsappNumber = whatsappProvider?.whatsappNumber || '';
         const whatsappContentSid = whatsappProvider?.whatsappContentSid || '';
+        const whatsappEnabled = whatsappProvider?.whatsappEnabled ?? !!whatsappNumber;
         const whatsappConfig = {
             number: whatsappNumber,
             contentSid: whatsappContentSid,
-            enabled: smsConfig.enabled && smsConfig.provider === 'twilio' && !!whatsappNumber
+            accountSid: whatsappProvider?.whatsappAccountSid || '',
+            authToken: whatsappProvider?.whatsappAuthToken || '',
+            enabled: !!whatsappEnabled && !!whatsappNumber
         };
 
         return jsonOk({
@@ -119,8 +122,8 @@ export async function POST(req: NextRequest) {
                 smsConfig.whatsappNumber = whatsappNumber;
                 smsConfig.whatsappContentSid = body.whatsapp?.contentSid ?? existingTwilioConfig.whatsappContentSid ?? '';
                 smsConfig.whatsappEnabled = body.whatsapp?.enabled ?? existingTwilioConfig.whatsappEnabled ?? !!whatsappNumber;
-                smsConfig.whatsappAccountSid = existingTwilioConfig.whatsappAccountSid;
-                smsConfig.whatsappAuthToken = existingTwilioConfig.whatsappAuthToken;
+                smsConfig.whatsappAccountSid = body.whatsapp?.accountSid ?? existingTwilioConfig.whatsappAccountSid ?? '';
+                smsConfig.whatsappAuthToken = body.whatsapp?.authToken ?? existingTwilioConfig.whatsappAuthToken ?? '';
             } else if (body.sms.provider === 'aws-sns') {
                 smsConfig.region = body.sms.region || 'us-east-1';
                 smsConfig.accessKeyId = body.sms.accessKeyId || '';
@@ -195,6 +198,37 @@ export async function POST(req: NextRequest) {
                 await prisma.notificationProvider.update({
                     where: { provider: otherProvider },
                     data: { enabled: false, updatedBy: user.id }
+                });
+            }
+        }
+
+        if (body.whatsapp) {
+            const whatsappNumber = body.whatsapp.number ?? existingTwilioConfig.whatsappNumber ?? '';
+            const updatedTwilioConfig = {
+                ...existingTwilioConfig,
+                whatsappNumber,
+                whatsappContentSid: body.whatsapp.contentSid ?? existingTwilioConfig.whatsappContentSid ?? '',
+                whatsappEnabled: body.whatsapp.enabled ?? existingTwilioConfig.whatsappEnabled ?? !!whatsappNumber,
+                whatsappAccountSid: body.whatsapp.accountSid ?? existingTwilioConfig.whatsappAccountSid ?? '',
+                whatsappAuthToken: body.whatsapp.authToken ?? existingTwilioConfig.whatsappAuthToken ?? ''
+            };
+
+            if (existingTwilioProvider) {
+                await prisma.notificationProvider.update({
+                    where: { provider: 'twilio' },
+                    data: {
+                        config: updatedTwilioConfig,
+                        updatedBy: user.id
+                    }
+                });
+            } else {
+                await prisma.notificationProvider.create({
+                    data: {
+                        provider: 'twilio',
+                        enabled: false,
+                        config: updatedTwilioConfig,
+                        updatedBy: user.id
+                    }
                 });
             }
         }

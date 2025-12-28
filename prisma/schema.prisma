@@ -172,6 +172,7 @@ model Service {
   id                          String                @id @default(cuid())
   name                        String
   description                 String?
+  region                      String? // Service hosting region (e.g., US-East, EU-West)
   status                      ServiceStatus         @default(OPERATIONAL)
   targetAckMinutes            Int                   @default(15)
   targetResolveMinutes        Int                   @default(120)
@@ -752,6 +753,7 @@ model StatusPage {
   showIncidentTimestamps   Boolean @default(true)
   showServiceMetrics       Boolean @default(true)
   showServiceDescriptions  Boolean @default(true)
+  showServiceRegions       Boolean @default(true)
   showTeamInformation      Boolean @default(false)
   showCustomFields         Boolean @default(false)
   showIncidentAssignees    Boolean @default(false)

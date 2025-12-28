@@ -51,7 +51,7 @@ const STATUS_CONFIG = {
         label: 'Major Outage',
     },
     MAINTENANCE: {
-        color: '#3b82f6',
+        color: 'var(--status-primary, #3b82f6)',
         label: 'Maintenance',
     },
 };
@@ -178,13 +178,13 @@ export default function StatusPageServicesGrouped({
                 <h2 style={{
                     fontSize: '1.5rem',
                     fontWeight: '600',
-                    color: '#111827',
+                    color: 'var(--status-text, #111827)',
                     margin: 0,
                 }}>
                     System status
                 </h2>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.875rem', color: '#6b7280', marginRight: '0.5rem' }}>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--status-text-muted, #6b7280)', marginRight: '0.5rem' }}>
                         {getPeriodLabel(selectedPeriod)}
                     </span>
                     <select
@@ -195,8 +195,8 @@ export default function StatusPageServicesGrouped({
                             border: '1px solid #e5e7eb',
                             borderRadius: '0.5rem',
                             fontSize: '0.875rem',
-                            background: 'white',
-                            color: '#374151',
+                            background: 'var(--status-panel-bg, #ffffff)',
+                            color: 'var(--status-text, #374151)',
                             cursor: 'pointer',
                         }}
                     >
@@ -236,16 +236,16 @@ export default function StatusPageServicesGrouped({
                         <div
                             key={groupName}
                             style={{
-                                border: '1px solid #e5e7eb',
+                                border: '1px solid var(--status-panel-border, #e5e7eb)',
                                 borderRadius: '0.75rem',
                                 overflow: 'hidden',
-                                background: 'white',
+                                background: 'var(--status-panel-bg, #ffffff)',
                             }}
                         >
                             {/* Group Header */}
                             <div style={{
                                 padding: '1.5rem',
-                                borderBottom: '1px solid #e5e7eb',
+                                borderBottom: '1px solid var(--status-panel-border, #e5e7eb)',
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
@@ -256,14 +256,14 @@ export default function StatusPageServicesGrouped({
                                     <h3 style={{
                                         fontSize: '1.125rem',
                                         fontWeight: '600',
-                                        color: '#111827',
+                                        color: 'var(--status-text, #111827)',
                                         marginBottom: '0.25rem',
                                     }}>
                                         {groupName}
                                     </h3>
                                     <div style={{
                                         fontSize: '0.875rem',
-                                        color: '#6b7280',
+                                        color: 'var(--status-text-muted, #6b7280)',
                                     }}>
                                         {componentCount} component{componentCount !== 1 ? 's' : ''}
                                     </div>
@@ -278,14 +278,14 @@ export default function StatusPageServicesGrouped({
                                         <div style={{
                                             fontSize: '1.5rem',
                                             fontWeight: '600',
-                                            color: '#111827',
+                                            color: 'var(--status-text, #111827)',
                                             lineHeight: '1.2',
                                         }}>
                                             {uptime.toFixed(2)}%
                                         </div>
                                         <div style={{
                                             fontSize: '0.75rem',
-                                            color: '#6b7280',
+                                            color: 'var(--status-text-muted, #6b7280)',
                                             marginTop: '0.25rem',
                                         }}>
                                             uptime
@@ -304,7 +304,7 @@ export default function StatusPageServicesGrouped({
                                         }}></div>
                                         <span style={{
                                             fontSize: '0.875rem',
-                                            color: '#374151',
+                                            color: 'var(--status-text, #374151)',
                                             fontWeight: '500',
                                         }}>
                                             {statusConfig.label}
@@ -316,7 +316,7 @@ export default function StatusPageServicesGrouped({
                             {/* Components List */}
                             <div style={{
                                 padding: '1rem 1.5rem',
-                                background: '#f9fafb',
+                                background: 'var(--status-panel-muted-bg, #f9fafb)',
                             }}>
                                 <div style={{
                                     display: 'grid',
@@ -334,8 +334,8 @@ export default function StatusPageServicesGrouped({
                                                 key={service.id}
                                                 style={{
                                                     padding: '0.75rem',
-                                                    background: 'white',
-                                                    border: '1px solid #e5e7eb',
+                                                    background: 'var(--status-panel-bg, #ffffff)',
+                                                    border: '1px solid var(--status-panel-border, #e5e7eb)',
                                                     borderRadius: '0.5rem',
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -347,7 +347,7 @@ export default function StatusPageServicesGrouped({
                                                     <div style={{
                                                         fontSize: '0.875rem',
                                                         fontWeight: '500',
-                                                        color: '#111827',
+                                                        color: 'var(--status-text, #111827)',
                                                         marginBottom: '0.25rem',
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis',
@@ -381,14 +381,14 @@ export default function StatusPageServicesGrouped({
                             {/* View History Link */}
                             <div style={{
                                 padding: '1rem 1.5rem',
-                                borderTop: '1px solid #e5e7eb',
-                                background: 'white',
+                                borderTop: '1px solid var(--status-panel-border, #e5e7eb)',
+                                background: 'var(--status-panel-bg, #ffffff)',
                             }}>
                                 <a
                                     href="#incidents"
                                     style={{
                                         fontSize: '0.875rem',
-                                        color: '#3b82f6',
+                                        color: 'var(--status-primary, #3b82f6)',
                                         textDecoration: 'none',
                                         fontWeight: '500',
                                         display: 'inline-flex',

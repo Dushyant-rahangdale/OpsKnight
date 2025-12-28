@@ -1,6 +1,8 @@
 import { getUserPermissions } from '@/lib/rbac';
 import { redirect } from 'next/navigation';
-import NotificationProviderSettings from '../../../../components/settings/NotificationProviderSettings';
+import SettingsPage from '@/components/settings/SettingsPage';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import NotificationProviderSettings from '@/components/settings/NotificationProviderSettings';
 
 export default async function NotificationProviderSettingsPage() {
     const permissions = await getUserPermissions();
@@ -10,18 +12,19 @@ export default async function NotificationProviderSettingsPage() {
     }
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                    Notification Providers
-                </h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-                    Configure SMS and push notification providers for your organization
-                </p>
-            </div>
-
-            <NotificationProviderSettings />
-        </div>
+        <SettingsPage
+            backHref="/settings"
+            title="Notification Providers"
+            description="Configure SMS, push, and WhatsApp notification providers for your organization."
+        >
+            <SettingsSectionCard
+                title="Provider configuration"
+                description="Manage outbound providers and test delivery channels."
+            >
+                <NotificationProviderSettings />
+            </SettingsSectionCard>
+        </SettingsPage>
     );
 }
+
 

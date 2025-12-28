@@ -1,7 +1,9 @@
 /*
   Template: Electric Blue
 */
-:root { --sp-ink: #0b1220; --sp-muted: #6b7b9a; --sp-electric: #3b82f6; --sp-cyan: #06b6d4; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05); --sp-ink: #0b1220; --sp-muted: #6b7b9a; --sp-electric: #3b82f6; --sp-cyan: #06b6d4; }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(59, 130, 246, 0.22) 0%, rgba(59, 130, 246, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

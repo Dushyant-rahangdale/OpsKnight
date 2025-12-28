@@ -2,6 +2,8 @@
   Template: Glacier
 */
 :root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
   --sp-ink: #0b1320;
   --sp-muted: #5d6f86;
   --sp-ice: #38bdf8;
@@ -64,3 +66,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

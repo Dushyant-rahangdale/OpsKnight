@@ -7,6 +7,7 @@ interface Service {
     id: string;
     name: string;
     status: string;
+    region?: string | null;
     _count: {
         incidents: number;
     };
@@ -22,6 +23,7 @@ interface StatusPageService {
 interface PrivacySettings {
     showServiceMetrics?: boolean;
     showServiceDescriptions?: boolean;
+    showServiceRegions?: boolean;
     showUptimeHistory?: boolean;
 }
 
@@ -65,10 +67,10 @@ const STATUS_CONFIG = {
         border: '#fca5a5',
     },
     MAINTENANCE: {
-        color: '#2563eb',
+        color: 'var(--status-primary, #2563eb)',
         label: 'Maintenance',
-        background: '#dbeafe',
-        border: '#93c5fd',
+        background: 'color-mix(in srgb, var(--status-primary, #2563eb) 12%, #ffffff)',
+        border: 'color-mix(in srgb, var(--status-primary, #2563eb) 40%, #ffffff)',
     },
 };
 
@@ -98,11 +100,14 @@ export default function StatusPageServices({ services, statusPageServices, uptim
     const privacy = {
         showServiceMetrics: privacySettings?.showServiceMetrics !== false,
         showServiceDescriptions: privacySettings?.showServiceDescriptions !== false,
+        showServiceRegions: privacySettings?.showServiceRegions !== false,
         showUptimeHistory: privacySettings?.showUptimeHistory !== false,
     };
     const [hoveredBar, setHoveredBar] = useState<HoveredBar | null>(null);
     const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
     const [visibleDays, setVisibleDays] = useState(90);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'operational' | 'degraded' | 'outage' | 'maintenance'>('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const timelineCache = useRef(new Map<string, TimelineData>());
     const now = useMemo(() => new Date(), []);
     const daysToShow = 90;
@@ -282,6 +287,14 @@ export default function StatusPageServices({ services, statusPageServices, uptim
         const date = new Date(year, month - 1, day, 0, 0, 0, 0);
         return formatDateTime(date, getBrowserTimeZone(), { format: 'date' });
     };
+
+    const getRegionList = (region?: string | null) => {
+        if (!region) return [];
+        return region
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+    };
     // If statusPageServices is empty, show all services
     // Otherwise, only show configured services
     let visibleServices: any[] = [];
@@ -309,6 +322,30 @@ export default function StatusPageServices({ services, statusPageServices, uptim
 
     if (visibleServices.length === 0) return null;
 
+    const normalizeStatus = (status: string) => {
+        if (status === 'MAJOR_OUTAGE') return 'outage';
+        if (status === 'PARTIAL_OUTAGE' || status === 'DEGRADED') return 'degraded';
+        if (status === 'MAINTENANCE') return 'maintenance';
+        return 'operational';
+    };
+
+    const filteredServices = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        return visibleServices.filter((service) => {
+            const statusKey = normalizeStatus(service.status || 'OPERATIONAL');
+            if (statusFilter !== 'all' && statusKey !== statusFilter) {
+                return false;
+            }
+            if (query) {
+                const name = (service.displayName || service.name || '').toLowerCase();
+                if (!name.includes(query)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [visibleServices, statusFilter, searchQuery]);
+
     return (
         <section style={{ marginBottom: 'clamp(2rem, 6vw, 4rem)' }}>
             <div style={{
@@ -323,7 +360,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     <h2 style={{
                         fontSize: 'clamp(1.5rem, 4vw, 1.875rem)',
                         fontWeight: '800',
-                        color: '#0f172a',
+                        color: 'var(--status-text-strong, #0f172a)',
                         margin: 0,
                         marginBottom: '0.25rem',
                         letterSpacing: '-0.02em',
@@ -332,7 +369,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     </h2>
                     <p style={{ 
                         fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
-                        color: '#64748b',
+                        color: 'var(--status-text-muted, #64748b)',
                         margin: 0,
                         display: 'flex',
                         alignItems: 'center',
@@ -342,8 +379,32 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
-                        Last {visibleDays} days
+                        {filteredServices.length} of {visibleServices.length} services
                     </p>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search services"
+                        className="status-page-input"
+                        style={{
+                            minWidth: '180px',
+                        }}
+                    />
+                    {(['all', 'operational', 'degraded', 'outage', 'maintenance'] as const).map((filter) => (
+                        <button
+                            key={filter}
+                            type="button"
+                            onClick={() => setStatusFilter(filter)}
+                            className="status-page-button"
+                            data-active={statusFilter === filter}
+                            style={{ textTransform: 'capitalize' }}
+                        >
+                            {filter}
+                        </button>
+                    ))}
                 </div>
             </div>
             <div style={{
@@ -353,16 +414,17 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                 alignItems: 'center',
                 marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.25rem)',
-                background: '#f8fafc',
+                background: 'var(--status-panel-muted-bg, #f8fafc)',
                 borderRadius: '0.75rem',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--status-panel-muted-border, #e2e8f0)',
+                boxShadow: 'none',
             }}>
                 <span style={{ 
                     display: 'inline-flex', 
                     alignItems: 'center', 
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
-                    color: '#475569',
+                    color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
                     <span style={{ 
@@ -379,7 +441,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     alignItems: 'center', 
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
-                    color: '#475569',
+                    color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
                     <span style={{ 
@@ -396,7 +458,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     alignItems: 'center', 
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
-                    color: '#475569',
+                    color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
                     <span style={{ 
@@ -408,16 +470,39 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     }} />
                     Outage
                 </span>
+                <span style={{
+                    marginLeft: 'auto',
+                    fontSize: '0.75rem',
+                    color: 'var(--status-text-muted, #64748b)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Last {visibleDays} days
+                </span>
             </div>
             <div style={{
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--status-panel-border, #e2e8f0)',
                 borderRadius: '1rem',
-                background: '#ffffff',
+                background: 'var(--status-panel-bg, #ffffff)',
                 overflow: 'visible',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                boxShadow: 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.05))',
                 position: 'relative',
             }}>
-                {visibleServices.map((service: any, index: number) => {
+                {filteredServices.length === 0 ? (
+                    <div style={{
+                        padding: '2.5rem',
+                        textAlign: 'center',
+                        color: 'var(--status-text-muted, #6b7280)',
+                        fontSize: '0.875rem',
+                    }}>
+                        No services match your filters.
+                    </div>
+                ) : filteredServices.map((service: any, index: number) => {
                     const serviceStatus = service.status || 'OPERATIONAL';
                     const statusConfig = STATUS_CONFIG[serviceStatus as keyof typeof STATUS_CONFIG] || {
                         color: '#475569',
@@ -461,8 +546,8 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                             }}
                             onMouseEnter={() => setHoveredServiceId(service.id)}
                             onMouseLeave={(e) => {
-                                const relatedTarget = e.relatedTarget as HTMLElement | null;
-                                if (relatedTarget && relatedTarget.closest('[data-tooltip]')) {
+                                const relatedTarget = e.relatedTarget;
+                                if (relatedTarget instanceof Element && relatedTarget.closest('[data-tooltip]')) {
                                     return;
                                 }
                                 setHoveredServiceId((current) => (current === service.id ? null : current));
@@ -480,13 +565,45 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                     <div style={{
                                         fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                                         fontWeight: '700',
-                                        color: '#0f172a',
+                                        color: 'var(--status-text-strong, #0f172a)',
                                         wordBreak: 'break-word',
                                         marginBottom: '0.5rem',
                                         letterSpacing: '-0.01em',
                                     }}>
                                         {service.displayName}
                                     </div>
+                                    {privacy.showServiceRegions && getRegionList(service.region).length > 0 && (
+                                        <div style={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            gap: '0.5rem',
+                                            marginBottom: '0.5rem',
+                                        }}>
+                                            {getRegionList(service.region).map((region) => (
+                                                <span
+                                                    key={`${service.id}-${region}`}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem',
+                                                        padding: '0.2rem 0.6rem',
+                                                        borderRadius: '999px',
+                                                        background: 'var(--status-panel-muted-bg, #f8fafc)',
+                                                        border: '1px solid var(--status-panel-muted-border, #e2e8f0)',
+                                                        color: 'var(--status-text-muted, #64748b)',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '600',
+                                                    }}
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"></path>
+                                                        <circle cx="12" cy="10" r="3"></circle>
+                                                    </svg>
+                                                    {region}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                     {activeIncidents > 0 && (
                                         <div style={{
                                             display: 'inline-flex',
@@ -547,7 +664,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                             alignItems: 'center',
                                             gap: '0.375rem',
                                             fontSize: '0.8125rem', 
-                                            color: '#64748b',
+                                            color: 'var(--status-text-muted, #64748b)',
                                             fontWeight: '500',
                                         }}>
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -564,16 +681,16 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                     display: 'grid',
                                     gridTemplateColumns: `repeat(${displayedHistory.length || visibleDays}, minmax(0, 1fr))`,
                                     gap: '2px',
-                                    height: '20px',
-                                    padding: '0.45rem 0.65rem',
+                                    height: '28px',
+                                    padding: '0.55rem 0.8rem',
                                     alignItems: 'center',
                                     width: '100%',
                                     boxSizing: 'border-box',
                                     overflow: 'hidden',
-                                    borderRadius: '0.65rem',
-                                    background: '#f8fafc',
-                                    border: '1px solid #e2e8f0',
-                                    boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.05)',
+                                    borderRadius: '0.75rem',
+                                    background: 'var(--status-panel-bg, #ffffff)',
+                                    border: '1px solid var(--status-panel-border, #e2e8f0)',
+                                    boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.08)',
                                 }}>
                                 {(displayedHistory.length ? displayedHistory : new Array(visibleDays).fill(null)).map((entry, barIndex) => {
                                     const barStatus = entry?.status || 'operational';
@@ -586,7 +703,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                                 position: 'relative',
                                                 height: '100%',
                                                 background: HISTORY_STATUS_COLORS[barStatus as 'operational' | 'degraded' | 'outage'],
-                                                borderRadius: '2px',
+                                                borderRadius: '3px',
                                                 boxShadow: isHovered ? '0 0 0 1px #0f172a' : 'none',
                                                 cursor: entry ? 'pointer' : 'default',
                                                 transition: 'all 0.15s ease',
@@ -697,8 +814,8 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                         left: `${hoveredBar.left}px`,
                                         top: '100%',
                                         marginTop: '0.75rem',
-                                        background: '#ffffff',
-                                        border: '2px solid #e2e8f0',
+                                        background: 'var(--status-panel-bg, #ffffff)',
+                                        border: '2px solid var(--status-panel-border, #e2e8f0)',
                                         borderRadius: '1rem',
                                         padding: '1.25rem',
                                         boxShadow: '0 20px 40px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
@@ -720,9 +837,9 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                         left: '50%',
                                         width: '10px',
                                         height: '10px',
-                                        background: '#ffffff',
-                                        borderLeft: '1px solid #e2e8f0',
-                                        borderTop: '1px solid #e2e8f0',
+                                        background: 'var(--status-panel-bg, #ffffff)',
+                                        borderLeft: '1px solid var(--status-panel-border, #e2e8f0)',
+                                        borderTop: '1px solid var(--status-panel-border, #e2e8f0)',
                                         transform: 'translateX(-50%) rotate(45deg)',
                                     }} />
                                     <button
@@ -735,7 +852,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                             right: '8px',
                                             border: 'none',
                                             background: '#f1f5f9',
-                                            color: '#64748b',
+                                            color: 'var(--status-text-muted, #64748b)',
                                             fontSize: '1.125rem',
                                             cursor: 'pointer',
                                             width: '24px',
@@ -762,7 +879,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                     <div style={{ 
                                         fontSize: '1rem', 
                                         fontWeight: '700', 
-                                        color: '#0f172a', 
+                                        color: 'var(--status-text-strong, #0f172a)', 
                                         marginBottom: '0.5rem',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -787,10 +904,10 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{ fontSize: '0.8125rem', color: '#64748b', marginBottom: '0.35rem' }}>
+                                    <div style={{ fontSize: '0.8125rem', color: 'var(--status-text-muted, #64748b)', marginBottom: '0.35rem' }}>
                                         {service.displayName} - Local time
                                     </div>
-                                    <div style={{ fontSize: '0.8125rem', color: '#475569', marginBottom: '1rem' }}>
+                                    <div style={{ fontSize: '0.8125rem', color: 'var(--status-text-muted, #475569)', marginBottom: '1rem' }}>
                                         SLA: {slaValue.toFixed(2)}% met
                                     </div>
                                     <div style={{
@@ -798,10 +915,10 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                         gap: '0.75rem',
                                         flexWrap: 'wrap',
                                         fontSize: '0.75rem',
-                                        color: '#64748b',
+                                        color: 'var(--status-text-muted, #64748b)',
                                         marginBottom: '1rem',
                                         padding: '0.75rem',
-                                        background: '#f8fafc',
+                                        background: 'var(--status-panel-muted-bg, #f8fafc)',
                                         borderRadius: '0.5rem',
                                     }}>
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
@@ -833,9 +950,9 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                                     gap: '0',
                                                     height: '52px',
                                                     padding: '0.2rem 0.2rem',
-                                                    background: '#f8fafc',
+                                                    background: 'var(--status-panel-muted-bg, #f8fafc)',
                                                     borderRadius: '0.5rem',
-                                                    border: '1px solid #e2e8f0',
+                                                    border: '1px solid var(--status-panel-muted-border, #e2e8f0)',
                                                     boxSizing: 'border-box',
                                                 }}>
                                                     {hoveredTimeline.status.map((sliceStatus, sliceIndex) => (
@@ -876,17 +993,17 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                                 <div style={{
                                                     marginTop: '0.5rem',
                                                     fontSize: '0.75rem',
-                                                    color: '#64748b',
+                                                    color: 'var(--status-text-muted, #64748b)',
                                                     display: 'flex',
                                                     flexWrap: 'wrap',
                                                     gap: '0.4rem',
                                                 }}>
-                                                    <span style={{ fontWeight: '600', color: '#475569' }}>Starts:</span>
+                                                    <span style={{ fontWeight: '600', color: 'var(--status-text-muted, #475569)' }}>Starts:</span>
                                                     {hoveredMarkerData.times.map((time, timeIndex) => (
                                                         <span key={`${service.id}-${hoveredBar.date}-time-${timeIndex}`} style={{
                                                             padding: '0.15rem 0.4rem',
                                                             borderRadius: '0.4rem',
-                                                            background: '#f1f5f9',
+                                                            background: 'var(--status-panel-muted-bg, #f1f5f9)',
                                                         }}>
                                                             {time}
                                                         </span>
@@ -897,7 +1014,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
                                                 fontSize: '0.7rem',
-                                                color: '#94a3b8',
+                                                color: 'var(--status-text-subtle, #94a3b8)',
                                                 marginTop: '0.35rem',
                                             }}>
                                                 <span>00:00</span>

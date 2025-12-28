@@ -43,9 +43,9 @@ const STATUS_CONFIG = {
 
 export default function StatusPageHeader({ statusPage, overallStatus, branding = {}, lastUpdated }: StatusPageHeaderProps) {
     const status = STATUS_CONFIG[overallStatus];
-    const logoUrl = branding.logoUrl;
+    const logoUrl = branding.logoUrl || '/logo.svg';
     const primaryColor = branding.primaryColor || '#667eea';
-    const textColor = branding.textColor || '#111827';
+    const textColor = branding.textColor || 'var(--status-text, #111827)';
     const [updatedLabel, setUpdatedLabel] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -73,7 +73,8 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
             const hours = Math.floor(minutes / 60);
 
             if (seconds < 60) {
-                setUpdatedLabel('just now');
+                const remaining = Math.max(0, 60 - seconds);
+                setUpdatedLabel(`00:${String(remaining).padStart(2, '0')}`);
             } else if (minutes < 60) {
                 setUpdatedLabel(`${minutes} minute${minutes !== 1 ? 's' : ''} ago`);
             } else if (hours < 24) {
@@ -90,7 +91,7 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
         };
 
         updateLabel();
-        const interval = setInterval(updateLabel, 60000); // Update every minute
+        const interval = setInterval(updateLabel, 1000); // Update every second for the countdown
         return () => clearInterval(interval);
     }, [lastUpdated]);
 
@@ -100,7 +101,7 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
             style={{
                 background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
                 borderBottom: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',
                 position: 'sticky',
                 top: 0,
                 zIndex: 100,
@@ -174,7 +175,7 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
                                 margin: 0,
                                 color: textColor,
                                 letterSpacing: '-0.03em',
-                                background: `linear-gradient(135deg, ${textColor} 0%, ${textColor}dd 100%)`,
+                                background: `linear-gradient(135deg, ${textColor} 0%, color-mix(in srgb, ${textColor} 85%, transparent) 100%)`,
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
                                 backgroundClip: 'text',
@@ -190,22 +191,22 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
                                 marginTop: 'clamp(0.125rem, 0.5vw, 0.25rem)', // Tighter margin
                                 flexWrap: 'wrap',
                             }}>
-                                <p style={{
-                                    margin: 0,
-                                    color: '#475569',
-                                    fontSize: 'clamp(0.75rem, 2vw, 0.95rem)', // Smaller subtitle
-                                    fontWeight: '500',
-                                }}>
-                                    {status.text}
-                                </p>
+                                    <p style={{
+                                        margin: 0,
+                                        color: 'var(--status-text-muted, #475569)',
+                                        fontSize: 'clamp(0.75rem, 2vw, 0.95rem)', // Smaller subtitle
+                                        fontWeight: '500',
+                                    }}>
+                                        {status.text}
+                                    </p>
                                 {updatedLabel && (
                                     <>
-                                        <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>|</span>
+                                        <span style={{ color: 'var(--status-text-subtle, #cbd5e1)', fontSize: '0.75rem' }}>|</span>
                                         <p
                                             suppressHydrationWarning
                                             style={{
                                                 margin: 0,
-                                                color: '#94a3b8',
+                                                color: 'var(--status-text-subtle, #94a3b8)',
                                                 fontSize: '0.75rem', // Smaller text
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -270,31 +271,15 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
                         {(statusPage.contactEmail || statusPage.contactUrl) && (
                             <a
                                 href={statusPage.contactUrl || `mailto:${statusPage.contactEmail}`}
+                                className="status-page-button"
+                                data-variant="primary"
                                 style={{
-                                    padding: '0.625rem 1.25rem',
-                                    borderRadius: '0.625rem',
-                                    border: `2px solid ${primaryColor}`,
-                                    background: 'transparent',
-                                    color: primaryColor,
                                     textDecoration: 'none',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '600',
-                                    transition: 'all 0.2s ease',
+                                    fontSize: '0.8125rem',
+                                    fontWeight: '700',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = primaryColor;
-                                    e.currentTarget.style.color = '#ffffff';
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = `0 4px 12px ${primaryColor}40`;
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                    e.currentTarget.style.color = primaryColor;
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
                                 }}
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

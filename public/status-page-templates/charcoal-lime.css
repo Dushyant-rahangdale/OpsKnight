@@ -1,7 +1,9 @@
 /*
   Template: Charcoal Lime
 */
-:root { --sp-ink: #0b1220; --sp-muted: #6b7280; --sp-charcoal: #111827; --sp-lime: #84cc16; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05); --sp-ink: #0b1220; --sp-muted: #6b7280; --sp-charcoal: #111827; --sp-lime: #84cc16; }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 10%, rgba(132, 204, 22, 0.18) 0%, rgba(132, 204, 22, 0) 45%),
@@ -37,3 +39,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { assertAdmin } from '@/lib/rbac';
 import prisma from '@/lib/prisma';
 import StatusPageConfig from '@/components/StatusPageConfig';
+import SettingsPage from '@/components/settings/SettingsPage';
 
 export default async function StatusPageSettingsPage() {
     const session = await getServerSession(authOptions);
@@ -68,9 +69,16 @@ export default async function StatusPageSettingsPage() {
     };
 
     return (
-        <StatusPageConfig
-            statusPage={formattedStatusPage}
-            allServices={allServices}
-        />
+        <SettingsPage
+            backHref="/settings"
+            title="Status Page"
+            description="Customize your public status page appearance and content."
+        >
+            <StatusPageConfig
+                statusPage={formattedStatusPage}
+                allServices={allServices}
+            />
+        </SettingsPage>
     );
 }
+

@@ -1,7 +1,9 @@
 /*
   Template: Coffee Cream
 */
-:root { --sp-ink: #2a1d12; --sp-muted: #7b6a5a; --sp-coffee: #7c2d12; --sp-cream: #fde68a; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05); --sp-ink: #2a1d12; --sp-muted: #7b6a5a; --sp-coffee: #7c2d12; --sp-cream: #fde68a; }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(124, 45, 18, 0.2) 0%, rgba(124, 45, 18, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

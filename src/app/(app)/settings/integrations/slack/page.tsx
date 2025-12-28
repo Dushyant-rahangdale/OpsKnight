@@ -2,6 +2,7 @@ import { getUserPermissions } from '@/lib/rbac';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import SlackIntegrationPage from '@/components/settings/SlackIntegrationPage';
+import SettingsPage from '@/components/settings/SettingsPage';
 
 export default async function GlobalSlackIntegrationPage() {
     const permissions = await getUserPermissions();
@@ -36,11 +37,18 @@ export default async function GlobalSlackIntegrationPage() {
     const isOAuthConfigured = !!(oauthConfig?.clientId && oauthConfig?.clientSecret);
 
     return (
-        <SlackIntegrationPage
-            integration={globalIntegration}
-            isOAuthConfigured={isOAuthConfigured}
-            isAdmin={permissions.isAdmin}
-        />
+        <SettingsPage
+            backHref="/settings"
+            title="Slack Integration"
+            description="Connect your Slack workspace to receive incident notifications."
+        >
+            <SlackIntegrationPage
+                integration={globalIntegration}
+                isOAuthConfigured={isOAuthConfigured}
+                isAdmin={permissions.isAdmin}
+            />
+        </SettingsPage>
     );
 }
+
 

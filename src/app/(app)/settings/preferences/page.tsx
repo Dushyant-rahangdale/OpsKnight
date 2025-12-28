@@ -3,7 +3,8 @@ import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import PreferencesForm from '@/components/settings/PreferencesForm';
 import NotificationPreferencesForm from '@/components/settings/NotificationPreferencesForm';
-import SettingsSection from '@/components/settings/SettingsSection';
+import SettingsPage from '@/components/settings/SettingsPage';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 export default async function PreferencesSettingsPage() {
     const session = await getServerSession(authOptions);
@@ -25,28 +26,26 @@ export default async function PreferencesSettingsPage() {
         : null;
 
     return (
-        <SettingsSection
+        <SettingsPage
+            backHref="/settings"
             title="Preferences"
             description="Personalize how OpsSentinal appears and notifies you."
         >
-            <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text-primary)' }}>
-                    General Preferences
-                </h3>
+            <SettingsSectionCard
+                title="General preferences"
+                description="Set your timezone and summary preferences."
+            >
                 <PreferencesForm
                     timeZone={user?.timeZone ?? 'UTC'}
                     dailySummary={user?.dailySummary ?? true}
                     incidentDigest={(user?.incidentDigest as string) ?? 'HIGH'}
                 />
-            </div>
+            </SettingsSectionCard>
 
-            <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--text-primary)' }}>
-                    Notification Preferences
-                </h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                    Choose how you want to receive incident notifications. These preferences apply to all incidents you're involved with.
-                </p>
+            <SettingsSectionCard
+                title="Notification preferences"
+                description="Choose how you want to receive incident notifications."
+            >
                 <NotificationPreferencesForm
                     emailEnabled={user?.emailNotificationsEnabled ?? false}
                     smsEnabled={user?.smsNotificationsEnabled ?? false}
@@ -54,12 +53,12 @@ export default async function PreferencesSettingsPage() {
                     whatsappEnabled={user?.whatsappNotificationsEnabled ?? false}
                     phoneNumber={user?.phoneNumber ?? null}
                 />
-            </div>
-
-            <div className="settings-note" style={{ marginTop: '2rem' }}>
-                Preference updates apply to this workspace once saved.
-            </div>
-        </SettingsSection>
+                <div className="settings-inline-note">
+                    Preference updates apply to this workspace once saved.
+                </div>
+            </SettingsSectionCard>
+        </SettingsPage>
     );
 }
+
 

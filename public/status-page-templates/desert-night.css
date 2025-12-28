@@ -1,7 +1,9 @@
 /*
   Template: Desert Night
 */
-:root { --sp-ink: #f8fafc; --sp-muted: #cbd5f5; --sp-desert: #f59e0b; --sp-night: #1e293b; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 8px 18px rgba(15, 23, 42, 0.3); --sp-ink: #f8fafc; --sp-muted: #cbd5f5; --sp-desert: #f59e0b; --sp-night: #1e293b; --sp-panel-bg: rgba(30, 41, 59, 0.9); --sp-panel-border: rgba(245, 158, 11, 0.24); --sp-panel-muted-bg: rgba(15, 23, 42, 0.82); --sp-panel-muted-border: rgba(245, 158, 11, 0.18); }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

@@ -75,6 +75,7 @@ export async function updateService(serviceId: string, formData: FormData) {
     }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
+    const region = formData.get('region') as string;
     const slackWebhookUrl = formData.get('slackWebhookUrl') as string;
     const slackChannel = formData.get('slackChannel') as string;
     const teamId = formData.get('teamId') as string;
@@ -93,6 +94,7 @@ export async function updateService(serviceId: string, formData: FormData) {
         data: {
             name,
             description,
+            region: region || null,
             slackWebhookUrl: slackWebhookUrl || null,
             slackChannel: slackChannel || null,
             teamId: teamId || null,
@@ -115,6 +117,7 @@ export async function updateService(serviceId: string, formData: FormData) {
     revalidatePath(`/services/${serviceId}/settings`);
     revalidatePath('/services');
     revalidatePath('/audit');
+    redirect(`/services/${serviceId}/settings?saved=1`);
 }
 
 export async function deleteService(serviceId: string) {

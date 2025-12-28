@@ -1,7 +1,9 @@
 /*
   Template: Clean White
 */
-:root { --sp-ink: #111827; --sp-muted: #6b7280; --sp-primary: #2563eb; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); --sp-ink: #111827; --sp-muted: #6b7280; --sp-primary: #2563eb; }
 .status-page-container { background: #ffffff !important; color: var(--sp-ink) !important; }
 .status-page-header { background: #ffffff !important; border-bottom: 1px solid rgba(17, 24, 39, 0.08) !important; }
 .status-page-header a { border-color: transparent !important; color: #ffffff !important; background: #2563eb !important; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2) !important; }
@@ -24,3 +26,6 @@
 .status-page-container .status-page-header span,
 .status-page-container footer p,
 .status-page-container footer span { color: var(--sp-muted) !important; }
+
+
+

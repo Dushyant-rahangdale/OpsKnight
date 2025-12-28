@@ -29,7 +29,7 @@ export default function DashboardTimeRange() {
   const handleRangeChange = (range: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (range === 'all') {
-      params.delete('range');
+      params.set('range', 'all');
       params.delete('startDate');
       params.delete('endDate');
     } else if (range === 'custom') {

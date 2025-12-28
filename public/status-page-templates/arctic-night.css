@@ -1,7 +1,9 @@
 /*
   Template: Arctic Night
 */
-:root { --sp-ink: #e2e8f0; --sp-muted: #94a3b8; --sp-arctic: #38bdf8; --sp-night: #0f172a; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 8px 18px rgba(15, 23, 42, 0.3); --sp-ink: #e2e8f0; --sp-muted: #94a3b8; --sp-arctic: #38bdf8; --sp-night: #0f172a; --sp-panel-bg: rgba(17, 24, 39, 0.88); --sp-panel-border: rgba(148, 163, 184, 0.22); --sp-panel-muted-bg: rgba(15, 23, 42, 0.78); --sp-panel-muted-border: rgba(148, 163, 184, 0.18); }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

@@ -4,6 +4,8 @@
 */
 
 :root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
   --sp-ink: #1b0a0a;
   --sp-muted: #7b4b4b;
   --sp-red: #dc2626;
@@ -77,3 +79,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

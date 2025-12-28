@@ -38,6 +38,7 @@ type StatusPageConfigProps = {
             service: {
                 id: string;
                 name: string;
+                region?: string | null;
             };
         }>;
         announcements: Array<{
@@ -53,6 +54,7 @@ type StatusPageConfigProps = {
     allServices: Array<{
         id: string;
         name: string;
+        region?: string | null;
     }>;
 };
 
@@ -173,7 +175,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         contactEmail: statusPage.contactEmail || '',
         contactUrl: statusPage.contactUrl || '',
         // Branding
-        logoUrl: branding.logoUrl || '',
+        logoUrl: branding.logoUrl || '/logo.svg',
         faviconUrl: branding.faviconUrl || '',
         primaryColor: branding.primaryColor || '#667eea',
         backgroundColor: branding.backgroundColor || '#ffffff',
@@ -249,6 +251,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         showIncidentTimestamps: (statusPage as any).showIncidentTimestamps !== false,
         showServiceMetrics: (statusPage as any).showServiceMetrics !== false,
         showServiceDescriptions: (statusPage as any).showServiceDescriptions !== false,
+        showServiceRegions: (statusPage as any).showServiceRegions !== false,
         showTeamInformation: (statusPage as any).showTeamInformation || false,
         showCustomFields: (statusPage as any).showCustomFields || false,
         showIncidentAssignees: (statusPage as any).showIncidentAssignees || false,
@@ -387,6 +390,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                         showIncidentTimestamps: privacySettings.showIncidentTimestamps,
                         showServiceMetrics: privacySettings.showServiceMetrics,
                         showServiceDescriptions: privacySettings.showServiceDescriptions,
+                        showServiceRegions: privacySettings.showServiceRegions,
                         showTeamInformation: privacySettings.showTeamInformation,
                         showCustomFields: privacySettings.showCustomFields,
                         showIncidentAssignees: privacySettings.showIncidentAssignees,
@@ -434,9 +438,9 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         }
         setLogoUploadError(null);
 
-        const maxSizeBytes = 1 * 1024 * 1024;
+        const maxSizeBytes = 2 * 1024 * 1024;
         if (file.size > maxSizeBytes) {
-            setLogoUploadError('Logo file must be under 1MB.');
+            setLogoUploadError('Logo file must be under 2MB.');
             return;
         }
 
@@ -677,6 +681,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         showIncidentTimestamps: privacySettings.showIncidentTimestamps !== false,
         showServiceMetrics: privacySettings.showServiceMetrics !== false,
         showServiceDescriptions: privacySettings.showServiceDescriptions !== false,
+        showServiceRegions: privacySettings.showServiceRegions !== false,
         showTeamInformation: privacySettings.showTeamInformation || false,
         showCustomFields: privacySettings.showCustomFields || false,
         showIncidentAssignees: privacySettings.showIncidentAssignees || false,
@@ -931,14 +936,23 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                 <div>
                                                     <FormField
                                                         type="input"
-                                                        inputType="url"
+                                                        inputType="text"
                                                         label="Logo URL"
                                                         value={formData.logoUrl}
                                                         onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
                                                         placeholder="https://yourcompany.com/logo.png"
-                                                        helperText="Full URL to your logo image. Recommended: 200x50px, PNG or SVG format. The logo will appear in the status page header."
+                                                        helperText="Full URL or relative path (e.g., /logo.svg). Recommended: 200x50px, PNG or SVG format. The logo will appear in the status page header."
                                                         required={false}
                                                     />
+                                                    <div style={{ marginTop: 'var(--spacing-2)' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, logoUrl: '/logo.svg' })}
+                                                            className="status-page-button"
+                                                        >
+                                                            Use default app logo
+                                                        </button>
+                                                    </div>
                                                     <div style={{ marginTop: 'var(--spacing-3)' }}>
                                                         <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: '600', marginBottom: 'var(--spacing-2)' }}>
                                                             Upload Logo
@@ -954,7 +968,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                                             }}
                                                         />
                                                         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 'var(--spacing-1)' }}>
-                                                            Uploads are stored as data URLs. Max size 1MB.
+                                                            Uploads are stored as data URLs. Max size 2MB.
                                                         </div>
                                                         {logoUploadError && (
                                                             <div style={{ color: 'var(--color-error-dark)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-1)' }}>

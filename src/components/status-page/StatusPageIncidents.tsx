@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useBrowserTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 
@@ -21,6 +21,7 @@ interface Incident {
     service: {
         id: string;
         name: string;
+        region?: string | null;
     };
     events: IncidentEvent[];
 }
@@ -29,6 +30,7 @@ interface PrivacySettings {
     showIncidentTitles?: boolean;
     showIncidentDescriptions?: boolean;
     showAffectedServices?: boolean;
+    showServiceRegions?: boolean;
     showIncidentTimestamps?: boolean;
     showIncidentUrgency?: boolean;
     showIncidentDetails?: boolean;
@@ -45,21 +47,67 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
     const browserTimeZone = useBrowserTimezone();
     const [expandedIncidents, setExpandedIncidents] = useState<Set<string>>(new Set());
     const [currentPage, setCurrentPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED'>('all');
+    const [serviceFilter, setServiceFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Privacy defaults - show everything if not specified
     const privacy = {
         showIncidentTitles: privacySettings?.showIncidentTitles !== false,
         showIncidentDescriptions: privacySettings?.showIncidentDescriptions !== false,
         showAffectedServices: privacySettings?.showAffectedServices !== false,
+        showServiceRegions: privacySettings?.showServiceRegions !== false,
         showIncidentTimestamps: privacySettings?.showIncidentTimestamps !== false,
         showIncidentUrgency: privacySettings?.showIncidentUrgency !== false,
         showIncidentDetails: privacySettings?.showIncidentDetails !== false,
     };
 
-    const totalPages = Math.ceil(incidents.length / INCIDENTS_PER_PAGE);
+    const serviceOptions = useMemo(() => {
+        const names = new Set<string>();
+        incidents.forEach((incident) => {
+            if (incident.service?.name) {
+                names.add(incident.service.name);
+            }
+        });
+        return Array.from(names).sort((a, b) => a.localeCompare(b));
+    }, [incidents]);
+
+    const getRegionList = (region?: string | null) => {
+        if (!region) return [];
+        return region
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+    };
+
+    const filteredIncidents = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        return incidents.filter((incident) => {
+            if (statusFilter !== 'all' && incident.status !== statusFilter) {
+                return false;
+            }
+            if (serviceFilter !== 'all' && incident.service?.name !== serviceFilter) {
+                return false;
+            }
+            if (query) {
+                const title = (incident.title || '').toLowerCase();
+                const description = (incident.description || '').toLowerCase();
+                if (!title.includes(query) && !description.includes(query)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [incidents, statusFilter, serviceFilter, searchQuery]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, serviceFilter, searchQuery]);
+
+    const totalPages = Math.ceil(filteredIncidents.length / INCIDENTS_PER_PAGE);
     const startIndex = (currentPage - 1) * INCIDENTS_PER_PAGE;
     const endIndex = startIndex + INCIDENTS_PER_PAGE;
-    const paginatedIncidents = incidents.slice(startIndex, endIndex);
+    const paginatedIncidents = filteredIncidents.slice(startIndex, endIndex);
 
     const toggleIncident = (id: string) => {
         const newSet = new Set(expandedIncidents);
@@ -93,23 +141,23 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                 gap: '1rem',
             }}>
                 <div>
-                    <h2 style={{ 
-                        fontSize: 'clamp(1.5rem, 4vw, 1.875rem)', 
-                        fontWeight: '800', 
-                        color: '#0f172a',
-                        margin: 0,
-                        marginBottom: '0.25rem',
-                        letterSpacing: '-0.02em',
-                    }}>
+                <h2 style={{ 
+                    fontSize: 'clamp(1.5rem, 4vw, 1.875rem)', 
+                    fontWeight: '800', 
+                    color: 'var(--status-text-strong, #0f172a)',
+                    margin: 0,
+                    marginBottom: '0.25rem',
+                    letterSpacing: '-0.02em',
+                }}>
                         Recent Incidents
                     </h2>
-                    {incidents.length > 0 && (
+                    {filteredIncidents.length > 0 && (
                         <p style={{ 
                             fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
-                            color: '#64748b',
+                            color: 'var(--status-text-muted, #64748b)',
                             margin: 0,
                         }}>
-                            Showing {startIndex + 1}-{Math.min(endIndex, incidents.length)} of {incidents.length} incidents
+                            Showing {startIndex + 1}-{Math.min(endIndex, filteredIncidents.length)} of {filteredIncidents.length} incidents
                         </p>
                     )}
                 </div>
@@ -118,12 +166,12 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
             {paginatedIncidents.length === 0 ? (
                 <div style={{
                     padding: '5rem 2rem',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    border: '2px solid #e5e7eb',
+                    background: 'linear-gradient(135deg, var(--status-panel-bg, #ffffff) 0%, var(--status-panel-muted-bg, #f8fafc) 100%)',
+                    border: '2px solid var(--status-panel-border, #e5e7eb)',
                     borderRadius: '1rem',
                     textAlign: 'center',
-                    color: '#6b7280',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+                    color: 'var(--status-text-muted, #6b7280)',
+                    boxShadow: 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.06))',
                 }}>
                     <div style={{ 
                         fontSize: '4rem', 
@@ -143,14 +191,58 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                         color: '#10b981',
                         letterSpacing: '-0.01em',
                     }}>
-                        No incidents in the last 90 days
+                        {incidents.length > 0 ? 'No incidents match your filters' : 'No incidents in the last 90 days'}
                     </p>
-                    <p style={{ fontSize: '0.9375rem', color: '#64748b' }}>
-                        All systems operational
+                    <p style={{ fontSize: '0.9375rem', color: 'var(--status-text-muted, #64748b)' }}>
+                        {incidents.length > 0 ? 'Try adjusting your search or filters.' : 'All systems operational'}
                     </p>
                 </div>
             ) : (
                 <>
+                    <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem',
+                        alignItems: 'center',
+                        marginBottom: '1.25rem',
+                    }}>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search incidents"
+                            className="status-page-input"
+                            style={{
+                                minWidth: '200px',
+                            }}
+                        />
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED')}
+                            className="status-page-select"
+                            style={{
+                                minWidth: '160px',
+                            }}
+                        >
+                            <option value="all">All statuses</option>
+                            <option value="OPEN">Open</option>
+                            <option value="ACKNOWLEDGED">Acknowledged</option>
+                            <option value="RESOLVED">Resolved</option>
+                        </select>
+                        <select
+                            value={serviceFilter}
+                            onChange={(e) => setServiceFilter(e.target.value)}
+                            className="status-page-select"
+                            style={{
+                                minWidth: '180px',
+                            }}
+                        >
+                            <option value="all">All services</option>
+                            {serviceOptions.map((service) => (
+                                <option key={service} value={service}>{service}</option>
+                            ))}
+                        </select>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         {paginatedIncidents.map((incident) => {
                             const statusColor = getStatusColor(incident.status);
@@ -163,13 +255,13 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                     className="status-incident-card"
                                     style={{
                                         padding: 'clamp(1.25rem, 4vw, 2rem)',
-                                        background: '#ffffff',
+                                        background: 'var(--status-panel-bg, #ffffff)',
                                         border: `2px solid ${statusColor.border}30`,
                                         borderRadius: '1rem',
                                         transition: 'all 0.3s ease',
                                         position: 'relative',
                                         overflow: 'hidden',
-                                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                                        boxShadow: 'var(--status-card-shadow, 0 1px 3px rgba(0, 0, 0, 0.05))',
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.boxShadow = `0 12px 24px ${statusColor.border}25, 0 0 0 1px ${statusColor.border}50`;
@@ -199,7 +291,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                 <h3 style={{ 
                                                     fontSize: 'clamp(1.125rem, 3vw, 1.375rem)', 
                                                     fontWeight: '800', 
-                                                    color: '#111827',
+                                                    color: 'var(--status-text, #111827)',
                                                     marginBottom: '0.75rem',
                                                     letterSpacing: '-0.02em',
                                                     lineHeight: '1.3',
@@ -212,7 +304,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                 <h3 style={{ 
                                                     fontSize: 'clamp(1.125rem, 3vw, 1.375rem)', 
                                                     fontWeight: '800', 
-                                                    color: '#111827',
+                                                    color: 'var(--status-text, #111827)',
                                                     marginBottom: '0.75rem',
                                                     letterSpacing: '-0.02em',
                                                     lineHeight: '1.3',
@@ -225,7 +317,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                     display: 'flex', 
                                                     gap: '1rem', 
                                                     fontSize: '0.875rem', 
-                                                    color: '#6b7280', 
+                                                    color: 'var(--status-text-muted, #6b7280)', 
                                                     flexWrap: 'wrap',
                                                     alignItems: 'center',
                                                 }}>
@@ -235,16 +327,33 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                                 display: 'flex', 
                                                                 alignItems: 'center', 
                                                                 gap: '0.5rem',
+                                                                flexWrap: 'wrap',
                                                             }}>
                                                                 <span style={{
                                                                     padding: '0.25rem 0.625rem',
                                                                     borderRadius: '0.375rem',
                                                                     background: '#f3f4f6',
                                                                     fontWeight: '600',
-                                                                    color: '#374151',
+                                                                    color: 'var(--status-text, #374151)',
                                                                 }}>
                                                                     {incident.service.name}
                                                                 </span>
+                                                                {privacy.showServiceRegions && getRegionList(incident.service?.region).map((region) => (
+                                                                    <span
+                                                                        key={`${incident.id}-${region}`}
+                                                                        style={{
+                                                                            padding: '0.2rem 0.55rem',
+                                                                            borderRadius: '999px',
+                                                                            background: 'var(--status-panel-muted-bg, #f8fafc)',
+                                                                            border: '1px solid var(--status-panel-muted-border, #e2e8f0)',
+                                                                            fontWeight: '600',
+                                                                            color: 'var(--status-text-muted, #6b7280)',
+                                                                            fontSize: '0.75rem',
+                                                                        }}
+                                                                    >
+                                                                        {region}
+                                                                    </span>
+                                                                ))}
                                                             </div>
                                                             {privacy.showIncidentTimestamps && <span>|</span>}
                                                         </>
@@ -302,32 +411,15 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                             {timelineEvents.length > 0 && (
                                                 <button
                                                     onClick={() => toggleIncident(incident.id)}
+                                                    className="status-page-button"
+                                                    data-variant="primary"
+                                                    aria-pressed={isExpanded}
                                                     style={{
-                                                        padding: '0.625rem 1.25rem',
-                                                        background: 'white',
-                                                        border: '2px solid #e5e7eb',
-                                                        borderRadius: '0.625rem',
-                                                        fontSize: '0.8125rem',
-                                                        fontWeight: '600',
-                                                        color: '#374151',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s ease',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         gap: '0.5rem',
-                                                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = '#f9fafb';
-                                                        e.currentTarget.style.borderColor = '#cbd5e1';
-                                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = 'white';
-                                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                                        e.currentTarget.style.transform = 'translateY(0)';
-                                                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
+                                                        boxShadow: '0 6px 14px rgba(15, 23, 42, 0.16)',
+                                                        fontSize: '0.8125rem',
                                                     }}
                                                 >
                                                     {isExpanded ? (
@@ -352,7 +444,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
 
                                     {privacy.showIncidentDescriptions && incident.description && (
                                         <p style={{ 
-                                            color: '#374151', 
+                                            color: 'var(--status-text, #374151)', 
                                             lineHeight: '1.7',
                                             marginBottom: '1rem',
                                             paddingLeft: '1rem',
@@ -366,9 +458,9 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                             <div style={{
                                                 marginTop: '1.5rem',
                                                 paddingTop: '1.5rem',
-                                                borderTop: '2px solid #e5e7eb',
+                                                borderTop: '2px solid var(--status-panel-border, #e5e7eb)',
                                                 paddingLeft: '1rem',
-                                                background: 'linear-gradient(90deg, #f8fafc 0%, transparent 100%)',
+                                                background: 'linear-gradient(90deg, var(--status-panel-muted-bg, #f8fafc) 0%, transparent 100%)',
                                                 borderRadius: '0.5rem',
                                                 padding: '1.5rem 1rem',
                                             }}>
@@ -376,7 +468,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                     fontSize: '0.875rem', 
                                                     fontWeight: '700', 
                                                     marginBottom: '1.25rem',
-                                                    color: '#374151',
+                                                    color: 'var(--status-text, #374151)',
                                                     textTransform: 'uppercase',
                                                     letterSpacing: '0.1em',
                                                     display: 'flex',
@@ -387,8 +479,8 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                         width: '6px',
                                                         height: '6px',
                                                         borderRadius: '50%',
-                                                        background: '#3b82f6',
-                                                        boxShadow: '0 0 0 3px #3b82f620',
+                                                        background: 'var(--status-primary, #3b82f6)',
+                                                        boxShadow: '0 0 0 3px color-mix(in srgb, var(--status-primary, #3b82f6) 20%, transparent)',
                                                     }}></div>
                                                     Timeline Updates
                                                 </h4>
@@ -411,7 +503,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                                 top: '1.5rem',
                                                                 bottom: '-1rem',
                                                                 width: '2px',
-                                                                background: 'linear-gradient(180deg, #3b82f6 0%, #e5e7eb 100%)',
+                                                                background: 'linear-gradient(180deg, var(--status-primary, #3b82f6) 0%, #e5e7eb 100%)',
                                                             }} />
                                                         )}
                                                         {/* Timeline dot */}
@@ -419,9 +511,9 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                             width: '14px',
                                                             height: '14px',
                                                             borderRadius: '50%',
-                                                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                                            background: 'linear-gradient(135deg, var(--status-primary, #3b82f6) 0%, var(--status-primary-hover, #2563eb) 100%)',
                                                             border: '3px solid white',
-                                                            boxShadow: '0 0 0 2px #3b82f6, 0 2px 12px rgba(59, 130, 246, 0.4)',
+                                                            boxShadow: '0 0 0 2px var(--status-primary, #3b82f6), 0 2px 12px color-mix(in srgb, var(--status-primary, #3b82f6) 35%, transparent)',
                                                             marginTop: '0.25rem',
                                                             flexShrink: 0,
                                                             zIndex: 1,
@@ -429,16 +521,16 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             e.currentTarget.style.transform = 'scale(1.2)';
-                                                            e.currentTarget.style.boxShadow = '0 0 0 3px #3b82f6, 0 4px 16px rgba(59, 130, 246, 0.5)';
+                                                            e.currentTarget.style.boxShadow = '0 0 0 3px var(--status-primary, #3b82f6), 0 4px 16px color-mix(in srgb, var(--status-primary, #3b82f6) 45%, transparent)';
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.style.transform = 'scale(1)';
-                                                            e.currentTarget.style.boxShadow = '0 0 0 2px #3b82f6, 0 2px 12px rgba(59, 130, 246, 0.4)';
+                                                            e.currentTarget.style.boxShadow = '0 0 0 2px var(--status-primary, #3b82f6), 0 2px 12px color-mix(in srgb, var(--status-primary, #3b82f6) 35%, transparent)';
                                                         }}
                                                         />
                                                         <div style={{ flex: 1, paddingBottom: index < timelineEvents.length - 1 ? '1rem' : '0' }}>
                                                             <p style={{ 
-                                                                color: '#111827', 
+                                                                color: 'var(--status-text, #111827)', 
                                                                 fontSize: '0.9375rem',
                                                                 marginBottom: '0.5rem',
                                                                 fontWeight: '500',
@@ -448,7 +540,7 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                                             </p>
                                                             <span style={{ 
                                                                 fontSize: '0.8125rem', 
-                                                                color: '#9ca3af',
+                                                                color: 'var(--status-text-subtle, #9ca3af)',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
                                                                 gap: '0.375rem',
@@ -483,31 +575,15 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
+                                className="status-page-button"
                                 style={{
-                                    padding: '0.625rem 1.25rem',
-                                    background: currentPage === 1 ? '#f3f4f6' : 'white',
-                                    border: '2px solid #e5e7eb',
-                                    borderRadius: '0.5rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '600',
-                                    color: currentPage === 1 ? '#9ca3af' : '#374151',
-                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s ease',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (currentPage !== 1) {
-                                        e.currentTarget.style.background = '#f9fafb';
-                                        e.currentTarget.style.borderColor = '#d1d5db';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (currentPage !== 1) {
-                                        e.currentTarget.style.background = 'white';
-                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                    }
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
+                                    opacity: currentPage === 1 ? 0.6 : 1,
+                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                                 }}
                             >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -528,43 +604,27 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                                         (page >= currentPage - 1 && page <= currentPage + 1)
                                     ) {
                                         return (
-                                            <button
-                                                key={page}
-                                                onClick={() => setCurrentPage(page)}
-                                                style={{
-                                                    padding: '0.625rem 1rem',
-                                                    background: currentPage === page ? '#667eea' : 'white',
-                                                    border: `2px solid ${currentPage === page ? '#667eea' : '#e5e7eb'}`,
-                                                    borderRadius: '0.5rem',
-                                                    fontSize: '0.875rem',
-                                                    fontWeight: '700',
-                                                    color: currentPage === page ? 'white' : '#374151',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease',
-                                                    minWidth: '2.5rem',
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    if (currentPage !== page) {
-                                                        e.currentTarget.style.background = '#f9fafb';
-                                                        e.currentTarget.style.borderColor = '#d1d5db';
-                                                    }
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    if (currentPage !== page) {
-                                                        e.currentTarget.style.background = 'white';
-                                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                                    }
-                                                }}
-                                            >
-                                                {page}
-                                            </button>
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCurrentPage(page)}
+                                                    className="status-page-button"
+                                                    data-active={currentPage === page}
+                                                    style={{
+                                                        minWidth: '2.5rem',
+                                                        borderRadius: '0.5rem',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: '700',
+                                                    }}
+                                                >
+                                                    {page}
+                                                </button>
                                         );
                                     } else if (
                                         page === currentPage - 2 ||
                                         page === currentPage + 2
                                     ) {
                                         return (
-                                            <span key={page} style={{ color: '#9ca3af', padding: '0 0.25rem' }}>
+                                            <span key={page} style={{ color: 'var(--status-text-subtle, #9ca3af)', padding: '0 0.25rem' }}>
                                                 ...
                                             </span>
                                         );
@@ -576,31 +636,15 @@ export default function StatusPageIncidents({ incidents, privacySettings }: Stat
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
+                                className="status-page-button"
                                 style={{
-                                    padding: '0.625rem 1.25rem',
-                                    background: currentPage === totalPages ? '#f3f4f6' : 'white',
-                                    border: '2px solid #e5e7eb',
-                                    borderRadius: '0.5rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '600',
-                                    color: currentPage === totalPages ? '#9ca3af' : '#374151',
-                                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s ease',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.5rem',
-                                }}
-                                onMouseEnter={(e) => {
-                                    if (currentPage !== totalPages) {
-                                        e.currentTarget.style.background = '#f9fafb';
-                                        e.currentTarget.style.borderColor = '#d1d5db';
-                                    }
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (currentPage !== totalPages) {
-                                        e.currentTarget.style.background = 'white';
-                                        e.currentTarget.style.borderColor = '#e5e7eb';
-                                    }
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
+                                    opacity: currentPage === totalPages ? 0.6 : 1,
+                                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                                 }}
                             >
                                 Next

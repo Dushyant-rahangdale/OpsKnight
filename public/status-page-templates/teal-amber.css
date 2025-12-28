@@ -1,7 +1,9 @@
 /*
   Template: Teal Amber
 */
-:root { --sp-ink: #0b1f24; --sp-muted: #58757c; --sp-teal: #14b8a6; --sp-amber: #f59e0b; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05); --sp-ink: #0b1f24; --sp-muted: #58757c; --sp-teal: #14b8a6; --sp-amber: #f59e0b; }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(20, 184, 166, 0.2) 0%, rgba(20, 184, 166, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

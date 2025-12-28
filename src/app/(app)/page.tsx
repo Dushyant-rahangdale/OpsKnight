@@ -11,9 +11,7 @@ import DashboardRefresh from '@/components/DashboardRefresh';
 import DashboardExport from '@/components/DashboardExport';
 import DashboardFilterChips from '@/components/DashboardFilterChips';
 import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
-import DashboardStatusChart from '@/components/DashboardStatusChart';
 import DashboardSavedFilters from '@/components/DashboardSavedFilters';
-import DashboardNotifications from '@/components/DashboardNotifications';
 import DashboardPeriodComparison from '@/components/DashboardPeriodComparison';
 import DashboardServiceHealth from '@/components/DashboardServiceHealth';
 import DashboardUrgencyDistribution from '@/components/DashboardUrgencyDistribution';
@@ -94,6 +92,25 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   if (service) where.serviceId = service;
   if (urgency) where.urgency = urgency;
 
+  const metricsWhere: any = { ...dateFilter };
+  if (assignee !== undefined) {
+    if (assignee === '') {
+      metricsWhere.assigneeId = null;
+    } else {
+      metricsWhere.assigneeId = assignee;
+    }
+  }
+  if (service) metricsWhere.serviceId = service;
+  if (urgency) metricsWhere.urgency = urgency;
+
+  const chartWhere: any = { ...metricsWhere };
+  delete chartWhere.urgency;
+
+  const assigneeFilter = assignee !== undefined ? (assignee === '' ? null : assignee) : undefined;
+  const metricsStartDate = dateFilter.createdAt?.gte;
+  const metricsEndDate = dateFilter.createdAt?.lte;
+  const mttaWhere: any = { ...metricsWhere, acknowledgedAt: { not: null } };
+
   // Build orderBy
   const orderBy: any = {};
   if (sortBy === 'createdAt') {
@@ -115,17 +132,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     services,
     users,
     activeShifts,
-    allIncidents,
-    allResolvedCount,
+    urgencyGroupCounts,
+    metricsResolvedCount,
     allOpenIncidentsCount,
     allAcknowledgedCount,
     allCriticalIncidentsCount,
     unassignedCount,
+    allIncidentsCount,
+    allResolvedCountAllTime,
     slaMetrics,
     // MTTA calculation - optimized to only fetch what we need
     acknowledgedIncidentsForMTTA,
+    metricsTotalCount,
+    metricsOpenCount,
     // Current period metrics - moved into parallel batch
-    currentPeriodOpen,
     currentPeriodAcknowledged,
     currentPeriodCritical
   ] = await Promise.all([
@@ -177,17 +197,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       },
       include: { user: true, schedule: true }
     }),
-    // Optimized: Only fetch status and urgency for distribution calculation
-    // Limit to recent incidents for performance (last 1000 incidents)
-    prisma.incident.findMany({
-      select: { status: true, urgency: true, assigneeId: true },
-      orderBy: { createdAt: 'desc' },
-      take: 1000 // Limit for performance
+    prisma.incident.groupBy({
+      by: ['urgency'],
+      where: chartWhere,
+      _count: { _all: true }
     }),
     prisma.incident.count({
       where: {
         status: 'RESOLVED',
-        ...dateFilter
+        ...metricsWhere
       }
     }),
     // All-time counts (for Command Center and Advanced Metrics)
@@ -213,37 +231,49 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         assigneeId: null
       }
     }),
-    calculateSLAMetrics(),
+    prisma.incident.count({}),
+    prisma.incident.count({
+      where: {
+        status: 'RESOLVED'
+      }
+    }),
+    calculateSLAMetrics({
+      serviceId: service,
+      assigneeId: assigneeFilter,
+      urgency,
+      startDate: metricsStartDate,
+      endDate: metricsEndDate,
+      includeAllTime: range === 'all'
+    }),
     // Optimized MTTA: Only fetch timestamps we need, limit to reasonable amount
     prisma.incident.findMany({
-      where: {
-        acknowledgedAt: { not: null },
-        status: { not: 'RESOLVED' }
-      },
+      where: mttaWhere,
       select: {
         createdAt: true,
         acknowledgedAt: true
       },
       take: 500 // Limit for performance - MTTA doesn't need all incidents
     }),
-    // Current period metrics - moved into parallel batch
+    prisma.incident.count({
+      where: metricsWhere
+    }),
     prisma.incident.count({
       where: {
         status: { not: 'RESOLVED' },
-        ...dateFilter
+        ...metricsWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: 'ACKNOWLEDGED',
-        ...dateFilter
+        ...metricsWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: { not: 'RESOLVED' },
         urgency: 'HIGH',
-        ...dateFilter
+        ...metricsWhere
       }
     })
   ]);
@@ -266,23 +296,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     }
   }
 
-  // Calculate status distribution
-  const statusCounts = allIncidents.reduce((acc, incident) => {
-    acc[incident.status] = (acc[incident.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const statusDistribution = [
-    { label: 'Open', value: statusCounts['OPEN'] || 0, color: '#ef4444' },
-    { label: 'Acknowledged', value: statusCounts['ACKNOWLEDGED'] || 0, color: '#3b82f6' },
-    { label: 'Resolved', value: statusCounts['RESOLVED'] || 0, color: '#22c55e' },
-    { label: 'Snoozed', value: statusCounts['SNOOZED'] || 0, color: '#eab308' },
-    { label: 'Suppressed', value: statusCounts['SUPPRESSED'] || 0, color: '#a855f7' }
-  ].filter(item => item.value > 0);
-
   // Calculate urgency distribution
-  const urgencyCounts = allIncidents.reduce((acc, incident) => {
-    acc[incident.urgency] = (acc[incident.urgency] || 0) + 1;
+  const urgencyCounts = urgencyGroupCounts.reduce((acc, item) => {
+    acc[item.urgency] = item._count._all;
     return acc;
   }, {} as Record<string, number>);
 
@@ -306,50 +322,51 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const previousPeriodEnd = new Date();
   previousPeriodEnd.setDate(previousPeriodEnd.getDate() - currentPeriodDays);
 
+  const previousPeriodWhere: any = {
+    createdAt: {
+      gte: previousPeriodStart,
+      lt: previousPeriodEnd
+    }
+  };
+  if (assignee !== undefined) {
+    if (assignee === '') {
+      previousPeriodWhere.assigneeId = null;
+    } else {
+      previousPeriodWhere.assigneeId = assignee;
+    }
+  }
+  if (service) previousPeriodWhere.serviceId = service;
+  if (urgency) previousPeriodWhere.urgency = urgency;
+
   const previousPeriodIncidents = currentPeriodDays > 0 ? await Promise.all([
     prisma.incident.count({
       where: {
-        createdAt: {
-          gte: previousPeriodStart,
-          lt: previousPeriodEnd
-        }
+        ...previousPeriodWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: { not: 'RESOLVED' },
-        createdAt: {
-          gte: previousPeriodStart,
-          lt: previousPeriodEnd
-        }
+        ...previousPeriodWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: 'RESOLVED',
-        createdAt: {
-          gte: previousPeriodStart,
-          lt: previousPeriodEnd
-        }
+        ...previousPeriodWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: 'ACKNOWLEDGED',
-        createdAt: {
-          gte: previousPeriodStart,
-          lt: previousPeriodEnd
-        }
+        ...previousPeriodWhere
       }
     }),
     prisma.incident.count({
       where: {
         status: { not: 'RESOLVED' },
         urgency: 'HIGH',
-        createdAt: {
-          gte: previousPeriodStart,
-          lt: previousPeriodEnd
-        }
+        ...previousPeriodWhere
       }
     })
   ]) : [0, 0, 0, 0, 0];
@@ -408,12 +425,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const periodLabels = getPeriodLabels();
 
   // Calculate system status
-  const openIncidentsList = incidents.filter(i => i.status !== 'RESOLVED');
-  const criticalIncidents = openIncidentsList.filter(i => i.urgency === 'HIGH');
-
-  const systemStatus = criticalIncidents.length > 0
+  const systemStatus = allCriticalIncidentsCount > 0
     ? { label: 'CRITICAL', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' }
-    : openIncidentsList.length > 0
+    : allOpenIncidentsCount > 0
       ? { label: 'DEGRADED', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
       : { label: 'OPERATIONAL', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)' };
 
@@ -436,7 +450,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
   // Calculate total incidents for the selected range
-  const totalInRange = totalCount;
+  const totalInRange = metricsTotalCount;
   const getRangeLabel = () => {
     if (range === '7') return '(7d)';
     if (range === '30') return '(30d)';
@@ -457,7 +471,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <h1 className="command-center-title">Command Center</h1>
             <div className="command-center-status">
               <span className="system-status-label">System Status:</span>
-              <strong className="system-status-value" style={{ color: '#ff4444' }}>{systemStatus.label}</strong>
+              <strong className="system-status-value" style={{ color: systemStatus.color }}>{systemStatus.label}</strong>
               {allOpenIncidentsCount > 0 && (
                 <span className="system-status-count">
                   ({allOpenIncidentsCount} active incident{allOpenIncidentsCount !== 1 ? 's' : ''})
@@ -515,9 +529,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                   range: range !== 'all' ? range : undefined
                 }}
                 metrics={{
-                  totalOpen: allOpenIncidentsCount,
-                  totalResolved: allResolvedCount,
-                  totalAcknowledged: allAcknowledgedCount,
+                  totalOpen: metricsOpenCount,
+                  totalResolved: metricsResolvedCount,
+                  totalAcknowledged: currentPeriodAcknowledged,
                   unassigned: unassignedCount
                 }}
               />
@@ -532,11 +546,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <div className="command-metric-label">TOTAL {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
-            <div className="command-metric-value">{currentPeriodOpen}</div>
+            <div className="command-metric-value">{metricsOpenCount}</div>
             <div className="command-metric-label">OPEN {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
-            <div className="command-metric-value">{allResolvedCount}</div>
+            <div className="command-metric-value">{metricsResolvedCount}</div>
             <div className="command-metric-label">RESOLVED {getRangeLabel()}</div>
           </div>
           <div className="command-metric-card">
@@ -1010,42 +1024,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             </Suspense>
           </div>
 
-          {/* Status Distribution - Charts */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.05) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2">
-                  <path d="M3 3v18h18M7 16l4-4 4 4 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
-                Status Distribution
-              </h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <DashboardStatusChart data={statusDistribution} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {statusDistribution.map((item) => (
-                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '0.4rem 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: item.color }} />
-                      <span>{item.label}</span>
-                    </div>
-                    <span style={{ fontWeight: '600' }}>{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Advanced Metrics - Metrics */}
           <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -1066,10 +1044,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
                 Advanced Metrics
               </h3>
             </div>
-            <DashboardAdvancedMetrics
-              totalIncidents={allIncidents.length}
+          <DashboardAdvancedMetrics
+              totalIncidents={allIncidentsCount}
               openIncidents={allOpenIncidentsCount}
-              resolvedIncidents={allResolvedCount}
+              resolvedIncidents={allResolvedCountAllTime}
               acknowledgedIncidents={allAcknowledgedCount}
               criticalIncidents={allCriticalIncidentsCount}
               unassignedIncidents={unassignedCount}
@@ -1100,8 +1078,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <DashboardPeriodComparison
               current={{
                 total: totalInRange,
-                open: currentPeriodOpen,
-                resolved: allResolvedCount, // Already filtered by dateFilter
+                open: metricsOpenCount,
+                resolved: metricsResolvedCount,
                 acknowledged: currentPeriodAcknowledged,
                 critical: currentPeriodCritical
               }}
@@ -1163,33 +1141,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             <DashboardUrgencyDistribution data={urgencyDistribution} />
           </div>
 
-          {/* Notifications Widget */}
-          <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
-                Browser Notifications
-              </h3>
-            </div>
-            <Suspense fallback={null}>
-              <DashboardNotifications
-                criticalCount={allCriticalIncidentsCount}
-                unassignedCount={unassignedCount}
-              />
-            </Suspense>
-          </div>
         </aside>
       </div>
     </main>

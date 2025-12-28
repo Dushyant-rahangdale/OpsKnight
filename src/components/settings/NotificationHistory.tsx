@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { formatDateTime } from '@/lib/timezone';
-import { useTimezone } from '@/contexts/TimezoneContext';
 
 type Notification = {
     id: string;
@@ -23,7 +21,6 @@ type Notification = {
 };
 
 export default function NotificationHistory() {
-    const { userTimeZone } = useTimezone();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
@@ -53,8 +50,7 @@ export default function NotificationHistory() {
                 const data = await response.json();
                 setNotifications(data.notifications || []);
                 setTotal(data.total || 0);
-                
-                // Calculate stats
+
                 const allNotifications = data.notifications || [];
                 const statsData = {
                     total: data.total || 0,
@@ -75,229 +71,201 @@ export default function NotificationHistory() {
         fetchNotifications();
     }, [offset, filterChannel, filterStatus]);
 
-    const getStatusColor = (status: string) => {
+    const getStatusClass = (status: string) => {
         switch (status) {
             case 'SENT':
-                return '#22c55e';
+                return 'active';
             case 'PENDING':
-                return '#f59e0b';
+                return 'pending';
             case 'FAILED':
-                return '#dc2626';
+                return 'revoked';
             default:
-                return '#6b7280';
+                return '';
         }
     };
 
     const getChannelIcon = (channel: string) => {
         switch (channel) {
             case 'EMAIL':
-                return '📧';
+                return 'E';
             case 'SMS':
-                return '📱';
+                return 'S';
             case 'PUSH':
-                return '🔔';
+                return 'P';
             case 'SLACK':
-                return '💬';
+                return '#';
             case 'WEBHOOK':
-                return '🔗';
+                return 'W';
             case 'WHATSAPP':
-                return '💬';
+                return 'WA';
             default:
-                return '📬';
+                return 'N';
         }
     };
 
     return (
-        <div>
-            {/* Stats Cards */}
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '1rem', 
-                marginBottom: '1.5rem' 
-            }}>
-                <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                        {stats.total}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Notifications</div>
+        <div className="settings-history">
+            <div className="settings-summary-grid">
+                <div className="settings-summary-card">
+                    <span>Total notifications</span>
+                    <strong>{stats.total}</strong>
+                    <small>All recent notifications.</small>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', background: 'linear-gradient(135deg, #22c55e15 0%, #22c55e05 100%)' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#22c55e', marginBottom: '0.25rem' }}>
-                        {stats.sent}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sent</div>
+                <div className="settings-summary-card success">
+                    <span>Sent</span>
+                    <strong>{stats.sent}</strong>
+                    <small>Delivered successfully.</small>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', background: 'linear-gradient(135deg, #f59e0b15 0%, #f59e0b05 100%)' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#f59e0b', marginBottom: '0.25rem' }}>
-                        {stats.pending}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Pending</div>
+                <div className="settings-summary-card pending">
+                    <span>Pending</span>
+                    <strong>{stats.pending}</strong>
+                    <small>Queued or processing.</small>
                 </div>
-                <div className="glass-panel" style={{ padding: '1rem', textAlign: 'center', background: 'linear-gradient(135deg, #dc262615 0%, #dc262605 100%)' }}>
-                    <div style={{ fontSize: '2rem', fontWeight: '700', color: '#dc2626', marginBottom: '0.25rem' }}>
-                        {stats.failed}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Failed</div>
+                <div className="settings-summary-card danger">
+                    <span>Failed</span>
+                    <strong>{stats.failed}</strong>
+                    <small>Delivery errors.</small>
                 </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-                <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                    type="button"
-                    onClick={() => fetchNotifications()}
-                    className="glass-button"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-                    disabled={loading}
-                >
-                    🔄 Refresh
-                </button>
-                <select
-                    value={filterChannel}
-                    onChange={(e) => {
-                        setFilterChannel(e.target.value);
-                        setOffset(0);
-                    }}
-                    style={{
-                        padding: '0.5rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border)',
-                        background: 'white'
-                    }}
-                >
-                    <option value="">All Channels</option>
-                    <option value="EMAIL">Email</option>
-                    <option value="SMS">SMS</option>
-                    <option value="PUSH">Push</option>
-                    <option value="SLACK">Slack</option>
-                    <option value="WEBHOOK">Webhook</option>
-                    <option value="WHATSAPP">WhatsApp</option>
-                </select>
+            <div className="settings-table-card">
+                <div className="settings-table-header">
+                    <div className="settings-toolbar">
+                        <button
+                            type="button"
+                            onClick={() => fetchNotifications()}
+                            className="settings-link-button"
+                            disabled={loading}
+                        >
+                            Refresh
+                        </button>
+                        <select
+                            value={filterChannel}
+                            onChange={(e) => {
+                                setFilterChannel(e.target.value);
+                                setOffset(0);
+                            }}
+                            className="settings-filter-select"
+                        >
+                            <option value="">All Channels</option>
+                            <option value="EMAIL">Email</option>
+                            <option value="SMS">SMS</option>
+                            <option value="PUSH">Push</option>
+                            <option value="SLACK">Slack</option>
+                            <option value="WEBHOOK">Webhook</option>
+                            <option value="WHATSAPP">WhatsApp</option>
+                        </select>
 
-                <select
-                    value={filterStatus}
-                    onChange={(e) => {
-                        setFilterStatus(e.target.value);
-                        setOffset(0);
-                    }}
-                    style={{
-                        padding: '0.5rem',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border)',
-                        background: 'white'
-                    }}
-                >
-                    <option value="">All Statuses</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="SENT">Sent</option>
-                    <option value="FAILED">Failed</option>
-                </select>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => {
+                                setFilterStatus(e.target.value);
+                                setOffset(0);
+                            }}
+                            className="settings-filter-select"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="SENT">Sent</option>
+                            <option value="FAILED">Failed</option>
+                        </select>
 
-                <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}>
-                    Total: {total} notifications
+                        <div className="settings-toolbar-meta">
+                            Total: {total} notifications
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {loading ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Loading notification history...
-                </div>
-            ) : notifications.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    <p>No notifications found</p>
-                </div>
-            ) : (
-                <>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Channel</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Status</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Incident</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Created</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Sent</th>
-                                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Error</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {notifications.map((notification) => (
-                                    <tr key={notification.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                        <td style={{ padding: '0.75rem' }}>
-                                            <span style={{ fontSize: '1.2rem', marginRight: '0.5rem' }}>
-                                                {getChannelIcon(notification.channel)}
-                                            </span>
-                                            {notification.channel}
-                                        </td>
-                                        <td style={{ padding: '0.75rem' }}>
-                                            <span
-                                                style={{
-                                                    padding: '0.25rem 0.5rem',
-                                                    borderRadius: '4px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '600',
-                                                    background: `${getStatusColor(notification.status)}20`,
-                                                    color: getStatusColor(notification.status)
-                                                }}
-                                            >
-                                                {notification.status}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '0.75rem' }}>
-                                            {notification.incident ? (
-                                                <a
-                                                    href={`/incidents/${notification.incident.id}`}
-                                                    style={{ color: 'var(--primary)', textDecoration: 'none' }}
-                                                >
-                                                    {notification.incident.title}
-                                                </a>
-                                            ) : (
-                                                <span style={{ color: 'var(--text-muted)' }}>N/A</span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            {notification.createdAt}
-                                        </td>
-                                        <td style={{ padding: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            {notification.sentAt || '-'}
-                                        </td>
-                                        <td style={{ padding: '0.75rem', fontSize: '0.85rem', color: 'var(--danger)' }}>
-                                            {notification.errorMsg || '-'}
-                                        </td>
+                {loading ? (
+                    <div className="settings-empty-state-v2">
+                        <div className="settings-empty-icon">o</div>
+                        <h3>Loading history</h3>
+                        <p>Fetching the latest delivery events.</p>
+                    </div>
+                ) : notifications.length === 0 ? (
+                    <div className="settings-empty-state-v2">
+                        <div className="settings-empty-icon">o</div>
+                        <h3>No notifications found</h3>
+                        <p>Try adjusting the filters or refresh the list.</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="settings-table-wrapper">
+                            <table className="settings-table">
+                                <thead>
+                                    <tr>
+                                        <th>Channel</th>
+                                        <th>Status</th>
+                                        <th>Incident</th>
+                                        <th>Created</th>
+                                        <th>Sent</th>
+                                        <th>Error</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {notifications.map((notification) => (
+                                        <tr key={notification.id}>
+                                            <td>
+                                                <span className="settings-channel-pill">
+                                                    <span aria-hidden="true">{getChannelIcon(notification.channel)}</span>
+                                                    {notification.channel}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`settings-status ${getStatusClass(notification.status)}`}>
+                                                    {notification.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {notification.incident ? (
+                                                    <a className="settings-link-inline" href={`/incidents/${notification.incident.id}`}>
+                                                        {notification.incident.title}
+                                                    </a>
+                                                ) : (
+                                                    <span className="settings-muted">N/A</span>
+                                                )}
+                                            </td>
+                                            <td className="settings-muted">
+                                                {notification.createdAt}
+                                            </td>
+                                            <td className="settings-muted">
+                                                {notification.sentAt || '-'}
+                                            </td>
+                                            <td className="settings-muted">
+                                                {notification.errorMsg || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <button
-                            type="button"
-                            onClick={() => setOffset(Math.max(0, offset - limit))}
-                            disabled={offset === 0}
-                            className="glass-button"
-                            style={{ opacity: offset === 0 ? 0.5 : 1 }}
-                        >
-                            Previous
-                        </button>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            Showing {offset + 1}-{Math.min(offset + limit, total)} of {total}
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => setOffset(offset + limit)}
-                            disabled={offset + limit >= total}
-                            className="glass-button"
-                            style={{ opacity: offset + limit >= total ? 0.5 : 1 }}
-                        >
-                            Next
-                        </button>
-                    </div>
-                </>
-            )}
+                        <div className="settings-table-footer">
+                            <button
+                                type="button"
+                                onClick={() => setOffset(Math.max(0, offset - limit))}
+                                disabled={offset === 0}
+                                className="settings-link-button"
+                                style={{ opacity: offset === 0 ? 0.5 : 1 }}
+                            >
+                                Previous
+                            </button>
+                            <span className="settings-muted">
+                                Showing {offset + 1}-{Math.min(offset + limit, total)} of {total}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setOffset(offset + limit)}
+                                disabled={offset + limit >= total}
+                                className="settings-link-button"
+                                style={{ opacity: offset + limit >= total ? 0.5 : 1 }}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
 }
-

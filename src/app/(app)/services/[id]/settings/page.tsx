@@ -5,8 +5,10 @@ import ServiceTabs from '@/components/service/ServiceTabs';
 import ServiceNotificationSettings from '@/components/service/ServiceNotificationSettings';
 import { updateService } from '../../actions';
 
-export default async function ServiceSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ServiceSettingsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ saved?: string }> }) {
     const { id } = await params;
+    const resolvedSearchParams = await searchParams;
+    const showSaved = resolvedSearchParams?.saved === '1';
     const [service, teams, policies] = await Promise.all([
         prisma.service.findUnique({
             where: { id: id },
@@ -89,7 +91,20 @@ export default async function ServiceSettingsPage({ params }: { params: Promise<
             </div>
 
             <div className="glass-panel" style={{ padding: '2rem', background: 'white', borderRadius: '0px', border: '1px solid var(--border)' }}>
-
+                {showSaved && (
+                    <div style={{
+                        marginBottom: '1.5rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.5rem',
+                        background: '#dcfce7',
+                        border: '1px solid #86efac',
+                        color: '#166534',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                    }}>
+                        Service settings saved successfully.
+                    </div>
+                )}
                 <form action={updateServiceWithId} style={{ display: 'grid', gap: '2rem' }}>
                     {/* Basic Information Section */}
                     <div>
@@ -140,6 +155,29 @@ export default async function ServiceSettingsPage({ params }: { params: Promise<
                                         transition: 'border-color 0.2s'
                                     }}
                                 />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                    Region
+                                </label>
+                                <input
+                                    name="region"
+                                    defaultValue={service.region || ''}
+                                    placeholder="e.g. US-East, EU-West"
+                                    className="focus-border"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '0px',
+                                        fontSize: '0.95rem',
+                                        outline: 'none',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                />
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                    Optional. This region is shown on the public status page.
+                                </p>
                             </div>
                         </div>
                     </div>

@@ -6,22 +6,39 @@ import type { SLAMetrics } from './sla';
  * Calculate SLA metrics for a service or all services
  * SERVER-ONLY: Uses Prisma client
  */
-export async function calculateSLAMetrics(serviceId?: string, startDate?: Date, endDate?: Date): Promise<SLAMetrics> {
+type SLAMetricsFilter = {
+    serviceId?: string;
+    assigneeId?: string | null;
+    urgency?: string;
+    startDate?: Date;
+    endDate?: Date;
+    includeAllTime?: boolean;
+};
+
+export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promise<SLAMetrics> {
     const { default: prisma } = await import('./prisma');
     
     const where: any = {
         status: 'RESOLVED'
     };
 
-    if (serviceId) {
-        where.serviceId = serviceId;
+    if (filters.serviceId) {
+        where.serviceId = filters.serviceId;
     }
 
-    if (startDate || endDate) {
+    if (filters.assigneeId !== undefined) {
+        where.assigneeId = filters.assigneeId;
+    }
+
+    if (filters.urgency) {
+        where.urgency = filters.urgency;
+    }
+
+    if (filters.startDate || filters.endDate) {
         where.createdAt = {};
-        if (startDate) where.createdAt.gte = startDate;
-        if (endDate) where.createdAt.lte = endDate;
-    } else {
+        if (filters.startDate) where.createdAt.gte = filters.startDate;
+        if (filters.endDate) where.createdAt.lte = filters.endDate;
+    } else if (!filters.includeAllTime) {
         // If no date range specified, limit to last 1000 resolved incidents for performance
         // This prevents fetching all historical incidents which can be very slow
         const recentDate = new Date();

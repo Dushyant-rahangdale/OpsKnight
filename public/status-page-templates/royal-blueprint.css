@@ -2,6 +2,8 @@
   Template: Royal Blueprint
 */
 :root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
   --sp-ink: #0b1023;
   --sp-muted: #4f5b7a;
   --sp-blue: #2563eb;
@@ -65,3 +67,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

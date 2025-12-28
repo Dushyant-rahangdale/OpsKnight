@@ -5,6 +5,8 @@ import { assertAdmin } from '@/lib/rbac';
 import prisma from '@/lib/prisma';
 import StatusPageSubscribers from '@/components/status-page/StatusPageSubscribers';
 import StatusPageEmailConfig from '@/components/status-page/StatusPageEmailConfig';
+import SettingsPage from '@/components/settings/SettingsPage';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 export default async function StatusPageSubscribersPage() {
     const session = await getServerSession(authOptions);
@@ -28,41 +30,28 @@ export default async function StatusPageSubscribersPage() {
     }
 
     return (
-        <div style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '24px',
-        }}>
-            <div style={{
-                marginBottom: '32px',
-            }}>
-                <h1 style={{
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    color: '#1f2937',
-                    marginBottom: '8px',
-                }}>
-                    Status Page Subscribers
-                </h1>
-                <p style={{
-                    fontSize: '14px',
-                    color: '#6b7280',
-                }}>
-                    Manage email subscribers and configure notification settings
-                </p>
-            </div>
-
-            <div style={{
-                display: 'grid',
-                gap: '24px',
-            }}>
+        <SettingsPage
+            backHref="/settings"
+            title="Status Page Subscribers"
+            description="Manage email subscribers and configure notification settings."
+        >
+            <SettingsSectionCard
+                title="Email delivery"
+                description="Choose the email provider used for subscription updates."
+            >
                 <StatusPageEmailConfig
                     statusPageId={statusPage.id}
                     currentProvider={statusPage.emailProvider}
                 />
+            </SettingsSectionCard>
 
+            <SettingsSectionCard
+                title="Subscribers"
+                description="Manage subscriber list and verification status."
+            >
                 <StatusPageSubscribers statusPageId={statusPage.id} />
-            </div>
-        </div>
+            </SettingsSectionCard>
+        </SettingsPage>
     );
 }
+

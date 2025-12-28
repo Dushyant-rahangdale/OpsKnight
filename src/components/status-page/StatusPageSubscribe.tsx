@@ -80,6 +80,7 @@ export default function StatusPageSubscribe({ statusPageId, onSuccess }: StatusP
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 helperText="Get notified when incidents occur or status changes"
+                inputClassName="status-page-input"
                 required
             />
             {error && (

@@ -120,7 +120,7 @@ export default function SystemNotificationSettings({ providers }: Props) {
     ];
 
     return (
-        <div style={{ display: 'grid', gap: '1.5rem' }}>
+        <div className="settings-form-stack">
             {providerConfigs.map(providerConfig => {
                 // For WhatsApp, use the virtual provider we created
                 const existing = providerConfig.key === 'whatsapp'
@@ -240,35 +240,22 @@ function ProviderCard({
     };
 
     return (
-        <div className="glass-panel" style={{
-            padding: '1.5rem',
-            border: '1px solid var(--border)',
-            borderRadius: '0px'
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
-                            {providerConfig.name}
-                        </h3>
-                        <span style={{
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            background: enabled ? '#d1fae5' : '#fee2e2',
-                            color: enabled ? '#065f46' : '#991b1b'
-                        }}>
+        <div className="settings-provider-card">
+            <div className="settings-provider-header">
+                <div className="settings-provider-meta">
+                    <div className="settings-provider-title">
+                        <h3>{providerConfig.name}</h3>
+                        <span className={`settings-provider-status ${enabled ? 'enabled' : 'disabled'}`}>
                             {enabled ? 'Enabled' : 'Disabled'}
                         </span>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                    <p className="settings-provider-description">
                         {providerConfig.description}
                     </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="settings-provider-actions">
                     {/* Quick Enable/Disable Toggle */}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: (hasRequiredConfig || enabled) ? 'pointer' : 'not-allowed', userSelect: 'none', opacity: (hasRequiredConfig || enabled) ? 1 : 0.6 }}>
+                    <label className={`settings-provider-toggle ${(!hasRequiredConfig && !enabled) ? 'is-disabled' : ''}`}>
                         <input
                             type="checkbox"
                             checked={enabled}
@@ -320,36 +307,9 @@ function ProviderCard({
                             }}
                             disabled={isSaving || (!enabled && !hasRequiredConfig)}
                             title={!hasRequiredConfig && !enabled ? 'Configure this provider first' : ''}
-                            style={{
-                                width: '3rem',
-                                height: '1.5rem',
-                                appearance: 'none',
-                                backgroundColor: enabled ? '#10b981' : '#d1d5db',
-                                borderRadius: '0.75rem',
-                                position: 'relative',
-                                cursor: (hasRequiredConfig || enabled) ? 'pointer' : 'not-allowed',
-                                transition: 'background-color 0.2s',
-                                border: 'none',
-                                outline: 'none'
-                            }}
+                            className="settings-switch-input"
                         />
-                        <style>{`
-                            input[type="checkbox"]:after {
-                                content: '';
-                                position: absolute;
-                                top: 2px;
-                                left: 2px;
-                                width: 1.25rem;
-                                height: 1.25rem;
-                                background: white;
-                                border-radius: 50%;
-                                transition: transform 0.2s;
-                            }
-                            input[type="checkbox"]:checked:after {
-                                transform: translateX(1.5rem);
-                            }
-                        `}</style>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', minWidth: '3rem' }}>
+                        <span className="settings-provider-toggle-text">
                             {enabled ? 'On' : 'Off'}
                         </span>
                     </label>
@@ -357,8 +317,7 @@ function ProviderCard({
                     <button
                         type="button"
                         onClick={onToggle}
-                        className="glass-button"
-                        style={{ padding: '0.5rem 1rem' }}
+                        className="settings-link-button"
                     >
                         {isExpanded ? 'Collapse' : 'Configure'}
                     </button>
@@ -366,23 +325,21 @@ function ProviderCard({
             </div>
 
             {isExpanded && (
-                <form onSubmit={handleSave} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                            <input
-                                type="checkbox"
-                                checked={enabled}
-                                onChange={(e) => setEnabled(e.target.checked)}
-                            />
-                            Enable {providerConfig.name}
-                        </label>
-                    </div>
+                <form onSubmit={handleSave} className="settings-provider-form">
+                    <label className="settings-checkbox-row">
+                        <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(e) => setEnabled(e.target.checked)}
+                        />
+                        Enable {providerConfig.name}
+                    </label>
 
                     {enabled && (
-                        <div style={{ display: 'grid', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '0px', border: '1px solid var(--border)' }}>
+                        <div className="settings-provider-fields">
                             {providerConfig.fields.map((field: any) => (
                                 <div key={field.name}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-primary)' }}>
+                                    <label className="settings-field-label">
                                         {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
                                     </label>
                                     {field.type === 'textarea' ? (
@@ -392,18 +349,10 @@ function ProviderCard({
                                             placeholder={field.placeholder}
                                             required={field.required && enabled}
                                             rows={4}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                border: '1px solid var(--border)',
-                                                borderRadius: '0px',
-                                                fontSize: '0.9rem',
-                                                fontFamily: 'monospace',
-                                                resize: 'vertical'
-                                            }}
+                                            className="settings-textarea settings-input mono"
                                         />
                                     ) : field.type === 'checkbox' ? (
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <label className="settings-checkbox-row">
                                             <input
                                                 type="checkbox"
                                                 checked={config[field.name] || false}
@@ -418,14 +367,7 @@ function ProviderCard({
                                             onChange={(e) => setConfig({ ...config, [field.name]: e.target.value })}
                                             placeholder={field.placeholder}
                                             required={field.required && enabled}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                border: '1px solid var(--border)',
-                                                borderRadius: '0px',
-                                                fontSize: '0.9rem',
-                                                fontFamily: field.type === 'password' ? 'monospace' : 'inherit'
-                                            }}
+                                            className={`settings-input ${field.type === 'password' ? 'mono' : ''}`}
                                         />
                                     )}
                                 </div>
@@ -433,33 +375,36 @@ function ProviderCard({
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div className="settings-provider-footer">
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className="glass-button primary"
-                            style={{ padding: '0.75rem 1.5rem' }}
+                            className="settings-primary-button"
                         >
                             {isSaving ? 'Saving...' : 'Save Configuration'}
                         </button>
                         {saveStatus === 'success' && (
-                            <span style={{ color: 'var(--success)', fontSize: '0.9rem' }}>✓ Saved successfully</span>
+                            <div className="settings-alert success">OK Saved successfully</div>
                         )}
                         {saveStatus === 'error' && error && (
-                            <span style={{ color: 'var(--danger)', fontSize: '0.9rem' }}>✗ {error}</span>
+                            <div className="settings-alert error">Error: {error}</div>
                         )}
                     </div>
                 </form>
             )}
 
             {existing && !isExpanded && (
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                <p className="settings-provider-updated">
                     Last updated: {formatDateTime(existing.updatedAt, userTimeZone, { format: 'datetime' })}
                 </p>
             )}
         </div>
     );
 }
+
+
+
+
 
 
 

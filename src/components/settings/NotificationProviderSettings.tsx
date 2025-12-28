@@ -4,10 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
 import FormField from '@/components/ui/FormField';
-import Switch from '@/components/ui/Switch';
+import StickyActionBar from '@/components/settings/StickyActionBar';
 
 export default function NotificationProviderSettings() {
     const router = useRouter();
@@ -34,6 +32,8 @@ export default function NotificationProviderSettings() {
 
     const [whatsappNumber, setWhatsappNumber] = useState('');
     const [whatsappContentSid, setWhatsappContentSid] = useState('');
+    const [whatsappAccountSid, setWhatsappAccountSid] = useState('');
+    const [whatsappAuthToken, setWhatsappAuthToken] = useState('');
 
     // Load existing settings
     useEffect(() => {
@@ -64,6 +64,8 @@ export default function NotificationProviderSettings() {
                     if (data.whatsapp) {
                         setWhatsappNumber(data.whatsapp.number || '');
                         setWhatsappContentSid(data.whatsapp.contentSid || '');
+                        setWhatsappAccountSid(data.whatsapp.accountSid || '');
+                        setWhatsappAuthToken(data.whatsapp.authToken || '');
                     }
                 }
             } catch (error) {
@@ -113,6 +115,8 @@ export default function NotificationProviderSettings() {
                         whatsapp: {
                             number: whatsappNumber,
                             contentSid: whatsappContentSid,
+                            accountSid: whatsappAccountSid,
+                            authToken: whatsappAuthToken,
                         },
                     }),
                 });
@@ -157,25 +161,25 @@ export default function NotificationProviderSettings() {
 
     if (isLoading) {
         return (
-            <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>Loading settings...</div>
+            <div className="settings-empty-state-v2">
+                <div className="settings-empty-icon">o</div>
+                <h3>Loading settings</h3>
+                <p>Fetching your notification provider configuration.</p>
             </div>
         );
     }
 
     return (
-        <div style={{ display: 'grid', gap: '2rem' }}>
+        <div className="settings-form-stack">
             {/* SMS Provider Configuration */}
-            <Card variant="elevated">
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-                        SMS Notifications
-                    </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        Configure SMS provider for incident notifications
-                    </p>
+            <section className="settings-subsection">
+                <div className="settings-subsection-header">
+                    <div>
+                        <h3>SMS Notifications</h3>
+                        <p>Configure SMS provider for incident notifications.</p>
+                    </div>
                 </div>
-                <div style={{ padding: '1.5rem', display: 'grid', gap: '1.5rem' }}>
+                <div className="settings-subsection-body">
                     <FormField
                         type="switch"
                         label="Enable SMS Notifications"
@@ -227,16 +231,8 @@ export default function NotificationProviderSettings() {
                                         helperText="E.164 format (e.g., +1234567890)"
                                         fullWidth
                                     />
-                                    <div style={{
-                                        padding: '0.75rem',
-                                        background: '#eff6ff',
-                                        border: '1px solid #3b82f6',
-                                        borderRadius: '6px',
-                                        fontSize: '0.85rem',
-                                        color: '#1e40af',
-                                        marginTop: '0.5rem'
-                                    }}>
-                                        <strong>ℹ️ Twilio Trial Account Note:</strong>
+                                    <div className="settings-note info">
+                                        <strong>Note: Twilio Trial Account</strong>
                                         <br />
                                         Trial accounts can only send SMS to verified phone numbers.
                                         Verify recipient numbers at{' '}
@@ -244,7 +240,7 @@ export default function NotificationProviderSettings() {
                                             href="https://twilio.com/user/account/phone-numbers/verified"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ color: '#2563eb', textDecoration: 'underline' }}
+                                            className="settings-link-inline"
                                         >
                                             twilio.com/user/account/phone-numbers/verified
                                         </a>
@@ -285,7 +281,7 @@ export default function NotificationProviderSettings() {
                                 </>
                             )}
 
-                            <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div className="settings-inline-actions">
                                 <Button
                                     variant="secondary"
                                     onClick={handleTestSMS}
@@ -297,19 +293,17 @@ export default function NotificationProviderSettings() {
                         </>
                     )}
                 </div>
-            </Card>
+            </section>
 
             {/* Push Notification Configuration */}
-            <Card variant="elevated">
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-                        Push Notifications
-                    </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        Configure push notification provider for mobile devices
-                    </p>
+            <section className="settings-subsection">
+                <div className="settings-subsection-header">
+                    <div>
+                        <h3>Push Notifications</h3>
+                        <p>Configure push notification provider for mobile devices.</p>
+                    </div>
                 </div>
-                <div style={{ padding: '1.5rem', display: 'grid', gap: '1.5rem' }}>
+                <div className="settings-subsection-body">
                     <FormField
                         type="switch"
                         label="Enable Push Notifications"
@@ -386,7 +380,7 @@ export default function NotificationProviderSettings() {
                                 </>
                             )}
 
-                            <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div className="settings-inline-actions">
                                 <Button
                                     variant="secondary"
                                     onClick={handleTestPush}
@@ -398,86 +392,79 @@ export default function NotificationProviderSettings() {
                         </>
                     )}
                 </div>
-            </Card>
+            </section>
 
             {/* WhatsApp Configuration */}
-            <Card variant="elevated">
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-                        WhatsApp Notifications
-                    </h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        Configure WhatsApp Business API via Twilio for incident notifications
-                    </p>
+            <section className="settings-subsection">
+                <div className="settings-subsection-header">
+                    <div>
+                        <h3>WhatsApp Notifications</h3>
+                        <p>Configure WhatsApp Business API via Twilio for incident notifications.</p>
+                    </div>
                 </div>
-                <div style={{ padding: '1.5rem', display: 'grid', gap: '1.5rem' }}>
-                    <div style={{
-                        padding: '1rem',
-                        background: '#fef3c7',
-                        border: '1px solid #f59e0b',
-                        borderRadius: '8px'
-                    }}>
-                        <p style={{ fontSize: '0.85rem', color: '#92400e', margin: 0, lineHeight: 1.6 }}>
-                            <strong>📱 WhatsApp Requirements:</strong>
-                            <br />
-                            • Requires Twilio SMS to be enabled and configured
-                            <br />
-                            • Requires a Twilio WhatsApp Business API number
-                            <br />
-                            • Users must enable WhatsApp notifications in their preferences
-                        </p>
+                <div className="settings-subsection-body">
+                    <div className="settings-note info">
+                        <strong>WhatsApp requirements:</strong>
+                        <ul>
+                            <li>Requires a Twilio WhatsApp Business API number.</li>
+                            <li>Provide WhatsApp credentials or reuse Twilio SMS credentials.</li>
+                            <li>Users must enable WhatsApp notifications in their preferences.</li>
+                        </ul>
                     </div>
 
-                    {smsEnabled && smsProvider === 'twilio' ? (
-                        <>
-                            <FormField
-                                type="input"
-                                label="WhatsApp Business Number"
-                                inputType="tel"
-                                value={whatsappNumber}
-                                onChange={(e) => setWhatsappNumber(e.target.value)}
-                                placeholder="+1234567890"
-                                helperText="Your Twilio WhatsApp Business API number in E.164 format. If not set, will use the SMS 'From Number' above."
-                                fullWidth
-                            />
-                            <FormField
-                                type="input"
-                                label="WhatsApp Template SID (Optional)"
-                                inputType="text"
-                                value={whatsappContentSid}
-                                onChange={(e) => setWhatsappContentSid(e.target.value)}
-                                placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                helperText="Twilio Content SID for template messages. Required to send notifications outside the 24-hour window."
-                                fullWidth
-                            />
-                            <div style={{
-                                padding: '0.75rem',
-                                background: '#dbeafe',
-                                border: '1px solid #3b82f6',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem',
-                                color: '#1e40af'
-                            }}>
-                                <strong>Status:</strong> WhatsApp will be available once Twilio is configured and this number is set (or SMS number is used).
-                            </div>
-                        </>
+                    <FormField
+                        type="input"
+                        label="WhatsApp Business Number"
+                        inputType="tel"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        placeholder="+1234567890"
+                        helperText="Your Twilio WhatsApp Business API number in E.164 format."
+                        fullWidth
+                    />
+                    <FormField
+                        type="input"
+                        label="WhatsApp Account SID (Optional)"
+                        inputType="text"
+                        value={whatsappAccountSid}
+                        onChange={(e) => setWhatsappAccountSid(e.target.value)}
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        helperText="If blank, the SMS Account SID is used when available."
+                        fullWidth
+                    />
+                    <FormField
+                        type="input"
+                        label="WhatsApp Auth Token (Optional)"
+                        inputType="password"
+                        value={whatsappAuthToken}
+                        onChange={(e) => setWhatsappAuthToken(e.target.value)}
+                        placeholder="Your Twilio auth token"
+                        helperText="If blank, the SMS Auth Token is used when available."
+                        fullWidth
+                    />
+                    <FormField
+                        type="input"
+                        label="WhatsApp Template SID (Optional)"
+                        inputType="text"
+                        value={whatsappContentSid}
+                        onChange={(e) => setWhatsappContentSid(e.target.value)}
+                        placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        helperText="Required to send notifications outside the 24-hour window."
+                        fullWidth
+                    />
+                    {!smsEnabled || smsProvider !== 'twilio' ? (
+                        <div className="settings-note info">
+                            <strong>Note:</strong> SMS is not using Twilio. WhatsApp will rely on the credentials above.
+                        </div>
                     ) : (
-                        <div style={{
-                            padding: '1rem',
-                            background: '#fef2f2',
-                            border: '1px solid #fca5a5',
-                            borderRadius: '8px',
-                            fontSize: '0.85rem',
-                            color: '#991b1b'
-                        }}>
-                            <strong>⚠️ Twilio SMS Required:</strong> Please enable and configure Twilio SMS provider above to use WhatsApp notifications.
+                        <div className="settings-note info">
+                            <strong>Note:</strong> WhatsApp can reuse your Twilio SMS credentials if you leave the WhatsApp credentials blank.
                         </div>
                     )}
                 </div>
-            </Card>
+            </section>
 
-            {/* Save Button */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <StickyActionBar>
                 <Button
                     variant="primary"
                     onClick={handleSave}
@@ -485,8 +472,12 @@ export default function NotificationProviderSettings() {
                 >
                     Save Settings
                 </Button>
-            </div>
+            </StickyActionBar>
         </div>
     );
 }
+
+
+
+
 

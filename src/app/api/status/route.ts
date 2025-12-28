@@ -111,6 +111,7 @@ export async function GET() {
         const servicesData = services.map(service => ({
             id: service.id,
             name: service.name,
+            region: service.region ?? null,
             status: serviceStatusMap.get(service.id) || service.status,
             activeIncidents: service._count.incidents,
         }));
@@ -172,6 +173,7 @@ export async function GET() {
                 title: inc.title,
                 status: inc.status,
                 service: inc.service.name,
+                serviceRegion: inc.service.region ?? null,
                 createdAt: inc.createdAt.toISOString(),
                 resolvedAt: inc.resolvedAt?.toISOString() || null,
             })),

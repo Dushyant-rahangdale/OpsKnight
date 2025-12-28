@@ -64,7 +64,7 @@ export const StatusPageSettingsSchema = z.object({
         showOnPage: z.boolean().optional()
     })).optional(),
     // Privacy settings
-    privacyMode: z.enum(['PUBLIC', 'RESTRICTED', 'PRIVATE']).optional().nullable(),
+    privacyMode: z.enum(['PUBLIC', 'RESTRICTED', 'PRIVATE', 'CUSTOM']).optional().nullable(),
     showIncidentDetails: z.boolean().optional(),
     showIncidentTitles: z.boolean().optional(),
     showIncidentDescriptions: z.boolean().optional(),
@@ -72,6 +72,7 @@ export const StatusPageSettingsSchema = z.object({
     showIncidentTimestamps: z.boolean().optional(),
     showServiceMetrics: z.boolean().optional(),
     showServiceDescriptions: z.boolean().optional(),
+    showServiceRegions: z.boolean().optional(),
     showTeamInformation: z.boolean().optional(),
     showCustomFields: z.boolean().optional(),
     showIncidentAssignees: z.boolean().optional(),

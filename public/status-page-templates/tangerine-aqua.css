@@ -1,7 +1,9 @@
 /*
   Template: Tangerine Aqua
 */
-:root { --sp-ink: #101a1f; --sp-muted: #6b7b85; --sp-tangerine: #f97316; --sp-aqua: #22d3ee; }
+:root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 16px rgba(15, 23, 42, 0.05); --sp-ink: #101a1f; --sp-muted: #6b7b85; --sp-tangerine: #f97316; --sp-aqua: #22d3ee; }
 .status-page-container {
   background:
     radial-gradient(circle at 20% 15%, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0) 45%),
@@ -38,3 +40,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

@@ -2,7 +2,8 @@ import prisma from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import ProfileForm from '@/components/settings/ProfileForm';
-import SettingsSection from '@/components/settings/SettingsSection';
+import SettingsPage from '@/components/settings/SettingsPage';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 
 export default async function ProfileSettingsPage() {
@@ -28,20 +29,27 @@ export default async function ProfileSettingsPage() {
     const memberSince = user?.createdAt ? formatDateTime(user.createdAt, timeZone, { format: 'date' }) : 'Unknown';
 
     return (
-        <SettingsSection
+        <SettingsPage
+            backHref="/settings"
             title="Profile"
             description="Identity details tied to your OpsSentinal account."
         >
-            <ProfileForm
-                name={name}
-                email={email}
-                role={role}
-                memberSince={memberSince}
-            />
-            <div className="settings-note" style={{ marginTop: '1.5rem' }}>
-                Updates are managed by your identity provider or an OpsSentinal administrator.
-            </div>
-        </SettingsSection>
+            <SettingsSectionCard
+                title="Account details"
+                description="Keep your profile up to date across the workspace."
+            >
+                <ProfileForm
+                    name={name}
+                    email={email}
+                    role={role}
+                    memberSince={memberSince}
+                />
+                <div className="settings-inline-note">
+                    Updates are managed by your identity provider or an OpsSentinal administrator.
+                </div>
+            </SettingsSectionCard>
+        </SettingsPage>
     );
 }
+
 

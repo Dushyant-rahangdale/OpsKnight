@@ -123,14 +123,14 @@ export default function StatusPageMetrics({
                     fontSize: '1.875rem',
                     fontWeight: '800',
                     marginBottom: '0.25rem',
-                    color: '#0f172a',
+                    color: 'var(--status-text-strong, #0f172a)',
                     letterSpacing: '-0.02em',
                 }}>
                     Uptime Metrics
                 </h2>
                 <p style={{
                     fontSize: '0.875rem',
-                    color: '#64748b',
+                    color: 'var(--status-text-muted, #64748b)',
                     margin: 0,
                 }}>
                     Service availability and performance statistics
@@ -166,26 +166,31 @@ export default function StatusPageMetrics({
 
                         const thirtyColor = getUptimeColor(metric.thirtyDays.uptime);
                         const ninetyColor = getUptimeColor(metric.ninetyDays.uptime);
+                        const slaBadge = metric.ninetyDays.uptime >= uptimeExcellentThreshold
+                            ? { label: 'SLA Excellent', color: '#047857', background: '#dcfce7', border: '#bbf7d0' }
+                            : metric.ninetyDays.uptime >= uptimeGoodThreshold
+                                ? { label: 'SLA Good', color: '#92400e', background: '#fef3c7', border: '#fde68a' }
+                                : { label: 'Below SLA', color: '#991b1b', background: '#fee2e2', border: '#fecaca' };
 
                         return (
                             <div
                                 key={metric.service}
                                 style={{
                                     padding: 'clamp(1.25rem, 3vw, 2rem)',
-                                    background: '#ffffff',
-                                    border: '2px solid #e5e7eb',
+                                    background: 'var(--status-panel-bg, #ffffff)',
+                                    border: '2px solid var(--status-panel-border, #e5e7eb)',
                                     borderRadius: '1rem',
                                     transition: 'all 0.3s ease',
                                     position: 'relative',
                                     overflow: 'hidden',
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 12px 24px rgba(15, 23, 42, 0.1)';
+                                    e.currentTarget.style.boxShadow = 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.06))';
                                     e.currentTarget.style.borderColor = '#cbd5e1';
                                     e.currentTarget.style.transform = 'translateY(-4px)';
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.boxShadow = 'var(--status-card-shadow, none)';
                                     e.currentTarget.style.borderColor = '#e5e7eb';
                                     e.currentTarget.style.transform = 'translateY(0)';
                                 }}
@@ -194,7 +199,7 @@ export default function StatusPageMetrics({
                                     fontSize: 'clamp(1.125rem, 3vw, 1.375rem)',
                                     fontWeight: '800',
                                     marginBottom: 'clamp(1.25rem, 3vw, 1.75rem)',
-                                    color: '#111827',
+                                    color: 'var(--status-text, #111827)',
                                     letterSpacing: '-0.02em',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -209,6 +214,20 @@ export default function StatusPageMetrics({
                                         boxShadow: `0 0 0 4px ${ninetyColor.bg}20`,
                                     }} />
                                     {metric.service}
+                                    <span style={{
+                                        marginLeft: 'auto',
+                                        padding: '0.35rem 0.6rem',
+                                        borderRadius: '999px',
+                                        background: slaBadge.background,
+                                        color: slaBadge.color,
+                                        border: `1px solid ${slaBadge.border}`,
+                                        fontSize: '0.7rem',
+                                        fontWeight: '700',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                    }}>
+                                        {slaBadge.label}
+                                    </span>
                                 </h3>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -222,7 +241,7 @@ export default function StatusPageMetrics({
                                         }}>
                                             <span style={{
                                                 fontSize: '0.875rem',
-                                                color: '#6b7280',
+                                                color: 'var(--status-text-muted, #6b7280)',
                                                 fontWeight: '600',
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.05em',
@@ -232,7 +251,7 @@ export default function StatusPageMetrics({
                                             <span style={{
                                                 fontSize: '1.125rem',
                                                 fontWeight: '800',
-                                                color: '#111827',
+                                                color: 'var(--status-text, #111827)',
                                                 fontFamily: 'monospace',
                                             }}>
                                                 {formatUptimePercent(metric.thirtyDays.uptime)}%
@@ -241,7 +260,7 @@ export default function StatusPageMetrics({
                                         <div style={{
                                             width: '100%',
                                             height: '12px',
-                                            background: '#f1f5f9',
+                                            background: 'var(--status-panel-muted-bg, #f1f5f9)',
                                             borderRadius: '0.5rem',
                                             overflow: 'hidden',
                                             position: 'relative',
@@ -268,7 +287,7 @@ export default function StatusPageMetrics({
                                         </div>
                                         <div style={{
                                             fontSize: '0.8125rem',
-                                            color: '#9ca3af',
+                                            color: 'var(--status-text-subtle, #9ca3af)',
                                             marginTop: '0.5rem',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -293,7 +312,7 @@ export default function StatusPageMetrics({
                                         }}>
                                             <span style={{
                                                 fontSize: '0.875rem',
-                                                color: '#6b7280',
+                                                color: 'var(--status-text-muted, #6b7280)',
                                                 fontWeight: '600',
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.05em',
@@ -303,7 +322,7 @@ export default function StatusPageMetrics({
                                             <span style={{
                                                 fontSize: '1.125rem',
                                                 fontWeight: '800',
-                                                color: '#111827',
+                                                color: 'var(--status-text, #111827)',
                                                 fontFamily: 'monospace',
                                             }}>
                                                 {formatUptimePercent(metric.ninetyDays.uptime)}%
@@ -312,7 +331,7 @@ export default function StatusPageMetrics({
                                         <div style={{
                                             width: '100%',
                                             height: '12px',
-                                            background: '#f1f5f9',
+                                            background: 'var(--status-panel-muted-bg, #f1f5f9)',
                                             borderRadius: '0.5rem',
                                             overflow: 'hidden',
                                             position: 'relative',
@@ -339,7 +358,7 @@ export default function StatusPageMetrics({
                                         </div>
                                         <div style={{
                                             fontSize: '0.8125rem',
-                                            color: '#9ca3af',
+                                            color: 'var(--status-text-subtle, #9ca3af)',
                                             marginTop: '0.5rem',
                                             display: 'flex',
                                             alignItems: 'center',

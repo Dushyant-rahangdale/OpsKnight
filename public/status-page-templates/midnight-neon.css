@@ -4,11 +4,20 @@
 */
 
 :root {
-  --sp-ink: #e5e7eb;
-  --sp-muted: #94a3b8;
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 8px 18px rgba(15, 23, 42, 0.3);
+  --sp-ink: #e2e8f0;
+  --sp-ink-strong: #f8fafc;
+  --sp-muted: #b1bfd6;
+  --sp-muted-2: #8fa3c2;
+  --sp-inverse: #0b1220;
   --sp-neon-1: #22d3ee;
   --sp-neon-2: #a855f7;
   --sp-neon-3: #f472b6;
+  --sp-panel-bg: rgba(17, 24, 39, 0.88);
+  --sp-panel-border: rgba(148, 163, 184, 0.2);
+  --sp-panel-muted-bg: rgba(15, 23, 42, 0.8);
+  --sp-panel-muted-border: rgba(148, 163, 184, 0.16);
 }
 
 .status-page-container {
@@ -27,8 +36,8 @@
 }
 
 .status-page-header h1 {
-  color: #f8fafc !important;
-  -webkit-text-fill-color: #f8fafc !important;
+  color: var(--sp-ink-strong) !important;
+  -webkit-text-fill-color: var(--sp-ink-strong) !important;
 }
 
 .status-page-header a {
@@ -73,7 +82,7 @@
 .status-page-container li,
 .status-page-container label,
 .status-page-container small {
-  color: var(--sp-ink) !important;
+  color: var(--sp-muted) !important;
 }
 
 .status-page-container .status-page-header p,
@@ -82,3 +91,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+

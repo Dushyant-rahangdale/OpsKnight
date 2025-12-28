@@ -102,23 +102,16 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                 if (targetHeight) {
                     setFrameHeight(`${targetHeight}px`);
                 } else {
-                    // Desktop or flexible height
-                    if (newScale < 1) {
-                        setFrameHeight(`${Math.ceil(containerHeight / newScale)}px`);
-                    } else {
-                        setFrameHeight('100%');
-                    }
+                    const safeHeight = Math.max(containerHeight, 1);
+                    setFrameHeight(`${Math.ceil(safeHeight / newScale)}px`);
                 }
             } else if (zoomMode === 'manual' && containerRef.current) {
                 if (targetHeight) {
                     setFrameHeight(`${targetHeight}px`);
                 } else {
                     const containerHeight = containerRef.current.clientHeight;
-                    if (scale < 1) {
-                        setFrameHeight(`${Math.ceil(containerHeight / scale)}px`);
-                    } else {
-                        setFrameHeight('100%');
-                    }
+                    const safeHeight = Math.max(containerHeight, 1);
+                    setFrameHeight(`${Math.ceil(safeHeight / scale)}px`);
                 }
             }
         };
@@ -146,8 +139,233 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
     // For the inner content max-width (inside the scaled container)
     // Always use 100% for tablet and mobile, use contentMaxWidthStr for desktop
     const contentMaxWidth = deviceView === 'desktop' ? contentMaxWidthStr : '100%';
-    const previewPrimaryColor = previewData.branding?.primaryColor || '#667eea';
-    const previewTextColor = previewData.branding?.textColor || '#111827';
+    const previewPrimaryColor = previewData.branding?.primaryColor || 'var(--status-primary, #667eea)';
+    const previewTextColor = previewData.branding?.textColor || 'var(--status-text, #111827)';
+    const frameHeightNumber = Number.parseFloat(frameHeight);
+    const scaledFrameHeightStyle = Number.isFinite(frameHeightNumber)
+        ? `${Math.round(frameHeightNumber * scale)}px`
+        : 'auto';
+
+    const renderStatusPageContent = (contentMaxWidthValue: string) => (
+        <>
+            {previewData.showHeader && (
+                <StatusPageHeader
+                    statusPage={previewData.statusPage}
+                    overallStatus={overallStatus}
+                    branding={previewData.branding}
+                    lastUpdated={new Date().toISOString()}
+                />
+            )}
+            <main
+                style={{
+                    width: '100%',
+                    maxWidth: contentMaxWidthValue,
+                    margin: '0 auto',
+                    padding: previewData.layout === 'compact' ? '1.5rem' : '2rem',
+                    boxSizing: 'border-box',
+                    flex: 1,
+                }}
+            >
+                {previewData.announcements.length > 0 && (
+                    <StatusPageAnnouncements announcements={previewData.announcements} />
+                )}
+
+                {previewData.showServices && previewData.services.length > 0 && (
+                    <StatusPageServices
+                        services={previewData.services}
+                        statusPageServices={previewData.statusPageServices}
+                        uptime90={previewData.uptime90}
+                        incidents={previewData.incidents}
+                        privacySettings={previewData.privacySettings}
+                    />
+                )}
+
+                {previewData.showIncidents && (
+                    <StatusPageIncidents
+                        incidents={previewData.incidents}
+                        privacySettings={previewData.privacySettings}
+                    />
+                )}
+
+                {previewData.showSubscribe !== false && (
+                    <section style={{ marginBottom: 'clamp(2.5rem, 7vw, 5rem)' }}>
+                        <div style={{
+                            position: 'relative',
+                            overflow: 'hidden',
+                            borderRadius: '1rem',
+                            border: '1px solid var(--status-panel-border, #e5e7eb)',
+                            background: 'var(--status-panel-bg, #ffffff)',
+                            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                            boxShadow: 'var(--status-card-shadow, 0 20px 45px rgba(15, 23, 42, 0.08))',
+                        }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '-60px',
+                                right: '-60px',
+                                width: '180px',
+                                height: '180px',
+                                background: 'radial-gradient(circle, color-mix(in srgb, var(--status-primary, #6366f1) 20%, transparent) 0%, transparent 70%)',
+                                pointerEvents: 'none',
+                            }} />
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '-80px',
+                                left: '-80px',
+                                width: '220px',
+                                height: '220px',
+                                background: 'radial-gradient(circle, color-mix(in srgb, var(--status-primary, #0ea5e9) 18%, transparent) 0%, transparent 70%)',
+                                pointerEvents: 'none',
+                            }} />
+                            <div style={{
+                                position: 'relative',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                flexWrap: 'wrap',
+                            }}>
+                                <div style={{
+                                    flex: '1 1 260px',
+                                    minWidth: '240px',
+                                }}>
+                                    <div style={{
+                                        fontSize: '0.75rem',
+                                        letterSpacing: '0.12em',
+                                        textTransform: 'uppercase',
+                                        color: previewPrimaryColor,
+                                        fontWeight: '700',
+                                        marginBottom: '0.5rem',
+                                    }}>
+                                        Stay in the loop
+                                    </div>
+                                    <h2 style={{
+                                        fontSize: 'clamp(1.35rem, 3vw, 1.75rem)',
+                                        fontWeight: '700',
+                                        marginBottom: '0.75rem',
+                                        color: previewTextColor,
+                                    }}>
+                                        Subscribe to Updates
+                                    </h2>
+                                    <p style={{
+                                        fontSize: 'clamp(0.9rem, 2.2vw, 1rem)',
+                                        color: 'var(--status-text-muted, #4b5563)',
+                                        marginBottom: '1rem',
+                                        lineHeight: 1.6,
+                                    }}>
+                                        Get incident alerts, maintenance notices, and recovery updates the moment they happen.
+                                    </p>
+                                    <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        padding: '0.35rem 0.75rem',
+                                        borderRadius: '999px',
+                                        background: 'var(--status-panel-bg, #ffffff)',
+                                        border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                        color: 'var(--status-text, #374151)',
+                                        fontSize: '0.8125rem',
+                                        fontWeight: '600',
+                                    }}>
+                                        Email notifications only
+                                    </div>
+                                </div>
+                                <div style={{
+                                    flex: '1 1 320px',
+                                    minWidth: '280px',
+                                }}>
+                                    <div style={{
+                                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                                        background: 'var(--status-panel-bg, #ffffff)',
+                                        border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                        borderRadius: '0.875rem',
+                                        boxShadow: 'var(--status-card-shadow, 0 12px 25px rgba(15, 23, 42, 0.12))',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 'var(--spacing-3)',
+                                    }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.5rem',
+                                        }}>
+                                            <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: '600', color: previewTextColor }}>
+                                                Subscribe to Updates
+                                            </label>
+                                            <input
+                                                type="email"
+                                                placeholder="your@email.com"
+                                                disabled
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.65rem 0.75rem',
+                                                    borderRadius: '0.5rem',
+                                                    border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                                    background: 'var(--status-panel-muted-bg, #f9fafb)',
+                                                    color: 'var(--status-text-subtle, #9ca3af)',
+                                                }}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem 0.75rem',
+                                                borderRadius: '0.5rem',
+                                                border: '1px solid var(--status-panel-border, #e5e7eb)',
+                                                background: 'var(--status-panel-muted-bg, #e5e7eb)',
+                                                color: 'var(--status-text-subtle, #9ca3af)',
+                                                fontWeight: '600',
+                                                cursor: 'not-allowed',
+                                            }}
+                                        >
+                                            Subscribe
+                                        </button>
+                                    </div>
+                                    <p style={{
+                                        marginTop: '0.75rem',
+                                        fontSize: '0.8125rem',
+                                        color: 'var(--status-text-muted, #6b7280)',
+                                        textAlign: 'center',
+                                    }}>
+                                        We'll never share your email. Unsubscribe anytime.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {previewData.showFooter && (
+                    <footer
+                        style={{
+                            marginTop: '4rem',
+                            paddingTop: '2rem',
+                            borderTop: '1px solid #e5e7eb',
+                            textAlign: 'center',
+                            color: 'var(--status-text-muted, #6b7280)',
+                            fontSize: '0.875rem',
+                            paddingBottom: '2rem',
+                        }}
+                    >
+                        {previewData.footerText && (
+                            <p style={{ marginBottom: '1rem' }}>{previewData.footerText}</p>
+                        )}
+                        {(previewData.showRssLink || previewData.showApiLink) && (
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                {previewData.showRssLink && (
+                                    <span style={{ color: 'var(--status-text-muted, #6b7280)' }}>RSS Feed</span>
+                                )}
+                                {previewData.showRssLink && previewData.showApiLink && <span>|</span>}
+                                {previewData.showApiLink && (
+                                    <span style={{ color: 'var(--status-text-muted, #6b7280)' }}>JSON API</span>
+                                )}
+                            </div>
+                        )}
+                    </footer>
+                )}
+            </main>
+        </>
+    );
 
     return (
         <>
@@ -256,252 +474,45 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                     ref={containerRef}
                     style={{
                         flex: 1,
-                        overflow: 'hidden', // Hide overflow, we rely on scaling
-                        background: '#e2e8f0', // Darker bg to show frame better
+                        overflow: 'hidden',
+                        background: '#e2e8f0',
                         display: 'flex',
                         position: 'relative',
-                        alignItems: 'flex-start', // Top aligned
+                        alignItems: 'flex-start',
                         justifyContent: 'center',
                         padding: 'var(--spacing-6)',
                     }}
                 >
-                    {/* Scaled Content Frame */}
                     <div
-                        className="status-page-container"
                         style={{
-                            width: `${targetWidth}px`,
-                            minWidth: `${targetWidth}px`,
-                            maxWidth: `${targetWidth}px`,
-                            height: frameHeight,
+                            width: `${Math.round(targetWidth * scale)}px`,
+                            minWidth: `${Math.round(targetWidth * scale)}px`,
+                            maxWidth: `${Math.round(targetWidth * scale)}px`,
+                            height: scaledFrameHeightStyle,
+                            overflow: 'hidden',
+                            borderRadius: deviceView === 'mobile' ? '28px' : deviceView === 'tablet' ? '16px' : '10px',
+                            border: deviceView !== 'desktop' ? '8px solid #1f2937' : '1px solid #cbd5e1',
                             background: previewData.branding?.backgroundColor || '#ffffff',
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            transform: `scale(${scale})`,
-                            transformOrigin: 'top center',
-                            transition: 'width 0.3s ease, transform 0.2s ease',
-                            overflow: 'auto', // Scroll inside the frame
-                            borderRadius: deviceView === 'mobile' ? '24px' : deviceView === 'tablet' ? '12px' : '4px',
-                            border: deviceView !== 'desktop' ? '8px solid #334155' : '1px solid #cbd5e1',
                             boxSizing: 'border-box',
                         }}
                     >
-                        {/* Content wrapper to ensure height works */}
-                        <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-                            {previewData.showHeader && (
-                                <StatusPageHeader
-                                    statusPage={previewData.statusPage}
-                                    overallStatus={overallStatus}
-                                    branding={previewData.branding}
-                                    lastUpdated={new Date().toISOString()}
-                                />
-                            )}
-                            <main
-                                style={{
-                                    width: '100%',
-                                    maxWidth: contentMaxWidth,
-                                    margin: '0 auto',
-                                    padding: previewData.layout === 'compact' ? '1.5rem' : '2rem',
-                                    boxSizing: 'border-box',
-                                    flex: 1,
-                                }}
-                            >
-                                {previewData.announcements.length > 0 && (
-                                    <StatusPageAnnouncements announcements={previewData.announcements} />
-                                )}
-
-                                {previewData.showServices && previewData.services.length > 0 && (
-                                    <StatusPageServices
-                                        services={previewData.services}
-                                        statusPageServices={previewData.statusPageServices}
-                                        uptime90={previewData.uptime90}
-                                        incidents={previewData.incidents}
-                                        privacySettings={previewData.privacySettings}
-                                    />
-                                )}
-
-                                {previewData.showIncidents && (
-                                    <StatusPageIncidents
-                                        incidents={previewData.incidents}
-                                        privacySettings={previewData.privacySettings}
-                                    />
-                                )}
-
-                                {previewData.showSubscribe !== false && (
-                                    <section style={{ marginBottom: 'clamp(2.5rem, 7vw, 5rem)' }}>
-                                        <div style={{
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            borderRadius: '1rem',
-                                            border: '1px solid #e5e7eb',
-                                            background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #e0f2fe 100%)',
-                                            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-                                            boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
-                                        }}>
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: '-60px',
-                                                right: '-60px',
-                                                width: '180px',
-                                                height: '180px',
-                                                background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 70%)',
-                                                pointerEvents: 'none',
-                                            }} />
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: '-80px',
-                                                left: '-80px',
-                                                width: '220px',
-                                                height: '220px',
-                                                background: 'radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%)',
-                                                pointerEvents: 'none',
-                                            }} />
-                                            <div style={{
-                                                position: 'relative',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 'clamp(1.5rem, 4vw, 2.5rem)',
-                                                flexWrap: 'wrap',
-                                            }}>
-                                                <div style={{
-                                                    flex: '1 1 260px',
-                                                    minWidth: '240px',
-                                                }}>
-                                                    <div style={{
-                                                        fontSize: '0.75rem',
-                                                        letterSpacing: '0.12em',
-                                                        textTransform: 'uppercase',
-                                                        color: previewPrimaryColor,
-                                                        fontWeight: '700',
-                                                        marginBottom: '0.5rem',
-                                                    }}>
-                                                        Stay in the loop
-                                                    </div>
-                                                    <h2 style={{
-                                                        fontSize: 'clamp(1.35rem, 3vw, 1.75rem)',
-                                                        fontWeight: '700',
-                                                        marginBottom: '0.75rem',
-                                                        color: previewTextColor,
-                                                    }}>
-                                                        Subscribe to Updates
-                                                    </h2>
-                                                    <p style={{
-                                                        fontSize: 'clamp(0.9rem, 2.2vw, 1rem)',
-                                                        color: '#4b5563',
-                                                        marginBottom: '1rem',
-                                                        lineHeight: 1.6,
-                                                    }}>
-                                                        Get incident alerts, maintenance notices, and recovery updates the moment they happen.
-                                                    </p>
-                                                    <div style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.5rem',
-                                                        padding: '0.35rem 0.75rem',
-                                                        borderRadius: '999px',
-                                                        background: '#ffffff',
-                                                        border: '1px solid #e5e7eb',
-                                                        color: '#374151',
-                                                        fontSize: '0.8125rem',
-                                                        fontWeight: '600',
-                                                    }}>
-                                                        Email notifications only
-                                                    </div>
-                                                </div>
-                                                <div style={{
-                                                    flex: '1 1 320px',
-                                                    minWidth: '280px',
-                                                }}>
-                                                    <div style={{
-                                                        padding: 'clamp(1rem, 3vw, 1.5rem)',
-                                                        background: '#ffffff',
-                                                        border: '1px solid #e5e7eb',
-                                                        borderRadius: '0.875rem',
-                                                        boxShadow: '0 12px 25px rgba(15, 23, 42, 0.12)',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: 'var(--spacing-3)',
-                                                    }}>
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            gap: '0.5rem',
-                                                        }}>
-                                                            <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: '600', color: previewTextColor }}>
-                                                                Subscribe to Updates
-                                                            </label>
-                                                            <input
-                                                                type="email"
-                                                                placeholder="your@email.com"
-                                                                disabled
-                                                                style={{
-                                                                    width: '100%',
-                                                                    padding: '0.65rem 0.75rem',
-                                                                    borderRadius: '0.5rem',
-                                                                    border: '1px solid #e5e7eb',
-                                                                    background: '#f9fafb',
-                                                                    color: '#9ca3af',
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            disabled
-                                                            style={{
-                                                                width: '100%',
-                                                                padding: '0.65rem 0.75rem',
-                                                                borderRadius: '0.5rem',
-                                                                border: '1px solid #e5e7eb',
-                                                                background: '#e5e7eb',
-                                                                color: '#9ca3af',
-                                                                fontWeight: '600',
-                                                                cursor: 'not-allowed',
-                                                            }}
-                                                        >
-                                                            Subscribe
-                                                        </button>
-                                                    </div>
-                                                    <p style={{
-                                                        marginTop: '0.75rem',
-                                                        fontSize: '0.8125rem',
-                                                        color: '#6b7280',
-                                                        textAlign: 'center',
-                                                    }}>
-                                                        We'll never share your email. Unsubscribe anytime.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-                                )}
-
-                                {previewData.showFooter && (
-                                    <footer
-                                        style={{
-                                            marginTop: '4rem',
-                                            paddingTop: '2rem',
-                                            borderTop: '1px solid #e5e7eb',
-                                            textAlign: 'center',
-                                            color: '#6b7280',
-                                            fontSize: '0.875rem',
-                                            paddingBottom: '2rem',
-                                        }}
-                                    >
-                                        {previewData.footerText && (
-                                            <p style={{ marginBottom: '1rem' }}>{previewData.footerText}</p>
-                                        )}
-                                        {(previewData.showRssLink || previewData.showApiLink) && (
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                                {previewData.showRssLink && (
-                                                    <span style={{ color: '#6b7280' }}>RSS Feed</span>
-                                                )}
-                                                {previewData.showRssLink && previewData.showApiLink && <span>|</span>}
-                                                {previewData.showApiLink && (
-                                                    <span style={{ color: '#6b7280' }}>JSON API</span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </footer>
-                                )}
-                            </main>
+                        <div
+                            className="status-page-container"
+                            style={{
+                                width: `${targetWidth}px`,
+                                minWidth: `${targetWidth}px`,
+                                maxWidth: `${targetWidth}px`,
+                                height: frameHeight,
+                                transform: `scale(${scale})`,
+                                transformOrigin: 'top left',
+                                overflow: 'auto',
+                                boxSizing: 'border-box',
+                            }}
+                        >
+                            <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+                                {renderStatusPageContent(contentMaxWidth)}
+                            </div>
                         </div>
                     </div>
                 </div>

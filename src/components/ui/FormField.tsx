@@ -25,6 +25,7 @@ interface InputFormFieldProps extends BaseFormFieldProps {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   step?: string;
+  inputClassName?: string;
 }
 
 interface TextareaFormFieldProps extends BaseFormFieldProps {
@@ -81,6 +82,7 @@ export default function FormField(props: FormFieldProps) {
         fullWidth={fullWidth}
         leftIcon={props.leftIcon}
         rightIcon={props.rightIcon}
+        className={props.inputClassName}
         id={id}
       />
     );

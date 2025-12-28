@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
             showIncidentTimestamps,
             showServiceMetrics,
             showServiceDescriptions,
+            showServiceRegions,
             showTeamInformation,
             showCustomFields,
             showIncidentAssignees,
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
         if (showIncidentTimestamps !== undefined) updateData.showIncidentTimestamps = showIncidentTimestamps;
         if (showServiceMetrics !== undefined) updateData.showServiceMetrics = showServiceMetrics;
         if (showServiceDescriptions !== undefined) updateData.showServiceDescriptions = showServiceDescriptions;
+        if (showServiceRegions !== undefined) updateData.showServiceRegions = showServiceRegions;
         if (showTeamInformation !== undefined) updateData.showTeamInformation = showTeamInformation;
         if (showCustomFields !== undefined) updateData.showCustomFields = showCustomFields;
         if (showIncidentAssignees !== undefined) updateData.showIncidentAssignees = showIncidentAssignees;

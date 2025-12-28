@@ -39,7 +39,7 @@ export default function StatusPageSetupWizard({
     const [wizardData, setWizardData] = useState({
         name: initialData?.name || 'Status Page',
         enabled: initialData?.enabled ?? true,
-        logoUrl: initialData?.logoUrl || '',
+        logoUrl: initialData?.logoUrl || '/logo.svg',
         primaryColor: initialData?.primaryColor || '#667eea',
         serviceIds: initialData?.serviceIds || [] as string[],
     });

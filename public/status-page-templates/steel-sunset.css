@@ -2,6 +2,8 @@
   Template: Steel Sunset
 */
 :root {
+  --status-primary: var(--sp-accent, var(--sp-primary, var(--sp-blue, var(--sp-ocean, #2563eb))));
+  --status-primary-hover: var(--sp-accent-2, var(--sp-primary, var(--sp-blue, #1d4ed8))));\n  --status-card-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
   --sp-ink: #111827;
   --sp-muted: #6b7280;
   --sp-steel: #475569;
@@ -66,3 +68,6 @@
 .status-page-container footer span {
   color: var(--sp-muted) !important;
 }
+
+
+
