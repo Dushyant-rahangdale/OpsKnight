@@ -298,7 +298,7 @@ describe('Notification System Tests', () => {
       const payload = formatGoogleChatPayload(incident, 'triggered', 'https://example.com');
 
       expect(payload.cards).toBeDefined();
-      expect(payload.cards[0].header.title).toContain('INCIDENT TRIGGERED');
+      expect(payload.cards[0].header.title).toContain('Incident TRIGGERED');
       expect(payload.cards[0].header.subtitle).toBe('Test Service');
     });
 
@@ -340,7 +340,7 @@ describe('Notification System Tests', () => {
       const payload = formatDiscordPayload(incident, 'triggered', 'https://example.com');
 
       expect(payload.embeds).toBeDefined();
-      expect(payload.embeds[0].title).toContain('INCIDENT TRIGGERED');
+      expect(payload.embeds[0].title).toContain('Incident TRIGGERED');
       expect(payload.embeds[0].color).toBe(0xd32f2f); // Red for triggered
     });
   });
@@ -356,10 +356,17 @@ describe('Notification System Tests', () => {
         },
       });
 
+      const service = await prisma.service.create({
+        data: {
+          name: 'Test Service',
+          serviceNotificationChannels: [],
+        },
+      });
+
       const incident = await prisma.incident.create({
         data: {
           title: 'Test Incident',
-          serviceId: 'test-service',
+          serviceId: service.id,
           status: 'OPEN',
           urgency: 'HIGH',
         },

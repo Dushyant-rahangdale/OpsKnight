@@ -14,15 +14,36 @@
  */
 
 import prisma from './prisma';
-import { getEmailConfig } from './notification-providers';
 import { getBaseUrl } from './env-validation';
 import { getUserTimeZone, formatDateTime } from './timezone';
+import {
+    EmailButton,
+    EmailContainer,
+    EmailContent,
+    EmailFooter,
+    EmailHeader,
+    InfoCard,
+    StatusBadge,
+} from './email-components';
 
 export type EmailOptions = {
     to: string;
     subject: string;
     html: string;
     text?: string;
+};
+
+type EmailConfig = {
+    enabled?: boolean;
+    provider?: string;
+    source?: string;
+    apiKey?: string;
+    fromEmail?: string;
+    host?: string;
+    port?: string | number;
+    user?: string;
+    password?: string;
+    secure?: boolean;
 };
 
 /**
@@ -32,16 +53,16 @@ export type EmailOptions = {
  */
 export async function sendEmail(
     options: EmailOptions,
-    providedConfig?: any
+    providedConfig?: unknown
 ): Promise<{ success: boolean; error?: string }> {
     try {
         // Use provided config or get from database
-        let emailConfig: any;
+        let emailConfig: EmailConfig;
         if (providedConfig) {
-            emailConfig = providedConfig;
+            emailConfig = providedConfig as EmailConfig;
         } else {
             const { getEmailConfig } = await import('./notification-providers');
-            emailConfig = await getEmailConfig();
+            emailConfig = (await getEmailConfig()) as EmailConfig;
         }
 
         // Log email if no provider configured or disabled
@@ -64,8 +85,20 @@ export async function sendEmail(
         if (emailConfig.provider === 'resend') {
             try {
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
-                const { Resend } = requireFunc('resend');
+                const requireFunc = eval('require') as (id: string) => unknown;
+                const { Resend } = requireFunc('resend') as {
+                    Resend: new (apiKey?: string) => {
+                        emails: {
+                            send: (args: {
+                                from?: string;
+                                to: string;
+                                subject: string;
+                                html: string;
+                                text?: string;
+                            }) => Promise<{ error?: { message?: string }; data?: { id?: string } }>;
+                        };
+                    };
+                };
                 const resend = new Resend(emailConfig.apiKey);
 
                 const result = await resend.emails.send({
@@ -83,23 +116,33 @@ export async function sendEmail(
 
                 console.log('Email sent via Resend:', { to: options.to, id: result.data?.id });
                 return { success: true };
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // If resend package is not installed, fall back to console log
-                if (error.code === 'MODULE_NOT_FOUND') {
+                const err = error as { code?: string; message?: string };
+                if (err.code === 'MODULE_NOT_FOUND') {
                     console.log('Resend package not installed. Install with: npm install resend');
                     console.log('Would send via Resend:', { to: options.to, from: emailConfig.fromEmail });
                     return { success: true };
                 }
                 console.error('Resend send error:', error);
-                return { success: false, error: error.message };
+                return { success: false, error: err.message || 'Resend send error' };
             }
         }
 
         if (emailConfig.provider === 'sendgrid') {
             try {
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
-                const sgMail = requireFunc('@sendgrid/mail');
+                const requireFunc = eval('require') as (id: string) => unknown;
+                const sgMail = requireFunc('@sendgrid/mail') as {
+                    setApiKey: (key: string) => void;
+                    send: (msg: {
+                        to: string;
+                        from: string;
+                        subject: string;
+                        html: string;
+                        text: string;
+                    }) => Promise<Array<{ statusCode: number; headers?: Record<string, string>; body?: unknown }>>;
+                };
 
                 // Validate API key
                 if (!emailConfig.apiKey || emailConfig.apiKey.trim() === '') {
@@ -152,26 +195,28 @@ export async function sendEmail(
                     console.error('SendGrid returned empty response');
                     return { success: false, error: 'SendGrid API returned empty response' };
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // If SendGrid package is not installed, fall back to console log
-                if (error.code === 'MODULE_NOT_FOUND') {
+                const err = error as { code?: string; message?: string; response?: { body?: unknown; statusCode?: number; headers?: Record<string, string> } };
+                if (err.code === 'MODULE_NOT_FOUND') {
                     console.error('SendGrid package not installed. Install with: npm install @sendgrid/mail');
                     return { success: false, error: 'SendGrid package not installed. Install with: npm install @sendgrid/mail' };
                 }
 
                 // Log full error details
                 console.error('SendGrid send error:', {
-                    message: error.message,
-                    code: error.code,
-                    response: error.response?.body,
-                    statusCode: error.response?.statusCode,
-                    headers: error.response?.headers
+                    message: err.message,
+                    code: err.code,
+                    response: err.response?.body,
+                    statusCode: err.response?.statusCode,
+                    headers: err.response?.headers
                 });
 
                 // Extract error message from SendGrid response if available
-                const errorMessage = error.response?.body?.errors
-                    ? JSON.stringify(error.response.body.errors)
-                    : error.message || 'SendGrid API error';
+                const errorMessage =
+                    typeof err.response?.body === 'object' && err.response?.body && 'errors' in (err.response.body as Record<string, unknown>)
+                        ? JSON.stringify((err.response.body as Record<string, unknown>).errors)
+                        : err.message || 'SendGrid API error';
 
                 return { success: false, error: errorMessage };
             }
@@ -180,8 +225,12 @@ export async function sendEmail(
         if (emailConfig.provider === 'smtp') {
             try {
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
-                const nodemailer = requireFunc('nodemailer');
+                const requireFunc = eval('require') as (id: string) => unknown;
+                const nodemailer = requireFunc('nodemailer') as {
+                    createTransport: (options: Record<string, unknown>) => {
+                        sendMail: (options: Record<string, unknown>) => Promise<{ messageId?: string }>;
+                    };
+                };
 
                 // Validate required SMTP config
                 if (!emailConfig.host || !emailConfig.port || !emailConfig.user || !emailConfig.password) {
@@ -210,22 +259,24 @@ export async function sendEmail(
 
                 console.log('Email sent via SMTP:', { to: options.to, messageId: info.messageId });
                 return { success: true };
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // If nodemailer package is not installed, fall back to console log
-                if (error.code === 'MODULE_NOT_FOUND') {
+                const err = error as { code?: string; message?: string };
+                if (err.code === 'MODULE_NOT_FOUND') {
                     console.error('Nodemailer package not installed. Install with: npm install nodemailer');
                     return { success: false, error: 'Nodemailer package not installed. Install with: npm install nodemailer' };
                 }
                 console.error('SMTP send error:', error);
-                return { success: false, error: error.message || 'SMTP send error' };
+                return { success: false, error: err.message || 'SMTP send error' };
             }
         }
 
         // No provider configured
         return { success: false, error: 'No email provider configured' };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Email send error:', error);
-        return { success: false, error: error.message };
+        const err = error as { message?: string };
+        return { success: false, error: err.message || 'Email send error' };
     }
 }
 
@@ -245,16 +296,6 @@ export function generateIncidentEmailHTML(incident: {
     resolvedAt?: Date | null;
     incidentUrl?: string;
 }, timeZone: string = 'UTC', eventType?: 'triggered' | 'acknowledged' | 'resolved'): string {
-    const {
-        EmailContainer,
-        EmailHeader,
-        EmailContent,
-        StatusBadge,
-        EmailButton,
-        InfoCard,
-        EmailFooter
-    } = require('./email-components');
-
     const baseUrl = getBaseUrl();
     const incidentUrl = incident.incidentUrl || `${baseUrl}/incidents/${incident.id}`;
 
@@ -468,9 +509,10 @@ export async function sendIncidentEmail(
             html,
             text: `${incident.title}\n\nService: ${incident.service.name}\nStatus: ${incident.status}\nUrgency: ${incident.urgency}\n\n${subjectTag} update. View: ${incidentUrl}`
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Send incident email error:', error);
-        return { success: false, error: error.message };
+        const err = error as { message?: string };
+        return { success: false, error: err.message || 'Send incident email error' };
     }
 }
 
