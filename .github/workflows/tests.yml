@@ -18,6 +18,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opssentinal_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opssentinal_test?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,8 +48,11 @@ jobs:
       - name: Install dependencies
         env:
           # CI doesn't need git hooks; this also avoids husky-related setup issues.
-          HUSKY: "0"
+          HUSKY: '0'
         run: npm ci --legacy-peer-deps
+
+      - name: Prepare test database schema
+        run: npx prisma migrate deploy
 
       - name: Unit tests
         run: npm run test:run

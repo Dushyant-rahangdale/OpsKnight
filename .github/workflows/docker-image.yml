@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -26,7 +26,8 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pin runner to avoid qemu/binfmt regressions on ubuntu-latest.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,7 +85,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          # PR validation should be fast/reliable; multi-arch builds are validated on main/tag.
+          platforms: linux/amd64
           push: false
           tags: ${{ steps.meta_test_pr.outputs.tags }}
           labels: ${{ steps.meta_test_pr.outputs.labels }}
