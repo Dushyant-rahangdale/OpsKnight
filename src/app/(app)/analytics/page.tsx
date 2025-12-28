@@ -13,6 +13,9 @@ import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 import { getAuthOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 
+// Force dynamic rendering - this page requires database access
+export const dynamic = 'force-dynamic';
+
 const formatMinutes = (ms: number | null) => (ms === null ? '--' : `${(ms / 1000 / 60).toFixed(1)}m`);
 const formatPercent = (value: number) => `${value.toFixed(0)}%`;
 const formatHours = (ms: number) => `${(ms / 1000 / 60 / 60).toFixed(1)}h`;
@@ -51,7 +54,7 @@ function getMetricTooltip(label: string): string {
         'Coverage': 'Percentage of days in the next 14 days with on-call coverage scheduled',
         'On-call hours': 'Total scheduled on-call hours in the next 14 days'
     };
-    
+
     for (const [key, value] of Object.entries(tooltips)) {
         if (label.includes(key)) {
             return value;
@@ -116,7 +119,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         })
         : null;
     const userTimeZone = getUserTimeZone(user ?? undefined);
-    
+
     const awaitedSearchParams = await searchParams;
     const teamId = typeof awaitedSearchParams?.team === 'string' && awaitedSearchParams.team !== 'ALL'
         ? awaitedSearchParams.team
@@ -224,13 +227,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         prisma.incident.count({ where: { ...activeWhere, assigneeId: null } }),
         prisma.incident.findMany({
             where: recentIncidentWhere,
-            select: { 
-                id: true, 
-                createdAt: true, 
-                updatedAt: true, 
-                status: true, 
-                urgency: true, 
-                assigneeId: true, 
+            select: {
+                id: true,
+                createdAt: true,
+                updatedAt: true,
+                status: true,
+                urgency: true,
+                assigneeId: true,
                 serviceId: true,
                 acknowledgedAt: true,
                 resolvedAt: true,
@@ -661,7 +664,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                         <h1>Operational Readiness</h1>
                     </div>
                     <div className="analytics-hero-right">
-                        <a 
+                        <a
                             href={exportUrl}
                             className="analytics-export-btn"
                         >
@@ -685,7 +688,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                     window: `${windowDays}`
                 }}
             />
-            
+
             <FilterChips
                 filters={{
                     team: teamId ?? 'ALL',
@@ -707,7 +710,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                     let showProgress = false;
                     let progressValue = 0;
                     const tooltipText = getMetricTooltip(metric.label);
-                    
+
                     // SLA metrics - color by performance
                     if (metric.label.includes('SLA met')) {
                         const value = parseFloat(metric.value.replace(/[^0-9.]/g, ''));
@@ -767,8 +770,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                         >
                             {showProgress && (
                                 <div style={{ marginTop: '0.75rem' }}>
-                                    <ProgressBar 
-                                        value={progressValue} 
+                                    <ProgressBar
+                                        value={progressValue}
                                         variant={variant === 'success' ? 'success' : variant === 'warning' ? 'warning' : variant === 'danger' ? 'danger' : 'primary'}
                                         size="sm"
                                     />
@@ -789,7 +792,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                 </ChartCard>
                 <ChartCard title={`Incident status mix (${recentWindowDays}d)`}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'center' }}>
-                        <PieChart 
+                        <PieChart
                             data={statusMix.map(entry => ({
                                 label: entry.status,
                                 value: entry.count,
@@ -821,9 +824,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                             return (
                                 <div key={service.id} className="analytics-list-item-enhanced">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span style={{ 
-                                            fontSize: '0.7rem', 
-                                            fontWeight: '700', 
+                                        <span style={{
+                                            fontSize: '0.7rem',
+                                            fontWeight: '700',
                                             color: 'var(--text-muted)',
                                             minWidth: '20px'
                                         }}>#{index + 1}</span>
@@ -842,7 +845,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                 </ChartCard>
                 <ChartCard title={`Urgency mix (${recentWindowDays}d)`}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'center' }}>
-                        <PieChart 
+                        <PieChart
                             data={[
                                 { label: 'HIGH', value: highUrgencyCount, color: '#dc2626' },
                                 { label: 'LOW', value: lowUrgencyCount, color: '#6b7280' }
@@ -879,15 +882,15 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
                     <h2>Response health</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <GaugeChart 
-                                value={ackSlaRate} 
+                            <GaugeChart
+                                value={ackSlaRate}
                                 label="Ack SLA"
                                 thresholds={{ good: 95, warning: 80 }}
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <GaugeChart 
-                                value={resolveSlaRate} 
+                            <GaugeChart
+                                value={resolveSlaRate}
                                 label="Resolve SLA"
                                 thresholds={{ good: 95, warning: 80 }}
                             />
