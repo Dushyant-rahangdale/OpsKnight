@@ -42,6 +42,15 @@ resource "aws_instance" "web_server" {
     volume_type = "gp3"
   }
 
+  # Request Spot Instance to save costs
+  instance_market_options {
+    market_type = "spot"
+    spot_options {
+      max_price = "0.0150" # Cap price at ~1.5 cents/hr (adjust based on region/type)
+      instance_interruption_behavior = "stop" # Try to stop instead of terminate if possible (for persistent requests)
+    }
+  }
+
   tags = {
     Name = "${var.project_name}-server"
   }

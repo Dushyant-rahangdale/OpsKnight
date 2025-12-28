@@ -58,3 +58,16 @@ systemctl restart nginx
 # Create app directory
 mkdir -p /home/ec2-user/app
 chown ec2-user:ec2-user /home/ec2-user/app
+
+# Attempt to pull and run the public application (if available)
+# Note: This assumes the package is Public. If private, manual login is required once.
+echo "Attempting initial deployment..."
+docker pull ghcr.io/dushyant-rahangdale/opssentinal:latest || echo "Image pull failed. Is it private? Please SSH and login."
+
+docker run -d \
+  --name opssentinal \
+  --restart always \
+  -p 3000:3000 \
+  --env-file /home/ec2-user/.env \
+  ghcr.io/dushyant-rahangdale/opssentinal:latest || echo "Container start failed. Check .env file."
+
