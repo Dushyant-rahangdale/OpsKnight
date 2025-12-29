@@ -19,6 +19,8 @@ resource "aws_launch_template" "app_lt" {
   instance_type = var.instance_type
   key_name      = var.ssh_key_name
 
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
   # Spot Instance Configuration
   instance_market_options {
     market_type = "spot"
@@ -26,15 +28,6 @@ resource "aws_launch_template" "app_lt" {
       spot_instance_type = "one-time"
       instance_interruption_behavior = "terminate"
     }
-  }
-
-  # IPv6-only networking (no public IPv4)
-  network_interfaces {
-    associate_public_ip_address = false
-    ipv6_address_count         = 1
-    delete_on_termination      = true
-    device_index              = 0
-    security_groups           = [aws_security_group.web_sg.id]
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {

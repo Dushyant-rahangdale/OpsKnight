@@ -35,22 +35,29 @@ function normalizeDomains(domains: string[]) {
 }
 
 async function getOidcConfigRecord(): Promise<OidcConfigRecord | null> {
-    const config = await prisma.oidcConfig.findFirst({
-        orderBy: { updatedAt: 'desc' }
-    });
+    try {
+        const config = await prisma.oidcConfig.findFirst({
+            orderBy: { updatedAt: 'desc' }
+        });
 
-    if (!config) {
+        if (!config) {
+            return null;
+        }
+
+        return {
+            enabled: config.enabled,
+            issuer: config.issuer,
+            clientId: config.clientId,
+            clientSecret: config.clientSecret,
+            autoProvision: config.autoProvision,
+            allowedDomains: config.allowedDomains ?? []
+        };
+    } catch (error) {
+        // Database connection error or other Prisma errors
+        // Return null to allow app to function without OIDC when DB is unavailable
+        logger.error('[OIDC] Failed to fetch OIDC config from database', { error });
         return null;
     }
-
-    return {
-        enabled: config.enabled,
-        issuer: config.issuer,
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        autoProvision: config.autoProvision,
-        allowedDomains: config.allowedDomains ?? []
-    };
 }
 
 export async function getOidcConfig(): Promise<OidcConfig | null> {

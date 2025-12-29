@@ -35,11 +35,12 @@ resource "aws_security_group" "web_sg" {
 
   # SSH Access - Restricted to your IP
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.your_ip]
-    description = "SSH access from admin IP"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = [var.your_ip]
+    ipv6_cidr_blocks = var.your_ipv6 != "" ? [var.your_ipv6] : []
+    description      = "SSH access from admin IP (IPv4 and IPv6)"
   }
 
   # App Port - Restricted to your IP

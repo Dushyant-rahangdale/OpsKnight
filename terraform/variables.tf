@@ -53,6 +53,12 @@ variable "your_ip" {
   type        = string
 }
 
+variable "your_ipv6" {
+  description = "Your IPv6 subnet for SSH access (CIDR notation, e.g., 2401:4900:8838:c07c::/64)"
+  type        = string
+  default     = ""  # Optional, only needed if you use IPv6
+}
+
 variable "app_port" {
   description = "Port the application runs on inside docker"
   default     = 3000
