@@ -20,7 +20,6 @@ export async function resetDatabase() {
         await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
     } catch (error: any) {
         console.error('Error resetting database:', error.message);
-        // If it's a connection error, let us know
         if (error.message.includes('Canbt reach database')) {
             console.error('Check if your database at DATABASE_URL is running.');
         }
@@ -28,11 +27,14 @@ export async function resetDatabase() {
 }
 
 export async function createTestUser(overrides = {}) {
+    // Ensure unique email
+    const email = (overrides as any).email || `test-${Math.random().toString(36).substr(2, 7)}@example.com`;
+
     return await prisma.user.create({
         data: {
-            email: `test-${Math.random().toString(36).substr(2, 5)}@example.com`,
+            email,
             name: 'Test User',
-            passwordHash: 'hashed-pw', // Use passwordHash to match schema
+            passwordHash: 'hashed-pw',
             role: 'USER',
             status: 'ACTIVE',
             ...overrides,
@@ -49,7 +51,7 @@ export async function createTestTeam(name: string, overrides = {}) {
     });
 }
 
-export async function createTestService(name: string, teamId: string, overrides = {}) {
+export async function createTestService(name: string, teamId: string | null = null, overrides = {}) {
     return await prisma.service.create({
         data: {
             name,
@@ -68,6 +70,37 @@ export async function createTestIncident(title: string, serviceId: string, overr
             urgency: 'HIGH',
             ...overrides,
         },
+    });
+}
+
+export async function createTestNotificationProvider(provider: string, config: any = {}, overrides = {}) {
+    return await prisma.notificationProvider.upsert({
+        where: {
+            provider: provider
+        },
+        update: {
+            enabled: true,
+            config,
+            ...overrides
+        },
+        create: {
+            provider,
+            enabled: true,
+            config,
+            ...overrides
+        }
+    });
+}
+
+export async function createTestEscalationPolicy(name: string, steps: any[], overrides = {}) {
+    return await prisma.escalationPolicy.create({
+        data: {
+            name,
+            steps: {
+                create: steps
+            },
+            ...overrides
+        }
     });
 }
 

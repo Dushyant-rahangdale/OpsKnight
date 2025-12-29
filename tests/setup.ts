@@ -64,6 +64,12 @@ const mockPrisma = {
   incidentEvent: createMockModel(),
   slackIntegration: createMockModel(),
   notificationProvider: createMockModel(),
+  oidcConfig: createMockModel(),
+  slackOAuthConfig: createMockModel(),
+  apiKey: createMockModel(),
+  verificationToken: createMockModel(),
+  account: createMockModel(),
+  session: createMockModel(),
   $transaction: vi.fn().mockImplementation((cb) => cb(mockPrisma)),
   $extends: vi.fn().mockReturnThis(),
 };
