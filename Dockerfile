@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
@@ -25,8 +25,7 @@ COPY prisma ./prisma/
 # Install production dependencies including optional dependencies
 # Optional dependencies (twilio, @sendgrid/mail, resend, nodemailer, firebase-admin, onesignal-node, @aws-sdk/client-sns)
 # are needed for notification features. npm ci --only=production installs optionalDependencies by default.
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --ignore-scripts --legacy-peer-deps --prefer-offline --no-audit --no-fund && \
+RUN npm ci --only=production --ignore-scripts --legacy-peer-deps --prefer-offline --no-audit --no-fund && \
     npm cache clean --force && \
     rm -rf /tmp/*
 
@@ -53,8 +52,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including dev)
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts --legacy-peer-deps --prefer-offline --no-audit --no-fund && \
+RUN npm ci --ignore-scripts --legacy-peer-deps --prefer-offline --no-audit --no-fund && \
     npm cache clean --force
 
 # Copy application source
@@ -65,8 +63,7 @@ RUN npx prisma generate
 
 # Build Next.js application with production optimizations
 # Pages that need database access are marked as dynamic, so build works without DB
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+RUN npm run build
 
 # Stage 3: Production Runner
 FROM node:20-alpine AS runner
