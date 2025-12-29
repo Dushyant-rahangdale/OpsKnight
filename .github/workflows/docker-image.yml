@@ -26,14 +26,11 @@ env:
 
 jobs:
   build:
-    # Pin runner to avoid qemu/binfmt regressions on ubuntu-latest.
+    # Pin runner for stability.
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -91,7 +88,9 @@ jobs:
           tags: ${{ steps.meta_test_pr.outputs.tags }}
           labels: ${{ steps.meta_test_pr.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
+          provenance: false
+          sbom: false
 
       - name: Build + push (test channel - main)
         if: github.ref == 'refs/heads/main'
@@ -99,12 +98,15 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          # Fastest build: amd64 only.
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta_test_main.outputs.tags }}
           labels: ${{ steps.meta_test_main.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
+          provenance: false
+          sbom: false
 
       - name: Build + push (release channel - version tag)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -112,9 +114,12 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
+          # Fastest build: amd64 only.
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta_release_tag.outputs.tags }}
           labels: ${{ steps.meta_release_tag.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
+          provenance: false
+          sbom: false
