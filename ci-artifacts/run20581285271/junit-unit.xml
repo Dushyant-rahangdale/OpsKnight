@@ -1,0 +1,1240 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="527" failures="0" errors="0" time="60.861">
+    <testsuite name="tests/notification-system.test.ts" timestamp="2025-12-29T19:45:27.398Z" hostname="runnervmh13bl" tests="13" failures="0" errors="0" skipped="0" time="0.027130013">
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Service Notification Isolation &gt; should send service notifications using only service-configured channels" time="0.002203642">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Schedule Escalation - Multiple On-Call Users &gt; should return all active on-call users from all layers" time="0.001714099">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Team Lead Functionality &gt; should return only team lead when notifyOnlyTeamLead is true" time="0.000741093">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Team Lead Functionality &gt; should return no users when team lead has team notifications disabled" time="0.000375441">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Team Lead Functionality &gt; should return all team members when notifyOnlyTeamLead is false" time="0.000588678">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Slack Integration &gt; should send Slack notification via webhook" time="0.00156452">
+            <system-out>
+[Slack] Notification sent via Service Webhook: triggered - Test Incident
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Slack Integration &gt; should send Slack message to channel via API" time="0.013868899">
+            <system-out>
+[Slack] No webhook URL configured (global or service-level), skipping notification
+
+            </system-out>
+            <system-err>
+[90m[7:44:27 PM][0m [33m⚠️  WARN [0m [Slack] No bot token configured, falling back to webhook
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Webhook Formatters &gt; should format Google Chat payload correctly" time="0.000477401">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Webhook Formatters &gt; should format Microsoft Teams payload correctly" time="0.000592747">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Webhook Formatters &gt; should format Discord payload correctly" time="0.000389287">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; WhatsApp Integration &gt; should send WhatsApp notification via Twilio" time="0.001019302">
+            <system-out>
+[90m[7:44:27 PM][0m [32mℹ️  INFO [0m WhatsApp notification sent via Template
+  [90m{
+    &quot;incidentId&quot;: &quot;inc-1&quot;,
+    &quot;contentSid&quot;: &quot;test-content-sid&quot;,
+    &quot;messageSid&quot;: &quot;mock-sid&quot;,
+    &quot;userId&quot;: &quot;user-1&quot;
+  }[0m
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Channel Priority &gt; should return channels in priority order: PUSH → SMS → WhatsApp → EMAIL" time="0.000393354">
+        </testcase>
+        <testcase classname="tests/notification-system.test.ts" name="Notification System Tests &gt; Escalation Step Channels &gt; should use escalation step channels when configured" time="0.00129687">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/api/routes.test.ts" timestamp="2025-12-29T19:45:27.403Z" hostname="runnervmh13bl" tests="5" failures="0" errors="0" skipped="0" time="0.053091059">
+        <testcase classname="tests/api/routes.test.ts" name="API Routes - Incidents &gt; GET /api/incidents &gt; should return 401 if unauthorized" time="0.009067188">
+        </testcase>
+        <testcase classname="tests/api/routes.test.ts" name="API Routes - Incidents &gt; GET /api/incidents &gt; should return 403 if missing scopes" time="0.00195351">
+        </testcase>
+        <testcase classname="tests/api/routes.test.ts" name="API Routes - Incidents &gt; GET /api/incidents &gt; should return incidents for authorized user" time="0.004360947">
+        </testcase>
+        <testcase classname="tests/api/routes.test.ts" name="API Routes - Incidents &gt; POST /api/incidents &gt; should create an incident with valid data" time="0.033665378">
+            <system-out>
+[90m[7:44:54 PM][0m [32mℹ️  INFO [0m api.incident.created
+  [90m{
+    &quot;incidentId&quot;: &quot;inc-new&quot;,
+    &quot;serviceId&quot;: &quot;svc-1&quot;,
+    &quot;apiKeyId&quot;: &quot;key-1&quot;
+  }[0m
+
+            </system-out>
+            <system-err>
+[90m[7:44:54 PM][0m [31m❌ ERROR[0m api.incident.service_notification_import_failed
+  [31mError: Cannot read properties of undefined (reading &apos;catch&apos;)[0m
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/api/routes.test.ts" name="API Routes - Incidents &gt; POST /api/incidents &gt; should return 400 for invalid data" time="0.002598743">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/DashboardRealtimeWrapper.test.tsx" timestamp="2025-12-29T19:45:27.406Z" hostname="runnervmh13bl" tests="3" failures="0" errors="0" skipped="0" time="0.030571307">
+        <testcase classname="tests/components/DashboardRealtimeWrapper.test.tsx" name="DashboardRealtimeWrapper &gt; should render children" time="0.024336979">
+        </testcase>
+        <testcase classname="tests/components/DashboardRealtimeWrapper.test.tsx" name="DashboardRealtimeWrapper &gt; should call onMetricsUpdate when metrics change" time="0.002454488">
+        </testcase>
+        <testcase classname="tests/components/DashboardRealtimeWrapper.test.tsx" name="DashboardRealtimeWrapper &gt; should call onIncidentsUpdate when incidents change" time="0.00221929">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/SkipLinks.test.tsx" timestamp="2025-12-29T19:45:27.407Z" hostname="runnervmh13bl" tests="3" failures="0" errors="0" skipped="0" time="0.168409496">
+        <testcase classname="tests/components/SkipLinks.test.tsx" name="SkipLinks &gt; should render skip to main content link" time="0.048331064">
+        </testcase>
+        <testcase classname="tests/components/SkipLinks.test.tsx" name="SkipLinks &gt; should render skip to navigation link" time="0.006528089">
+        </testcase>
+        <testcase classname="tests/components/SkipLinks.test.tsx" name="SkipLinks &gt; should have proper styling for accessibility" time="0.111962371">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/StatusPageConfig.test.tsx" timestamp="2025-12-29T19:45:27.408Z" hostname="runnervmh13bl" tests="5" failures="0" errors="0" skipped="0" time="0.628762245">
+        <testcase classname="tests/components/StatusPageConfig.test.tsx" name="StatusPageConfig Component &gt; renders sidebar with emoji icons" time="0.198357625">
+        </testcase>
+        <testcase classname="tests/components/StatusPageConfig.test.tsx" name="StatusPageConfig Component &gt; renders the sticky save bar" time="0.061418834">
+        </testcase>
+        <testcase classname="tests/components/StatusPageConfig.test.tsx" name="StatusPageConfig Component &gt; switches sections when sidebar items are clicked" time="0.154841896">
+        </testcase>
+        <testcase classname="tests/components/StatusPageConfig.test.tsx" name="StatusPageConfig Component &gt; toggles live preview panel" time="0.077463242">
+        </testcase>
+        <testcase classname="tests/components/StatusPageConfig.test.tsx" name="StatusPageConfig Component &gt; shows success message after successful save" time="0.130796191">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/dashboard.test.tsx" timestamp="2025-12-29T19:45:27.409Z" hostname="runnervmh13bl" tests="2" failures="0" errors="0" skipped="0" time="0.032770343">
+        <testcase classname="tests/components/dashboard.test.tsx" name="Dashboard Component &gt; should render the dashboard header" time="0.026969562">
+        </testcase>
+        <testcase classname="tests/components/dashboard.test.tsx" name="Dashboard Component &gt; should render main widgets" time="0.004618606">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/status-page-components.test.tsx" timestamp="2025-12-29T19:45:27.410Z" hostname="runnervmh13bl" tests="12" failures="0" errors="0" skipped="0" time="0.005013081">
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPagePrivacySettings &gt; should render privacy mode selector" time="0.001067091">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPagePrivacySettings &gt; should display privacy control toggles" time="0.000230741">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPagePrivacySettings &gt; should handle privacy preset changes" time="0.000324395">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageSubscribe &gt; should render subscription form" time="0.000200784">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageSubscribe &gt; should validate email input" time="0.0002517">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageSubscribe &gt; should handle subscription submission" time="0.000184865">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageServices &gt; should respect privacy settings for metrics display" time="0.00016618">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageServices &gt; should hide uptime history when privacy settings disable it" time="0.00015042">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageIncidents &gt; should respect privacy settings for incident details" time="0.000224008">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageIncidents &gt; should hide incident titles when privacy settings disable it" time="0.000174405">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageIncidents &gt; should hide incident descriptions when privacy settings disable it" time="0.000177481">
+        </testcase>
+        <testcase classname="tests/components/status-page-components.test.tsx" name="Status Page Components &gt; StatusPageIncidents &gt; should hide timestamps when privacy settings disable it" time="0.000142506">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/hooks/custom-hooks.test.ts" timestamp="2025-12-29T19:45:27.412Z" hostname="runnervmh13bl" tests="9" failures="0" errors="0" skipped="0" time="0.023088317">
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useRealtime &gt; should subscribe to realtime updates" time="0.002617052">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useRealtime &gt; should unsubscribe from realtime updates" time="0.000425002">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useRealtime &gt; should handle multiple subscribers" time="0.000456221">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useModalState &gt; should initialize with closed state by default" time="0.012693638">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useModalState &gt; should open the modal via setter" time="0.002389487">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useModalState &gt; should toggle the modal via functional update" time="0.001910224">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useEventStream &gt; should connect to event stream" time="0.000325297">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useEventStream &gt; should handle event stream messages" time="0.000432577">
+        </testcase>
+        <testcase classname="tests/hooks/custom-hooks.test.ts" name="Custom Hooks &gt; useEventStream &gt; should cleanup event stream on unmount" time="0.000243445">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/hooks/useRealtime.test.ts" timestamp="2025-12-29T19:45:27.415Z" hostname="runnervmh13bl" tests="7" failures="0" errors="0" skipped="0" time="0.038965932">
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should initialize with disconnected state" time="0.014295866">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should create EventSource connection" time="0.002302045">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should handle connection open" time="0.005295618">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should handle metrics update" time="0.005530035">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should handle incidents update" time="0.004619787">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should handle connection errors" time="0.003689592">
+        </testcase>
+        <testcase classname="tests/hooks/useRealtime.test.ts" name="useRealtime &gt; should cleanup on unmount" time="0.001592771">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/auth.test.ts" timestamp="2025-12-29T19:45:27.417Z" hostname="runnervmh13bl" tests="6" failures="0" errors="0" skipped="0" time="0.009850253">
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; CredentialsProvider authorize &gt; should return user for correct credentials" time="0.002567069">
+        </testcase>
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; CredentialsProvider authorize &gt; should return null for invalid password" time="0.000503259">
+        </testcase>
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; CredentialsProvider authorize &gt; should return null for disabled user" time="0.000474185">
+        </testcase>
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; CredentialsProvider authorize &gt; should activate invited user on successful login" time="0.002321271">
+        </testcase>
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; Callbacks &gt; jwt callback should update token from DB" time="0.00058435">
+        </testcase>
+        <testcase classname="tests/integration/auth.test.ts" name="Authentication Logic &gt; Callbacks &gt; session callback should include role and id" time="0.001709737">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/status-page-css.test.tsx" timestamp="2025-12-29T19:45:27.419Z" hostname="runnervmh13bl" tests="2" failures="0" errors="0" skipped="0" time="0.276044828">
+        <testcase classname="tests/integration/status-page-css.test.tsx" name="PublicStatusPage Custom CSS &gt; renders custom css when provided in status page config" time="0.218969149">
+        </testcase>
+        <testcase classname="tests/integration/status-page-css.test.tsx" name="PublicStatusPage Custom CSS &gt; does not render custom css when not provided" time="0.055824014">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/status-page-subscription.test.ts" timestamp="2025-12-29T19:45:27.420Z" hostname="runnervmh13bl" tests="14" failures="0" errors="0" skipped="0" time="0.006134439">
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Subscription Flow &gt; should create a new subscription" time="0.001144114">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Subscription Flow &gt; should handle duplicate subscriptions" time="0.000350834">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Subscription Flow &gt; should resubscribe previously unsubscribed email" time="0.000289139">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Subscription Flow &gt; should reject invalid email addresses" time="0.000203229">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Subscription Flow &gt; should reject subscription for disabled status page" time="0.000197448">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Email Verification Flow &gt; should send verification email on subscription" time="0.000254214">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Email Verification Flow &gt; should verify subscription with valid token" time="0.000179946">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Email Verification Flow &gt; should reject invalid verification token" time="0.000160199">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Unsubscribe Flow &gt; should unsubscribe with valid token" time="0.000308936">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Unsubscribe Flow &gt; should reject invalid unsubscribe token" time="0.000201706">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Notification Delivery &gt; should send email on incident creation to verified subscribers" time="0.000168815">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Notification Delivery &gt; should not send email to unsubscribed users" time="0.000157434">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Notification Delivery &gt; should not send email to unverified subscribers" time="0.000293507">
+        </testcase>
+        <testcase classname="tests/integration/status-page-subscription.test.ts" name="Status Page Subscription Integration &gt; Notification Delivery &gt; should send email on incident resolution" time="0.000253192">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/status-page-webhooks.test.ts" timestamp="2025-12-29T19:45:27.423Z" hostname="runnervmh13bl" tests="18" failures="0" errors="0" skipped="0" time="0.01258715">
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Creation &gt; should create a webhook via API" time="0.006907395">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Creation &gt; should require admin authentication" time="0.000283589">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Creation &gt; should validate webhook URL format" time="0.000303296">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Creation &gt; should require events array" time="0.000203089">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should deliver webhook on incident creation" time="0.000239988">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should include correct signature in webhook headers" time="0.000249675">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should include event type in headers" time="0.000181519">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should only deliver to webhooks subscribed to event" time="0.000165479">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should not deliver to disabled webhooks" time="0.000275935">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should handle webhook delivery timeout" time="0.000199893">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Delivery &gt; should handle webhook delivery failure" time="0.000172612">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Payload &gt; should include correct event structure" time="0.000162643">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Payload &gt; should include incident data in payload" time="0.000304458">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Verification &gt; should verify webhook signature correctly" time="0.000195835">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Verification &gt; should reject webhook with invalid signature" time="0.000169516">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Management &gt; should list webhooks for a status page" time="0.000209872">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Management &gt; should delete a webhook" time="0.000185766">
+        </testcase>
+        <testcase classname="tests/integration/status-page-webhooks.test.ts" name="Status Page Webhooks Integration &gt; Webhook Management &gt; should update webhook lastTriggeredAt on delivery" time="0.000158205">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/accessibility.test.ts" timestamp="2025-12-29T19:45:27.428Z" hostname="runnervmh13bl" tests="12" failures="0" errors="0" skipped="0" time="0.006693435">
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; getActionAriaLabel &gt; should generate action aria label" time="0.001114108">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; getActionAriaLabel &gt; should include loading state" time="0.000230139">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; getIconButtonAriaLabel &gt; should generate icon button aria label with entity" time="0.000332971">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; getIconButtonAriaLabel &gt; should generate icon button aria label without entity" time="0.000195004">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; ARIA_LABELS constants &gt; should have all required action labels" time="0.000360873">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; ARIA_LABELS constants &gt; should have navigation labels" time="0.000227755">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; ARIA_LABELS constants &gt; should have incident action labels" time="0.000192239">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; KEYBOARD_HANDLERS &gt; should handle button key down with Enter" time="0.000613485">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; KEYBOARD_HANDLERS &gt; should handle button key down with Space" time="0.000291093">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; KEYBOARD_HANDLERS &gt; should not call handler when disabled" time="0.00030573">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; KEYBOARD_HANDLERS &gt; should handle Escape key" time="0.000235589">
+        </testcase>
+        <testcase classname="tests/lib/accessibility.test.ts" name="Accessibility Utilities &gt; KEYBOARD_HANDLERS &gt; should handle arrow keys" time="0.000578038">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/advanced.test.tsx" timestamp="2025-12-29T19:45:27.431Z" hostname="runnervmh13bl" tests="12" failures="0" errors="0" skipped="0" time="0.165713047">
+        <testcase classname="tests/lib/advanced.test.tsx" name="Error Handling &gt; Error Boundary &gt; should catch and display errors" time="0.155318602">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Error Handling &gt; Error Boundary &gt; should render children when no error" time="0.002751554">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Error Handling &gt; API Error Handling &gt; should handle network errors" time="0.00044501">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Error Handling &gt; API Error Handling &gt; should handle timeout errors" time="0.000309227">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Error Handling &gt; Validation Errors &gt; should collect validation errors" time="0.00028427">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Performance Optimization &gt; Memoization &gt; should memoize expensive calculations" time="0.000246049">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Performance Optimization &gt; Debouncing &gt; should debounce function calls" time="0.001762869">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Performance Optimization &gt; Throttling &gt; should throttle function calls" time="0.000518607">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Security &gt; Input Sanitization &gt; should sanitize HTML input" time="0.00044439">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Security &gt; Input Sanitization &gt; should validate SQL injection attempts" time="0.000526813">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Security &gt; Authentication &gt; should hash passwords" time="0.000738418">
+        </testcase>
+        <testcase classname="tests/lib/advanced.test.tsx" name="Security &gt; Authentication &gt; should validate password strength" time="0.000265316">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/analytics.test.ts" timestamp="2025-12-29T19:45:27.434Z" hostname="runnervmh13bl" tests="14" failures="0" errors="0" skipped="0" time="0.007696477">
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Incident Analytics &gt; should calculate incident metrics" time="0.00127039">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Incident Analytics &gt; should group incidents by urgency" time="0.000346816">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Incident Analytics &gt; should calculate MTTR (Mean Time To Resolve)" time="0.000321459">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Incident Analytics &gt; should calculate MTTA (Mean Time To Acknowledge)" time="0.000212828">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Time-based Analytics &gt; should group incidents by hour" time="0.00027365">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Time-based Analytics &gt; should group incidents by day of week" time="0.000243635">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Service Analytics &gt; should calculate service uptime" time="0.000275213">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Service Analytics &gt; should track service health changes" time="0.000919436">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Team Performance &gt; should calculate team response metrics" time="0.000239647">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Team Performance &gt; should rank teams by performance" time="0.000444819">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Trend Analysis &gt; should calculate incident trend" time="0.000324035">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Trend Analysis &gt; should detect anomalies" time="0.000207086">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Custom Reports &gt; should generate date range report" time="0.000419442">
+        </testcase>
+        <testcase classname="tests/lib/analytics.test.ts" name="Analytics and Reporting &gt; Custom Reports &gt; should export report data" time="0.00039137">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/api-keys.test.ts" timestamp="2025-12-29T19:45:27.437Z" hostname="runnervmh13bl" tests="10" failures="0" errors="0" skipped="0" time="0.008416078">
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; generateApiKey &gt; should generate a valid API key with prefix" time="0.002647088">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; generateApiKey &gt; should generate unique tokens on each call" time="0.000831851">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; generateApiKey &gt; should generate token with correct format" time="0.00041246">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; generateApiKey &gt; should hash the generated token correctly" time="0.000273971">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should generate a consistent hash for the same token" time="0.000308005">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should generate different hashes for different tokens" time="0.000328573">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should handle tokens with special characters" time="0.000813829">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should generate hex-encoded SHA-256 hash" time="0.000356726">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should handle empty token" time="0.000301713">
+        </testcase>
+        <testcase classname="tests/lib/api-keys.test.ts" name="API Keys Utilities &gt; hashToken &gt; should handle very long tokens" time="0.000352227">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/api-response.test.ts" timestamp="2025-12-29T19:45:27.440Z" hostname="runnervmh13bl" tests="11" failures="0" errors="0" skipped="0" time="0.012715249">
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should return successful JSON response with data" time="0.003333369">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should include correct headers" time="0.000453747">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should serialize data correctly" time="0.002076634">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should handle null data" time="0.000612933">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should handle arrays" time="0.000769515">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonOk &gt; should allow custom status code" time="0.00040197">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonError &gt; should return error response with status and message" time="0.000479815">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonError &gt; should return error response with custom status" time="0.000311311">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonError &gt; should include error message in response body" time="0.000705436">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonError &gt; should include meta data if provided" time="0.000603376">
+        </testcase>
+        <testcase classname="tests/lib/api-response.test.ts" name="API Response Utilities &gt; jsonError &gt; should handle different status codes" time="0.001082479">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/bootstrap-admin.test.ts" timestamp="2025-12-29T19:45:27.442Z" hostname="runnervmh13bl" tests="8" failures="0" errors="0" skipped="0" time="0.004630678">
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Last Admin Protection &gt; should allow deletion when there are multiple admins" time="0.001275399">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Last Admin Protection &gt; should prevent deletion when there is only one admin" time="0.000212617">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Last Admin Protection &gt; should allow deletion of non-admin users even if only one admin exists" time="0.000201846">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Last Admin Protection &gt; should allow deletion when user is disabled admin" time="0.000318124">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Creation &gt; should generate a password of correct length" time="0.000275294">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Creation &gt; should only allow bootstrap when no users exist" time="0.00016046">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Creation &gt; should prevent bootstrap when users already exist" time="0.000144339">
+        </testcase>
+        <testcase classname="tests/lib/bootstrap-admin.test.ts" name="Bootstrap Admin - Complete Flow &gt; should follow correct sequence: bootstrap -&gt; create real admin -&gt; delete bootstrap" time="0.000346967">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/bulk-actions.test.ts" timestamp="2025-12-29T19:45:27.444Z" hostname="runnervmh13bl" tests="7" failures="0" errors="0" skipped="0" time="0.058592835">
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkAcknowledge &gt; should acknowledge multiple incidents" time="0.051054433">
+            <system-err>
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-1 not found for status page notifications
+
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-2 not found for status page notifications
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkAcknowledge &gt; should return error if no incidents selected" time="0.000618534">
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkAcknowledge &gt; should return error if unauthorized" time="0.000641797">
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkResolve &gt; should resolve multiple incidents" time="0.001309313">
+            <system-err>
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-1 not found for status page notifications
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-2 not found for status page notifications
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkUpdateUrgency &gt; should update urgency for multiple incidents" time="0.00070764">
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkUpdateStatus &gt; should update status to ACKNOWLEDGED with timestamp" time="0.001276811">
+            <system-err>
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-1 not found for status page notifications
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/lib/bulk-actions.test.ts" name="Bulk Actions &gt; bulkUpdateStatus &gt; should update status to RESOLVED with proper data" time="0.001067712">
+            <system-err>
+[90m[7:44:57 PM][0m [31m❌ ERROR[0m Incident incident-1 not found for status page notifications
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/date-format.test.ts" timestamp="2025-12-29T19:45:27.447Z" hostname="runnervmh13bl" tests="22" failures="0" errors="0" skipped="0" time="0.008346153">
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should format date in datetime format by default" time="0.001176835">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should format date in date-only format" time="0.000410455">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should format date in time-only format" time="0.000326629">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should handle date strings" time="0.000331128">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should handle invalid dates" time="0.000265675">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDate &gt; should handle invalid date strings" time="0.000194042">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateFriendly &gt; should format date in friendly datetime format by default" time="0.000312172">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateFriendly &gt; should format date in friendly date-only format" time="0.000210823">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateFriendly &gt; should use UTC methods for consistency" time="0.000258592">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateFriendly &gt; should handle invalid dates" time="0.000193731">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatTime &gt; should format time in HH:MM format" time="0.000224388">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatTime &gt; should use 24-hour format" time="0.00026266">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatTime &gt; should handle date strings" time="0.000274632">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatTime &gt; should handle invalid dates" time="0.000255927">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateShort &gt; should format date in short format" time="0.00023579">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateShort &gt; should include month abbreviation" time="0.000170949">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateShort &gt; should include day number" time="0.000183091">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateShort &gt; should handle invalid dates" time="0.000148988">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateGroup &gt; should format date for grouping" time="0.000217666">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateGroup &gt; should include full month name" time="0.000236371">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateGroup &gt; should include year" time="0.00015549">
+        </testcase>
+        <testcase classname="tests/lib/date-format.test.ts" name="Date Format Utilities &gt; formatDateGroup &gt; should handle invalid dates" time="0.000140883">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/form-validation.test.ts" timestamp="2025-12-29T19:45:27.452Z" hostname="runnervmh13bl" tests="21" failures="0" errors="0" skipped="0" time="0.008538472">
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidEmail &gt; should validate correct email addresses" time="0.001358404">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidEmail &gt; should reject invalid email addresses" time="0.000350344">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidEmail &gt; should handle edge cases" time="0.000333642">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidUrl &gt; should validate correct URLs" time="0.000411226">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidUrl &gt; should reject invalid URLs" time="0.00037008">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidPhoneNumber &gt; should validate correct phone numbers" time="0.00032139">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidPhoneNumber &gt; should reject invalid phone numbers" time="0.000239296">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidDedupKey &gt; should validate correct dedup keys" time="0.000365913">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; isValidDedupKey &gt; should reject invalid dedup keys" time="0.000218617">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getEmailValidationError &gt; should return null for valid emails" time="0.000259023">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getEmailValidationError &gt; should return error for empty email" time="0.000157373">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getEmailValidationError &gt; should return error for invalid format" time="0.000236882">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getEmailValidationError &gt; should return error for email that is too long" time="0.000286865">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getUrlValidationError &gt; should return null for valid URLs" time="0.000236822">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getUrlValidationError &gt; should return null for empty URL (optional field)" time="0.000194934">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getUrlValidationError &gt; should return error for invalid URL format" time="0.000196085">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getUrlValidationError &gt; should return error for URL that is too long" time="0.000167813">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getDedupKeyValidationError &gt; should return null for valid dedup keys" time="0.000164977">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getDedupKeyValidationError &gt; should return null for empty dedup key (optional field)" time="0.000148727">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getDedupKeyValidationError &gt; should return error for invalid format" time="0.000146844">
+        </testcase>
+        <testcase classname="tests/lib/form-validation.test.ts" name="Form Validation Utilities &gt; getDedupKeyValidationError &gt; should return error for dedup key that is too long" time="0.000144499">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/integrations.test.ts" timestamp="2025-12-29T19:45:27.457Z" hostname="runnervmh13bl" tests="15" failures="0" errors="0" skipped="0" time="0.010222895">
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; PagerDuty Integration &gt; should create PagerDuty incident" time="0.002536664">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; PagerDuty Integration &gt; should acknowledge PagerDuty incident" time="0.000315118">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Datadog Integration &gt; should send metrics to Datadog" time="0.000697592">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Datadog Integration &gt; should create Datadog event" time="0.000344813">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Slack Integration &gt; should post message to Slack" time="0.000256849">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Slack Integration &gt; should update Slack message" time="0.000311021">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; GitHub Integration &gt; should create GitHub issue" time="0.000325066">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; GitHub Integration &gt; should close GitHub issue" time="0.000234517">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Sentry Integration &gt; should send error to Sentry" time="0.000338892">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Prometheus Integration &gt; should query Prometheus metrics" time="0.000256038">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; OpsGenie Integration &gt; should create OpsGenie alert" time="0.00022481">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Integration Authentication &gt; should validate API key" time="0.000209541">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Integration Authentication &gt; should validate OAuth token" time="0.000325718">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Integration Error Handling &gt; should handle rate limiting" time="0.000444369">
+        </testcase>
+        <testcase classname="tests/lib/integrations.test.ts" name="Third-Party Integrations &gt; Integration Error Handling &gt; should handle authentication errors" time="0.00114718">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/notifications.test.ts" timestamp="2025-12-29T19:45:27.465Z" hostname="runnervmh13bl" tests="4" failures="0" errors="0" skipped="0" time="0.007481836">
+        <testcase classname="tests/lib/notifications.test.ts" name="Notifications Library &gt; should route to EMAIL channel correctly" time="0.004256249">
+        </testcase>
+        <testcase classname="tests/lib/notifications.test.ts" name="Notifications Library &gt; should route to WHATSAPP channel correctly" time="0.000849324">
+        </testcase>
+        <testcase classname="tests/lib/notifications.test.ts" name="Notifications Library &gt; should handle delivery failure" time="0.000741112">
+        </testcase>
+        <testcase classname="tests/lib/notifications.test.ts" name="Notifications Library &gt; should return error for unknown channel" time="0.000512025">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/rbac.test.ts" timestamp="2025-12-29T19:45:27.466Z" hostname="runnervmh13bl" tests="20" failures="0" errors="0" skipped="0" time="0.01526828">
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; getCurrentUser &gt; should return user when session is valid" time="0.002476443">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; getCurrentUser &gt; should throw Error when session is missing" time="0.001633719">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; getCurrentUser &gt; should throw Error when user is not found in DB" time="0.000668898">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdmin &gt; should return user if role is ADMIN" time="0.000435613">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdmin &gt; should throw Error if role is not ADMIN" time="0.000437967">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrResponder &gt; should return user if role is ADMIN" time="0.000576676">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrResponder &gt; should return user if role is RESPONDER" time="0.000511755">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrResponder &gt; should throw Error if role is USER" time="0.00058972">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrTeamOwner &gt; should allow ADMIN even without membership" time="0.001059414">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrTeamOwner &gt; should allow TEAM OWNER" time="0.000451843">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertAdminOrTeamOwner &gt; should throw Error for regular user not in team" time="0.00071814">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertNotSelf &gt; should pass if IDs are different" time="0.000524979">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; assertNotSelf &gt; should throw if IDs are the same" time="0.000587637">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; getUserPermissions &gt; should return permissions for logged in user" time="0.000443357">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; getUserPermissions &gt; should return default permissions if not logged in" time="0.000285763">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; Incident/Service access &gt; should allow ADMIN to modify incident" time="0.000418832">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; Incident/Service access &gt; should allow assignee to modify incident" time="0.000290492">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; Incident/Service access &gt; should allow team member to modify incident" time="0.000258382">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; Incident/Service access &gt; should throw if user has no access to incident" time="0.000370721">
+        </testcase>
+        <testcase classname="tests/lib/rbac.test.ts" name="RBAC Functions &gt; Incident/Service access &gt; should allow team member to modify service" time="0.000327722">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/retry.test.ts" timestamp="2025-12-29T19:45:27.480Z" hostname="runnervmh13bl" tests="15" failures="0" errors="0" skipped="0" time="11.821125027">
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should succeed on first attempt" time="0.001779379">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should retry on failure and succeed" time="3.004398872">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should fail after max attempts" time="3.002801615">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should use exponential backoff" time="0.301277382">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should not retry non-retryable errors" time="0.000790504">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retry &gt; should respect max delay" time="2.500732051">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retryWithThrow &gt; should return data on success" time="0.000722748">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retryWithThrow &gt; should throw error on failure" time="1.002262592">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; isRetryableHttpError &gt; should return true for 5xx errors" time="0.000673567">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; isRetryableHttpError &gt; should return true for 429 rate limit" time="0.000288158">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; isRetryableHttpError &gt; should return false for 4xx client errors" time="0.000333131">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; isRetryableHttpError &gt; should return false for 2xx success codes" time="0.00039157">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retryFetch &gt; should retry on network errors" time="1.001126225">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retryFetch &gt; should retry on 5xx errors" time="1.000820607">
+        </testcase>
+        <testcase classname="tests/lib/retry.test.ts" name="Retry Utilities &gt; retryFetch &gt; should not retry on 4xx client errors" time="0.000623692">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/service-health.test.ts" timestamp="2025-12-29T19:45:27.485Z" hostname="runnervmh13bl" tests="17" failures="0" errors="0" skipped="0" time="0.010213584">
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should return perfect score for healthy service" time="0.001746795">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should penalize critical incidents heavily" time="0.001412442">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should calculate score based on all factors" time="0.000768963">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should include factor breakdowns" time="0.000511753">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should handle high incident volume" time="0.000283679">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should reward fast resolution times" time="0.000471468">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should handle SLA compliance" time="0.000300049">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; calculateServiceHealthScore &gt; should penalize recent incidents" time="0.000285823">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreColor &gt; should return success color for excellent score" time="0.000382584">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreColor &gt; should return appropriate color for good score" time="0.000287365">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreColor &gt; should return warning color for fair score" time="0.00020386">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreColor &gt; should return danger color for poor score" time="0.000162252">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreLabel &gt; should return &quot;Excellent&quot; for high scores" time="0.000331177">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreLabel &gt; should return &quot;Good&quot; for scores &gt;= 75" time="0.000215321">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreLabel &gt; should return &quot;Fair&quot; for scores &gt;= 60" time="0.000201656">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreLabel &gt; should return &quot;Poor&quot; for scores &gt;= 40" time="0.000224127">
+        </testcase>
+        <testcase classname="tests/lib/service-health.test.ts" name="Service Health Utilities &gt; getHealthScoreLabel &gt; should return &quot;Critical&quot; for low scores" time="0.000166801">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/slack.test.ts" timestamp="2025-12-29T19:45:27.490Z" hostname="runnervmh13bl" tests="7" failures="0" errors="0" skipped="0" time="0.008714887">
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should send webhook notification successfully" time="0.003065388">
+            <system-out>
+[Slack] Notification sent via Service Webhook: triggered - Database Outage
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should return error when no webhook URL configured" time="0.000557531">
+            <system-out>
+[Slack] No webhook URL configured (global or service-level), skipping notification
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should handle 5xx webhook failure gracefully" time="0.000844405">
+            <system-err>
+[Slack] Webhook failed (client error): Internal Server Error
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should handle 4xx client errors" time="0.000485576">
+            <system-err>
+[Slack] Webhook failed (client error): Bad Request
+
+            </system-err>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should include custom message in notification payload" time="0.000462453">
+            <system-out>
+[Slack] Notification sent via Service Webhook: triggered - Deployment Failed
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should send acknowledged event with correct status color" time="0.00075044">
+            <system-out>
+[Slack] Notification sent via Service Webhook: acknowledged - Database Issue
+
+            </system-out>
+        </testcase>
+        <testcase classname="tests/lib/slack.test.ts" name="Slack Integration &gt; sendSlackNotification - Webhook Mode &gt; should send resolved event with success color" time="0.000735623">
+            <system-out>
+[Slack] Notification sent via Service Webhook: resolved - Network Restored
+
+            </system-out>
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/status-page-email-templates.test.ts" timestamp="2025-12-29T19:45:27.496Z" hostname="runnervmh13bl" tests="14" failures="0" errors="0" skipped="0" time="0.008431673">
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentCreatedTemplate &gt; should generate incident created email with all fields" time="0.002138962">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentCreatedTemplate &gt; should handle missing optional fields" time="0.000393915">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentCreatedTemplate &gt; should include unsubscribe link when provided" time="0.000351356">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentCreatedTemplate &gt; should handle missing unsubscribe URL" time="0.000269784">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentCreatedTemplate &gt; should use status page URL as fallback for incident URL" time="0.000393535">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentResolvedTemplate &gt; should generate resolved email with all fields" time="0.000462132">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentResolvedTemplate &gt; should handle missing optional fields" time="0.000259615">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getIncidentResolvedTemplate &gt; should use status page URL as fallback for incident URL" time="0.000215031">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getStatusChangeTemplate &gt; should generate status change email with all fields" time="0.000484254">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getStatusChangeTemplate &gt; should handle missing optional fields" time="0.000344643">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; getStatusChangeTemplate &gt; should include unsubscribe link when provided" time="0.000205733">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; Email template formatting &gt; should escape HTML in user content" time="0.000237824">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; Email template formatting &gt; should handle long content gracefully" time="0.000319036">
+        </testcase>
+        <testcase classname="tests/lib/status-page-email-templates.test.ts" name="Status Page Email Templates &gt; Email template formatting &gt; should handle special characters in content" time="0.000242673">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/status-page-validation.test.ts" timestamp="2025-12-29T19:45:27.506Z" hostname="runnervmh13bl" tests="30" failures="0" errors="0" skipped="0" time="0.015481147">
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate valid status page settings" time="0.003295479">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate minimal settings" time="0.00048758">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate privacy mode values" time="0.000672705">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should reject invalid privacy mode" time="0.000859464">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate name length" time="0.000351777">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate subdomain length" time="0.000292997">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate custom domain length" time="0.0003104">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate email format" time="0.000430504">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should accept valid email" time="0.000277909">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate URL format" time="0.000443919">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should accept valid URL" time="0.00068552">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate maxIncidentsToShow range" time="0.000559985">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate incidentHistoryDays range" time="0.000578971">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should accept null values for nullable fields" time="0.00027338">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate serviceConfigs structure" time="0.000406679">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should accept empty serviceConfigs" time="0.00021981">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should validate allowedCustomFields array" time="0.000414553">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusPageSettingsSchema &gt; should accept empty allowedCustomFields array" time="0.000228156">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should validate valid announcement" time="0.000240899">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should validate minimal announcement" time="0.000252842">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should reject empty statusPageId" time="0.000238685">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should reject empty title" time="0.000266327">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should validate title max length" time="0.000229158">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should validate message max length" time="0.000205243">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementCreateSchema &gt; should accept null endDate" time="0.000205443">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementPatchSchema &gt; should validate valid patch" time="0.000253563">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementPatchSchema &gt; should validate minimal patch with just id" time="0.000172221">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementPatchSchema &gt; should reject empty id" time="0.000203249">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementPatchSchema &gt; should validate title max length in patch" time="0.000197638">
+        </testcase>
+        <testcase classname="tests/lib/status-page-validation.test.ts" name="Status Page Validation Schemas &gt; StatusAnnouncementPatchSchema &gt; should validate message max length in patch" time="0.000206846">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/status-page-webhooks.test.ts" timestamp="2025-12-29T19:45:27.512Z" hostname="runnervmh13bl" tests="8" failures="0" errors="0" skipped="0" time="0.005485352">
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should verify valid signature" time="0.001507281">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should reject invalid signature" time="0.000360763">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should reject signature with wrong secret" time="0.000341707">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should reject signature with wrong payload" time="0.000296473">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should handle signature without sha256 prefix" time="0.000323043">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should handle malformed signature header" time="0.000236542">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should handle empty signature" time="0.000260496">
+        </testcase>
+        <testcase classname="tests/lib/status-page-webhooks.test.ts" name="Status Page Webhooks &gt; verifyWebhookSignature &gt; should handle empty payload" time="0.000242112">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/user-friendly-errors.test.ts" timestamp="2025-12-29T19:45:27.514Z" hostname="runnervmh13bl" tests="20" failures="0" errors="0" skipped="0" time="0.007209955">
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate Unique constraint errors" time="0.001237938">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate key constraint errors" time="0.000242012">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate Foreign key constraint errors" time="0.000285403">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate Record not found errors" time="0.000202367">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate Unauthorized errors" time="0.000380159">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate not found errors" time="0.000182761">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate network errors" time="0.000178062">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate timeout errors" time="0.000159657">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should translate Internal Server Error" time="0.000254174">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should return original message if no match found" time="0.000193992">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should handle Error objects" time="0.000196266">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getUserFriendlyError &gt; should handle unknown error types" time="0.000170097">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for create action" time="0.000331047">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for update action" time="0.000198771">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for delete action" time="0.000175207">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for invite action" time="0.000184263">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for assign action" time="0.000150511">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for resolve action" time="0.00019852">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return success message for acknowledge action" time="0.000148658">
+        </testcase>
+        <testcase classname="tests/lib/user-friendly-errors.test.ts" name="User-Friendly Error Messages &gt; getSuccessMessage &gt; should return generic message for unknown action" time="0.000140812">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/utilities.test.ts" timestamp="2025-12-29T19:45:27.518Z" hostname="runnervmh13bl" tests="14" failures="0" errors="0" skipped="0" time="0.021390573">
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Encryption &gt; should encrypt sensitive data" time="0.001743713">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Encryption &gt; should decrypt encrypted data" time="0.000301132">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Date Formatting &gt; should format date to ISO string" time="0.000418711">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Date Formatting &gt; should format date to readable string" time="0.013024106">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Date Formatting &gt; should calculate time difference" time="0.000251319">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; String Utilities &gt; should truncate long strings" time="0.000303105">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; String Utilities &gt; should capitalize first letter" time="0.000238425">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; String Utilities &gt; should convert to slug" time="0.000306121">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Array Utilities &gt; should remove duplicates" time="0.000451993">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Array Utilities &gt; should chunk array" time="0.000465588">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Array Utilities &gt; should group by property" time="0.000939963">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Object Utilities &gt; should deep clone object" time="0.000229969">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Object Utilities &gt; should merge objects" time="0.000385008">
+        </testcase>
+        <testcase classname="tests/lib/utilities.test.ts" name="Utility Functions &gt; Object Utilities &gt; should pick properties" time="0.000285132">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/validation-extended.test.ts" timestamp="2025-12-29T19:45:27.520Z" hostname="runnervmh13bl" tests="20" failures="0" errors="0" skipped="0" time="0.011813889">
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentCreateSchema &gt; should validate a complete incident payload" time="0.002064522">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentCreateSchema &gt; should validate incident without description" time="0.000308345">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentCreateSchema &gt; should reject title that is too long" time="0.001497423">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentCreateSchema &gt; should reject empty title" time="0.000412139">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentCreateSchema &gt; should reject invalid urgency" time="0.000324175">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentPatchSchema &gt; should validate patch with status only" time="0.000300741">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentPatchSchema &gt; should validate patch with urgency only" time="0.000231552">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentPatchSchema &gt; should validate patch with all fields" time="0.000216424">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; IncidentPatchSchema &gt; should reject invalid status" time="0.000314566">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; EventSchema &gt; should validate trigger event" time="0.000410967">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; EventSchema &gt; should validate resolve event" time="0.000258643">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; EventSchema &gt; should reject missing dedup_key" time="0.000266207">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; EventSchema &gt; should reject invalid severity" time="0.000360974">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; StatusPageSettingsSchema &gt; should validate valid email in contactEmail" time="0.000507206">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; StatusPageSettingsSchema &gt; should reject invalid email in contactEmail" time="0.000378586">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; StatusPageSettingsSchema &gt; should validate valid URL in contactUrl" time="0.000843424">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; StatusPageSettingsSchema &gt; should reject invalid URL in contactUrl" time="0.000368558">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; CustomFieldCreateSchema &gt; should validate valid custom field" time="0.000365001">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; CustomFieldCreateSchema &gt; should reject key with invalid characters" time="0.000244496">
+        </testcase>
+        <testcase classname="tests/lib/validation-extended.test.ts" name="Extended Validation Schema Tests &gt; CustomFieldCreateSchema &gt; should validate key with underscores" time="0.000182951">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/validation.test.ts" timestamp="2025-12-29T19:45:27.524Z" hostname="runnervmh13bl" tests="7" failures="0" errors="0" skipped="0" time="0.00611157">
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; IncidentCreateSchema &gt; should validate valid incident data" time="0.001974543">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; IncidentCreateSchema &gt; should reject empty title" time="0.000713621">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; IncidentCreateSchema &gt; should reject title exceeding max length" time="0.000373877">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; IncidentCreateSchema &gt; should reject invalid urgency" time="0.000408072">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; EventSchema &gt; should validate valid event data" time="0.000364219">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; EventSchema &gt; should reject empty dedup_key" time="0.000293878">
+        </testcase>
+        <testcase classname="tests/lib/validation.test.ts" name="Validation Schemas &gt; EventSchema &gt; should reject invalid event_action" time="0.000270434">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/webhooks.test.ts" timestamp="2025-12-29T19:45:27.526Z" hostname="runnervmh13bl" tests="11" failures="0" errors="0" skipped="0" time="0.013271466">
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Delivery &gt; should send webhook with correct payload" time="0.003486483">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Delivery &gt; should include timestamp in webhook payload" time="0.000887986">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Delivery &gt; should handle webhook delivery failure" time="0.002253062">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Signature Validation &gt; should validate webhook signature" time="0.000491797">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Signature Validation &gt; should reject invalid signature" time="0.000275374">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Retry Logic &gt; should retry failed webhooks" time="0.000475076">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Retry Logic &gt; should use exponential backoff" time="0.000625707">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Event Types &gt; should support incident events" time="0.000576716">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Event Types &gt; should support service events" time="0.000534989">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Headers &gt; should include required headers" time="0.000755629">
+        </testcase>
+        <testcase classname="tests/lib/webhooks.test.ts" name="Webhook System &gt; Webhook Rate Limiting &gt; should respect rate limits" time="0.000509741">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/lib/whatsapp.test.ts" timestamp="2025-12-29T19:45:27.528Z" hostname="runnervmh13bl" tests="5" failures="0" errors="0" skipped="0" time="0.011322963">
+        <testcase classname="tests/lib/whatsapp.test.ts" name="WhatsApp Integration &gt; sendIncidentWhatsApp &gt; should send WhatsApp notification with template" time="0.005500581">
+        </testcase>
+        <testcase classname="tests/lib/whatsapp.test.ts" name="WhatsApp Integration &gt; sendIncidentWhatsApp &gt; should return error when user has no phone number" time="0.001076257">
+        </testcase>
+        <testcase classname="tests/lib/whatsapp.test.ts" name="WhatsApp Integration &gt; sendIncidentWhatsApp &gt; should return error when WhatsApp not enabled" time="0.00079336">
+        </testcase>
+        <testcase classname="tests/lib/whatsapp.test.ts" name="WhatsApp Integration &gt; sendIncidentWhatsApp &gt; should normalize phone numbers correctly" time="0.001188517">
+        </testcase>
+        <testcase classname="tests/lib/whatsapp.test.ts" name="WhatsApp Integration &gt; sendWhatsApp &gt; should send generic WhatsApp message" time="0.000977924">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/oncall.test.ts" timestamp="2025-12-29T19:45:27.529Z" hostname="runnervmh13bl" tests="2" failures="0" errors="0" skipped="0" time="0.00323214">
+        <testcase classname="src/lib/__tests__/oncall.test.ts" name="buildScheduleBlocks &gt; rotates users daily" time="0.001561573">
+        </testcase>
+        <testcase classname="src/lib/__tests__/oncall.test.ts" name="buildScheduleBlocks &gt; applies overrides and respects replace rules" time="0.000486527">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/passwords.test.ts" timestamp="2025-12-29T19:45:27.529Z" hostname="runnervmh13bl" tests="3" failures="0" errors="0" skipped="0" time="0.00298541">
+        <testcase classname="src/lib/__tests__/passwords.test.ts" name="validatePasswordStrength &gt; rejects short passwords" time="0.001139195">
+        </testcase>
+        <testcase classname="src/lib/__tests__/passwords.test.ts" name="validatePasswordStrength &gt; requires upper, lower, and number" time="0.000360352">
+        </testcase>
+        <testcase classname="src/lib/__tests__/passwords.test.ts" name="validatePasswordStrength &gt; accepts strong passwords" time="0.000330066">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/rate-limit.test.ts" timestamp="2025-12-29T19:45:27.530Z" hostname="runnervmh13bl" tests="1" failures="0" errors="0" skipped="0" time="0.003917468">
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="checkRateLimit &gt; enforces limits within a window" time="0.002463996">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/validation.test.ts" timestamp="2025-12-29T19:45:27.530Z" hostname="runnervmh13bl" tests="4" failures="0" errors="0" skipped="0" time="0.005539324">
+        <testcase classname="src/lib/__tests__/validation.test.ts" name="validation schemas &gt; rejects invalid incident create payloads" time="0.002431446">
+        </testcase>
+        <testcase classname="src/lib/__tests__/validation.test.ts" name="validation schemas &gt; accepts valid incident create payloads" time="0.00030557">
+        </testcase>
+        <testcase classname="src/lib/__tests__/validation.test.ts" name="validation schemas &gt; requires notification patch intent" time="0.000522505">
+        </testcase>
+        <testcase classname="src/lib/__tests__/validation.test.ts" name="validation schemas &gt; accepts status announcement create payloads" time="0.000778482">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/forms/forms.test.tsx" timestamp="2025-12-29T19:45:27.531Z" hostname="runnervmh13bl" tests="9" failures="0" errors="0" skipped="0" time="0.093851949">
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Incident Form &gt; should render all form fields" time="0.035047206">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Incident Form &gt; should validate required fields" time="0.01755664">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Incident Form &gt; should submit valid form data" time="0.014852083">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Incident Form &gt; should populate form with initial data" time="0.004326202">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; User Form &gt; should render user form fields" time="0.004081866">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; User Form &gt; should submit user data" time="0.015310015">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Form Validation &gt; should validate email format" time="0.000469176">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Form Validation &gt; should validate required fields" time="0.000285833">
+        </testcase>
+        <testcase classname="tests/components/forms/forms.test.tsx" name="Form Components &gt; Form Validation &gt; should validate minimum length" time="0.00021468">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/layout/layout.test.tsx" timestamp="2025-12-29T19:45:27.533Z" hostname="runnervmh13bl" tests="5" failures="0" errors="0" skipped="0" time="0.043525212">
+        <testcase classname="tests/components/layout/layout.test.tsx" name="Layout Components &gt; Layout Structure &gt; should render sidebar" time="0.024169946">
+        </testcase>
+        <testcase classname="tests/components/layout/layout.test.tsx" name="Layout Components &gt; Layout Structure &gt; should render user menu" time="0.004044044">
+        </testcase>
+        <testcase classname="tests/components/layout/layout.test.tsx" name="Layout Components &gt; Layout Structure &gt; should render notifications" time="0.003212593">
+        </testcase>
+        <testcase classname="tests/components/layout/layout.test.tsx" name="Layout Components &gt; Layout Structure &gt; should render children content" time="0.005744385">
+        </testcase>
+        <testcase classname="tests/components/layout/layout.test.tsx" name="Layout Components &gt; Navigation &gt; should render navigation items" time="0.004471752">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/status-page/StatusPageLivePreview.test.tsx" timestamp="2025-12-29T19:45:27.534Z" hostname="runnervmh13bl" tests="6" failures="0" errors="0" skipped="0" time="0.722156011">
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; renders Mac view by default" time="0.22106586">
+        </testcase>
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; switches to iPad view" time="0.1603904">
+        </testcase>
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; switches to iPhone view" time="0.117335652">
+        </testcase>
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; handles zoom controls" time="0.091791496">
+        </testcase>
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; calculates overall status as Operational" time="0.071208625">
+        </testcase>
+        <testcase classname="tests/components/status-page/StatusPageLivePreview.test.tsx" name="StatusPageLivePreview Component &gt; calculates overall status as Outage when a service is down" time="0.058664219">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/components/ui/common.test.tsx" timestamp="2025-12-29T19:45:27.535Z" hostname="runnervmh13bl" tests="15" failures="0" errors="0" skipped="0" time="0.439076484">
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Button &gt; should render button with text" time="0.050583309">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Button &gt; should call onClick handler when clicked" time="0.008911528">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Button &gt; should be disabled when disabled prop is true" time="0.008851476">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Button &gt; should apply variant styles" time="0.008399082">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Input &gt; should render input with placeholder" time="0.007639546">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Input &gt; should update value on change" time="0.125393229">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Input &gt; should show error state" time="0.005116842">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Input &gt; should be disabled when disabled prop is true" time="0.034700619">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Modal &gt; should render modal when open" time="0.023479554">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Modal &gt; should not render when closed" time="0.004393263">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Modal &gt; should call onClose when close button is clicked" time="0.020712457">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Select &gt; should render select with options" time="0.062682557">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Select &gt; should call onChange when option is selected" time="0.036985202">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Select &gt; should show placeholder when no value selected" time="0.006162282">
+        </testcase>
+        <testcase classname="tests/components/ui/common.test.tsx" name="UI Components &gt; Select &gt; should be disabled when disabled prop is true" time="0.032704708">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/features/incidents/creation.test.tsx" timestamp="2025-12-29T19:45:27.539Z" hostname="runnervmh13bl" tests="5" failures="0" errors="0" skipped="0" time="0.257326444">
+        <testcase classname="tests/features/incidents/creation.test.tsx" name="Incident Creation Flow &gt; should render incident creation form" time="0.034205643">
+        </testcase>
+        <testcase classname="tests/features/incidents/creation.test.tsx" name="Incident Creation Flow &gt; should update form fields on user input" time="0.011844898">
+        </testcase>
+        <testcase classname="tests/features/incidents/creation.test.tsx" name="Incident Creation Flow &gt; should submit form with correct data" time="0.154356421">
+        </testcase>
+        <testcase classname="tests/features/incidents/creation.test.tsx" name="Incident Creation Flow &gt; should allow selecting different urgency levels" time="0.048185555">
+        </testcase>
+        <testcase classname="tests/features/incidents/creation.test.tsx" name="Incident Details View &gt; should display incident details" time="0.006806462">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/features/services/management.test.ts" timestamp="2025-12-29T19:45:27.540Z" hostname="runnervmh13bl" tests="11" failures="0" errors="0" skipped="0" time="0.011799551">
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Creation &gt; should create a new service with valid data" time="0.002897605">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Creation &gt; should validate required fields" time="0.001662461">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Updates &gt; should update service details" time="0.000537593">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Updates &gt; should update service status" time="0.000312122">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Deletion &gt; should delete a service" time="0.000400958">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Deletion &gt; should handle deletion of non-existent service" time="0.000643781">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Retrieval &gt; should get service by id" time="0.000614907">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Retrieval &gt; should list all services" time="0.000980108">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Retrieval &gt; should filter services by status" time="0.000613134">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Health Monitoring &gt; should track service health status" time="0.000537683">
+        </testcase>
+        <testcase classname="tests/features/services/management.test.ts" name="Service Management &gt; Service Health Monitoring &gt; should detect degraded performance" time="0.000621429">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/features/sla/sla.test.ts" timestamp="2025-12-29T19:45:27.542Z" hostname="runnervmh13bl" tests="11" failures="0" errors="0" skipped="0" time="0.005767144">
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Definitions &gt; should define SLA targets by urgency" time="0.001194077">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Definitions &gt; should calculate SLA deadline" time="0.000287356">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Compliance &gt; should check if SLA is met" time="0.000423289">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Compliance &gt; should calculate SLA breach time" time="0.000258712">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Compliance &gt; should calculate SLA compliance percentage" time="0.000207006">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; Response Time Tracking &gt; should calculate response time" time="0.000205563">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; Response Time Tracking &gt; should calculate resolution time" time="0.000212016">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Reporting &gt; should generate SLA summary" time="0.000401909">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Reporting &gt; should calculate average response time" time="0.000212287">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Alerts &gt; should trigger alert on SLA breach" time="0.000307864">
+        </testcase>
+        <testcase classname="tests/features/sla/sla.test.ts" name="SLA (Service Level Agreement) Tracking &gt; SLA Alerts &gt; should trigger warning before SLA breach" time="0.000210502">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/features/status-page/status-page.test.ts" timestamp="2025-12-29T19:45:27.545Z" hostname="runnervmh13bl" tests="13" failures="0" errors="0" skipped="0" time="0.009104354">
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Public Status Page &gt; should display service status" time="0.001658975">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Public Status Page &gt; should display incident history" time="0.001064997">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Public Status Page &gt; should calculate uptime percentage" time="0.000397401">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Status Page Subscriptions &gt; should subscribe to status updates" time="0.001111033">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Status Page Subscriptions &gt; should unsubscribe from status updates" time="0.00030587">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Status Page Subscriptions &gt; should validate subscription email" time="0.000324084">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Custom CSS &gt; should apply custom CSS to status page" time="0.000411007">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Custom CSS &gt; should validate CSS syntax" time="0.000281044">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Status Page Metrics &gt; should track page views" time="0.000227925">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="Status Page Features &gt; Status Page Metrics &gt; should calculate response time" time="0.000265726">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="RBAC (Role-Based Access Control) &gt; Permission Checks &gt; should check if user has permission" time="0.000253472">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="RBAC (Role-Based Access Control) &gt; Permission Checks &gt; should check role hierarchy" time="0.00023042">
+        </testcase>
+        <testcase classname="tests/features/status-page/status-page.test.ts" name="RBAC (Role-Based Access Control) &gt; Resource Access &gt; should check resource ownership" time="0.000321069">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/features/teams/teams.test.ts" timestamp="2025-12-29T19:45:27.547Z" hostname="runnervmh13bl" tests="19" failures="0" errors="0" skipped="0" time="0.014020224">
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team CRUD Operations &gt; should create a new team" time="0.002957809">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team CRUD Operations &gt; should update team details" time="0.000572628">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team CRUD Operations &gt; should delete a team" time="0.000524239">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Member Management &gt; should add member to team" time="0.000419092">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Member Management &gt; should remove member from team" time="0.000363097">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Member Management &gt; should update team member role" time="0.00040164">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Member Management &gt; should prevent duplicate team members" time="0.002071725">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Permissions &gt; should check if user is team lead" time="0.000648172">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Permissions &gt; should check if user is team member" time="0.000544476">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Statistics &gt; should calculate team size" time="0.000363669">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Team Management &gt; Team Statistics &gt; should count active incidents by team" time="0.000639714">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="On-Call Management &gt; On-Call Schedules &gt; should create on-call schedule" time="0.000227885">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="On-Call Management &gt; On-Call Schedules &gt; should find current on-call user" time="0.000393233">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="On-Call Management &gt; On-Call Schedules &gt; should detect schedule conflicts" time="0.00027842">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="On-Call Management &gt; On-Call Rotations &gt; should rotate on-call assignments" time="0.000248714">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Escalation Policies &gt; Escalation Rules &gt; should create escalation policy" time="0.000287116">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Escalation Policies &gt; Escalation Rules &gt; should escalate to next level" time="0.000199171">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Escalation Policies &gt; Escalation Rules &gt; should calculate escalation delay" time="0.000177791">
+        </testcase>
+        <testcase classname="tests/features/teams/teams.test.ts" name="Escalation Policies &gt; Escalation Triggers &gt; should trigger escalation on timeout" time="0.000200214">
+        </testcase>
+    </testsuite>
+</testsuites>

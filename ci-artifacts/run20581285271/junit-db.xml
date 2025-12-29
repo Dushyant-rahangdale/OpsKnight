@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="5" failures="2" errors="0" time="3.214">
+    <testsuite name="tests/integration/database.test.ts" timestamp="2025-12-29T19:45:31.562Z" hostname="runnervmh13bl" tests="3" failures="0" errors="0" skipped="0" time="0.526688971">
+        <testcase classname="tests/integration/database.test.ts" name="Database Integration &gt; should create and retrieve a user" time="0.204874311">
+        </testcase>
+        <testcase classname="tests/integration/database.test.ts" name="Database Integration &gt; should handle team and service relationships" time="0.16417683">
+        </testcase>
+        <testcase classname="tests/integration/database.test.ts" name="Database Integration &gt; should enforce unique constraints" time="0.149736553">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/integration/notification-flow.test.ts" timestamp="2025-12-29T19:45:31.565Z" hostname="runnervmh13bl" tests="2" failures="2" errors="0" skipped="0" time="0.533707869">
+        <testcase classname="tests/integration/notification-flow.test.ts" name="Notification Flow Integration Tests (Real DB) &gt; should send service notifications and escalation notifications" time="0.16885275">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/integration/notification-flow.test.ts:83:35
+            </failure>
+        </testcase>
+        <testcase classname="tests/integration/notification-flow.test.ts" name="Notification Flow Integration Tests (Real DB) &gt; should handle team escalation (Real DB)" time="0.164970814">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/integration/notification-flow.test.ts:147:30
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>
