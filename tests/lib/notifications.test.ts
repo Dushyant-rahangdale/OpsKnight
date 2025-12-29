@@ -78,7 +78,7 @@ describe('Notifications Library', () => {
     it('should return error for unknown channel', async () => {
         vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'notif-4', attempts: 0 } as any);
 
-        // @ts-ignore - testing runtime unknown channel
+        // @ts-expect-error - testing runtime unknown channel
         const result = await sendNotification('inc-1', 'user-1', 'INVALID_CHANNEL', 'msg');
 
         expect(result.success).toBe(false);

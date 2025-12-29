@@ -238,13 +238,12 @@ class Logger {
      */
     startTimer(): Timer {
         const start = Date.now();
-        const parentLogger = this;
 
         return {
-            done(message?: string, context?: LogContext) {
+            done: (message?: string, context?: LogContext) => {
                 const duration = Date.now() - start;
                 const logMessage = message || 'Operation completed';
-                parentLogger.info(logMessage, { ...context, duration });
+                this.info(logMessage, { ...context, duration });
             }
         };
     }
@@ -257,13 +256,14 @@ class Logger {
         fn: () => Promise<T>,
         context?: LogContext
     ): Promise<T> {
+        const startedAt = Date.now();
         const timer = this.startTimer();
         try {
             const result = await fn();
             timer.done(`${operation} completed`, context);
             return result;
         } catch (error) {
-            const duration = Date.now() - (timer as any).start;
+            const duration = Date.now() - startedAt;
             this.error(`${operation} failed`, { ...context, error, duration });
             throw error;
         }

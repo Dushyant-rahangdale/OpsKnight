@@ -23,6 +23,7 @@ type ServiceCardProps = {
 function ServiceCard({ service, compact = false }: ServiceCardProps) {
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
+    const [compactHovered, setCompactHovered] = useState(false);
     
     // Memoize computed values to prevent recalculation on every render
     const { openIncidents, hasCritical, status } = useMemo(() => {
@@ -38,8 +39,6 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
     }, [service.incidents, service.dynamicStatus]);
 
     if (compact) {
-        const [compactHovered, setCompactHovered] = useState(false);
-        
         return (
             <div
                 onClick={() => router.push(`/services/${service.id}`)}

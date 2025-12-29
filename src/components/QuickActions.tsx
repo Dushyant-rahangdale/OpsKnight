@@ -87,11 +87,6 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
     const router = useRouter();
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Don't render if user doesn't have create permissions
-    if (!canCreate) {
-        return null;
-    }
-
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -114,6 +109,11 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
             };
         }
     }, [isOpen]);
+
+    // Don't render if user doesn't have create permissions
+    if (!canCreate) {
+        return null;
+    }
 
     const handleActionClick = (href: string) => {
         router.push(href);

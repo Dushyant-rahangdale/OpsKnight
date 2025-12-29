@@ -111,8 +111,8 @@ describe('Performance Optimization', () => {
         it('should memoize expensive calculations', () => {
             const cache = new Map();
 
-            const memoize = (fn: Function) => {
-                return (...args: any[]) => {
+            const memoize = <TArgs extends unknown[], TResult>(fn: (...args: TArgs) => TResult) => {
+                return (...args: TArgs) => {
                     const key = JSON.stringify(args);
                     if (cache.has(key)) {
                         return cache.get(key);
@@ -140,9 +140,9 @@ describe('Performance Optimization', () => {
         it('should debounce function calls', () => {
             vi.useFakeTimers();
 
-            const debounce = (fn: Function, delay: number) => {
+            const debounce = <TArgs extends unknown[]>(fn: (...args: TArgs) => void, delay: number) => {
                 let timeoutId: NodeJS.Timeout;
-                return (...args: any[]) => {
+                return (...args: TArgs) => {
                     clearTimeout(timeoutId);
                     timeoutId = setTimeout(() => fn(...args), delay);
                 };
@@ -167,9 +167,9 @@ describe('Performance Optimization', () => {
         it('should throttle function calls', () => {
             vi.useFakeTimers();
 
-            const throttle = (fn: Function, limit: number) => {
+            const throttle = <TArgs extends unknown[]>(fn: (...args: TArgs) => void, limit: number) => {
                 let inThrottle: boolean;
-                return (...args: any[]) => {
+                return (...args: TArgs) => {
                     if (!inThrottle) {
                         fn(...args);
                         inThrottle = true;

@@ -50,7 +50,9 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
             try {
                 const loadTwilio = () => {
                     try {
-                        return require('twilio');
+                        // Use runtime require to avoid build-time dependency
+                        const requireFunc = eval('require') as (id: string) => any;
+                        return requireFunc('twilio');
                     } catch {
                         return null;
                     }

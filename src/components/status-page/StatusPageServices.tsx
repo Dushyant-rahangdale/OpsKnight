@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDateTime, getBrowserTimeZone } from '@/lib/timezone';
 
 interface Service {
@@ -119,7 +119,6 @@ export default function StatusPageServices({ services, statusPageServices, uptim
     const [statusFilter, setStatusFilter] = useState<'all' | 'operational' | 'degraded' | 'outage' | 'maintenance'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [groupByRegion, setGroupByRegion] = useState(() => Boolean(groupByRegionDefault));
-    const timelineCache = useRef(new Map<string, TimelineData>());
     const now = useMemo(() => new Date(), []);
     const daysToShow = 90;
 
@@ -205,12 +204,6 @@ export default function StatusPageServices({ services, statusPageServices, uptim
     }, [services, incidentsByService, now]);
 
     const getTimelineData = (serviceId: string, date: string): TimelineData => {
-        const cacheKey = `${serviceId}-${date}`;
-        const cached = timelineCache.current.get(cacheKey);
-        if (cached) {
-            return cached;
-        }
-
         const [year, month, day] = date.split('-').map(Number);
         const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
         const dayEnd = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
@@ -258,9 +251,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
             }
         }
 
-        const timeline = { date, status: slices };
-        timelineCache.current.set(cacheKey, timeline);
-        return timeline;
+        return { date, status: slices };
     };
 
     const getIncidentStartMarkers = (serviceId: string, date: string) => {
@@ -331,8 +322,6 @@ export default function StatusPageServices({ services, statusPageServices, uptim
             .filter(Boolean);
     }
 
-    if (visibleServices.length === 0) return null;
-
     const normalizeStatus = (status: string) => {
         if (status === 'MAJOR_OUTAGE') return 'outage';
         if (status === 'PARTIAL_OUTAGE' || status === 'DEGRADED') return 'degraded';
@@ -400,6 +389,8 @@ export default function StatusPageServices({ services, statusPageServices, uptim
 
         return entries.map(([region, services]) => ({ region, services }));
     }, [filteredServices, groupByRegion, privacy.showServiceRegions]);
+
+    if (visibleServices.length === 0) return null;
 
     const renderServiceCard = (service: any, index: number) => {
         const serviceStatus = service.status || 'OPERATIONAL';
