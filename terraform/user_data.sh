@@ -91,9 +91,6 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - REPO_USER=${github_username}
-      - REPO_PASS=${github_token}
     command: --interval 300 --cleanup
 
 volumes:

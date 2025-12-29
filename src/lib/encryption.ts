@@ -74,6 +74,12 @@ export async function decrypt(encryptedText: string): Promise<string> {
     }
     const key = Buffer.from(keyHex, 'hex');
     const parts = encryptedText.split(':');
+
+    // Validate encrypted text format (must be "iv:encrypted")
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      throw new Error('Invalid encrypted text format');
+    }
+
     const iv = Buffer.from(parts[0], 'hex');
     const encrypted = parts[1];
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
