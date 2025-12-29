@@ -75,3 +75,9 @@ variable "origin_key" {
   type        = string
   sensitive   = true
 }
+
+variable "cloudflare_tunnel_token" {
+  description = "Token for Cloudflare Tunnel"
+  type        = string
+  sensitive   = true
+}

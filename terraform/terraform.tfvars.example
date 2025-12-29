@@ -1,0 +1,24 @@
+github_username = "your-github-username"
+github_token    = "ghp_xxxxxxxxxxxxxxxxxxxx" # CR_PAT with read:packages
+db_password     = "your-secure-db-password"
+nextauth_secret = "your-nextauth-secret"
+nextauth_url    = "https://opssentinal.com"
+
+your_ip         = "1.2.3.4/32"
+your_ipv6       = "2401:4900:8838:c07c::/64" # Optional
+
+cloudflare_tunnel_token = "your-cloudflare-tunnel-token"
+
+origin_cert = <<EOT
+-----BEGIN CERTIFICATE-----
+MIIDzTCCArWgAwIBAgIUYmZjY...
+... (copy from Cloudflare) ...
+-----END CERTIFICATE-----
+EOT
+
+origin_key = <<EOT
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BA...
+... (copy from Cloudflare) ...
+-----END PRIVATE KEY-----
+EOT

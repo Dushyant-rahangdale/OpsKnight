@@ -38,6 +38,7 @@ resource "aws_launch_template" "app_lt" {
     nextauth_url    = var.nextauth_url
     origin_cert     = var.origin_cert
     origin_key      = var.origin_key
+    cloudflare_tunnel_token = var.cloudflare_tunnel_token
   }))
 
   block_device_mappings {

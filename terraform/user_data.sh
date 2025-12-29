@@ -1,20 +1,42 @@
 #!/bin/bash
-# Install Docker
+set -e
+
+# Redirect output to log for debugging
+exec > >(tee /var/log/user_data.log|logger -t user-data -s 2>/dev/null) 2>&1
+
+# Update and install Docker + extras
 yum update -y
 yum install -y docker git
 service docker start
 usermod -a -G docker ec2-user
 chkconfig docker on
 
-# Install Docker Compose
-curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+# Install Docker Compose V2 (yum version is more stable on AL2023)
+yum install -y docker-compose-plugin
+
+# ---------------------------
+# Install Cloudflare Tunnel (cloudflared)
+# ---------------------------
+cat <<EOF > /etc/yum.repos.d/cloudflared.repo
+[cloudflared]
+name=Cloudflared
+baseurl=https://pkg.cloudflare.com/cloudflared/rpm
+enabled=1
+gpgcheck=0
+EOF
+
+yum install -y cloudflared
+
+# Install as a systemd service using the token
+cloudflared service install --token ${cloudflare_tunnel_token}
+systemctl enable cloudflared
+systemctl start cloudflared
 
 # Create app directory
 mkdir -p /home/ec2-user/app
 cd /home/ec2-user/app
 
-# Write Nginx Config
+# Write Nginx Config (escaped for Nginx vars)
 cat <<EOT > nginx.conf
 server {
     listen 80;
@@ -40,13 +62,11 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header X-Forwarded-Host \$host;
         proxy_cache_bypass \$http_upgrade;
-        
-        # Important for Next.js API routes
+
         proxy_buffering off;
         proxy_request_buffering off;
     }
 }
-
 EOT
 
 # Write Docker Compose File
@@ -71,10 +91,8 @@ services:
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: $${POSTGRES_USER}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
-      POSTGRES_DB: $${POSTGRES_DB}
+    env_file:
+      - .env
     ports:
       - "5432:5432"
 
@@ -105,22 +123,15 @@ EOT
 
 chown ec2-user:ec2-user docker-compose.yml nginx.conf
 
-# Login to GHCR (Securely passed via Terraform template)
-echo "${github_token}" | docker login ghcr.io -u ${github_username} --password-stdin
-
 # Create .env file with injected secrets
 cat <<ENV > .env
 DATABASE_URL="postgresql://ops_user:${db_password}@db:5432/opssentinal"
 NEXTAUTH_SECRET="${nextauth_secret}"
 NEXTAUTH_URL="${nextauth_url}"
 
-# Postgres Config for Docker Compose (referenced as env vars)
 POSTGRES_USER="ops_user"
 POSTGRES_PASSWORD="${db_password}"
 POSTGRES_DB="opssentinal"
-
-# GitHub Package Token (if app needs it at runtime)
-# GITHUB_TOKEN="${github_token}"
 ENV
 
 chown ec2-user:ec2-user .env
@@ -138,37 +149,29 @@ KEY
 chown -R ec2-user:ec2-user /home/ec2-user/app/certs
 chmod 600 /home/ec2-user/app/certs/origin.key
 
-# Pull and Start Logic
-# We create a start script so it can be re-run easily
+# Login to GHCR
+echo "${github_token}" | docker login ghcr.io -u ${github_username} --password-stdin
+
+# Start script
 cat <<'SCRIPT' > /home/ec2-user/app/start.sh
 #!/bin/bash
+set -e
 cd /home/ec2-user/app
 
-# Pull images
-docker-compose pull
+docker compose pull
+docker compose up -d db
 
-# Start the database first to ensure it's available
-docker-compose up -d db
-
-# Wait for the database to be ready
 echo "Waiting for database to be ready..."
-until docker-compose exec -T db pg_isready -U ops_user -d opssentinal; do
+until docker compose exec -T db pg_isready -U ops_user -d opssentinal; do
   echo "Database is not ready yet... sleeping"
   sleep 2
 done
 
-# The stack will now run migrations automatically on startup via the 'command' override
-
-# Start the rest of the stack
-docker-compose up -d
+docker compose up -d
 SCRIPT
 
 chmod +x /home/ec2-user/app/start.sh
 chown ec2-user:ec2-user /home/ec2-user/app/start.sh
 
-# Attempt to pull and run the public application (if available)
-echo "Attempting initial deployment..."
-docker pull ghcr.io/dushyant-rahangdale/opssentinal-test:latest || echo "Image pull failed. Is it private? Please SSH and login."
-
-# Run it now
+# Initial Launch
 /home/ec2-user/app/start.sh

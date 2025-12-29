@@ -36,7 +36,11 @@ ALTER COLUMN "autoProvision" SET DEFAULT true,
 ALTER COLUMN "updatedBy" SET NOT NULL;
 
 -- AlterTable
-ALTER TABLE "Service" ADD COLUMN     "slaTier" TEXT;
+ALTER TABLE "Postmortem" ADD COLUMN     "isPublic" BOOLEAN NOT NULL DEFAULT true;
+
+-- AlterTable
+ALTER TABLE "Service" ADD COLUMN     "region" TEXT,
+ADD COLUMN     "slaTier" TEXT;
 
 -- AlterTable
 ALTER TABLE "StatusPage" ADD COLUMN     "enableUptimeExports" BOOLEAN NOT NULL DEFAULT false,
@@ -45,6 +49,7 @@ ADD COLUMN     "showPostIncidentReview" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN     "showRegionHeatmap" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN     "showServiceOwners" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "showServiceSlaTier" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "showSubscribe" BOOLEAN NOT NULL DEFAULT true,
 ADD COLUMN     "statusApiRateLimitEnabled" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "statusApiRateLimitMax" INTEGER NOT NULL DEFAULT 120,
 ADD COLUMN     "statusApiRateLimitWindowSec" INTEGER NOT NULL DEFAULT 60,
