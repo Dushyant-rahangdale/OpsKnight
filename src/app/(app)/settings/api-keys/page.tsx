@@ -3,7 +3,7 @@ import { getAuthOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import ApiKeysPanel from '@/components/settings/ApiKeysPanel';
 import SettingsPage from '@/components/settings/SettingsPage';
-import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import _SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 
 export default async function ApiKeysSettingsPage() {

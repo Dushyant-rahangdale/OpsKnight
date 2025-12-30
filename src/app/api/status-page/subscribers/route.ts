@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         const skip = (page - 1) * limit;
 
         // Build where clause
-        const where: any = {};
+        const where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         if (statusPageId) {
             where.statusPageId = statusPageId;
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
             limit,
             totalPages,
         }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.subscribers.error', {
             error: error instanceof Error ? error.message : String(error),
         });
@@ -146,7 +146,7 @@ export async function DELETE(req: NextRequest) {
         });
 
         return jsonOk({ success: true, message: 'Subscriber unsubscribed successfully' }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.subscriber.delete.error', {
             error: error instanceof Error ? error.message : String(error),
         });

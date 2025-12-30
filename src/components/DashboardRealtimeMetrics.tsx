@@ -13,12 +13,12 @@ type DashboardRealtimeMetricsProps = {
     onMetricsUpdate?: (metrics: { open: number; acknowledged: number; resolved24h: number; highUrgency: number }) => void;
 };
 
-export default function DashboardRealtimeMetrics({ 
-    initialMetrics, 
-    onMetricsUpdate 
+export default function DashboardRealtimeMetrics({
+    initialMetrics,
+    onMetricsUpdate
 }: DashboardRealtimeMetricsProps) {
     const { isConnected, metrics, error } = useRealtime();
-    const [displayMetrics, setDisplayMetrics] = useState(initialMetrics || {
+    const [_displayMetrics, setDisplayMetrics] = useState(initialMetrics || {
         open: 0,
         acknowledged: 0,
         resolved24h: 0,
@@ -27,7 +27,7 @@ export default function DashboardRealtimeMetrics({
 
     useEffect(() => {
         if (metrics) {
-            setDisplayMetrics(metrics);
+            setDisplayMetrics(metrics); // eslint-disable-line react-hooks/set-state-in-effect
             if (onMetricsUpdate) {
                 onMetricsUpdate(metrics);
             }

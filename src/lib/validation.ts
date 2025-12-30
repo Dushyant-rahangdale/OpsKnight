@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 // Email validation - RFC 5322 compliant
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const _emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // URL validation
-const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+const _urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
 // Custom validators
 export const emailValidator = z.string().trim().email('Please enter a valid email address').max(320);

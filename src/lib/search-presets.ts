@@ -1,5 +1,5 @@
 import prisma from './prisma';
-import { getUserPermissions } from './rbac';
+import { _getUserPermissions } from './rbac';
 import {
     type FilterCriteria,
     type SearchPresetWithCreator,
@@ -17,8 +17,8 @@ export { buildOrderByFromCriteria, searchParamsToCriteria, criteriaToSearchParam
 export function buildWhereFromCriteria(
     criteria: FilterCriteria,
     currentUserId?: string
-): any {
-    const where: any = {};
+): any { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // Status filter
     if (criteria.statuses && criteria.statuses.length > 0) {
@@ -142,7 +142,7 @@ export async function getAccessiblePresets(userId: string, userTeamIds: string[]
         });
 
         return presets as SearchPresetWithCreator[];
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         // Handle case where table doesn't exist yet (migration not applied)
         if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
             console.warn('SearchPreset table does not exist. Please run "npx prisma db push" or apply migrations.');

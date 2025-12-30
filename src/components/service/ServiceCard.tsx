@@ -20,15 +20,15 @@ type ServiceCardProps = {
     compact?: boolean;
 };
 
-function ServiceCard({ service, compact = false }: ServiceCardProps) {
+export default function ServiceCard({ service, compact = false }: ServiceCardProps) {
     const router = useRouter();
     const [isHovered, setIsHovered] = useState(false);
-    
+
     // Memoize computed values to prevent recalculation on every render
     const { openIncidents, hasCritical, status } = useMemo(() => {
         const incidents = service.incidents || [];
         const critical = incidents.some(i => i.urgency === 'HIGH');
-        const calculatedStatus = service.dynamicStatus || 
+        const calculatedStatus = service.dynamicStatus ||
             (critical ? 'CRITICAL' : incidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL');
         return {
             openIncidents: incidents,
@@ -37,9 +37,11 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
         };
     }, [service.incidents, service.dynamicStatus]);
 
+    const displayStatus = status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const [compactHovered, setCompactHovered] = useState(false);
+
     if (compact) {
-        const [compactHovered, setCompactHovered] = useState(false);
-        
+
         return (
             <div
                 onClick={() => router.push(`/services/${service.id}`)}
@@ -59,7 +61,7 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                            <StatusBadge status={status as any} size="sm" showDot />
+                            <StatusBadge status={displayStatus} size="sm" showDot />
                         </div>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                             {service.name}
@@ -94,20 +96,20 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
 
     // Get status color for background
     const statusColors: Record<string, { bg: string; border: string; hoverBorder: string; hoverShadow: string }> = {
-        'OPERATIONAL': { 
-            bg: 'linear-gradient(180deg, rgba(34,197,94,0.03) 0%, #ffffff 60%)', 
+        'OPERATIONAL': {
+            bg: 'linear-gradient(180deg, rgba(34,197,94,0.03) 0%, #ffffff 60%)',
             border: 'rgba(34,197,94,0.15)',
             hoverBorder: 'var(--primary)',
             hoverShadow: '0 8px 20px rgba(211, 47, 47, 0.12)'
         },
-        'DEGRADED': { 
-            bg: 'linear-gradient(180deg, rgba(245,158,11,0.03) 0%, #ffffff 60%)', 
+        'DEGRADED': {
+            bg: 'linear-gradient(180deg, rgba(245,158,11,0.03) 0%, #ffffff 60%)',
             border: 'rgba(245,158,11,0.15)',
             hoverBorder: 'var(--warning)',
             hoverShadow: '0 8px 20px rgba(245, 158, 11, 0.15)'
         },
-        'CRITICAL': { 
-            bg: 'linear-gradient(180deg, rgba(239,68,68,0.05) 0%, #ffffff 60%)', 
+        'CRITICAL': {
+            bg: 'linear-gradient(180deg, rgba(239,68,68,0.05) 0%, #ffffff 60%)',
             border: 'rgba(239,68,68,0.25)',
             hoverBorder: 'var(--danger)',
             hoverShadow: '0 8px 20px rgba(239, 68, 68, 0.2)'
@@ -150,17 +152,17 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
                 left: 0,
                 right: 0,
                 height: '3px',
-                background: status === 'CRITICAL' 
-                    ? 'var(--danger)' 
-                    : status === 'DEGRADED' 
-                    ? 'var(--warning)' 
-                    : 'var(--success)'
+                background: status === 'CRITICAL'
+                    ? 'var(--danger)'
+                    : status === 'DEGRADED'
+                        ? 'var(--warning)'
+                        : 'var(--success)'
             }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                        <StatusBadge status={status as any} size="md" showDot />
+                        <StatusBadge status={displayStatus} size="md" showDot />
                         {status === 'CRITICAL' && (
                             <span style={{
                                 fontSize: '0.75rem',
@@ -263,9 +265,9 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
                         </div>
                         <button
                             onClick={handlePolicyLinkClick}
-                            style={{ 
-                                color: 'var(--primary)', 
-                                fontWeight: 600, 
+                            style={{
+                                color: 'var(--primary)',
+                                fontWeight: 600,
                                 fontSize: '0.9rem',
                                 textDecoration: 'none',
                                 background: 'none',
@@ -289,7 +291,7 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
             </div>
 
             {/* Arrow indicator */}
-            <div 
+            <div
                 data-arrow
                 style={{
                     position: 'absolute',
@@ -301,12 +303,12 @@ function ServiceCard({ service, compact = false }: ServiceCardProps) {
                     transform: isHovered ? 'translateX(4px)' : 'translateX(0)'
                 }}
             >
-                <svg 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
                     strokeWidth="2"
                     style={{
                         color: 'var(--text-muted)',
@@ -325,14 +327,14 @@ export default memo(ServiceCard, (prevProps, nextProps) => {
     // Custom comparison function for better performance
     const prevIncidents = prevProps.service.incidents || [];
     const nextIncidents = nextProps.service.incidents || [];
-    
+
     // Compare incidents array length and IDs
     const incidentsEqual = prevIncidents.length === nextIncidents.length &&
-        prevIncidents.every((inc, i) => 
-            inc.id === nextIncidents[i]?.id && 
+        prevIncidents.every((inc, i) =>
+            inc.id === nextIncidents[i]?.id &&
             inc.urgency === nextIncidents[i]?.urgency
         );
-    
+
     return (
         prevProps.service.id === nextProps.service.id &&
         prevProps.service.name === nextProps.service.name &&

@@ -12,7 +12,7 @@ import { logger } from '@/lib/logger';
  * Get All Accessible Presets
  * GET /api/search-presets
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
     try {
         const session = await getServerSession(await getAuthOptions());
         if (!session?.user?.id) {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         const presets = await getAccessiblePresets(session.user.id, userTeamIds);
 
         return jsonOk({ presets }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.fetch_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to fetch search presets', 500);
     }
@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
 
         await assertResponderOrAbove();
 
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = SearchPresetCreateSchema.safeParse(body);
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.search_presets.created', { presetId: preset.id });
         return jsonOk({ preset }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.create_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create search preset', 500);
     }

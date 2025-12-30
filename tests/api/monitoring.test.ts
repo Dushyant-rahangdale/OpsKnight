@@ -36,7 +36,7 @@ describe('Monitoring API Routes', () => {
 
   it('GET /api/monitoring/services returns 200 for admin session', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { email: adminUser.email } });
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(adminUser as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(adminUser as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const res = await servicesRoute.GET();
     const { status, data } = await parseResponse(res);
@@ -57,7 +57,7 @@ describe('Monitoring API Routes', () => {
 
   it('GET /api/monitoring/queries returns 200 for admin session', async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { email: adminUser.email } });
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(adminUser as any);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(adminUser as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const req = await createMockRequest('GET', '/api/monitoring/queries?limit=5');
     const res = await queriesRoute.GET(req);

@@ -33,7 +33,7 @@ type CustomField = {
     type: 'TEXT' | 'NUMBER' | 'DATE' | 'SELECT' | 'BOOLEAN' | 'URL' | 'EMAIL';
     required: boolean;
     defaultValue?: string | null;
-    options?: any;
+    options?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 type CreateIncidentFormProps = {
@@ -61,10 +61,10 @@ export default function CreateIncidentForm({
     const [urgency, setUrgency] = useState<'HIGH' | 'LOW'>(selectedTemplate?.defaultUrgency || 'HIGH');
     const [priority, setPriority] = useState(selectedTemplate?.defaultPriority || '');
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-    
+
     // Wrap server action with useActionState to avoid serialization issues
     // Since createIncident redirects, we don't need to handle state
-    const [state, formAction, isPending] = useActionState(async (prevState: null, formData: FormData) => {
+    const [_state, formAction, isPending] = useActionState(async (prevState: null, formData: FormData) => {
         await createIncident(formData);
         return null; // This won't be reached due to redirect, but satisfies the type
     }, null);
@@ -72,11 +72,11 @@ export default function CreateIncidentForm({
     // Update form when template changes (from URL or direct selection)
     useEffect(() => {
         if (selectedTemplate) {
-            setTitle(selectedTemplate.title);
-            setDescription(selectedTemplate.descriptionText || '');
-            setServiceId(selectedTemplate.defaultService?.id || '');
-            setUrgency(selectedTemplate.defaultUrgency);
-            setPriority(selectedTemplate.defaultPriority || '');
+            setTitle(selectedTemplate.title); // eslint-disable-line react-hooks/set-state-in-effect
+            setDescription(selectedTemplate.descriptionText || ''); // eslint-disable-line react-hooks/set-state-in-effect
+            setServiceId(selectedTemplate.defaultService?.id || ''); // eslint-disable-line react-hooks/set-state-in-effect
+            setUrgency(selectedTemplate.defaultUrgency); // eslint-disable-line react-hooks/set-state-in-effect
+            setPriority(selectedTemplate.defaultPriority || ''); // eslint-disable-line react-hooks/set-state-in-effect
         }
     }, [selectedTemplate]); // Watch for selectedTemplate changes
 
@@ -193,24 +193,24 @@ export default function CreateIncidentForm({
                             </label>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '0px', background: urgency === 'HIGH' ? '#feecec' : '#fff', transition: 'all 0.15s' }}>
-                                    <input 
-                                        type="radio" 
-                                        name="urgency" 
-                                        value="HIGH" 
+                                    <input
+                                        type="radio"
+                                        name="urgency"
+                                        value="HIGH"
                                         checked={urgency === 'HIGH'}
                                         onChange={(e) => setUrgency(e.target.value as 'HIGH')}
-                                        style={{ margin: 0, cursor: 'pointer' }} 
+                                        style={{ margin: 0, cursor: 'pointer' }}
                                     />
                                     <span style={{ color: 'var(--danger)', fontWeight: 600, fontSize: '0.9rem' }}>High</span>
                                 </label>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '0px', background: urgency === 'LOW' ? '#fff4cc' : '#fff', transition: 'all 0.15s' }}>
-                                    <input 
-                                        type="radio" 
-                                        name="urgency" 
-                                        value="LOW" 
+                                    <input
+                                        type="radio"
+                                        name="urgency"
+                                        value="LOW"
                                         checked={urgency === 'LOW'}
                                         onChange={(e) => setUrgency(e.target.value as 'LOW')}
-                                        style={{ margin: 0, cursor: 'pointer' }} 
+                                        style={{ margin: 0, cursor: 'pointer' }}
                                     />
                                     <span style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '0.9rem' }}>Low</span>
                                 </label>

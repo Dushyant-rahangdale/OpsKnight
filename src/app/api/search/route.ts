@@ -228,7 +228,7 @@ export async function GET(req: NextRequest) {
                             }
                         }
                     });
-                } catch (e) {
+                } catch (_e) {
                     // If postmortem model doesn't exist or query fails, return empty
                     return [];
                 }
@@ -282,7 +282,7 @@ export async function GET(req: NextRequest) {
                 href: `/policies/${p.id}`,
                 priority: 6
             })),
-            ...postmortems.map((pm: any) => ({
+            ...postmortems.map((pm: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
                 type: 'postmortem' as const,
                 id: pm.id,
                 title: pm.title,
@@ -304,7 +304,7 @@ export async function GET(req: NextRequest) {
         });
 
         return jsonOk({ results }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search.error', { error: error instanceof Error ? error.message : String(error) });
         // Provide more detailed error information in development
         const errorMessage = process.env.NODE_ENV === 'development' 

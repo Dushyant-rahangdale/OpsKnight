@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDateTime, getBrowserTimeZone } from '@/lib/timezone';
 
 interface Service {
@@ -99,11 +99,6 @@ type HoveredBar = {
 
 type TimelineSliceStatus = 'operational' | 'degraded' | 'outage' | 'future';
 
-type TimelineData = {
-    date: string;
-    status: TimelineSliceStatus[];
-};
-
 export default function StatusPageServices({ services, statusPageServices, uptime90, incidents, privacySettings, groupByRegionDefault, showServiceOwners, showServiceSlaTier }: StatusPageServicesProps) {
     // Privacy defaults
     const privacy = {
@@ -119,7 +114,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
     const [statusFilter, setStatusFilter] = useState<'all' | 'operational' | 'degraded' | 'outage' | 'maintenance'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [groupByRegion, setGroupByRegion] = useState(() => Boolean(groupByRegionDefault));
-    const timelineCache = useRef(new Map<string, TimelineData>());
+
     const now = useMemo(() => new Date(), []);
     const daysToShow = 90;
 
@@ -204,13 +199,10 @@ export default function StatusPageServices({ services, statusPageServices, uptim
         return historyMap;
     }, [services, incidentsByService, now]);
 
-    const getTimelineData = (serviceId: string, date: string): TimelineData => {
-        const cacheKey = `${serviceId}-${date}`;
-        const cached = timelineCache.current.get(cacheKey);
-        if (cached) {
-            return cached;
-        }
+    const activeTimelineData = useMemo(() => {
+        if (!hoveredBar) return null;
 
+        const { serviceId, date } = hoveredBar;
         const [year, month, day] = date.split('-').map(Number);
         const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
         const dayEnd = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
@@ -258,10 +250,8 @@ export default function StatusPageServices({ services, statusPageServices, uptim
             }
         }
 
-        const timeline = { date, status: slices };
-        timelineCache.current.set(cacheKey, timeline);
-        return timeline;
-    };
+        return { date, status: slices };
+    }, [hoveredBar, incidentsByService, now]);
 
     const getIncidentStartMarkers = (serviceId: string, date: string) => {
         const [year, month, day] = date.split('-').map(Number);
@@ -308,30 +298,30 @@ export default function StatusPageServices({ services, statusPageServices, uptim
     };
     // If statusPageServices is empty, show all services
     // Otherwise, only show configured services
-    let visibleServices: any[] = [];
+    const visibleServices = useMemo(() => {
+        if (statusPageServices.length === 0) {
+            // No services configured, show all services
+            return services.map(service => ({
+                ...service,
+                displayName: service.name,
+            }));
+        } else {
+            // Show only configured services
+            return statusPageServices
+                .filter(sp => sp.showOnPage)
+                .map(sp => {
+                    const service = services.find(s => s.id === sp.serviceId);
+                    if (!service) return null;
+                    return {
+                        ...service,
+                        displayName: sp.displayName || service.name,
+                    };
+                })
+                .filter(Boolean) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        }
+    }, [services, statusPageServices]);
 
-    if (statusPageServices.length === 0) {
-        // No services configured, show all services
-        visibleServices = services.map(service => ({
-            ...service,
-            displayName: service.name,
-        }));
-    } else {
-        // Show only configured services
-        visibleServices = statusPageServices
-            .filter(sp => sp.showOnPage)
-            .map(sp => {
-                const service = services.find(s => s.id === sp.serviceId);
-                if (!service) return null;
-                return {
-                    ...service,
-                    displayName: sp.displayName || service.name,
-                };
-            })
-            .filter(Boolean);
-    }
 
-    if (visibleServices.length === 0) return null;
 
     const normalizeStatus = (status: string) => {
         if (status === 'MAJOR_OUTAGE') return 'outage';
@@ -401,7 +391,10 @@ export default function StatusPageServices({ services, statusPageServices, uptim
         return entries.map(([region, services]) => ({ region, services }));
     }, [filteredServices, groupByRegion, privacy.showServiceRegions]);
 
-    const renderServiceCard = (service: any, index: number) => {
+
+    if (visibleServices.length === 0) return null;
+
+    const renderServiceCard = (service: any, index: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         const serviceStatus = service.status || 'OPERATIONAL';
         const statusConfig = STATUS_CONFIG[serviceStatus as keyof typeof STATUS_CONFIG] || {
             color: '#475569',
@@ -414,7 +407,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
         const displayedHistory = serviceHistory.slice(-visibleDays);
         const uptimeValue90 = uptime90[service.id];
         const hoveredTimeline = hoveredBar && hoveredBar.serviceId === service.id
-            ? getTimelineData(service.id, hoveredBar.date)
+            ? activeTimelineData
             : null;
         const hoveredMarkerData = hoveredBar && hoveredBar.serviceId === service.id
             ? getIncidentStartMarkers(service.id, hoveredBar.date)
@@ -570,14 +563,14 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                             boxShadow: `0 2px 4px ${statusConfig.border}30`,
                             transition: 'all 0.2s ease',
                         }}
-                        onMouseEnter={(event) => {
-                            event.currentTarget.style.transform = 'scale(1.05)';
-                            event.currentTarget.style.boxShadow = `0 4px 8px ${statusConfig.border}50`;
-                        }}
-                        onMouseLeave={(event) => {
-                            event.currentTarget.style.transform = 'scale(1)';
-                            event.currentTarget.style.boxShadow = `0 2px 4px ${statusConfig.border}30`;
-                        }}
+                            onMouseEnter={(event) => {
+                                event.currentTarget.style.transform = 'scale(1.05)';
+                                event.currentTarget.style.boxShadow = `0 4px 8px ${statusConfig.border}50`;
+                            }}
+                            onMouseLeave={(event) => {
+                                event.currentTarget.style.transform = 'scale(1)';
+                                event.currentTarget.style.boxShadow = `0 2px 4px ${statusConfig.border}30`;
+                            }}
                         >
                             {statusConfig.label}
                         </span>
@@ -661,7 +654,7 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                                         }
                                     }}
                                     onMouseLeave={(event) => {
-                                        const relatedTarget = (event as any).relatedTarget as HTMLElement | null;
+                                        const relatedTarget = (event as any).relatedTarget as HTMLElement | null; // eslint-disable-line @typescript-eslint/no-explicit-any
                                         if (relatedTarget && relatedTarget.closest('[data-tooltip]')) {
                                             return;
                                         }
@@ -962,8 +955,8 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                     }}>
                         Services
                     </h2>
-                    <p style={{ 
-                        fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
+                    <p style={{
+                        fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)',
                         color: 'var(--status-text-muted, #64748b)',
                         margin: 0,
                         display: 'flex',
@@ -1024,52 +1017,52 @@ export default function StatusPageServices({ services, statusPageServices, uptim
                 border: '1px solid var(--status-panel-muted-border, #e2e8f0)',
                 boxShadow: 'none',
             }}>
-                <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
                     color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
-                    <span style={{ 
-                        width: '12px', 
-                        height: '12px', 
-                        borderRadius: '3px', 
+                    <span style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '3px',
                         background: HISTORY_STATUS_COLORS.operational,
                         boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)',
                     }} />
                     Operational
                 </span>
-                <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
                     color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
-                    <span style={{ 
-                        width: '12px', 
-                        height: '12px', 
-                        borderRadius: '3px', 
+                    <span style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '3px',
                         background: HISTORY_STATUS_COLORS.degraded,
                         boxShadow: '0 2px 4px rgba(251, 191, 36, 0.3)',
                     }} />
                     Degraded
                 </span>
-                <span style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
+                <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: '0.5rem',
                     fontSize: '0.8125rem',
                     color: 'var(--status-text-muted, #475569)',
                     fontWeight: '500',
                 }}>
-                    <span style={{ 
-                        width: '12px', 
-                        height: '12px', 
-                        borderRadius: '3px', 
+                    <span style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '3px',
                         background: HISTORY_STATUS_COLORS.outage,
                         boxShadow: '0 2px 4px rgba(248, 113, 113, 0.3)',
                     }} />

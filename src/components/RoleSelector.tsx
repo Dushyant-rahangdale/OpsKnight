@@ -8,7 +8,7 @@ type RoleSelectorProps = {
     updateRole: (formData: FormData) => Promise<unknown>;
 };
 
-export default function RoleSelector({ userId, currentRole, updateRole }: RoleSelectorProps) {
+export default function RoleSelector({ _userId, currentRole, updateRole }: RoleSelectorProps) {
     const [isPending, startTransition] = useTransition();
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

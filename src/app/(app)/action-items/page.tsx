@@ -78,9 +78,9 @@ export default async function ActionItemsPage({
     }> = [];
 
     postmortems.forEach((postmortem) => {
-        const actionItems = postmortem.actionItems as any;
+        const actionItems = postmortem.actionItems as any; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (Array.isArray(actionItems)) {
-            actionItems.forEach((item: any) => {
+            actionItems.forEach((item: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 allActionItems.push({
                     id: item.id || `action-${postmortem.id}-${Math.random()}`,
                     title: item.title || '',

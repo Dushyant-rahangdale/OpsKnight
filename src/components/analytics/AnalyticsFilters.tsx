@@ -1,4 +1,4 @@
-interface FilterOption {
+interface _FilterOption {
     value: string;
     label: string;
 }

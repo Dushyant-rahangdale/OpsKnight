@@ -5,7 +5,7 @@ import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 
 type ExportProps = {
-  incidents: any[];
+  incidents: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
   filters: {
     status?: string;
     service?: string;

@@ -39,7 +39,7 @@ export default function DateTimeInput({
 
   // Use uncontrolled mode if value is provided but no onChange
   // Use controlled mode if both value and onChange are provided
-  const inputProps: any = {
+  const inputProps: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
     type: "datetime-local",
     name,
     label,

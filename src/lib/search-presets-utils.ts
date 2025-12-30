@@ -48,7 +48,7 @@ export type SearchPresetWithCreator = {
 /**
  * Build sort order from criteria
  */
-export function buildOrderByFromCriteria(criteria: FilterCriteria): any {
+export function buildOrderByFromCriteria(criteria: FilterCriteria): any { // eslint-disable-line @typescript-eslint/no-explicit-any
     const sort = criteria.sort || 'newest';
 
     switch (sort) {

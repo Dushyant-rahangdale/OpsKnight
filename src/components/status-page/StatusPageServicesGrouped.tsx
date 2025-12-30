@@ -129,7 +129,7 @@ export default function StatusPageServicesGrouped({
     };
 
     // Group services by team
-    const groupedServices = services.reduce((acc, service) => {
+    const _groupedServices = services.reduce((acc, service) => {
         const groupName = service.team?.name || 'Other Services';
         if (!acc[groupName]) {
             acc[groupName] = [];

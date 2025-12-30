@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, _vi } from 'vitest';
 
 describe('SLA (Service Level Agreement) Tracking', () => {
     describe('SLA Definitions', () => {

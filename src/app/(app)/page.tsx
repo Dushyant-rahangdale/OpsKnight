@@ -60,7 +60,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const userName = user?.name || 'there';
 
   // Build date filter
-  let dateFilter: any = {};
+  const dateFilter: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (range && range !== 'all') {
     if (range === 'custom' && customStart && customEnd) {
       dateFilter.createdAt = {
@@ -80,7 +80,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   }
 
   // Build filter query
-  const where: any = { ...dateFilter };
+  const where: any = { ...dateFilter }; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (status && status !== 'ALL') where.status = status;
   if (assignee !== undefined) {
     if (assignee === '') {
@@ -92,7 +92,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   if (service) where.serviceId = service;
   if (urgency) where.urgency = urgency;
 
-  const metricsWhere: any = { ...dateFilter };
+  const metricsWhere: any = { ...dateFilter }; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (assignee !== undefined) {
     if (assignee === '') {
       metricsWhere.assigneeId = null;
@@ -103,16 +103,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   if (service) metricsWhere.serviceId = service;
   if (urgency) metricsWhere.urgency = urgency;
 
-  const chartWhere: any = { ...metricsWhere };
+  const chartWhere: any = { ...metricsWhere }; // eslint-disable-line @typescript-eslint/no-explicit-any
   delete chartWhere.urgency;
 
   const assigneeFilter = assignee !== undefined ? (assignee === '' ? null : assignee) : undefined;
   const metricsStartDate = dateFilter.createdAt?.gte;
   const metricsEndDate = dateFilter.createdAt?.lte;
-  const mttaWhere: any = { ...metricsWhere, acknowledgedAt: { not: null } };
+  const mttaWhere: any = { ...metricsWhere, acknowledgedAt: { not: null } }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   // Build orderBy
-  const orderBy: any = {};
+  const orderBy: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (sortBy === 'createdAt') {
     orderBy.createdAt = sortOrder;
   } else if (sortBy === 'status') {
@@ -322,7 +322,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const previousPeriodEnd = new Date();
   previousPeriodEnd.setDate(previousPeriodEnd.getDate() - currentPeriodDays);
 
-  const previousPeriodWhere: any = {
+  const previousPeriodWhere: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
     createdAt: {
       gte: previousPeriodStart,
       lt: previousPeriodEnd

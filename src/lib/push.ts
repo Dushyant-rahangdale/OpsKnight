@@ -21,7 +21,7 @@ export type PushOptions = {
     userId: string;
     title: string;
     body: string;
-    data?: Record<string, any>;
+    data?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     badge?: number;
 };
 
@@ -62,7 +62,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
 
         // Production: Use configured provider
         let successCount = 0;
-        let errorMessages: string[] = [];
+        const errorMessages: string[] = [];
 
         if (pushConfig.provider === 'firebase') {
             try {
@@ -72,7 +72,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                 }
 
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
+                const requireFunc = eval('require') as (id: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
                 const admin = requireFunc('firebase-admin');
 
                 // Initialize Firebase Admin if not already initialized
@@ -85,7 +85,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                                 clientEmail: pushConfig.clientEmail,
                             }),
                         });
-                    } catch (initError: any) {
+                    } catch (initError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                         // App might already be initialized with different config
                         if (!initError.message?.includes('already been initialized')) {
                             throw initError;
@@ -120,7 +120,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                             data: { lastUsed: new Date() }
                         });
                         successCount++;
-                    } catch (error: any) {
+                    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                         // Handle invalid token errors
                         if (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered') {
                             // Remove invalid token
@@ -131,7 +131,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                         }
                     }
                 }
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 // If Firebase package is not installed
                 if (error.code === 'MODULE_NOT_FOUND') {
                     console.error('Firebase Admin package not installed. Install with: npm install firebase-admin');
@@ -148,7 +148,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                 }
 
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
+                const requireFunc = eval('require') as (id: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { Client } = requireFunc('onesignal-node');
 
                 const client = new Client(pushConfig.appId, pushConfig.restApiKey);
@@ -176,7 +176,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
                 } else {
                     return { success: false, error: 'OneSignal API returned no notification ID' };
                 }
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 // If OneSignal package is not installed
                 if (error.code === 'MODULE_NOT_FOUND') {
                     console.error('OneSignal package not installed. Install with: npm install onesignal-node');
@@ -202,7 +202,7 @@ export async function sendPush(options: PushOptions): Promise<{ success: boolean
         } else {
             return { success: false, error: errorMessages.join('; ') || 'Failed to send to all devices' };
         }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Push send error:', error);
         return { success: false, error: error.message };
     }
@@ -288,7 +288,7 @@ export async function sendIncidentPush(
             },
             badge: 1, // Increment badge count
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Send incident push error:', error);
         return { success: false, error: error.message };
     }

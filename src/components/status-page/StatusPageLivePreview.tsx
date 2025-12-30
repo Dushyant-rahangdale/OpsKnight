@@ -1,10 +1,11 @@
 ﻿'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import StatusPageHeader from '@/components/status-page/StatusPageHeader';
 import StatusPageServices from '@/components/status-page/StatusPageServices';
 import StatusPageIncidents from '@/components/status-page/StatusPageIncidents';
 import StatusPageAnnouncements from '@/components/status-page/StatusPageAnnouncements';
+import { logger } from '@/lib/logger';
 
 interface StatusPageLivePreviewProps {
     previewData: {
@@ -13,12 +14,12 @@ interface StatusPageLivePreviewProps {
             contactEmail?: string | null;
             contactUrl?: string | null;
         };
-        branding: any;
-        services: any[];
-        statusPageServices: any[];
-        announcements: any[];
+        branding: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        services: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        statusPageServices: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        announcements: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
         uptime90: Record<string, number>;
-        incidents: any[];
+        incidents: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
         showServices: boolean;
         showIncidents: boolean;
         showSubscribe?: boolean;
@@ -34,7 +35,7 @@ interface StatusPageLivePreviewProps {
         showRssLink: boolean;
         showApiLink: boolean;
         layout: string;
-        privacySettings?: any;
+        privacySettings?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
     maxWidth?: string;
 }
@@ -43,18 +44,29 @@ type DeviceView = 'mac' | 'ipad' | 'iphone';
 
 export default function StatusPageLivePreview({ previewData, maxWidth = '1280px' }: StatusPageLivePreviewProps) {
     const [deviceView, setDeviceView] = useState<DeviceView>('mac');
-    const [overallStatus, setOverallStatus] = useState<'operational' | 'degraded' | 'outage'>('operational');
     const [scale, setScale] = useState(1);
     const [zoomMode, setZoomMode] = useState<'fit' | 'manual'>('fit');
     const containerRef = useRef<HTMLDivElement>(null);
     const [frameHeight, setFrameHeight] = useState('100%');
 
-    useEffect(() => {
-        // Calculate overall status based on services
-        const hasOutage = previewData.services.some((s: any) => s.status === 'MAJOR_OUTAGE');
-        const hasDegraded = previewData.services.some((s: any) => s.status === 'PARTIAL_OUTAGE');
-        setOverallStatus(hasOutage ? 'outage' : hasDegraded ? 'degraded' : 'operational');
+    // Calculate overall status based on services
+    // Derived state - no need for effect
+    const overallStatus = useMemo(() => {
+        const hasOutage = previewData.services.some((s: any) => s.status === 'MAJOR_OUTAGE'); // eslint-disable-line @typescript-eslint/no-explicit-any
+        const hasDegraded = previewData.services.some((s: any) => s.status === 'PARTIAL_OUTAGE'); // eslint-disable-line @typescript-eslint/no-explicit-any
+        return hasOutage ? 'outage' : hasDegraded ? 'degraded' : 'operational';
     }, [previewData.services]);
+
+    // Log mounting and prop changes for debugging
+    useEffect(() => {
+        logger.debug('StatusPageLivePreview mounted/updated', {
+            layout: previewData.layout,
+            serviceCount: previewData.services.length,
+            incidentCount: previewData.incidents.length,
+            deviceView,
+            zoomMode
+        });
+    }, [previewData.layout, previewData.services.length, previewData.incidents.length, deviceView, zoomMode]);
 
     // Use the maxWidth prop if provided, otherwise calculate from layout
     // Parse maxWidth to get numeric value for calculations
@@ -102,7 +114,9 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                 // Don't scale up beyond 1.0 for "fit" mode, and ensure minimum scale
                 newScale = Math.max(0.1, Math.min(newScale, 1));
 
-                setScale(newScale);
+                if (newScale !== scale) {
+                    setScale(newScale);
+                }
 
                 // Set frame height
                 if (targetHeight) {
@@ -132,6 +146,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
     }, [zoomMode, targetWidth, targetHeight, deviceView, scale]);
 
     const handleZoom = (delta: number) => {
+        logger.debug('Zoom adjusted', { delta, currentScale: scale });
         setZoomMode('manual');
         setScale(prev => Math.min(Math.max(prev + delta, 0.25), 1.5)); // Limit zoom 0.25x to 1.5x
     };
@@ -339,7 +354,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                                         color: 'var(--status-text-muted, #6b7280)',
                                         textAlign: 'center',
                                     }}>
-                                        We'll never share your email. Unsubscribe anytime.
+                                        We&apos;ll never share your email. Unsubscribe anytime.
                                     </p>
                                 </div>
                             </div>
@@ -427,6 +442,7 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
                                     onClick={() => {
                                         setDeviceView(device);
                                         setZoomMode('fit'); // Auto-fit on switch
+                                        logger.debug('Switched device view', { device });
                                     }}
                                     onMouseEnter={(event) => {
                                         if (!isActive) {
@@ -660,4 +676,3 @@ export default function StatusPageLivePreview({ previewData, maxWidth = '1280px'
         </>
     );
 }
-

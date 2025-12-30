@@ -33,7 +33,7 @@ export default function SecurityForm({ hasPassword }: Props) {
     // Clear form and sign out after successful update
     useEffect(() => {
         if (state?.success) {
-            setNewPassword('');
+            setNewPassword(''); // eslint-disable-line react-hooks/set-state-in-effect
             const timer = setTimeout(async () => {
                 await signOut({ callbackUrl: '/login' });
             }, 1500);

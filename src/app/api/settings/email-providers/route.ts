@@ -7,7 +7,7 @@ import prisma from '@/lib/prisma';
  * GET /api/settings/email-providers
  * Get available email providers (for status page subscription config)
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
     try {
         const user = await getCurrentUser();
         if (!user || user.role !== 'ADMIN') {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         const providers = [];
 
         if (resendProvider && resendProvider.enabled) {
-            const config = resendProvider.config as any;
+            const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config?.apiKey) {
                 providers.push({
                     provider: 'resend',
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (sendgridProvider && sendgridProvider.enabled) {
-            const config = sendgridProvider.config as any;
+            const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config?.apiKey) {
                 providers.push({
                     provider: 'sendgrid',
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (smtpProvider && smtpProvider.enabled) {
-            const config = smtpProvider.config as any;
+            const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config?.host && config?.user && config?.password) {
                 providers.push({
                     provider: 'smtp',
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         }
 
         if (sesProvider && sesProvider.enabled) {
-            const config = sesProvider.config as any;
+            const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config?.accessKeyId && config?.secretAccessKey) {
                 providers.push({
                     provider: 'ses',
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
         }
 
         return jsonOk({ providers });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         return jsonError(error.message || 'Failed to fetch email providers', 500);
     }
 }

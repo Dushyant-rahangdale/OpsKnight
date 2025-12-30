@@ -69,7 +69,7 @@ export async function notifyStatusPageSubscribers(
 
             // Prepare email content
             // Prepare email content
-            const displayName = (page as any).organizationName || page.name;
+            const displayName = (page as any).organizationName || page.name; // eslint-disable-line @typescript-eslint/no-explicit-any
             const subject = formatSubject(displayName, incident.title, eventType);
             const html = formatEmailBody(displayName, incident, eventType, page.contactUrl || '#');
 
@@ -119,7 +119,7 @@ function formatSubject(pageName: string, incidentTitle: string, eventType: strin
 }
 
 
-function formatEmailBody(pageName: string, incident: any, eventType: string, contactUrl: string): string {
+function formatEmailBody(pageName: string, incident: any, eventType: string, contactUrl: string): string { // eslint-disable-line @typescript-eslint/no-explicit-any
     const statusMap: Record<string, { label: string; badge: 'success' | 'warning' | 'error' | 'info' }> = {
         'triggered': { label: 'New Incident', badge: 'error' },
         'acknowledged': { label: 'Investigating', badge: 'warning' },
@@ -243,7 +243,7 @@ export async function notifyStatusPageSubscribersAnnouncement(
 
         // 4. Prepare email content
         // 4. Prepare email content
-        const displayName = (page as any).organizationName || page.name;
+        const displayName = (page as any).organizationName || page.name; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // Define theme based on announcement type
         const themes: Record<string, { label: string; color: string; bg: string; borderColor: string }> = {

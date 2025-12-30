@@ -8,7 +8,7 @@ interface EmailProviderConfigProps {
     currentProvider?: string | null;
 }
 
-export default function StatusPageEmailConfig({ statusPageId, currentProvider }: EmailProviderConfigProps) {
+export default function StatusPageEmailConfig({ statusPageId: _statusPageId, currentProvider }: EmailProviderConfigProps) {
     const [provider, setProvider] = useState<string>(currentProvider || 'auto');
     const [saving, setSaving] = useState(false);
     const [availableProviders, setAvailableProviders] = useState<string[]>([]);
@@ -20,8 +20,8 @@ export default function StatusPageEmailConfig({ statusPageId, currentProvider }:
             .then(res => res.json())
             .then(data => {
                 const emailProviders = data.providers
-                    ?.filter((p: any) => ['resend', 'sendgrid', 'smtp', 'ses'].includes(p.provider) && p.enabled)
-                    .map((p: any) => p.provider) || [];
+                    ?.filter((p: any) => ['resend', 'sendgrid', 'smtp', 'ses'].includes(p.provider) && p.enabled) // eslint-disable-line @typescript-eslint/no-explicit-any
+                    .map((p: any) => p.provider) || []; // eslint-disable-line @typescript-eslint/no-explicit-any
                 setAvailableProviders(emailProviders);
             })
             .catch(err => console.error('Failed to fetch providers:', err))
@@ -40,14 +40,17 @@ export default function StatusPageEmailConfig({ statusPageId, currentProvider }:
             });
 
             if (response.ok) {
-                alert('Email provider updated successfully');
+                // eslint-disable-next-line no-alert
+                alert('Settings saved successfully');
             } else {
                 const result = await response.json();
-                alert(`Failed to update: ${result.error}`);
+                // eslint-disable-next-line no-alert
+                alert('Failed to save settings: ' + result.error);
             }
         } catch (error) {
             console.error('Error saving email provider:', error);
-            alert('Failed to save changes');
+            // eslint-disable-next-line no-alert
+            alert('An error occurred while saving settings');
         } finally {
             setSaving(false);
         }

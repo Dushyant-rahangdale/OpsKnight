@@ -40,7 +40,7 @@ export async function DELETE(
 
         logger.info('api.custom_fields.deleted', { customFieldId: id });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.custom_fields.delete_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to delete custom field', 500);
     }

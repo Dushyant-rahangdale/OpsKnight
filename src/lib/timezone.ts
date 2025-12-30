@@ -98,7 +98,7 @@ export function formatDateTime(
             case 'relative':
                 return formatRelativeTime(d, timeZone);
         }
-    } catch (error) {
+    } catch (_error) {
         // Fallback to UTC if timezone is invalid
         console.warn(`Invalid timezone: ${timeZone}, falling back to UTC`);
         return formatDateTime(d, 'UTC', options);

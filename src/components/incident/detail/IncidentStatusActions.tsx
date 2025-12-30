@@ -22,7 +22,7 @@ export default function IncidentStatusActions({
     currentStatus,
     onAcknowledge,
     onUnacknowledge,
-    onSnooze,
+    _onSnooze,
     onUnsnooze,
     onSuppress,
     onUnsuppress,

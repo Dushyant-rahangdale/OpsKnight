@@ -24,8 +24,8 @@ export default function PolicyStepCreateForm({
     const [isPending, startTransition] = useTransition();
     const [showForm, setShowForm] = useState(false);
     const [targetType, setTargetType] = useState<'USER' | 'TEAM' | 'SCHEDULE'>('USER');
-    const [notificationChannels, setNotificationChannels] = useState<string[]>([]);
-    const [notifyOnlyTeamLead, setNotifyOnlyTeamLead] = useState(false);
+    const [_notificationChannels, _setNotificationChannels] = useState<string[]>([]);
+    const [_notifyOnlyTeamLead, _setNotifyOnlyTeamLead] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

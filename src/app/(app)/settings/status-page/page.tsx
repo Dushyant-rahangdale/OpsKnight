@@ -59,7 +59,7 @@ export default async function StatusPageSettingsPage() {
         orderBy: { name: 'asc' },
     });
 
-    const formattedStatusPage: any = {
+    const formattedStatusPage: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
         ...statusPage,
         announcements: statusPage.announcements.map((announcement) => ({
             ...announcement,

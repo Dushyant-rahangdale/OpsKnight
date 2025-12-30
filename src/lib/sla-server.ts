@@ -18,7 +18,7 @@ type SLAMetricsFilter = {
 export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promise<SLAMetrics> {
     const { default: prisma } = await import('./prisma');
     
-    const where: any = {
+    const where: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
         status: 'RESOLVED'
     };
 

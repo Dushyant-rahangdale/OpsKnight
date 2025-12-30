@@ -573,7 +573,7 @@ export async function bulkUpdateStatus(incidentIds: string[], status: 'OPEN' | '
                 });
             }
         } else {
-            const updateData: any = { status };
+            const updateData: any = { status }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
             if (status === 'ACKNOWLEDGED') {
                 updateData.acknowledgedAt = new Date();

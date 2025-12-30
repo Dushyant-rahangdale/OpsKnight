@@ -13,7 +13,7 @@ type CustomFieldValue = {
         type: 'TEXT' | 'NUMBER' | 'DATE' | 'SELECT' | 'BOOLEAN' | 'URL' | 'EMAIL';
         required: boolean;
         defaultValue?: string | null;
-        options?: any;
+        options?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 };
 
@@ -27,7 +27,7 @@ type IncidentCustomFieldsProps = {
         type: 'TEXT' | 'NUMBER' | 'DATE' | 'SELECT' | 'BOOLEAN' | 'URL' | 'EMAIL';
         required: boolean;
         defaultValue?: string | null;
-        options?: any;
+        options?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }>;
     canManage: boolean;
 };
@@ -59,7 +59,7 @@ export default function IncidentCustomFields({
                     Custom Fields
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-                    {fieldsWithValues.map(({ field, value, valueId }) => (
+                    {fieldsWithValues.map(({ field, value, _valueId }) => (
                         <div key={field.id}>
                             {canManage ? (
                                 <CustomFieldInput

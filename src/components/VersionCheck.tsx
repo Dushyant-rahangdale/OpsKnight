@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
  * to prevent Stale Server Action errors.
  */
 export default function VersionCheck() {
-    const [instanceId, setInstanceId] = useState<string | null>(null);
+    const [_instanceId, setInstanceId] = useState<string | null>(null);
 
     useEffect(() => {
         // Initial check

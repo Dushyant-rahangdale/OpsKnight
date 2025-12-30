@@ -43,7 +43,7 @@ type PolicyStepCardProps = {
 
 export default function PolicyStepCard({
     step,
-    policyId,
+    _policyId,
     canManagePolicies,
     updateStep,
     deleteStep,

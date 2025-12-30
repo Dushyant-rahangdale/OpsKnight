@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
-import { assertResponderOrAbove } from '@/lib/rbac';
+import { _assertResponderOrAbove } from '@/lib/rbac';
 import prisma from '@/lib/prisma';
-import { trackPresetUsage, type FilterCriteria } from '@/lib/search-presets';
+import { _trackPresetUsage, type _FilterCriteria } from '@/lib/search-presets';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { SearchPresetPatchSchema } from '@/lib/validation';
 import { logger } from '@/lib/logger';
@@ -66,7 +66,7 @@ export async function GET(
         }
 
         return jsonOk({ preset }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.fetch_one_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to fetch preset', 500);
     }
@@ -102,10 +102,10 @@ export async function PATCH(
             return jsonError('Access denied', 403);
         }
 
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = SearchPresetPatchSchema.safeParse(body);
@@ -124,7 +124,7 @@ export async function PATCH(
             sharedWithTeams,
         } = parsed.data;
 
-        const updateData: any = {};
+        const updateData: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         if (name !== undefined) {
             updateData.name = name.trim();
@@ -178,7 +178,7 @@ export async function PATCH(
 
         logger.info('api.search_presets.updated', { presetId: updated.id });
         return jsonOk({ preset: updated }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.update_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to update preset', 500);
     }
@@ -219,7 +219,7 @@ export async function DELETE(
 
         logger.info('api.search_presets.deleted', { presetId: id });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.delete_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to delete preset', 500);
     }

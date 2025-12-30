@@ -21,14 +21,15 @@ type IncidentCardProps = {
     compact?: boolean;
 };
 
-function IncidentCard({ 
-    incident, 
-    showSLA = false, 
+function IncidentCard({
+    incident,
+    showSLA = false,
     showEscalation = false,
-    compact = false 
+    compact = false
 }: IncidentCardProps) {
     const router = useRouter();
     const { userTimeZone } = useTimezone();
+    const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const handleServiceClick = (e: React.MouseEvent | React.KeyboardEvent) => {
         e.stopPropagation();
@@ -36,7 +37,7 @@ function IncidentCard({
     };
     if (compact) {
         return (
-            <Link 
+            <Link
                 href={`/incidents/${incident.id}`}
                 style={{
                     display: 'block',
@@ -60,7 +61,7 @@ function IncidentCard({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
-                            <StatusBadge status={incident.status as any} size="sm" showDot />
+                            <StatusBadge status={incidentStatus} size="sm" showDot />
                             <PriorityBadge priority={incident.priority} size="sm" />
                             {showEscalation && (
                                 <EscalationStatusBadge
@@ -92,7 +93,7 @@ function IncidentCard({
     }
 
     return (
-        <Link 
+        <Link
             href={`/incidents/${incident.id}`}
             style={{
                 display: 'block',
@@ -116,7 +117,7 @@ function IncidentCard({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <StatusBadge status={incident.status as any} size="md" showDot />
+                        <StatusBadge status={incidentStatus} size="md" showDot />
                         <PriorityBadge priority={incident.priority} size="md" />
                         {showEscalation && (
                             <EscalationStatusBadge
@@ -126,17 +127,17 @@ function IncidentCard({
                             />
                         )}
                     </div>
-                    <h3 style={{ 
-                        fontWeight: 700, 
-                        fontSize: '1.1rem', 
-                        color: 'var(--text-primary)', 
+                    <h3 style={{
+                        fontWeight: 700,
+                        fontSize: '1.1rem',
+                        color: 'var(--text-primary)',
                         marginBottom: '0.25rem',
                         lineHeight: 1.3
                     }}>
                         {incident.title}
                     </h3>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                        <span 
+                        <span
                             style={{ color: 'var(--primary)', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
                             onClick={handleServiceClick}
                             onKeyDown={(e) => {
@@ -164,9 +165,9 @@ function IncidentCard({
             </div>
 
             {incident.assignee && (
-                <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: '0.5rem',
                     padding: '0.5rem 0.75rem',
                     background: '#f9fafb',

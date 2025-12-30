@@ -96,7 +96,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         await resolveIncidentWithNote(id, resolution);
     }
 
-    async function handleUrgencyChange(formData: FormData) {
+    async function _handleUrgencyChange(formData: FormData) {
         'use server';
         const newUrgency = formData.get('urgency') as string;
         await updateIncidentUrgency(id, newUrgency);
@@ -119,7 +119,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         <main style={{ margin: '0 auto' }}>
             {/* Header */}
             <IncidentHeader
-                incident={incident as any}
+                incident={incident as any} // eslint-disable-line @typescript-eslint/no-explicit-any
                 users={users}
                 teams={teams}
                 canManage={canManageIncident}

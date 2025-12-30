@@ -29,10 +29,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = StatusAnnouncementCreateSchema.safeParse(body);
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
                 startDate: parseDate(startDate, 'startDate'),
                 endDate: endDate ? parseDate(endDate, 'endDate') : null,
                 isActive: isActive !== false,
-                affectedServiceIds: normalizedAffectedServiceIds as any,
+                affectedServiceIds: normalizedAffectedServiceIds as any, // eslint-disable-line @typescript-eslint/no-explicit-any
             },
         });
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.status_page.announcement.created', { announcementId: announcement.id, notifySubscribers });
         return jsonOk({ announcement }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.announcement.create_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create announcement', 500);
     }
@@ -82,10 +82,10 @@ export async function PATCH(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = StatusAnnouncementPatchSchema.safeParse(body);
@@ -104,13 +104,13 @@ export async function PATCH(req: NextRequest) {
                 ...(startDate ? { startDate: parseDate(startDate, 'startDate') } : {}),
                 ...(endDate !== undefined ? { endDate: endDate ? parseDate(endDate, 'endDate') : null } : {}),
                 ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}),
-                ...(affectedServiceIds !== undefined ? { affectedServiceIds: normalizedAffectedServiceIds as any } : {}),
+                ...(affectedServiceIds !== undefined ? { affectedServiceIds: normalizedAffectedServiceIds as any } : {}), // eslint-disable-line @typescript-eslint/no-explicit-any
             },
         });
 
         logger.info('api.status_page.announcement.updated', { announcementId: updated.id });
         return jsonOk({ announcement: updated }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.announcement.update_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to update announcement', 500);
     }
@@ -124,10 +124,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = StatusAnnouncementDeleteSchema.safeParse(body);
@@ -140,7 +140,7 @@ export async function DELETE(req: NextRequest) {
 
         logger.info('api.status_page.announcement.deleted', { announcementId: id });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.announcement.delete_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to delete announcement', 500);
     }

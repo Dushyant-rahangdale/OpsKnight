@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             },
             200
         );
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhook.test_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to test webhook', 500);
     }

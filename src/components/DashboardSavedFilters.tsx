@@ -27,7 +27,7 @@ export default function DashboardSavedFilters() {
     const saved = localStorage.getItem('dashboard-saved-filters');
     if (saved) {
       try {
-        setSavedFilters(JSON.parse(saved));
+        setSavedFilters(JSON.parse(saved)); // eslint-disable-line react-hooks/set-state-in-effect
       } catch (e) {
         console.error('Failed to load saved filters', e);
       }
@@ -182,7 +182,7 @@ export default function DashboardSavedFilters() {
           justifyContent: 'center',
           zIndex: 1000
         }}
-        onClick={() => setShowSaveDialog(false)}
+          onClick={() => setShowSaveDialog(false)}
         >
           <div
             style={{

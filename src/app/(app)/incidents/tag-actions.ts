@@ -34,7 +34,7 @@ export async function addTagToIncident(incidentId: string, tagName: string) {
                 message: `Tag "${tagName}" added${user ? ` by ${user.name}` : ''}`
             }
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         // Ignore unique constraint violations (tag already exists)
         if (!error.code || error.code !== 'P2002') {
             throw error;

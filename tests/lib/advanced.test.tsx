@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 
@@ -7,7 +7,7 @@ class ErrorBoundary extends React.Component<
     { children: React.ReactNode },
     { hasError: boolean; error: Error | null }
 > {
-    constructor(props: any) {
+    constructor(props: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         super(props);
         this.state = { hasError: false, error: null };
     }
@@ -60,7 +60,7 @@ describe('Error Handling', () => {
 
     describe('API Error Handling', () => {
         it('should handle network errors', () => {
-            const handleNetworkError = (error: any) => {
+            const handleNetworkError = (error: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 if (error.message === 'Network request failed') {
                     return 'Unable to connect to server';
                 }
@@ -72,7 +72,7 @@ describe('Error Handling', () => {
         });
 
         it('should handle timeout errors', () => {
-            const handleTimeout = (error: any) => {
+            const handleTimeout = (error: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 if (error.code === 'TIMEOUT') {
                     return 'Request timed out';
                 }
@@ -86,7 +86,7 @@ describe('Error Handling', () => {
 
     describe('Validation Errors', () => {
         it('should collect validation errors', () => {
-            const validate = (data: any) => {
+            const validate = (data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const errors: Record<string, string> = {};
 
                 if (!data.email) errors.email = 'Email is required';
@@ -111,8 +111,8 @@ describe('Performance Optimization', () => {
         it('should memoize expensive calculations', () => {
             const cache = new Map();
 
-            const memoize = (fn: Function) => {
-                return (...args: any[]) => {
+            const memoize = (fn: (...args: any[]) => any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+                return (...args: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                     const key = JSON.stringify(args);
                     if (cache.has(key)) {
                         return cache.get(key);
@@ -140,9 +140,9 @@ describe('Performance Optimization', () => {
         it('should debounce function calls', () => {
             vi.useFakeTimers();
 
-            const debounce = (fn: Function, delay: number) => {
+            const debounce = (fn: (...args: any[]) => any, delay: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 let timeoutId: NodeJS.Timeout;
-                return (...args: any[]) => {
+                return (...args: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                     clearTimeout(timeoutId);
                     timeoutId = setTimeout(() => fn(...args), delay);
                 };
@@ -167,9 +167,9 @@ describe('Performance Optimization', () => {
         it('should throttle function calls', () => {
             vi.useFakeTimers();
 
-            const throttle = (fn: Function, limit: number) => {
+            const throttle = (fn: (...args: any[]) => any, limit: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 let inThrottle: boolean;
-                return (...args: any[]) => {
+                return (...args: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                     if (!inThrottle) {
                         fn(...args);
                         inThrottle = true;

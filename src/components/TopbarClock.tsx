@@ -11,8 +11,8 @@ export default function TopbarClock() {
 
     useEffect(() => {
         // Mark as mounted to prevent hydration mismatch
-        setMounted(true);
-        
+        setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
+
         const timer = setInterval(() => {
             setTime(new Date());
         }, 1000);
@@ -47,7 +47,7 @@ export default function TopbarClock() {
     const hours = timeParts.find(p => p.type === 'hour')?.value.padStart(2, '0') || '00';
     const minutes = timeParts.find(p => p.type === 'minute')?.value.padStart(2, '0') || '00';
     const seconds = timeParts.find(p => p.type === 'second')?.value.padStart(2, '0') || '00';
-    
+
     // Format date in user's timezone
     const dateFormatter = new Intl.DateTimeFormat('en-US', {
         weekday: 'short',

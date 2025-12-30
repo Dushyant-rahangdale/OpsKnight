@@ -37,7 +37,7 @@ export function transformDatadogToEvent(data: DatadogEvent): {
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     const title = data.title || data.alert?.title || data.monitor?.name || 'Datadog Alert';

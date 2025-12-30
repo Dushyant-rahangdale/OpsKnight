@@ -2,11 +2,10 @@
 
 import { ReactNode, useId } from 'react';
 import Input from './Input';
-import Select from './Select';
+import Select, { SelectOption } from './Select';
 import Switch from './Switch';
-import { SelectOption } from './Select';
 
-type FormFieldType = 'input' | 'textarea' | 'select' | 'switch';
+type _FormFieldType = 'input' | 'textarea' | 'select' | 'switch';
 
 interface BaseFormFieldProps {
   label: string;

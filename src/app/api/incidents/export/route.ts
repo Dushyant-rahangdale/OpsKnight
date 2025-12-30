@@ -24,10 +24,10 @@ export async function GET(req: NextRequest) {
     const priority = searchParams.get('priority') || 'all';
     const urgency = searchParams.get('urgency') || 'all';
 
-    let where: any = {};
+    let where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (filter === 'mine') {
         where = {
-            assigneeId: (session.user as any).id,
+            assigneeId: (session.user as any).id, // eslint-disable-line @typescript-eslint/no-explicit-any
             status: { notIn: ['RESOLVED'] }
         };
     } else if (filter === 'all_open') {

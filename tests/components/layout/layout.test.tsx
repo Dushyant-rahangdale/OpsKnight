@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import Link from 'next/link';
 
 // Mock the Sidebar component
 vi.mock('@/components/Sidebar', () => ({
@@ -59,9 +60,9 @@ describe('Layout Components', () => {
         it('should render navigation items', () => {
             const Nav = () => (
                 <nav>
-                    <a href="/dashboard">Dashboard</a>
-                    <a href="/incidents">Incidents</a>
-                    <a href="/services">Services</a>
+                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href="/incidents">Incidents</Link>
+                    <Link href="/services">Services</Link>
                 </nav>
             );
 

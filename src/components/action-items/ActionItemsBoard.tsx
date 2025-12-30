@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button, FormField } from '@/components/ui';
+import { _Button, FormField } from '@/components/ui';
 import { Badge } from '@/components/ui';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
@@ -61,7 +61,7 @@ const PRIORITY_LABELS = {
     LOW: 'Low',
 };
 
-export default function ActionItemsBoard({ actionItems, users, canManage, view, filters }: ActionItemsBoardProps) {
+export default function ActionItemsBoard({ actionItems, users, _canManage, view, filters }: ActionItemsBoardProps) {
     const { userTimeZone } = useTimezone();
     const [selectedStatus, setSelectedStatus] = useState(filters.status || '');
     const [selectedOwner, setSelectedOwner] = useState(filters.owner || '');

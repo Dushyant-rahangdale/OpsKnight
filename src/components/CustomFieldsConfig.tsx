@@ -11,7 +11,7 @@ type CustomField = {
     type: 'TEXT' | 'NUMBER' | 'DATE' | 'SELECT' | 'BOOLEAN' | 'URL' | 'EMAIL';
     required: boolean;
     defaultValue?: string | null;
-    options?: any;
+    options?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     order: number;
     showInList: boolean;
     _count: {
@@ -27,8 +27,8 @@ export default function CustomFieldsConfig({ customFields: initialFields }: Cust
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
-    const [customFields, setCustomFields] = useState(initialFields);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [customFields, _setCustomFields] = useState(initialFields);
+    const [_editingId, _setEditingId] = useState<string | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -82,7 +82,7 @@ export default function CustomFieldsConfig({ customFields: initialFields }: Cust
                     options: '',
                     showInList: false,
                 });
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to save custom field');
             }
         });
@@ -105,7 +105,7 @@ export default function CustomFieldsConfig({ customFields: initialFields }: Cust
                 }
 
                 router.refresh();
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to delete custom field');
             }
         });

@@ -51,7 +51,7 @@ describe('StatusPageLivePreview Component', () => {
     });
 
     it('renders Mac view by default', () => {
-        render(<StatusPageLivePreview previewData={mockPreviewData as any} />);
+        render(<StatusPageLivePreview previewData={mockPreviewData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // Short label is in the button text, full label is in the title
         expect(screen.getByText('Mac')).toBeDefined();
@@ -61,7 +61,7 @@ describe('StatusPageLivePreview Component', () => {
     });
 
     it('switches to iPad view', () => {
-        render(<StatusPageLivePreview previewData={mockPreviewData as any} />);
+        render(<StatusPageLivePreview previewData={mockPreviewData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const ipadBtn = screen.getByTitle('iPad Pro 12.9"');
         fireEvent.click(ipadBtn);
@@ -73,7 +73,7 @@ describe('StatusPageLivePreview Component', () => {
     });
 
     it('switches to iPhone view', () => {
-        render(<StatusPageLivePreview previewData={mockPreviewData as any} />);
+        render(<StatusPageLivePreview previewData={mockPreviewData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const iphoneBtn = screen.getByTitle('iPhone 15 Pro');
         fireEvent.click(iphoneBtn);
@@ -83,12 +83,12 @@ describe('StatusPageLivePreview Component', () => {
     });
 
     it('handles zoom controls', () => {
-        render(<StatusPageLivePreview previewData={mockPreviewData as any} />);
+        render(<StatusPageLivePreview previewData={mockPreviewData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const zoomOutBtn = screen.getByTitle('Zoom Out');
-        const zoomInBtn = screen.getByTitle('Zoom In');
+        const _zoomInBtn = screen.getByTitle('Zoom In');
         // Initial state is "Fit" mode enabled
-        const fitToggleBtn = screen.getByTitle('Disable Fit to Screen');
+        const _fitToggleBtn = screen.getByTitle('Disable Fit to Screen');
 
         fireEvent.click(zoomOutBtn);
         // After manual zoom, it should show percentage instead of "Fit"
@@ -102,7 +102,7 @@ describe('StatusPageLivePreview Component', () => {
     });
 
     it('calculates overall status as Operational', () => {
-        render(<StatusPageLivePreview previewData={mockPreviewData as any} />);
+        render(<StatusPageLivePreview previewData={mockPreviewData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
         // Header mock is called with statusPage and overallStatus
         // Since we can't easily see props of mocked functional component in simple way here, 
         // we assume logic runs. If we wanted to be sure, we'd check internal state or 
@@ -114,7 +114,7 @@ describe('StatusPageLivePreview Component', () => {
             ...mockPreviewData,
             services: [{ id: 's1', name: 'Web App', status: 'MAJOR_OUTAGE' }]
         };
-        render(<StatusPageLivePreview previewData={outageData as any} />);
+        render(<StatusPageLivePreview previewData={outageData as any} />); // eslint-disable-line @typescript-eslint/no-explicit-any
         // Logic check
     });
 });

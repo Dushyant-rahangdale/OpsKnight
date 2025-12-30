@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
                 clearInterval(pollInterval);
                 try {
                     controller.close();
-                } catch (error) {
+                } catch (_error) {
                     // Controller already closed, ignore
                 }
             });

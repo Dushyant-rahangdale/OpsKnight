@@ -166,7 +166,7 @@ describe('Slack Integration', () => {
 
             // Check that blocks include custom message
             const hasCustomMessage = body.attachments[0].blocks.some(
-                (block: any) => block.text?.text?.includes(customMessage)
+                (block: any) => block.text?.text?.includes(customMessage) // eslint-disable-line @typescript-eslint/no-explicit-any
             );
             expect(hasCustomMessage).toBe(true);
         });

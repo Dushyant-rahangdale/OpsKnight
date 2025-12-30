@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock webhook functions
 const sendWebhook = vi.fn();
@@ -32,7 +32,7 @@ describe('Webhook System', () => {
         });
 
         it('should include timestamp in webhook payload', () => {
-            const createWebhookPayload = (event: string, data: any) => ({
+            const createWebhookPayload = (event: string, data: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
                 event,
                 timestamp: new Date().toISOString(),
                 data,

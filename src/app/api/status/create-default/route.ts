@@ -51,7 +51,7 @@ export async function POST() {
             message: 'Default status page created',
             id: statusPage.id 
         }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.create_default_error', { error: error instanceof Error ? error.message : String(error) });
         
         // If table doesn't exist, provide helpful error

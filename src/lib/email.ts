@@ -292,7 +292,7 @@ export async function sendEmail(
                 const sesClient = new SESClient({
                     region: emailConfig.host,
                     credentials: {
-                        accessKeyId: (emailConfig as any).accessKeyId || process.env.AWS_ACCESS_KEY_ID || '',
+                        accessKeyId: (emailConfig as any).accessKeyId || process.env.AWS_ACCESS_KEY_ID || '', // eslint-disable-line @typescript-eslint/no-explicit-any
                         secretAccessKey: emailConfig.apiKey || '',
                     },
                 });

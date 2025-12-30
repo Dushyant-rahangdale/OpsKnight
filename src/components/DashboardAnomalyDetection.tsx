@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, _useEffect, useMemo } from 'react';
 
 type AnomalyData = {
   type: 'spike' | 'drop' | 'pattern';
@@ -28,13 +28,13 @@ type DashboardAnomalyDetectionProps = {
 };
 
 export default function DashboardAnomalyDetection({ currentData, historicalData }: DashboardAnomalyDetectionProps) {
-  const [anomalies, setAnomalies] = useState<AnomalyData[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
+  // Use useMemo to calculate anomalies derived from props
+  const anomalies = useMemo(() => {
     const detected: AnomalyData[] = [];
 
-    if (historicalData.length < 7) return;
+    if (historicalData.length < 7) return detected;
 
     // Calculate averages for last 7 days
     const recent7Days = historicalData.slice(-7);
@@ -43,19 +43,27 @@ export default function DashboardAnomalyDetection({ currentData, historicalData 
     const avgResolved = recent7Days.reduce((sum, d) => sum + d.resolved, 0) / recent7Days.length;
     const avgAcknowledged = recent7Days.reduce((sum, d) => sum + d.acknowledged, 0) / recent7Days.length;
 
-    // Calculate standard deviation
-    const stdDev = (values: number[], mean: number) => {
-      const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-      return Math.sqrt(variance);
-    };
-
     const checkAnomaly = (
       current: number,
       expected: number,
       metric: string,
-      threshold: number = 2 // 2 standard deviations
     ) => {
       const diff = Math.abs(current - expected);
+      // Avoid division by zero
+      if (expected === 0) {
+        if (current > 0) {
+          return {
+            type: 'spike' as const,
+            metric,
+            value: current,
+            expected,
+            severity: 'high' as const,
+            message: `${metric} spiked (new activity, expected 0)`
+          };
+        }
+        return null;
+      }
+
       const percentChange = (diff / expected) * 100;
 
       if (percentChange > 50) {
@@ -84,7 +92,7 @@ export default function DashboardAnomalyDetection({ currentData, historicalData 
     const ackAnomaly = checkAnomaly(currentData.acknowledged, avgAcknowledged, 'Acknowledged Incidents');
     if (ackAnomaly) detected.push(ackAnomaly);
 
-    setAnomalies(detected);
+    return detected;
   }, [currentData, historicalData]);
 
   if (anomalies.length === 0) return null;

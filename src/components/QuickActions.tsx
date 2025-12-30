@@ -87,11 +87,6 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
     const router = useRouter();
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Don't render if user doesn't have create permissions
-    if (!canCreate) {
-        return null;
-    }
-
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -120,6 +115,11 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
         setIsOpen(false);
     };
 
+    // Don't render if user doesn't have create permissions
+    if (!canCreate) {
+        return null;
+    }
+
     return (
         <div ref={menuRef} className="quick-actions-container">
             <button
@@ -135,13 +135,13 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
                     <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 <span className="quick-actions-label">Create</span>
-                <svg 
+                <svg
                     className="quick-actions-chevron"
-                    viewBox="0 0 24 24" 
-                    width="14" 
-                    height="14" 
-                    fill="none" 
-                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    stroke="currentColor"
                     strokeWidth="2"
                 >
                     <polyline points="6 9 12 15 18 9" />
@@ -177,14 +177,14 @@ export default function QuickActions({ canCreate = true }: QuickActionsProps) {
                                             <span className="quick-actions-item-desc">{action.description}</span>
                                         )}
                                     </div>
-                                    <svg 
+                                    <svg
                                         className="quick-actions-item-arrow"
-                                        width="16" 
-                                        height="16" 
-                                        viewBox="0 0 16 16" 
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
                                         fill="none"
                                     >
-                                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </button>
                             ))}

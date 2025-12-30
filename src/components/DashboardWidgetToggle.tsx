@@ -9,18 +9,18 @@ type WidgetToggleProps = {
   title: string;
 };
 
-export default function DashboardWidgetToggle({ 
-  widgetId, 
-  defaultVisible = true, 
+export default function DashboardWidgetToggle({
+  widgetId,
+  defaultVisible = true,
   children,
-  title 
+  title
 }: WidgetToggleProps) {
   const [isVisible, setIsVisible] = useState(defaultVisible);
 
   useEffect(() => {
     const saved = localStorage.getItem(`widget-${widgetId}`);
     if (saved !== null) {
-      setIsVisible(saved === 'true');
+      setIsVisible(saved === 'true'); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [widgetId]);
 

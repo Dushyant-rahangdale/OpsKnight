@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, ReactNode } from 'react';
 
 interface TooltipProps {
     content: string | ReactNode;
@@ -36,7 +36,7 @@ export default function Tooltip({
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Calculate position to avoid viewport overflow
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!isVisible || !tooltipRef.current || !wrapperRef.current) return;
 
         const tooltip = tooltipRef.current;
@@ -57,12 +57,14 @@ export default function Tooltip({
             newPosition = 'left';
         }
 
-        setCalculatedPosition(newPosition);
-    }, [isVisible, position]);
+        if (newPosition !== calculatedPosition) {
+            setCalculatedPosition(newPosition); // eslint-disable-line react-hooks/set-state-in-effect
+        }
+    }, [isVisible, position, calculatedPosition]);
 
     const showTooltip = () => {
         if (disabled) return;
-        
+
         if (delay > 0) {
             timeoutRef.current = setTimeout(() => {
                 setIsVisible(true);

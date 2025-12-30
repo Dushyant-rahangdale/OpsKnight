@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { _useRouter } from 'next/navigation';
 
 const quickFilters = [
   { 
@@ -81,7 +81,7 @@ const quickFilters = [
 
 export default function DashboardQuickFilters() {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const _pathname = usePathname();
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>

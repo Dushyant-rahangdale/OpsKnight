@@ -31,7 +31,7 @@ function SubmitButton() {
     );
 }
 
-export default function IncidentResolution({ incidentId, canManage, onResolve }: IncidentResolutionProps) {
+export default function IncidentResolution({ _incidentId, canManage, onResolve }: IncidentResolutionProps) {
     if (!canManage) {
         return (
             <div className="glass-panel" style={{

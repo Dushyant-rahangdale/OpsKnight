@@ -10,7 +10,7 @@ interface StatusPageHeaderProps {
         contactUrl?: string | null;
     };
     overallStatus: 'operational' | 'degraded' | 'outage';
-    branding?: any;
+    branding?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     lastUpdated?: string;
 }
 
@@ -44,18 +44,18 @@ const STATUS_CONFIG = {
 export default function StatusPageHeader({ statusPage, overallStatus, branding = {}, lastUpdated }: StatusPageHeaderProps) {
     const status = STATUS_CONFIG[overallStatus];
     const logoUrl = branding.logoUrl || '/logo.svg';
-    const primaryColor = branding.primaryColor || '#667eea';
+    const _primaryColor = branding.primaryColor || '#667eea';
     const textColor = branding.textColor || 'var(--status-text, #111827)';
     const [updatedLabel, setUpdatedLabel] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        setIsVisible(true);
+        setIsVisible(true); // eslint-disable-line react-hooks/set-state-in-effect
     }, []);
 
     useEffect(() => {
         if (!lastUpdated) {
-            setUpdatedLabel(null);
+            setUpdatedLabel(null); // eslint-disable-line react-hooks/set-state-in-effect
             return;
         }
 
@@ -191,14 +191,14 @@ export default function StatusPageHeader({ statusPage, overallStatus, branding =
                                 marginTop: 'clamp(0.125rem, 0.5vw, 0.25rem)', // Tighter margin
                                 flexWrap: 'wrap',
                             }}>
-                                    <p style={{
-                                        margin: 0,
-                                        color: 'var(--status-text-muted, #475569)',
-                                        fontSize: 'clamp(0.75rem, 2vw, 0.95rem)', // Smaller subtitle
-                                        fontWeight: '500',
-                                    }}>
-                                        {status.text}
-                                    </p>
+                                <p style={{
+                                    margin: 0,
+                                    color: 'var(--status-text-muted, #475569)',
+                                    fontSize: 'clamp(0.75rem, 2vw, 0.95rem)', // Smaller subtitle
+                                    fontWeight: '500',
+                                }}>
+                                    {status.text}
+                                </p>
                                 {updatedLabel && (
                                     <>
                                         <span style={{ color: 'var(--status-text-subtle, #cbd5e1)', fontSize: '0.75rem' }}>|</span>

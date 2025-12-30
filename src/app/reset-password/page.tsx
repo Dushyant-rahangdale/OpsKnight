@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import _Link from 'next/link';
 import Spinner from '@/components/ui/Spinner';
 
 function ResetPasswordForm() {
@@ -57,7 +57,7 @@ function ResetPasswordForm() {
                     router.push('/login?password=1');
                 }, 2000);
             }
-        } catch (err) {
+        } catch (_err) {
             setError('An unexpected error occurred');
         } finally {
             setIsSubmitting(false);

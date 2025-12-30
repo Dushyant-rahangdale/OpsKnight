@@ -23,7 +23,7 @@ export default function TeamMemberForm({
     canManageMembers,
     canAssignOwnerAdmin,
     addMember,
-    teamId
+    _teamId
 }: TeamMemberFormProps) {
     const [isPending, startTransition] = useTransition();
     const { showToast } = useToast();

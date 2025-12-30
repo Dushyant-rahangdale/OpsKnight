@@ -25,7 +25,7 @@ const SERVER_INSTANCE_ID = Date.now().toString();
  * }
  */
 export async function GET() {
-    const startTime = Date.now();
+    const _startTime = Date.now();
     const checks: Record<string, { status: 'healthy' | 'unhealthy'; latency?: number; error?: string }> = {};
 
     // Check database connection with timeout
@@ -45,7 +45,7 @@ export async function GET() {
             status: 'healthy',
             latency: dbLatency,
         };
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         checks.database = {
             status: 'unhealthy',
             error: error.message || 'Database connection failed',
@@ -68,7 +68,7 @@ export async function GET() {
             status: heapUsagePercent > 90 ? 'unhealthy' : 'healthy',
             latency: memUsageMB.heapUsed,
         };
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         checks.memory = {
             status: 'unhealthy',
             error: error.message,

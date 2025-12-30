@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getUserPermissions } from '@/lib/rbac';
 import { addTeamMember, createTeam, deleteTeam, removeTeamMember, updateTeam, updateTeamMemberRole, updateTeamMemberNotifications } from './actions';
 import TeamCreateForm from '@/components/TeamCreateForm';
@@ -69,7 +70,7 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
     const skip = (page - 1) * TEAMS_PER_PAGE;
 
     // Build where clause with filters
-    const where: any = query
+    const where: Prisma.TeamWhereInput = query
         ? {
             OR: [
                 { name: { contains: query, mode: 'insensitive' } },
@@ -79,17 +80,17 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
         : {};
 
     // Build orderBy
-    let orderBy: any = { createdAt: 'desc' }; // Default: newest first
+    let orderBy: Prisma.TeamOrderByWithRelationInput = { createdAt: 'desc' }; // Default: newest first
     if (sortBy === 'createdAt') {
-        orderBy = { createdAt: sortOrder };
+        orderBy = { createdAt: sortOrder as Prisma.SortOrder };
     } else if (sortBy === 'name') {
-        orderBy = { name: sortOrder };
+        orderBy = { name: sortOrder as Prisma.SortOrder };
     } else {
         // For memberCount/serviceCount, we'll sort in memory after fetching
         orderBy = { createdAt: 'desc' };
     }
 
-    const [allTeams, totalCount, users, ownerCounts] = await Promise.all([
+    const [allTeams, _totalCount, users, ownerCounts] = await Promise.all([
         prisma.team.findMany({
             include: {
                 members: {

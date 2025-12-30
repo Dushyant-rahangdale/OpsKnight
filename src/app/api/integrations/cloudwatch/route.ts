@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
         }
 
         // CloudWatch sends SNS messages which contain the alarm message
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         const result = await processEvent(event, integration.serviceId, integration.id);
 
         return jsonOk({ status: 'success', result }, 202);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.integration.cloudwatch_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError('Internal Server Error', 500);
     }

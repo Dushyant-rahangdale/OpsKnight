@@ -64,15 +64,15 @@ const PRESET_COLORS = [
 
 export default function SearchPresetManager({
     presets: initialPresets,
-    services,
-    users,
-    teams,
+    _services,
+    _users,
+    _teams,
     currentUserId,
     isAdmin,
 }: SearchPresetManagerProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [presets, setPresets] = useState(initialPresets);
+    const [presets, _setPresets] = useState(initialPresets);
     const [editingPreset, setEditingPreset] = useState<SearchPreset | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -169,7 +169,7 @@ export default function SearchPresetManager({
                     color: '',
                     sharedWithTeams: [],
                 });
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to save preset');
             }
         });
@@ -189,7 +189,7 @@ export default function SearchPresetManager({
 
                 router.refresh();
                 setShowDeleteConfirm(null);
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to delete preset');
             }
         });
@@ -208,7 +208,7 @@ export default function SearchPresetManager({
                 }
 
                 router.refresh();
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to duplicate preset');
             }
         });

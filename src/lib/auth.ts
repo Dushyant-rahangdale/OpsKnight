@@ -7,12 +7,16 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getOidcConfig } from '@/lib/oidc-config';
 
+export async function hashPassword(password: string) {
+    return bcrypt.hash(password, 12);
+}
+
 export async function getAuthOptions(): Promise<NextAuthOptions> {
     const oidcConfig = await getOidcConfig();
     const sessionMaxAgeSeconds = 60 * 60 * 24 * 7;
 
     return {
-        adapter: PrismaAdapter(prisma as any),
+        adapter: PrismaAdapter(prisma as any), // eslint-disable-line @typescript-eslint/no-explicit-any
         session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
         jwt: { maxAge: sessionMaxAgeSeconds },
         providers: [
@@ -79,10 +83,10 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             async jwt({ token, user }) {
                 // Initial sign in - set user data
                 if (user) {
-                    token.role = (user as any).role;
-                    token.sub = (user as any).id ?? token.sub;
-                    token.name = (user as any).name;
-                    token.email = (user as any).email;
+                    token.role = (user as any).role; // eslint-disable-line @typescript-eslint/no-explicit-any
+                    token.sub = (user as any).id ?? token.sub; // eslint-disable-line @typescript-eslint/no-explicit-any
+                    token.name = (user as any).name; // eslint-disable-line @typescript-eslint/no-explicit-any
+                    token.email = (user as any).email; // eslint-disable-line @typescript-eslint/no-explicit-any
                 }
 
                 // Fetch latest user data from database on each request to ensure name is up-to-date
@@ -111,8 +115,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             },
             async session({ session, token }) {
                 if (session.user) {
-                    (session.user as any).role = token.role;
-                    (session.user as any).id = token.sub;
+                    (session.user as any).role = token.role; // eslint-disable-line @typescript-eslint/no-explicit-any
+                    (session.user as any).id = token.sub; // eslint-disable-line @typescript-eslint/no-explicit-any
                     // Always use the latest name from token (which is fetched from DB)
                     session.user.name = (token.name as string) || session.user.name;
                     session.user.email = (token.email as string) || session.user.email;

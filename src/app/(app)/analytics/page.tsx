@@ -130,10 +130,10 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
     const assigneeId = typeof awaitedSearchParams?.assignee === 'string' && awaitedSearchParams.assignee !== 'ALL'
         ? awaitedSearchParams.assignee
         : null;
-    const statusFilter: (typeof allowedStatus)[number] | 'ALL' = allowedStatus.includes(awaitedSearchParams?.status as any)
+    const statusFilter: (typeof allowedStatus)[number] | 'ALL' = allowedStatus.includes(awaitedSearchParams?.status as any) // eslint-disable-line @typescript-eslint/no-explicit-any
         ? (awaitedSearchParams?.status as (typeof allowedStatus)[number])
         : 'ALL';
-    const urgencyFilter: (typeof allowedUrgency)[number] | 'ALL' = allowedUrgency.includes(awaitedSearchParams?.urgency as any)
+    const urgencyFilter: (typeof allowedUrgency)[number] | 'ALL' = allowedUrgency.includes(awaitedSearchParams?.urgency as any) // eslint-disable-line @typescript-eslint/no-explicit-any
         ? (awaitedSearchParams?.urgency as (typeof allowedUrgency)[number])
         : 'ALL';
     const windowCandidate = Number(awaitedSearchParams?.window ?? 7);
@@ -412,7 +412,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         }
         totalShiftMs += shiftEnd.getTime() - shiftStart.getTime();
         onCallUsers.add(shift.userId);
-        let cursor = new Date(shiftStart);
+        const cursor = new Date(shiftStart);
         while (cursor <= shiftEnd) {
             coverageDays.add(cursor.toDateString());
             cursor.setDate(cursor.getDate() + 1);
@@ -487,7 +487,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         })
         : [];
     const userNameMap = new Map(usersById.map((user) => [user.id, user.name || user.email || 'Unknown user']));
-    const filterUserNameMap = new Map(users.map((user) => [user.id, user.name || user.email || 'Unknown user']));
+    const _filterUserNameMap = new Map(users.map((user) => [user.id, user.name || user.email || 'Unknown user']));
 
     const assigneeLoad = assigneeCounts.map((entry) => ({
         id: entry.assigneeId as string,

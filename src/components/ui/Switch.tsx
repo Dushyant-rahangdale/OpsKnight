@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useId } from 'react';
+import { _ReactNode, useId } from 'react';
 
 interface SwitchProps {
   checked: boolean;

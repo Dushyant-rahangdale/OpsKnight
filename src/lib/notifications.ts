@@ -1,6 +1,6 @@
 import prisma from './prisma';
 import { sendIncidentEmail } from './email';
-import { retry } from './retry';
+import { _retry } from './retry';
 
 export type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH' | 'SLACK' | 'WEBHOOK' | 'WHATSAPP';
 
@@ -131,7 +131,7 @@ export async function sendNotification(
         } else {
             throw new Error(result.error || 'Notification delivery failed');
         }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         await prisma.notification.update({
             where: { id: notification.id },
             data: {

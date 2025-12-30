@@ -47,7 +47,7 @@ export function transformPagerDutyToEvent(payload: PagerDutyEvent): {
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     // Handle new webhook format

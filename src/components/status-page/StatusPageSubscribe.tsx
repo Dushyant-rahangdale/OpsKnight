@@ -44,7 +44,7 @@ export default function StatusPageSubscribe({ statusPageId, onSuccess }: StatusP
                 if (onSuccess) {
                     onSuccess();
                 }
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setError(getUserFriendlyError(err) || 'Failed to subscribe');
             }

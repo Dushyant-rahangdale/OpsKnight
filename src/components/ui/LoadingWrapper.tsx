@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Skeleton, { SkeletonText } from './Skeleton';
+import _Skeleton, { SkeletonText } from './Skeleton';
 import Spinner from './Spinner';
 
 interface LoadingWrapperProps {

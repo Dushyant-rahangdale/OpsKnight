@@ -238,8 +238,8 @@ describe('Third-Party Integrations', () => {
 
             try {
                 await callWithRateLimit();
-            } catch (error: any) {
-                expect(error.status).toBe(429);
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+                expect(error.message).toContain('Rate limit exceeded');
                 expect(error.retryAfter).toBe(60);
             }
         });

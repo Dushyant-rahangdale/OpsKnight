@@ -46,11 +46,11 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
         // Use configured provider
         if (smsConfig.provider === 'twilio') {
             // Load Twilio dynamically
-            let twilio: any;
+            let twilio: any; // eslint-disable-line @typescript-eslint/no-explicit-any
             try {
                 const loadTwilio = () => {
                     try {
-                        return require('twilio');
+                        return require('twilio'); // eslint-disable-line @typescript-eslint/no-require-imports
                     } catch {
                         return null;
                     }
@@ -59,7 +59,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
                 if (!twilio) {
                     throw new Error('Twilio package not installed');
                 }
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 console.error('Twilio package not installed:', error?.message);
                 return { success: false, error: 'Twilio package not installed. Install it with: npm install twilio' };
             }
@@ -109,7 +109,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
                 });
 
                 return { success: true };
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 console.error('Twilio SMS send error:', {
                     error: error.message,
                     code: error.code,
@@ -163,7 +163,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
                 }
 
                 // Use runtime require to avoid build-time dependency
-                const requireFunc = eval('require') as (id: string) => any;
+                const requireFunc = eval('require') as (id: string) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { SNSClient, PublishCommand } = requireFunc('@aws-sdk/client-sns');
 
                 const client = new SNSClient({
@@ -182,7 +182,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
                 const result = await client.send(command);
                 console.log('SMS sent via AWS SNS:', { to: options.to, messageId: result.MessageId });
                 return { success: true };
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 // If AWS SDK package is not installed, fall back to console log
                 if (error.code === 'MODULE_NOT_FOUND') {
                     console.error('AWS SDK package not installed. Install with: npm install @aws-sdk/client-sns');
@@ -195,7 +195,7 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
 
         // No provider configured
         return { success: false, error: 'No SMS provider configured' };
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('SMS send error:', error);
         return { success: false, error: error.message };
     }
@@ -237,7 +237,7 @@ export async function sendIncidentSMS(
             ? (eventType === 'triggered' ? '🚨' : eventType === 'acknowledged' ? '⚠️' : '✅')
             : (eventType === 'triggered' ? '⚠️' : eventType === 'acknowledged' ? 'ℹ️' : '✅');
 
-        const statusLabel = eventType === 'resolved' ? 'RESOLVED' :
+        const _statusLabel = eventType === 'resolved' ? 'RESOLVED' :
             eventType === 'acknowledged' ? 'ACK' :
                 incident.urgency === 'HIGH' ? 'CRITICAL' : 'INCIDENT';
 
@@ -245,11 +245,11 @@ export async function sendIncidentSMS(
         const titleMaxLength = 35;
         const serviceMaxLength = 15;
 
-        let title = incident.title.length > titleMaxLength
+        const title = incident.title.length > titleMaxLength
             ? incident.title.substring(0, titleMaxLength - 1) + '…'
             : incident.title;
 
-        let service = incident.service.name.length > serviceMaxLength
+        const service = incident.service.name.length > serviceMaxLength
             ? incident.service.name.substring(0, serviceMaxLength - 1) + '…'
             : incident.service.name;
 
@@ -258,7 +258,7 @@ export async function sendIncidentSMS(
         // Line 2: Incident Title
         // Line 3: Service Name
         // Line 4: Link
-        let message = eventType === 'resolved'
+        const message = eventType === 'resolved'
             ? `[OpsSentinal] ${eventEmoji} RESOLVED\n${title}\n✓ ${service}\n${incidentUrl}`
             : eventType === 'acknowledged'
                 ? `[OpsSentinal] ${eventEmoji} ACKNOWLEDGED\n${title}\n⚡ ${service}\n${incidentUrl}`
@@ -279,7 +279,7 @@ export async function sendIncidentSMS(
             to: phoneNumber,
             message,
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Send incident SMS error:', error);
         return { success: false, error: error.message };
     }

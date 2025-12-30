@@ -9,9 +9,9 @@ describe('Retry Utilities', () => {
   describe('retry', () => {
     it('should succeed on first attempt', async () => {
       const fn = vi.fn().mockResolvedValue('success');
-      
+
       const result = await retry(fn);
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toBe('success');
       expect(result.attempts).toBe(1);
@@ -23,9 +23,9 @@ describe('Retry Utilities', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce('success');
-      
+
       const result = await retry(fn, { maxAttempts: 3 });
-      
+
       expect(result.success).toBe(true);
       expect(result.data).toBe('success');
       expect(result.attempts).toBe(3);
@@ -35,9 +35,9 @@ describe('Retry Utilities', () => {
     it('should fail after max attempts', async () => {
       const error = new Error('Persistent error');
       const fn = vi.fn().mockRejectedValue(error);
-      
+
       const result = await retry(fn, { maxAttempts: 3 });
-      
+
       expect(result.success).toBe(false);
       expect(result.error).toBe(error);
       expect(result.attempts).toBe(3);
@@ -47,17 +47,17 @@ describe('Retry Utilities', () => {
     it('should use exponential backoff', async () => {
       const fn = vi.fn().mockRejectedValue(new Error('Error'));
       const delays: number[] = [];
-      
+
       const startTime = Date.now();
       await retry(fn, {
         maxAttempts: 3,
         initialDelayMs: 100,
         backoffMultiplier: 2,
-        onRetry: (attempt) => {
+        onRetry: (_attempt) => {
           delays.push(Date.now() - startTime);
         }
       });
-      
+
       // Check that delays increase (allowing for some timing variance)
       expect(fn).toHaveBeenCalledTimes(3);
     });
@@ -65,12 +65,12 @@ describe('Retry Utilities', () => {
     it('should not retry non-retryable errors', async () => {
       const error = new Error('Client error');
       const fn = vi.fn().mockRejectedValue(error);
-      
+
       const result = await retry(fn, {
         maxAttempts: 3,
         retryableErrors: () => false // Don't retry
       });
-      
+
       expect(result.success).toBe(false);
       expect(result.attempts).toBe(1); // Should only try once
       expect(fn).toHaveBeenCalledTimes(1);
@@ -78,14 +78,14 @@ describe('Retry Utilities', () => {
 
     it('should respect max delay', async () => {
       const fn = vi.fn().mockRejectedValue(new Error('Error'));
-      
+
       await retry(fn, {
         maxAttempts: 3,
         initialDelayMs: 1000,
         maxDelayMs: 1500,
         backoffMultiplier: 10, // Would normally exceed maxDelayMs
       });
-      
+
       // Should complete without errors
       expect(fn).toHaveBeenCalledTimes(3);
     });
@@ -94,16 +94,16 @@ describe('Retry Utilities', () => {
   describe('retryWithThrow', () => {
     it('should return data on success', async () => {
       const fn = vi.fn().mockResolvedValue('success');
-      
+
       const result = await retryWithThrow(fn);
-      
+
       expect(result).toBe('success');
     });
 
     it('should throw error on failure', async () => {
       const error = new Error('Failed');
       const fn = vi.fn().mockRejectedValue(error);
-      
+
       await expect(retryWithThrow(fn, { maxAttempts: 2 })).rejects.toThrow('Failed');
     });
   });
@@ -139,9 +139,9 @@ describe('Retry Utilities', () => {
       global.fetch = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
-      
+
       const response = await retryFetch('https://api.example.com');
-      
+
       expect(response.ok).toBe(true);
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
@@ -150,9 +150,9 @@ describe('Retry Utilities', () => {
       global.fetch = vi.fn()
         .mockResolvedValueOnce({ ok: false, status: 500 } as Response)
         .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
-      
+
       const response = await retryFetch('https://api.example.com');
-      
+
       expect(response.ok).toBe(true);
       expect(global.fetch).toHaveBeenCalledTimes(2);
     });
@@ -160,11 +160,11 @@ describe('Retry Utilities', () => {
     it('should not retry on 4xx client errors', async () => {
       const response404 = { ok: false, status: 404, statusText: 'Not Found' } as Response;
       global.fetch = vi.fn().mockResolvedValue(response404);
-      
+
       // retryFetch will retry only on retryable errors (5xx, network errors)
       // For 4xx errors, it should still return the response but not retry
       const response = await retryFetch('https://api.example.com');
-      
+
       expect(response.ok).toBe(false);
       expect(response.status).toBe(404);
       // Should only be called once since 4xx errors are not retryable

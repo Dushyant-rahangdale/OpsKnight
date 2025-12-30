@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 interface DashboardRealtimeWrapperProps {
   children: React.ReactNode;
   onMetricsUpdate?: (metrics: { open: number; acknowledged: number; resolved24h: number; highUrgency: number }) => void;
-  onIncidentsUpdate?: (incidents: any[]) => void;
+  onIncidentsUpdate?: (incidents: any[]) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 /**

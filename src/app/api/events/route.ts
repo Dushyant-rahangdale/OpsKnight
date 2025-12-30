@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Parse Body
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
 
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         logger.info('api.event.processed', { action: result.action, serviceId, integrationId });
         return jsonOk({ status: 'success', result }, 202);
 
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.event.error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError('Internal Server Error', 500);
     }

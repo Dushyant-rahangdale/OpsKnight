@@ -22,10 +22,13 @@ type DashboardSLAMetricsProps = {
 
 export default function DashboardSLAMetrics({ metrics, period = 'Last 30 days' }: DashboardSLAMetricsProps) {
     const ackComplianceColor = metrics.ackCompliance >= 95 ? 'success' :
-                               metrics.ackCompliance >= 80 ? 'warning' : 'error';
-    
+        metrics.ackCompliance >= 80 ? 'warning' : 'error';
+
     const resolveComplianceColor = metrics.resolveCompliance >= 95 ? 'success' :
-                                    metrics.resolveCompliance >= 80 ? 'warning' : 'error';
+        metrics.resolveCompliance >= 80 ? 'warning' : 'error';
+
+    const ackVariant = ackComplianceColor as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const resolveVariant = resolveComplianceColor as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     return (
         <Card variant="elevated">
@@ -56,7 +59,7 @@ export default function DashboardSLAMetrics({ metrics, period = 'Last 30 days' }
                             <span style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
                                 {metrics.ackCompliance.toFixed(1)}%
                             </span>
-                            <Badge variant={ackComplianceColor as any} size="sm">
+                            <Badge variant={ackVariant} size="sm">
                                 {metrics.ackCompliance >= 95 ? 'Excellent' : metrics.ackCompliance >= 80 ? 'Good' : 'Needs Improvement'}
                             </Badge>
                         </div>
@@ -79,7 +82,7 @@ export default function DashboardSLAMetrics({ metrics, period = 'Last 30 days' }
                             <span style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)' }}>
                                 {metrics.resolveCompliance.toFixed(1)}%
                             </span>
-                            <Badge variant={resolveComplianceColor as any} size="sm">
+                            <Badge variant={resolveVariant} size="sm">
                                 {metrics.resolveCompliance >= 95 ? 'Excellent' : metrics.resolveCompliance >= 80 ? 'Good' : 'Needs Improvement'}
                             </Badge>
                         </div>

@@ -13,7 +13,7 @@ import {
     EmailFooter,
     SubscriberEmailHeader,
     SubscriberEmailFooter,
-    InfoCard
+    _InfoCard
 } from '@/lib/email-components';
 
 export interface EmailTemplateData {

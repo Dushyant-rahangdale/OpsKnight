@@ -11,7 +11,7 @@ import { getUserFriendlyError } from './user-friendly-errors';
  * @param action - The server action function to wrap
  * @returns A wrapped function that catches errors and returns user-friendly messages
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
+export function withErrorHandling<T extends (...args: any[]) => Promise<any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
   action: T
 ): T {
   return (async (...args: Parameters<T>) => {
@@ -22,7 +22,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
       if (error && typeof error === 'object' && 'error' in error) {
         return {
           ...error,
-          error: getUserFriendlyError((error as any).error)
+          error: getUserFriendlyError((error as any).error) // eslint-disable-line @typescript-eslint/no-explicit-any
         };
       }
       

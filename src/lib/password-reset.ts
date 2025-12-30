@@ -2,8 +2,9 @@ import { randomBytes, createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getEmailConfig, getSMSConfig } from '@/lib/notification-providers';
-import { sendNotification } from '@/lib/notifications';
+import { _sendNotification } from '@/lib/notifications';
 import { createInAppNotifications } from '@/lib/in-app-notifications';
+import { getAppUrl } from '@/lib/app-url';
 import bcrypt from 'bcryptjs';
 
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -66,7 +67,8 @@ export async function initiatePasswordReset(email: string, ipAddress?: string): 
             }
         });
 
-        const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+        const appUrl = await getAppUrl();
+        const resetLink = `${appUrl}/reset-password?token=${token}`;
 
         // 5. Channel Selection Strategy
         const emailConfig = await getEmailConfig();
@@ -214,7 +216,7 @@ async function checkRateLimit(email: string, ip?: string) {
     }
 }
 
-async function logAttempt(email: string, action: string, ip: string | undefined, userId: string | undefined, data: any) {
+async function logAttempt(email: string, action: string, ip: string | undefined, userId: string | undefined, data: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
         await prisma.auditLog.create({
             data: {

@@ -107,10 +107,10 @@ export async function PATCH(req: NextRequest) {
             return jsonError('User not found', 404);
         }
 
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = NotificationPatchSchema.safeParse(body);

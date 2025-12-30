@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
             const encoder = new TextEncoder();
 
             // Send initial connection message
-            const send = (data: any) => {
+            const send = (data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const message = `data: ${JSON.stringify(data)}\n\n`;
                 controller.enqueue(encoder.encode(message));
             };
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
                             },
                         });
                     }
-                } catch (error: any) {
+                } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     send({ type: 'error', message: error.message });
                 }
             }, 5000); // Check every 5 seconds

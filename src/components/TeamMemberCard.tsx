@@ -63,7 +63,7 @@ function TeamMemberCard({
     );
 
     useEffect(() => {
-        setTeamNotifyEnabled(member.receiveTeamNotifications);
+        setTeamNotifyEnabled(member.receiveTeamNotifications); // eslint-disable-line react-hooks/set-state-in-effect
     }, [member.receiveTeamNotifications]);
 
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SettingsNavItem } from '@/components/settings/navConfig';
 
@@ -21,7 +21,8 @@ export default function SettingsSearch({
     const [query, setQuery] = useState('');
     const [activeIndex, setActiveIndex] = useState(-1);
     const inputRef = useRef<HTMLInputElement>(null);
-    const listboxId = useRef(`settings-search-${Math.random().toString(36).slice(2)}`);
+    const id = useId();
+    const listboxId = `settings-search-${id}`;
 
     const results = useMemo(() => {
         const normalized = query.trim().toLowerCase();
@@ -54,7 +55,7 @@ export default function SettingsSearch({
     }, [enableHotkey]);
 
     useEffect(() => {
-        setActiveIndex(displayResults.length > 0 ? 0 : -1);
+        setActiveIndex(displayResults.length > 0 ? 0 : -1); // eslint-disable-line react-hooks/set-state-in-effect
     }, [displayResults.length, query]);
 
     const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -92,8 +93,8 @@ export default function SettingsSearch({
                     placeholder={placeholder}
                     aria-label={placeholder}
                     aria-expanded={query.length > 0}
-                    aria-controls={listboxId.current}
-                    aria-activedescendant={activeIndex >= 0 ? `${listboxId.current}-option-${activeIndex}` : undefined}
+                    aria-controls={listboxId}
+                    aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
                     aria-autocomplete="list"
                     role="combobox"
                     ref={inputRef}
@@ -101,7 +102,7 @@ export default function SettingsSearch({
                 {enableHotkey && <span aria-hidden="true">Ctrl+K</span>}
             </div>
             {query && (
-                <div className="settings-search-results" role="listbox" id={listboxId.current}>
+                <div className="settings-search-results" role="listbox" id={listboxId}>
                     {displayResults.length === 0 ? (
                         <div className="settings-search-empty">
                             No matches. Try searching for "security" or "billing".
@@ -112,7 +113,7 @@ export default function SettingsSearch({
                                 key={item.id}
                                 type="button"
                                 className={`settings-search-item ${activeIndex === index ? 'is-active' : ''}`}
-                                id={`${listboxId.current}-option-${index}`}
+                                id={`${listboxId}-option-${index}`}
                                 role="option"
                                 aria-selected={activeIndex === index}
                                 onClick={() => router.push(item.href)}

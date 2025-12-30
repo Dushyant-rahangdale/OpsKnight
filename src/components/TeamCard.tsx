@@ -13,20 +13,20 @@ import TeamMemberForm from './TeamMemberForm';
 import { useToast } from './ToastProvider';
 
 type TeamCardProps = {
-    team: any;
+    team: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     teamId: string;
     ownerCount: number;
     adminCount: number;
     memberCount: number;
-    availableUsers: any[];
-    activityLogs: any[];
+    availableUsers: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    activityLogs: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
     activityTotal: number;
     canUpdateTeam: boolean;
     canDeleteTeam: boolean;
     canManageMembers: boolean;
     canManageNotifications: boolean;
     canAssignOwnerAdmin: boolean;
-    updateTeam: (teamId: string, formData: FormData) => Promise<any>;
+    updateTeam: (teamId: string, formData: FormData) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     deleteTeam: (teamId: string) => Promise<{ error?: string } | undefined>;
     addTeamMember: (teamId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
     updateTeamMemberRole: (memberId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
@@ -181,7 +181,7 @@ export default function TeamCard({
                 <div style={{ marginBottom: '2rem' }}>
                     {canUpdateTeam ? (
                         <form
-                            key={`team-form-${team.id}-${team.teamLeadId || 'none'}-${team.updatedAt || Date.now()}`}
+                            key={`team-form-${team.id}-${team.teamLeadId || 'none'}-${team.updatedAt || 'new'}`}
                             action={handleUpdateTeam}
                             style={{
                                 display: 'grid',
@@ -244,7 +244,7 @@ export default function TeamCard({
                                     }}
                                 >
                                     <option value="">No team lead</option>
-                                    {team.members.map((member: any) => (
+                                    {team.members.map((member: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                                         <option key={member.userId} value={member.userId}>
                                             {member.user.name} {member.role === 'OWNER' ? '(Owner)' : member.role === 'ADMIN' ? '(Admin)' : ''}
                                         </option>
@@ -319,7 +319,7 @@ export default function TeamCard({
                                     onFilterChange={setFilteredMembers}
                                 />
                                 <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    {filteredMembers.map((member: any) => {
+                                    {filteredMembers.map((member: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                                         const handleUpdateRole = async (formData: FormData) => {
                                             return await updateTeamMemberRole(member.id, formData);
                                         };
@@ -377,7 +377,7 @@ export default function TeamCard({
                                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No services assigned.</p>
                             ) : (
                                 <div style={{ display: 'grid', gap: '0.5rem' }}>
-                                    {team.services.map((service: any) => (
+                                    {team.services.map((service: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                                         <Link
                                             key={service.id}
                                             href={`/services/${service.id}`}

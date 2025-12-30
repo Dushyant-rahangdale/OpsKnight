@@ -106,10 +106,10 @@ export async function POST(req: NextRequest) {
         return jsonError('Unauthorized. API key user not found.', 401);
     }
 
-    let body: any;
+    let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
         body = await req.json();
-    } catch (error) {
+    } catch (_error) {
         return jsonError('Invalid JSON in request body.', 400);
     }
     const parsed = IncidentCreateSchema.safeParse({

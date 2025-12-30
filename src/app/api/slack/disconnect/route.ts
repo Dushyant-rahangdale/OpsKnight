@@ -138,7 +138,7 @@ export async function DELETE(request: NextRequest) {
                 { status: 404 }
             );
         }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] Disconnect error', {
             error: error.message,
             stack: error.stack

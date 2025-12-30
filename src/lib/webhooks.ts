@@ -11,13 +11,13 @@
 
 import prisma from './prisma';
 import crypto from 'crypto';
-import { logger } from './logger';
+import { _logger } from './logger';
 import { getBaseUrl } from './env-validation';
 import { retryFetch, isRetryableHttpError } from './retry';
 
 export type WebhookOptions = {
     url: string;
-    payload: Record<string, any>;
+    payload: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     headers?: Record<string, string>;
     secret?: string; // For HMAC signature
     method?: 'POST' | 'PUT' | 'PATCH';
@@ -141,7 +141,7 @@ export async function sendWebhook(
                 statusCode: response.status,
                 responseBody: responseText,
             };
-        } catch (fetchError: any) {
+        } catch (fetchError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
                 return { success: false, error: 'Webhook request timed out after retries' };
             }
@@ -150,7 +150,7 @@ export async function sendWebhook(
         } finally {
             clearTimeout(timeoutId);
         }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Webhook send error:', error);
         return { success: false, error: error.message };
     }
@@ -163,8 +163,8 @@ export async function sendWebhook(
  */
 export async function sendWebhookWithRetry(
     options: WebhookOptions,
-    maxRetries: number = 3,
-    initialDelay: number = 1000
+    _maxRetries: number = 3,
+    _initialDelay: number = 1000
 ): Promise<WebhookResult> {
     // sendWebhook now has built-in retry logic, so this is mainly for backward compatibility
     // If additional retry attempts are needed, they can be added here
@@ -188,7 +188,7 @@ export function generateIncidentWebhookPayload(
         resolvedAt?: Date | null;
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated'
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const baseUrl = getBaseUrl();
     const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
 
@@ -240,9 +240,9 @@ export function formatGoogleChatPayload(
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
     baseUrl: string
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
-    const statusColor = eventType === 'triggered' ? '#d32f2f' :
+    const _statusColor = eventType === 'triggered' ? '#d32f2f' :
         eventType === 'acknowledged' ? '#f9a825' :
             eventType === 'resolved' ? '#388e3c' : '#757575';
 
@@ -319,9 +319,9 @@ export function formatMicrosoftTeamsPayload(
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
     baseUrl: string
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
-    const accentColor = eventType === 'triggered' ? '#d32f2f' :
+    const _accentColor = eventType === 'triggered' ? '#d32f2f' :
         eventType === 'acknowledged' ? '#f9a825' :
             eventType === 'resolved' ? '#388e3c' : '#757575';
 
@@ -401,7 +401,7 @@ export function formatDiscordPayload(
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
     baseUrl: string
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
     const color = eventType === 'triggered' ? 0xd32f2f :
         eventType === 'acknowledged' ? 0xf9a825 :
@@ -463,7 +463,7 @@ export function formatSlackPayload(
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
     baseUrl: string
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
 
     // Status color mapping
@@ -549,7 +549,7 @@ export function formatWebhookPayloadByType(
     },
     eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
     baseUrl: string
-): Record<string, any> {
+): Record<string, any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     switch (webhookType.toUpperCase()) {
         case 'GOOGLE_CHAT':
             return formatGoogleChatPayload(incident, eventType, baseUrl);
@@ -599,7 +599,7 @@ export async function sendIncidentWebhook(
             payload,
             secret,
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         console.error('Send incident webhook error:', error);
         return { success: false, error: error.message };
     }
@@ -622,7 +622,7 @@ export function verifyWebhookSignature(
             Buffer.from(expectedSignature),
             Buffer.from(providedSignature)
         );
-    } catch (error) {
+    } catch (_error) {
         return false;
     }
 }

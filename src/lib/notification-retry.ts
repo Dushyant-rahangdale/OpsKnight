@@ -7,7 +7,7 @@ import prisma from './prisma';
 import { sendNotification, NotificationChannel } from './notifications';
 import { logger } from './logger';
 
-const MAX_RETRY_ATTEMPTS = 3;
+const _MAX_RETRY_ATTEMPTS = 3;
 const INITIAL_RETRY_DELAY_MS = 5000; // 5 seconds
 const MAX_RETRY_DELAY_MS = 300000; // 5 minutes
 
@@ -94,7 +94,7 @@ export async function retryFailedNotifications(): Promise<{
                     }
                 });
             }
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             failed++;
             logger.error('notification.retry.error', {
                 notificationId: notification.id,

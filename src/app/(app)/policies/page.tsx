@@ -137,7 +137,7 @@ export default async function PoliciesPage() {
 
                                         {/* Preview of steps */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            {policy.steps.slice(0, 3).map((step, idx) => (
+                                            {policy.steps.slice(0, 3).map((step, _idx) => (
                                                 <div key={step.id} style={{
                                                     display: 'flex',
                                                     alignItems: 'center',

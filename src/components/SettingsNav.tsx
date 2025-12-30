@@ -59,7 +59,7 @@ export default function SettingsNav({ isAdmin = false }: Props) {
         <nav className="settings-nav">
             {navItems.map((item) => {
                 const active = pathname === item.href;
-                const isDisabled = (item as any).disabled;
+                const isDisabled = (item as any).disabled; // eslint-disable-line @typescript-eslint/no-explicit-any
                 
                 if (isDisabled) {
                     return (

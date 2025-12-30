@@ -1,7 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { updateNotificationProvider } from '@/app/(app)/settings/system/actions';
+import { useState } from 'react';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 
@@ -9,7 +8,7 @@ type Provider = {
     id: string;
     provider: string;
     enabled: boolean;
-    config: any;
+    config: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     updatedAt: Date;
 };
 
@@ -18,14 +17,13 @@ type Props = {
 };
 
 export default function SystemNotificationSettings({ providers }: Props) {
-    const { userTimeZone } = useTimezone();
     const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
 
     const providerMap = new Map(providers.map(p => [p.provider, p]));
 
     // For WhatsApp, we need to read from Twilio provider config
     const twilioProvider = providerMap.get('twilio');
-    const whatsappConfig = twilioProvider?.config as any;
+    const whatsappConfig = twilioProvider?.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const whatsappEnabled = !!(whatsappConfig?.whatsappEnabled && whatsappConfig?.whatsappNumber);
 
     // Create a virtual WhatsApp provider entry
@@ -161,7 +159,7 @@ function ProviderCard({
     onToggle,
     twilioProvider
 }: {
-    providerConfig: any;
+    providerConfig: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     existing?: Provider;
     isExpanded: boolean;
     onToggle: () => void;
@@ -178,11 +176,11 @@ function ProviderCard({
     // Check if provider has required configuration  
     const hasRequiredConfig = existing?.config && Object.keys(existing.config).length > 0 &&
         providerConfig.fields
-            .filter((f: any) => f.required)
-            .every((f: any) => existing.config[f.name] && existing.config[f.name].toString().trim() !== '');
+            .filter((f: any) => f.required) // eslint-disable-line @typescript-eslint/no-explicit-any
+            .every((f: any) => existing.config[f.name] && existing.config[f.name].toString().trim() !== ''); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const [enabled, setEnabled] = useState(initialEnabled);
-    const [config, setConfig] = useState<Record<string, any>>(existing?.config || {});
+    const [config, setConfig] = useState<Record<string, any>>(existing?.config || {}); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -196,7 +194,7 @@ function ProviderCard({
         try {
             // Validate required fields if enabled
             if (enabled) {
-                const requiredFields = providerConfig.fields.filter((f: any) => f.required);
+                const requiredFields = providerConfig.fields.filter((f: any) => f.required); // eslint-disable-line @typescript-eslint/no-explicit-any
                 for (const field of requiredFields) {
                     if (!config[field.name] || config[field.name].trim() === '') {
                         throw new Error(`${field.label} is required`);
@@ -218,7 +216,7 @@ function ProviderCard({
                         whatsappAuthToken: config.whatsappAuthToken || ''
                     });
                 } else {
-                    const twilioConfig = twilioProvider.config as any;
+                    const twilioConfig = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
                     const updatedTwilioConfig = {
                         ...twilioConfig,
@@ -242,7 +240,7 @@ function ProviderCard({
                 setSaveStatus('idle');
                 window.location.reload(); // Refresh to show updated data
             }, 1500);
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message || 'Failed to save configuration');
             setSaveStatus('error');
         } finally {
@@ -275,6 +273,7 @@ function ProviderCard({
 
                                 // Check if provider is configured before enabling
                                 if (newEnabled && !hasRequiredConfig) {
+                                    // eslint-disable-next-line no-alert
                                     alert('Please configure this provider first before enabling it. Click "Configure" to add required settings.');
                                     return;
                                 }
@@ -293,7 +292,7 @@ function ProviderCard({
                                                 whatsappEnabled: newEnabled
                                             });
                                         } else {
-                                            const twilioConfig = twilioProvider.config as any;
+                                            const twilioConfig = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
                                             const updatedTwilioConfig = {
                                                 ...twilioConfig,
                                                 whatsappNumber: config.whatsappNumber || twilioConfig.whatsappNumber || '',
@@ -310,9 +309,10 @@ function ProviderCard({
 
                                     // Refresh to show updated data
                                     setTimeout(() => window.location.reload(), 500);
-                                } catch (err: any) {
+                                } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                                     // Revert on error
                                     setEnabled(!newEnabled);
+                                    // eslint-disable-next-line no-alert
                                     alert(`Failed to ${newEnabled ? 'enable' : 'disable'} provider: ${err.message}`);
                                 }
                             }}
@@ -348,7 +348,7 @@ function ProviderCard({
 
                     {enabled && (
                         <div className="settings-provider-fields">
-                            {providerConfig.fields.map((field: any) => (
+                            {providerConfig.fields.map((field: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                                 <div key={field.name}>
                                     <label className="settings-field-label">
                                         {field.label} {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}

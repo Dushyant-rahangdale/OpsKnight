@@ -113,7 +113,7 @@ describe('Team Management', () => {
 
     describe('Team Permissions', () => {
         it('should check if user is team lead', () => {
-            const isTeamLead = (userId: string, team: any) => {
+            const isTeamLead = (userId: string, team: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 return team.leadId === userId;
             };
 
@@ -124,7 +124,7 @@ describe('Team Management', () => {
         });
 
         it('should check if user is team member', () => {
-            const isTeamMember = (userId: string, members: any[]) => {
+            const isTeamMember = (userId: string, members: { userId: string }[]) => {
                 return members.some(m => m.userId === userId);
             };
 
@@ -183,9 +183,9 @@ describe('On-Call Management', () => {
         });
 
         it('should find current on-call user', () => {
-            const getCurrentOnCall = (schedules: any[], now: Date) => {
+            const getCurrentOnCall = (schedules: any[], now: Date) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 return schedules.find(
-                    s => s.startTime <= now && s.endTime >= now
+                    (s: any) => s.startTime <= now && s.endTime >= now // eslint-disable-line @typescript-eslint/no-explicit-any
                 );
             };
 
@@ -208,7 +208,7 @@ describe('On-Call Management', () => {
         });
 
         it('should detect schedule conflicts', () => {
-            const hasConflict = (schedule1: any, schedule2: any) => {
+            const hasConflict = (schedule1: any, schedule2: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                 return (
                     (schedule1.startTime <= schedule2.endTime &&
                         schedule1.endTime >= schedule2.startTime)

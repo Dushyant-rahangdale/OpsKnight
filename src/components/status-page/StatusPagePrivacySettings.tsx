@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, FormField, Switch, Button } from '@/components/ui';
+import { Card, FormField, Switch, _Button } from '@/components/ui';
 
 interface PrivacySettings {
     privacyMode: 'PUBLIC' | 'RESTRICTED' | 'PRIVATE' | 'CUSTOM';

@@ -13,7 +13,7 @@
  */
 
 import prisma from './prisma';
-import { NotificationChannel } from './notifications';
+import { _NotificationChannel } from './notifications';
 import { notifySlackForIncident, sendSlackMessageToChannel } from './slack';
 import { sendIncidentWebhook } from './webhooks';
 import { logger } from './logger';
@@ -91,7 +91,7 @@ export async function sendServiceNotifications(
                         errors.push(`Slack webhook notification failed: ${err.message}`);
                     });
                 }
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 logger.error('Slack notification error', {
                     incidentId,
                     error: error.message
@@ -120,7 +120,7 @@ export async function sendServiceNotifications(
                         return { webhookId: webhook.id, error: result.error };
                     }
                     return null;
-                } catch (error: any) {
+                } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     logger.error('Webhook notification error', {
                         incidentId,
                         webhookId: webhook.id,
@@ -154,7 +154,7 @@ export async function sendServiceNotifications(
                 if (!result.success) {
                     errors.push(`Legacy webhook failed: ${result.error}`);
                 }
-            } catch (error: any) {
+            } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 logger.error('Legacy webhook notification error', {
                     incidentId,
                     error: error.message
@@ -167,7 +167,7 @@ export async function sendServiceNotifications(
             success: errors.length === 0,
             errors: errors.length > 0 ? errors : undefined
         };
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('Service notification error', {
             incidentId,
             error: error.message

@@ -17,7 +17,7 @@ export default function TestNotificationButton({ incidentId }: { incidentId: str
             });
             const data = await res.json();
             setResult(data.message || 'Notification sent!');
-        } catch (e: any) {
+        } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setResult('Error: ' + e.message);
         } finally {
             setLoading(false);

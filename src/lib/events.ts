@@ -28,7 +28,7 @@ async function runSerializableTransaction<T>(operation: (tx: Prisma.TransactionC
     const maxAttempts = EVENT_TRANSACTION_MAX_ATTEMPTS;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         try {
-            return (await prisma.$transaction(operation as any, { isolationLevel: 'Serializable' })) as T;
+            return (await prisma.$transaction(operation as any, { isolationLevel: 'Serializable' })) as T; // eslint-disable-line @typescript-eslint/no-explicit-any
         } catch (error) {
             if (attempt < maxAttempts - 1 && isRetryableTransactionError(error)) {
                 continue;
@@ -39,7 +39,7 @@ async function runSerializableTransaction<T>(operation: (tx: Prisma.TransactionC
     throw new Error('Transaction failed after retries.');
 }
 
-export async function processEvent(payload: EventPayload, serviceId: string, integrationId: string) {
+export async function processEvent(payload: EventPayload, serviceId: string, _integrationId: string) {
     const { event_action, dedup_key, payload: eventData } = payload;
 
     const result = await runSerializableTransaction(async (tx) => {

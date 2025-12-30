@@ -30,7 +30,7 @@ export default function PresetSelector({
     onPresetSelect,
 }: PresetSelectorProps) {
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const _searchParams = useSearchParams();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ export default function PresetSelector({
                     presetCriteria.search === currentCriteria.search
                 );
             });
-            setSelectedPresetId(matchingPreset?.id || null);
+            setSelectedPresetId(matchingPreset?.id || null); // eslint-disable-line react-hooks/set-state-in-effect
         }
     }, [currentCriteria, presets]);
 

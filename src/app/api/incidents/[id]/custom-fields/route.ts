@@ -24,10 +24,10 @@ export async function POST(
         await assertResponderOrAbove();
 
         const { id: incidentId } = await params;
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = IncidentCustomFieldSchema.safeParse(body);
@@ -81,7 +81,7 @@ export async function POST(
 
         logger.info('api.incident.custom_field.updated', { incidentId, customFieldId });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.incident.custom_field.update_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to update custom field', 500);
     }

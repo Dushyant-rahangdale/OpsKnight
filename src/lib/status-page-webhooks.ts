@@ -9,7 +9,7 @@ import crypto from 'crypto';
 export interface WebhookPayload {
     event: string;
     timestamp: string;
-    data: any;
+    data: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 /**
@@ -49,7 +49,7 @@ async function deliverWebhook(url: string, secret: string, payload: WebhookPaylo
             statusText: response.statusText,
         });
         return false;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhook.delivery_error', {
             url,
             error: error instanceof Error ? error.message : String(error),
@@ -82,7 +82,7 @@ export async function getStatusPagesForService(serviceId: string): Promise<strin
         return statusPageServices
             .filter((sps) => sps.statusPage.enabled)
             .map((sps) => sps.statusPageId);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.get_status_pages_for_service_error', {
             serviceId,
             error: error instanceof Error ? error.message : String(error),
@@ -97,7 +97,7 @@ export async function getStatusPagesForService(serviceId: string): Promise<strin
 export async function triggerStatusPageWebhooks(
     statusPageId: string,
     event: string,
-    data: any
+    data: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<void> {
     try {
         const allWebhooks = await prisma.statusPageWebhook.findMany({
@@ -142,7 +142,7 @@ export async function triggerStatusPageWebhooks(
             event,
             webhookCount: webhooks.length,
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhooks.trigger_error', {
             statusPageId,
             event,
@@ -158,7 +158,7 @@ export async function triggerStatusPageWebhooks(
 export async function triggerWebhooksForService(
     serviceId: string,
     event: string,
-    incidentData: any
+    incidentData: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<void> {
     try {
         const statusPageIds = await getStatusPagesForService(serviceId);
@@ -189,7 +189,7 @@ export async function triggerWebhooksForService(
                 })
             )
         );
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhook.trigger_for_service_fatal_error', {
             serviceId,
             event,

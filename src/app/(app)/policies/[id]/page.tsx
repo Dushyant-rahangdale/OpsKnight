@@ -12,7 +12,7 @@ import {
     deletePolicyStep,
     movePolicyStep
 } from '../actions';
-import ConfirmDialog from '@/components/ConfirmDialog';
+import _ConfirmDialog from '@/components/ConfirmDialog';
 
 export const revalidate = 30;
 
@@ -212,10 +212,10 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                                                 id: step.targetTeam.id,
                                                 name: step.targetTeam.name,
                                                 // teamLead available after Prisma client regeneration
-                                                teamLead: (step.targetTeam as any).teamLead ? {
-                                                    id: (step.targetTeam as any).teamLead.id,
-                                                    name: (step.targetTeam as any).teamLead.name,
-                                                    email: (step.targetTeam as any).teamLead.email
+                                                teamLead: (step.targetTeam as any).teamLead ? { // eslint-disable-line @typescript-eslint/no-explicit-any
+                                                    id: (step.targetTeam as any).teamLead.id, // eslint-disable-line @typescript-eslint/no-explicit-any
+                                                    name: (step.targetTeam as any).teamLead.name, // eslint-disable-line @typescript-eslint/no-explicit-any
+                                                    email: (step.targetTeam as any).teamLead.email // eslint-disable-line @typescript-eslint/no-explicit-any
                                                 } : null
                                             } : null,
                                             targetSchedule: step.targetSchedule ? {

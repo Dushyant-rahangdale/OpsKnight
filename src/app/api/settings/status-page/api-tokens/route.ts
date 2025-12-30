@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
         } catch {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.status_page.api_token.created', { apiTokenId: apiToken.id });
         return jsonOk({ token, apiToken }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.api_token.create_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create token', 500);
     }
@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
         } catch {
@@ -74,7 +74,7 @@ export async function DELETE(req: NextRequest) {
 
         logger.info('api.status_page.api_token.revoked', { apiTokenId: apiToken.id });
         return jsonOk({ apiToken }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.api_token.revoke_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to revoke token', 500);
     }

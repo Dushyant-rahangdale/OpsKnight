@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Update incident based on action
-            let updateData: any = {};
+            let updateData: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
             let responseMessage = '';
 
             if (actionType === 'ack') {
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ ok: true });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] Actions API error', {
             error: error.message,
             stack: error.stack

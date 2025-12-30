@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = StatusPageSettingsSchema.safeParse(body);
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.status_page.updated', { statusPageId: statusPage.id });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.update_error', { error: error instanceof Error ? error.message : String(error) });
 
         // Handle Prisma unique constraint violations

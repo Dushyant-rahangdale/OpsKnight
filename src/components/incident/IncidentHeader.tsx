@@ -24,6 +24,7 @@ type IncidentHeaderProps = {
 
 export default function IncidentHeader({ incident, users, teams, canManage }: IncidentHeaderProps) {
     const { userTimeZone } = useTimezone();
+    const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     return (
         <div style={{
@@ -61,7 +62,7 @@ export default function IncidentHeader({ incident, users, teams, canManage }: In
                         }}>
                             #{incident.id.slice(-5).toUpperCase()}
                         </span>
-                        <StatusBadge status={incident.status as any} size="lg" showDot />
+                        <StatusBadge status={incidentStatus} size="lg" showDot />
                         {incident.escalationStatus && (
                             <EscalationStatusBadge
                                 status={incident.escalationStatus}

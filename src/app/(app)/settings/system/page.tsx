@@ -36,7 +36,7 @@ export default async function SystemSettingsPage() {
     }
 
     // Fetch app URL settings directly from DB
-    let appUrlData = { appUrl: null as string | null, fallback: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' };
+    const appUrlData = { appUrl: null as string | null, fallback: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' };
     try {
         const settings = await import('@/lib/prisma').then(m => m.default.systemSettings.findUnique({
             where: { id: 'default' },

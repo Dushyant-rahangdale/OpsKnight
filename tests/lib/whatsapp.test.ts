@@ -52,14 +52,14 @@ describe('WhatsApp Integration', () => {
                 id: 'user-1',
                 phoneNumber: '+1234567890',
                 name: 'John Doe',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             // Mock incident
             vi.mocked(prisma.incident.findUnique).mockResolvedValue({
                 id: 'inc-1',
                 title: 'Database Outage',
                 service: { name: 'API Service' },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             // Mock WhatsApp config
             vi.mocked(getWhatsAppConfig).mockResolvedValue({
@@ -69,13 +69,13 @@ describe('WhatsApp Integration', () => {
                 authToken: 'TEST_TOKEN',
                 whatsappNumber: '+1234567890',
                 whatsappContentSid: 'HX1234',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const twilioMock = (await import('twilio')).default;
             const mockCreate = vi.fn().mockResolvedValue({ sid: 'MSG123' });
             vi.mocked(twilioMock).mockReturnValue({
                 messages: { create: mockCreate },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const result = await sendIncidentWhatsApp('user-1', 'inc-1', 'triggered');
 
@@ -97,18 +97,18 @@ describe('WhatsApp Integration', () => {
                 id: 'user-1',
                 phoneNumber: null,
                 name: 'John Doe',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(prisma.incident.findUnique).mockResolvedValue({
                 id: 'inc-1',
                 title: 'Test',
                 service: { name: 'Test' },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(getWhatsAppConfig).mockResolvedValue({
                 enabled: true,
                 provider: 'twilio',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const result = await sendIncidentWhatsApp('user-1', 'inc-1', 'triggered');
 
@@ -123,17 +123,17 @@ describe('WhatsApp Integration', () => {
             vi.mocked(prisma.user.findUnique).mockResolvedValue({
                 id: 'user-1',
                 phoneNumber: '+1234567890',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(prisma.incident.findUnique).mockResolvedValue({
                 id: 'inc-1',
                 title: 'Test',
                 service: { name: 'Test' },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(getWhatsAppConfig).mockResolvedValue({
                 enabled: false,
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const result = await sendIncidentWhatsApp('user-1', 'inc-1', 'triggered');
 
@@ -149,13 +149,13 @@ describe('WhatsApp Integration', () => {
                 id: 'user-1',
                 phoneNumber: '5551234567', // US number without +1
                 name: 'Test User',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(prisma.incident.findUnique).mockResolvedValue({
                 id: 'inc-1',
                 title: 'Test',
                 service: { name: 'Test' },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(getWhatsAppConfig).mockResolvedValue({
                 enabled: true,
@@ -164,13 +164,13 @@ describe('WhatsApp Integration', () => {
                 authToken: 'TEST_TOKEN',
                 whatsappNumber: '+1234567890',
                 whatsappContentSid: 'HX1234',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const twilioMock = (await import('twilio')).default;
             const mockCreate = vi.fn().mockResolvedValue({ sid: 'MSG123' });
             vi.mocked(twilioMock).mockReturnValue({
                 messages: { create: mockCreate },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             await sendIncidentWhatsApp('user-1', 'inc-1', 'triggered');
 
@@ -193,13 +193,13 @@ describe('WhatsApp Integration', () => {
                 accountSid: 'TEST_SID',
                 authToken: 'TEST_TOKEN',
                 whatsappNumber: '+1234567890',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const twilioMock = (await import('twilio')).default;
             const mockCreate = vi.fn().mockResolvedValue({ sid: 'MSG456' });
             vi.mocked(twilioMock).mockReturnValue({
                 messages: { create: mockCreate },
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const result = await sendWhatsApp('+1234567890', 'Test message');
 

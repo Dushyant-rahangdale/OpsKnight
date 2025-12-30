@@ -159,7 +159,7 @@ export default async function ScheduleDetailPage({
         const blockEndTime = block.end.getTime();
         return blockStartTime <= nowTime && blockEndTime > nowTime;
     });
-    const nextChange = activeBlocks.length
+    const _nextChange = activeBlocks.length
         ? activeBlocks.reduce((earliest, block) => (block.end < earliest ? block.end : earliest), activeBlocks[0].end)
         : coverageBlocks
             .filter((block) => block.start > now)
@@ -169,7 +169,7 @@ export default async function ScheduleDetailPage({
             }, null);
     const historyTotalPages = Math.max(1, Math.ceil(historyCount / historyPageSize));
 
-    const formatDateTimeLocal = (date: Date) =>
+    const _formatDateTimeLocal = (date: Date) =>
         formatDateTime(date, schedule.timeZone, { format: 'short' });
 
     const scheduleTimezoneLabel = new Intl.DateTimeFormat('en-US', {

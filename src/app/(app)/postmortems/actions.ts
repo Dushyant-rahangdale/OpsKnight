@@ -7,11 +7,11 @@ import { getCurrentUser, assertResponderOrAbove } from '@/lib/rbac';
 export type PostmortemData = {
     title: string;
     summary?: string;
-    timeline?: any[];
-    impact?: any;
+    timeline?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    impact?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     rootCause?: string;
     resolution?: string;
-    actionItems?: any[];
+    actionItems?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
     lessons?: string;
     status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
     isPublic?: boolean;

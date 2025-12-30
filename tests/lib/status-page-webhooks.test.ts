@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { verifyWebhookSignature } from '@/lib/status-page-webhooks';
 import crypto from 'crypto';
 
@@ -20,9 +20,9 @@ describe('Status Page Webhooks', () => {
         });
 
         it('should reject invalid signature', () => {
-            const invalidSignature = 'sha256=invalid-signature-hash';
+            const invalidsignature = 'sha256=invalid-signature-hash';
 
-            const isValid = verifyWebhookSignature(payload, invalidSignature, secret);
+            const isValid = verifyWebhookSignature(payload, invalidsignature, secret);
 
             expect(isValid).toBe(false);
         });
@@ -56,16 +56,16 @@ describe('Status Page Webhooks', () => {
         it('should handle signature without sha256 prefix', () => {
             // When signature doesn't have sha256= prefix, replace does nothing
             // and it may still validate. This test verifies the function handles it.
-            const signature = crypto
+            const _signature = crypto
                 .createHmac('sha256', secret)
                 .update(payload)
                 .digest('hex');
 
             // The implementation uses replace('sha256=', '') which does nothing if prefix is missing
             // So it will still attempt verification - we'll test with a clearly invalid signature
-            const invalidSignature = 'not-a-valid-hex-string';
+            const invalidsignature = 'not-a-valid-hex-string';
 
-            const isValid = verifyWebhookSignature(payload, invalidSignature, secret);
+            const isValid = verifyWebhookSignature(payload, invalidsignature, secret);
 
             expect(isValid).toBe(false);
         });

@@ -24,7 +24,7 @@ interface JobPayload {
   channel?: string;
   message?: string;
   stepIndex?: number;
-  [key: string]: any;
+  [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 /**
@@ -100,7 +100,7 @@ export async function scheduleAutoUnsnooze(
 /**
  * Get pending jobs that are ready to execute
  */
-export async function getPendingJobs(limit: number = 50): Promise<any[]> {
+export async function getPendingJobs(limit: number = 50): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const now = new Date();
   
   return prisma.backgroundJob.findMany({
@@ -124,9 +124,9 @@ export async function getPendingJobs(limit: number = 50): Promise<any[]> {
 export async function claimPendingJobs(
   limit: number = 50,
   type?: JobType
-): Promise<any[]> {
+): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const typeFilter = type ? Prisma.sql`AND "type" = ${type}` : Prisma.empty;
-  const jobs = await prisma.$queryRaw<any[]>(
+  const jobs = await prisma.$queryRaw<any[]>( // eslint-disable-line @typescript-eslint/no-explicit-any
     Prisma.sql`
       WITH cte AS (
         SELECT "id"
@@ -209,7 +209,7 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
 /**
  * Process a single job
  */
-export async function processJob(job: any): Promise<boolean> {
+export async function processJob(job: any): Promise<boolean> { // eslint-disable-line @typescript-eslint/no-explicit-any
   try {
     if (job.status !== 'PROCESSING') {
       await markJobProcessing(job.id);
@@ -245,7 +245,7 @@ export async function processJob(job: any): Promise<boolean> {
         const notificationResult = await sendNotification(
           job.payload.incidentId,
           job.payload.userId,
-          job.payload.channel as any,
+          job.payload.channel as any, // eslint-disable-line @typescript-eslint/no-explicit-any
           job.payload.message
         );
         if (notificationResult.success) {

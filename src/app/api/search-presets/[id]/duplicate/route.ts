@@ -69,7 +69,7 @@ export async function POST(
                 name: `${original.name} (Copy)`,
                 description: original.description,
                 createdById: session.user.id,
-                filterCriteria: original.filterCriteria as any,
+                filterCriteria: original.filterCriteria as any, // eslint-disable-line @typescript-eslint/no-explicit-any
                 isShared: false,
                 isPublic: false,
                 icon: original.icon,
@@ -90,7 +90,7 @@ export async function POST(
 
         logger.info('api.search_presets.duplicated', { presetId: duplicated.id, sourceId: original.id });
         return jsonOk({ preset: duplicated }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.duplicate_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to duplicate preset', 500);
     }

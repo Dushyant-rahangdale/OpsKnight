@@ -23,13 +23,14 @@ export default function PieChart({ data, size = 120, showLegend = true, onSegmen
         );
     }
 
-    let currentAngle = -90;
-    const segments = data.map((item) => {
+    const segments = data.reduce<{
+        segments: Array<PieChartData & { percentage: number; path: string }>;
+        currentAngle: number;
+    }>((acc, item) => {
         const percentage = (item.value / total) * 100;
         const angle = (percentage / 100) * 360;
-        const startAngle = currentAngle;
-        const endAngle = currentAngle + angle;
-        currentAngle += angle;
+        const startAngle = acc.currentAngle;
+        const endAngle = acc.currentAngle + angle;
 
         const startAngleRad = (startAngle * Math.PI) / 180;
         const endAngleRad = (endAngle * Math.PI) / 180;
@@ -41,11 +42,17 @@ export default function PieChart({ data, size = 120, showLegend = true, onSegmen
         const largeArc = angle > 180 ? 1 : 0;
 
         return {
-            ...item,
-            percentage,
-            path: `M ${size / 2} ${size / 2} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`
+            segments: [
+                ...acc.segments,
+                {
+                    ...item,
+                    percentage,
+                    path: `M ${size / 2} ${size / 2} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`
+                }
+            ],
+            currentAngle: acc.currentAngle + angle
         };
-    });
+    }, { segments: [], currentAngle: -90 }).segments;
 
     return (
         <div className="analytics-pie-chart-container">
@@ -75,8 +82,8 @@ export default function PieChart({ data, size = 120, showLegend = true, onSegmen
                 <div className="analytics-pie-legend">
                     {segments.map((segment, index) => (
                         <div key={index} className="analytics-pie-legend-item">
-                            <span 
-                                className="analytics-pie-legend-color" 
+                            <span
+                                className="analytics-pie-legend-color"
                                 style={{ backgroundColor: segment.color }}
                             />
                             <span className="analytics-pie-legend-label">{segment.label}</span>

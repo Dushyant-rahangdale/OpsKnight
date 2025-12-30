@@ -8,20 +8,20 @@ type DashboardNotificationsProps = {
   enabled?: boolean;
 };
 
-export default function DashboardNotifications({ 
-  criticalCount, 
+export default function DashboardNotifications({
+  criticalCount,
   unassignedCount,
-  enabled = true 
+  enabled = true
 }: DashboardNotificationsProps) {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [lastNotified, setLastNotified] = useState<{ critical: number; unassigned: number }>({ critical: 0, unassigned: 0 });
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
-    
+
     if ('Notification' in window) {
-      setPermission(Notification.permission);
-      
+      setPermission(Notification.permission); // eslint-disable-line react-hooks/set-state-in-effect
+
       if (Notification.permission === 'default') {
         Notification.requestPermission().then(setPermission);
       }
@@ -30,7 +30,7 @@ export default function DashboardNotifications({
 
   useEffect(() => {
     if (!enabled || permission !== 'granted') return;
-    
+
     // Notify on critical incidents
     if (criticalCount > 0 && criticalCount !== lastNotified.critical) {
       new Notification('Critical Incidents Detected', {
@@ -39,9 +39,9 @@ export default function DashboardNotifications({
         tag: 'critical-incidents',
         requireInteraction: false
       });
-      setLastNotified(prev => ({ ...prev, critical: criticalCount }));
+      setLastNotified(prev => ({ ...prev, critical: criticalCount })); // eslint-disable-line react-hooks/set-state-in-effect
     }
-    
+
     // Notify on unassigned incidents
     if (unassignedCount > 0 && unassignedCount !== lastNotified.unassigned) {
       new Notification('Unassigned Incidents', {

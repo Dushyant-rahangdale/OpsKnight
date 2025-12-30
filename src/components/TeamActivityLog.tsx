@@ -14,7 +14,7 @@ type AuditLog = {
         name: string;
         email: string;
     } | null;
-    details: any;
+    details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 type TeamActivityLogProps = {

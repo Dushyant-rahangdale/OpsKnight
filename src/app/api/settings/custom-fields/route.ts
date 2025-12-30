@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
             return jsonError(error instanceof Error ? error.message : 'Unauthorized', 403);
         }
 
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const parsed = CustomFieldCreateSchema.safeParse(body);
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.custom_fields.created', { customFieldId: customField.id });
         return jsonOk({ success: true, field: customField }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.custom_fields.create_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create custom field', 500);
     }
@@ -100,7 +100,7 @@ export async function GET() {
         });
 
         return jsonOk({ fields: customFields }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.custom_fields.fetch_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to fetch custom fields', 500);
     }

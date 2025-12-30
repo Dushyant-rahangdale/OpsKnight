@@ -12,7 +12,7 @@ type SearchResult = {
     subtitle?: string;
     href: string;
     priority?: number;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 type SearchSection = {
@@ -99,7 +99,7 @@ export default function SidebarSearch() {
                     }
                 }
             }
-        } catch (e) {
+        } catch (_e) {
             // Ignore localStorage errors
         }
     }, []);
@@ -222,7 +222,7 @@ export default function SidebarSearch() {
                 localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
                 return updated;
             });
-        } catch (e) {
+        } catch (_e) {
             // Ignore localStorage errors
         }
     }, []);
@@ -400,7 +400,7 @@ export default function SidebarSearch() {
                 }
                 setResults(data.results || []);
                 saveRecentSearch(query, data.results?.length || 0);
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 if (err.name === 'AbortError') {
                     return;
                 }

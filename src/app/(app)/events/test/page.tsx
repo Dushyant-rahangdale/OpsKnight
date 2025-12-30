@@ -4,13 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function SendTestAlertPage() {
-    const [serviceId, setServiceId] = useState('');
+    const [_serviceId, _setServiceId] = useState('');
     const [integrationKey, setIntegrationKey] = useState('');
     const [dedupKey, setDedupKey] = useState('test_alert_' + Date.now());
     const [summary, setSummary] = useState('Test Alert from OpsSentinal');
     const [severity, setSeverity] = useState<'critical' | 'error' | 'warning' | 'info'>('critical');
     const [eventAction, setEventAction] = useState<'trigger' | 'resolve' | 'acknowledge'>('trigger');
-    const [response, setResponse] = useState<any>(null);
+    const [response, setResponse] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -48,7 +48,7 @@ export default function SendTestAlertPage() {
 
             const data = await res.json();
             setResponse({ status: res.status, data });
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message);
         } finally {
             setLoading(false);
@@ -125,7 +125,7 @@ export default function SendTestAlertPage() {
                         <label style={{ display: 'block', fontWeight: '600', marginBottom: '0.5rem' }}>Severity</label>
                         <select
                             value={severity}
-                            onChange={(e) => setSeverity(e.target.value as any)}
+                            onChange={(e) => setSeverity(e.target.value as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
                             style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '200px' }}
                         >
                             <option value="critical">Critical</option>

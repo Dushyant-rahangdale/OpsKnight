@@ -77,7 +77,7 @@ export default function LogsClient() {
                     <select
                         id="log-level-filter"
                         value={levelFilter}
-                        onChange={(event) => setLevelFilter(event.target.value as any)}
+                        onChange={(event) => setLevelFilter(event.target.value as any)} // eslint-disable-line @typescript-eslint/no-explicit-any
                         style={{
                             border: '1px solid var(--border)',
                             borderRadius: '8px',

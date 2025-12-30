@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import KeyboardShortcuts from './KeyboardShortcuts';
+import _KeyboardShortcuts from './KeyboardShortcuts';
 import { useModalState } from '@/hooks/useModalState';
 
 type NavItem = {
@@ -353,70 +353,18 @@ export default function Sidebar({ userName, userEmail, userRole }: SidebarProps 
         );
     };
 
-    // Mobile menu button
-    const MobileMenuButton = () => (
-        <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="mobile-menu-button"
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMobileMenuOpen}
-            style={{
-                display: isMobile ? 'flex' : 'none',
-                position: 'fixed',
-                top: '1rem',
-                left: '1rem',
-                zIndex: 1001,
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--primary)',
-                border: 'none',
-                color: 'white',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-lg)',
-                transition: 'all var(--transition-base)'
-            }}
-        >
-            {isMobileMenuOpen ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-            )}
-        </button>
-    );
-
-    // Mobile backdrop
-    const MobileBackdrop = () => (
-        isMobile && isMobileMenuOpen ? (
-            <div
-                className="mobile-sidebar-backdrop"
-                onClick={() => setIsMobileMenuOpen(false)}
-                style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    backdropFilter: 'blur(4px)',
-                    zIndex: 999,
-                    animation: 'fadeIn var(--transition-base)'
-                }}
-                aria-hidden="true"
-            />
-        ) : null
-    );
-
     return (
         <>
-            <MobileMenuButton />
-            <MobileBackdrop />
+            <MobileMenuButton
+                isMobile={isMobile}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
+            <MobileBackdrop
+                isMobile={isMobile}
+                isMobileMenuOpen={isMobileMenuOpen}
+                setIsMobileMenuOpen={setIsMobileMenuOpen}
+            />
             <aside
                 className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
                 style={{
@@ -438,8 +386,7 @@ export default function Sidebar({ userName, userEmail, userRole }: SidebarProps 
                     visibility: isMobile && !isMobileMenuOpen ? 'hidden' : 'visible'
                 }}
                 aria-label="Main navigation"
-            >
-                {/* Branding Header - Enhanced */}
+            >            {/* Branding Header - Enhanced */}
                 <div style={{
                     padding: 'clamp(1rem, 2vw, 1.5rem) clamp(1rem, 2vw, 1.25rem) clamp(0.9rem, 1.8vw, 1.25rem)',
                     flexShrink: 0,
@@ -549,33 +496,35 @@ export default function Sidebar({ userName, userEmail, userRole }: SidebarProps 
                 </nav>
 
                 {/* Close button for mobile */}
-                {isMobile && isMobileMenuOpen && (
-                    <button
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        aria-label="Close navigation menu"
-                        style={{
-                            position: 'absolute',
-                            top: '1rem',
-                            right: '1rem',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: 'var(--radius-md)',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all var(--transition-base)'
-                        }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                )}
+                {
+                    isMobile && isMobileMenuOpen && (
+                        <button
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            aria-label="Close navigation menu"
+                            style={{
+                                position: 'absolute',
+                                top: '1rem',
+                                right: '1rem',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: 'var(--radius-md)',
+                                background: 'rgba(255,255,255,0.1)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all var(--transition-base)'
+                            }}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    )
+                }
 
                 {/* User Profile and Footer - Refined */}
                 <div style={{
@@ -798,4 +747,68 @@ export default function Sidebar({ userName, userEmail, userRole }: SidebarProps 
         </>
     );
 }
+
+interface MobileMenuProps {
+    isMobile: boolean;
+    isMobileMenuOpen: boolean;
+    setIsMobileMenuOpen: (open: boolean) => void;
+}
+
+const MobileMenuButton = ({ isMobile, isMobileMenuOpen, setIsMobileMenuOpen }: MobileMenuProps) => (
+    <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="mobile-menu-button"
+        aria-label="Toggle navigation menu"
+        aria-expanded={isMobileMenuOpen}
+        style={{
+            display: isMobile ? 'flex' : 'none',
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            zIndex: 1001,
+            width: '44px',
+            height: '44px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary)',
+            border: 'none',
+            color: 'white',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-lg)',
+            transition: 'all var(--transition-base)'
+        }}
+    >
+        {isMobileMenuOpen ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+        ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+        )}
+    </button>
+);
+
+const MobileBackdrop = ({ isMobile, isMobileMenuOpen, setIsMobileMenuOpen }: MobileMenuProps) => (
+    isMobile && isMobileMenuOpen ? (
+        <div
+            className="mobile-sidebar-backdrop"
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 999,
+                animation: 'fadeIn var(--transition-base)'
+            }}
+            aria-hidden="true"
+        />
+    ) : null
+);
 

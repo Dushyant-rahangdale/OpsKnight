@@ -37,7 +37,7 @@ export default function SlackIntegrationPage({
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('slack_connected') === 'true') {
-            setShowSuccessMessage(true);
+            setShowSuccessMessage(true); // eslint-disable-line react-hooks/set-state-in-effect
             // Remove the param from URL
             window.history.replaceState({}, '', window.location.pathname);
             // Hide message after 5 seconds
@@ -50,7 +50,7 @@ export default function SlackIntegrationPage({
     // Load channels when integration exists
     useEffect(() => {
         if (integration) {
-            setLoadingChannels(true);
+            setLoadingChannels(true); // eslint-disable-line react-hooks/set-state-in-effect
             fetch('/api/slack/channels')
                 .then(res => res.json())
                 .then(data => {
@@ -110,9 +110,9 @@ export default function SlackIntegrationPage({
 
                         <div className="settings-slack-status">
                             <div className="settings-slack-logo" aria-hidden="true">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                                        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165V11.91h5.042v3.255zm1.271 0a2.527 2.527 0 0 1 2.521-2.523 2.527 2.527 0 0 1 2.52 2.523v6.745H6.313v-6.745zm2.521-5.306V5.841a2.528 2.528 0 0 1 2.52-2.523h2.522a2.528 2.528 0 0 1 2.521 2.523v4.018H10.355zm5.208 0V5.841a2.528 2.528 0 0 0-2.521-2.523h-2.522a2.528 2.528 0 0 0-2.52 2.523v4.018h7.563zm2.522 5.306V11.91H24v3.255a2.528 2.528 0 0 1-2.521 2.523 2.528 2.528 0 0 1-2.52-2.523zm-2.522-5.306V5.841A2.528 2.528 0 0 0 15.624 3.318h-2.522a2.528 2.528 0 0 0-2.521 2.523v4.018h7.563z" />
-                                    </svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165V11.91h5.042v3.255zm1.271 0a2.527 2.527 0 0 1 2.521-2.523 2.527 2.527 0 0 1 2.52 2.523v6.745H6.313v-6.745zm2.521-5.306V5.841a2.528 2.528 0 0 1 2.52-2.523h2.522a2.528 2.528 0 0 1 2.521 2.523v4.018H10.355zm5.208 0V5.841a2.528 2.528 0 0 0-2.521-2.523h-2.522a2.528 2.528 0 0 0-2.52 2.523v4.018h7.563zm2.522 5.306V11.91H24v3.255a2.528 2.528 0 0 1-2.521 2.523 2.528 2.528 0 0 1-2.52-2.523zm-2.522-5.306V5.841A2.528 2.528 0 0 0 15.624 3.318h-2.522a2.528 2.528 0 0 0-2.521 2.523v4.018h7.563z" />
+                                </svg>
                             </div>
                             <div className="settings-slack-meta">
                                 <h3>{integration.workspaceName || 'Slack Workspace'}</h3>
@@ -125,7 +125,7 @@ export default function SlackIntegrationPage({
 
                         <div className="settings-slack-actions">
                             <a href="/api/slack/oauth" className="settings-slack-connect">
-                                    Reconnect
+                                Reconnect
                             </a>
                         </div>
 
@@ -231,7 +231,7 @@ function GuidedSlackSetup() {
                 const error = await response.json();
                 alert(error.error || 'Failed to save configuration');
             }
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             alert(error.message || 'Failed to save configuration');
         } finally {
             setIsSaving(false);

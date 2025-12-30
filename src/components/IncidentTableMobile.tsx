@@ -31,7 +31,7 @@ export default function IncidentTableMobile({ incidents, sortBy = 'createdAt', s
     const searchParams = useSearchParams();
     const pathname = usePathname();
 
-    const handleSortClick = (newSortBy: string) => {
+    const _handleSortClick = (newSortBy: string) => {
         const params = new URLSearchParams(searchParams.toString());
         
         if (sortBy === newSortBy && sortOrder === 'asc') {
@@ -60,7 +60,7 @@ export default function IncidentTableMobile({ incidents, sortBy = 'createdAt', s
         setSelectedIds(newSelected);
     };
 
-    const toggleAll = () => {
+    const _toggleAll = () => {
         if (selectedIds.size === incidents.length) {
             setSelectedIds(new Set());
         } else {

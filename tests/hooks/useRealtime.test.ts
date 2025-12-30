@@ -17,7 +17,7 @@ function getMockEventSourceInstance(index = 0): MockEventSource {
 }
 
 // Mock EventSource
-global.EventSource = vi.fn().mockImplementation(() => {
+global.EventSource = (vi.fn() as any).mockImplementation(() => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const mockEventSource: MockEventSource = {
     onopen: null as ((event: Event) => void) | null,
     onmessage: null as ((event: MessageEvent) => void) | null,

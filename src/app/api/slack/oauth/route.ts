@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         let SLACK_CLIENT_SECRET: string | undefined;
         try {
             SLACK_CLIENT_SECRET = config ? await decrypt(config.clientSecret) : process.env.SLACK_CLIENT_SECRET;
-        } catch (decryptError: any) {
+        } catch (decryptError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             logger.error('[Slack] Failed to decrypt Slack Client Secret', {
                 error: decryptError.message,
                 configId: config?.id
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
         // Store state in session/cookie (in production, use Redis or encrypted cookie)
         // For now, we'll pass it in the callback URL
-        const callbackUrl = `${SLACK_REDIRECT_URI}?state=${state}${serviceId ? `&serviceId=${serviceId}` : ''}`;
+        const _callbackUrl = `${SLACK_REDIRECT_URI}?state=${state}${serviceId ? `&serviceId=${serviceId}` : ''}`;
 
         // Slack OAuth scopes needed
         const scopes = [
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
 
         logger.info('[Slack] Redirecting to Slack OAuth', { state, hasServiceId: !!serviceId });
         return response;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] OAuth initiation unexpected error', {
             error: error.message,
             stack: error.stack

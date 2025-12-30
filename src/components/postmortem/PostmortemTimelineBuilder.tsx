@@ -89,7 +89,7 @@ export default function PostmortemTimelineBuilder({ events, onChange }: Postmort
                             label="Event Type"
                             type="select"
                             value={newEvent.type || 'DETECTION'}
-                            onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                            onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                             options={Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                         />
                         <FormField
@@ -140,7 +140,7 @@ export default function PostmortemTimelineBuilder({ events, onChange }: Postmort
                     <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', marginBottom: 'var(--spacing-2)' }}>
                         Timeline Events ({events.length})
                     </h3>
-                    {events.map((event, index) => (
+                    {events.map((event, _index) => (
                         <div
                             key={event.id}
                             style={{
@@ -215,7 +215,7 @@ export default function PostmortemTimelineBuilder({ events, onChange }: Postmort
                                         label="Type"
                                         type="select"
                                         value={event.type}
-                                        onChange={(e) => updateEvent(event.id, { type: e.target.value as any })}
+                                        onChange={(e) => updateEvent(event.id, { type: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                                         options={Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                                     />
                                         <FormField

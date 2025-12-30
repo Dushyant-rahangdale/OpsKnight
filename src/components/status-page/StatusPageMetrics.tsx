@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import LoadingWrapper from '@/components/ui/LoadingWrapper';
-import Skeleton, { SkeletonCard } from '@/components/ui/Skeleton';
+import _Skeleton, { SkeletonCard } from '@/components/ui/Skeleton';
 
 interface Incident {
     id: string;
@@ -36,6 +36,46 @@ function formatUptimePercent(value: number): string {
     return rounded.toFixed(3);
 }
 
+// Helper to separate logic from component
+function calculateServiceUptime(serviceId: string, incidents: Incident[], periodStart: Date, periodEnd: Date) {
+    const totalMinutes = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60);
+
+    const serviceIncidents = incidents.filter((incident) => {
+        if (incident.status === 'SUPPRESSED' || incident.status === 'SNOOZED') {
+            return false;
+        }
+
+        const incidentEnd = incident.resolvedAt || periodEnd;
+        return incident.serviceId === serviceId &&
+            incident.createdAt < periodEnd &&
+            incidentEnd > periodStart;
+    });
+
+    let downtimeMinutes = 0;
+    serviceIncidents.forEach((incident) => {
+        const incidentStart = incident.createdAt > periodStart ? incident.createdAt : periodStart;
+        const incidentEnd = (incident.resolvedAt || periodEnd) < periodEnd
+            ? (incident.resolvedAt || periodEnd)
+            : periodEnd;
+        const incidentMinutes = (incidentEnd.getTime() - incidentStart.getTime()) / (1000 * 60);
+        if (incidentMinutes > 0) {
+            downtimeMinutes += incidentMinutes;
+        }
+    });
+
+    const uptimeMinutes = totalMinutes - downtimeMinutes;
+    // Round to avoid floating point precision issues - round to 3 decimal places
+    const uptimePercent = totalMinutes > 0
+        ? Math.round((uptimeMinutes / totalMinutes) * 100000) / 1000
+        : 100;
+
+    return {
+        uptime: uptimePercent,
+        downtime: downtimeMinutes,
+        incidents: serviceIncidents.length,
+    };
+}
+
 export default function StatusPageMetrics({
     services,
     incidents,
@@ -44,72 +84,25 @@ export default function StatusPageMetrics({
     uptimeExcellentThreshold = 99.9,
     uptimeGoodThreshold = 99.0,
 }: StatusPageMetricsProps) {
-    const [metrics, setMetrics] = useState<Array<{
-        service: string;
-        thirtyDays: { uptime: number; downtime: number; incidents: number };
-        ninetyDays: { uptime: number; downtime: number; incidents: number };
-    }>>([]);
     const [isClient, setIsClient] = useState(false);
 
-    // Calculate metrics only on client to avoid hydration mismatches
     useEffect(() => {
-        setIsClient(true);
+        setIsClient(true); // eslint-disable-line react-hooks/set-state-in-effect
+    }, []);
 
+    const metrics = useMemo(() => {
         if (services.length === 0) {
-            setMetrics([]);
-            return;
+            return [];
         }
 
         // Use current date for calculation
         const periodEnd = new Date();
 
-        // Calculate uptime for a service
-        const calculateUptime = (serviceId: string, periodStart: Date) => {
-            const totalMinutes = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60);
-
-            const serviceIncidents = incidents.filter((incident) => {
-                if (incident.status === 'SUPPRESSED' || incident.status === 'SNOOZED') {
-                    return false;
-                }
-
-                const incidentEnd = incident.resolvedAt || periodEnd;
-                return incident.serviceId === serviceId &&
-                    incident.createdAt < periodEnd &&
-                    incidentEnd > periodStart;
-            });
-
-            let downtimeMinutes = 0;
-            serviceIncidents.forEach((incident) => {
-                const incidentStart = incident.createdAt > periodStart ? incident.createdAt : periodStart;
-                const incidentEnd = (incident.resolvedAt || periodEnd) < periodEnd
-                    ? (incident.resolvedAt || periodEnd)
-                    : periodEnd;
-                const incidentMinutes = (incidentEnd.getTime() - incidentStart.getTime()) / (1000 * 60);
-                if (incidentMinutes > 0) {
-                    downtimeMinutes += incidentMinutes;
-                }
-            });
-
-            const uptimeMinutes = totalMinutes - downtimeMinutes;
-            // Round to avoid floating point precision issues - round to 3 decimal places
-            const uptimePercent = totalMinutes > 0
-                ? Math.round((uptimeMinutes / totalMinutes) * 100000) / 1000
-                : 100;
-
-            return {
-                uptime: uptimePercent,
-                downtime: downtimeMinutes,
-                incidents: serviceIncidents.length,
-            };
-        };
-
-        const calculatedMetrics = services.map(service => ({
+        return services.map(service => ({
             service: service.name,
-            thirtyDays: calculateUptime(service.id, thirtyDaysAgo),
-            ninetyDays: calculateUptime(service.id, ninetyDaysAgo),
+            thirtyDays: calculateServiceUptime(service.id, incidents, thirtyDaysAgo, periodEnd),
+            ninetyDays: calculateServiceUptime(service.id, incidents, ninetyDaysAgo, periodEnd),
         }));
-
-        setMetrics(calculatedMetrics);
     }, [services, incidents, thirtyDaysAgo, ninetyDaysAgo]);
 
     if (services.length === 0) return null;
@@ -231,7 +224,6 @@ export default function StatusPageMetrics({
                                 </h3>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                    {/* 30 Days */}
                                     <div>
                                         <div style={{
                                             display: 'flex',

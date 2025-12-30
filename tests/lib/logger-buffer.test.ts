@@ -9,6 +9,7 @@ describe('Logger Buffer', () => {
     logger.info(message);
 
     const entries = getLogBuffer(50);
+    const _validItems = entries.filter((item: any) => item.level === 'error'); // eslint-disable-line @typescript-eslint/no-explicit-any
     const match = entries.find((entry) => entry.message === message);
     expect(match).toBeTruthy();
   });
@@ -36,7 +37,7 @@ describe('Public Logs API', () => {
 
     expect(status).toBe(200);
     const entries = Array.isArray(data?.data) ? data.data : [];
-    const entry = entries.find((item: any) => item.message === message);
+    const entry = entries.find((item: any) => item.message === message); // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(entry).toBeTruthy();
     expect(entry.error?.message).toBe('kaboom');
     expect(entry.error?.stack).toBeUndefined();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 import { randomBytes, createHash } from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -9,7 +10,9 @@ export async function POST(req: NextRequest) {
     try {
         // 1. Auth Check (Admin Only)
         const session = await getServerSession(await getAuthOptions());
-        if (!session || (session.user as any).role !== 'ADMIN') {
+        const sessionUser = session?.user as { id: string; role: string; email: string } | undefined;
+
+        if (!sessionUser || sessionUser.role !== 'ADMIN') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
                     // Ideally we want to allow multiple tokens or overwrite? 
                     // Create is safer if we want multiple simultaneous tokens (which schema supports).
                     // But if we want to invalidate old ones? Nah, let's just create.
-                } as any // Prisma types for composite unique can be tricky in upsert `where`.
+                }
             },
             create: {
                 identifier: user.email,
@@ -54,7 +57,8 @@ export async function POST(req: NextRequest) {
         });
 
         // 4. Construct Link
-        const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+        const appUrl = await getAppUrl();
+        const resetLink = `${appUrl}/reset-password?token=${token}`;
 
         // 5. Audit Log
         await prisma.auditLog.create({
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
                 action: 'ADMIN_GENERATED_RESET_LINK',
                 entityType: 'USER',
                 entityId: user.id,
-                actorId: (session.user as any).id,
+                actorId: sessionUser.id,
                 details: { targetEmail: user.email }
             }
         });

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         });
 
         return jsonOk({ webhooks }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhooks.get_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to fetch webhooks', 500);
     }
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
         logger.info('api.status_page.webhook.created', { webhookId: webhook.id, statusPageId });
         return jsonOk({ webhook }, 201);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhook.create_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create webhook', 500);
     }
@@ -100,7 +100,7 @@ export async function PATCH(req: NextRequest) {
             return jsonError('id is required', 400);
         }
 
-        const updateData: any = {};
+        const updateData: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
         if (url !== undefined) {
             // Validate URL
             try {
@@ -131,7 +131,7 @@ export async function PATCH(req: NextRequest) {
 
         logger.info('api.status_page.webhook.updated', { webhookId: id });
         return jsonOk({ webhook }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (error.code === 'P2025') {
             return jsonError('Webhook not found', 404);
         }
@@ -164,7 +164,7 @@ export async function DELETE(req: NextRequest) {
 
         logger.info('api.status_page.webhook.deleted', { webhookId: id });
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.webhook.delete_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to delete webhook', 500);
     }

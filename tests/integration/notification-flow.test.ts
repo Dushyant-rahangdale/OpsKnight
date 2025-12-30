@@ -35,11 +35,14 @@ import {
   createTestEscalationPolicy,
 } from '../helpers/test-db';
 
-describe('Notification Flow Integration Tests (Real DB)', () => {
+const describeIfRealDB = process.env.VITEST_USE_REAL_DB === '1' ? describe : describe.skip;
+
+describeIfRealDB('Notification Flow Integration Tests (Real DB)', () => {
   let sendServiceNotifications: typeof import('../../src/lib/service-notifications').sendServiceNotifications;
   let executeEscalation: typeof import('../../src/lib/escalation').executeEscalation;
 
   beforeAll(async () => {
+    process.env.VITEST_USE_REAL_DB = '1';
     // Import after mocks are registered
     ({ sendServiceNotifications } = await import('../../src/lib/service-notifications'));
     ({ executeEscalation } = await import('../../src/lib/escalation'));
@@ -86,6 +89,7 @@ describe('Notification Flow Integration Tests (Real DB)', () => {
 
     const incident = await createTestIncident('Test Incident', service.id);
 
+    // 2. Send Service Notifications
     // 2. Send Service Notifications
     const serviceResult = await sendServiceNotifications(incident.id, 'triggered');
     expect(serviceResult.success).toBe(true);

@@ -390,7 +390,7 @@ async function main() {
     const existingDemoIncidents = await prisma.incident.count({
         where: { dedupKey: { startsWith: 'demo-' } }
     })
-    const incidentCount = await prisma.incident.count()
+    const _incidentCount = await prisma.incident.count()
     // Always seed if forceDemo is true, or if we have less than 300 demo incidents
     const shouldSeedIncidents = forceDemo || existingDemoIncidents < 300
 

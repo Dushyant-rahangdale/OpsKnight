@@ -39,11 +39,11 @@ type IncidentListProps = {
 
 function IncidentList({ incidents, serviceId }: IncidentListProps) {
     const { userTimeZone } = useTimezone();
-    
+
     if (incidents.length === 0) {
         return (
-            <div style={{ 
-                padding: '3rem 2rem', 
+            <div style={{
+                padding: '3rem 2rem',
                 textAlign: 'center',
                 background: 'white',
                 border: '1px solid var(--border)',
@@ -56,7 +56,7 @@ function IncidentList({ incidents, serviceId }: IncidentListProps) {
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                     This service has no recorded incidents.
                 </p>
-                <Link 
+                <Link
                     href={`/incidents/create?serviceId=${serviceId}`}
                     className="glass-button primary"
                     style={{ display: 'inline-block' }}
@@ -68,7 +68,7 @@ function IncidentList({ incidents, serviceId }: IncidentListProps) {
     }
 
     return (
-        <div style={{ 
+        <div style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: '0px',
@@ -94,81 +94,84 @@ function IncidentList({ incidents, serviceId }: IncidentListProps) {
                 <div>Created</div>
             </div>
             <div>
-                {incidents.map((incident) => (
-                    <Link
-                        key={incident.id}
-                        href={`/incidents/${incident.id}`}
-                        style={{
-                            display: 'grid',
-                            gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-                            gap: '1rem',
-                            padding: '1rem 1.5rem',
-                            borderBottom: '1px solid var(--border)',
-                            textDecoration: 'none',
-                            color: 'inherit',
-                            transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f8fafc';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                        }}
-                    >
-                        <div>
-                            <div style={{ 
-                                fontWeight: '600', 
-                                color: 'var(--text-primary)',
-                                marginBottom: '0.25rem',
-                                fontSize: '0.95rem'
-                            }}>
-                                {incident.title}
-                            </div>
-                            {incident.urgency === 'HIGH' && (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    padding: '0.15rem 0.5rem',
-                                    background: 'rgba(239, 68, 68, 0.1)',
-                                    color: 'var(--danger)',
-                                    borderRadius: '4px',
-                                    fontWeight: '600'
-                                }}>
-                                    High Urgency
-                                </span>
-                            )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <StatusBadge status={incident.status as any} size="sm" showDot />
-                        </div>
-                        <div>
-                            {incident.priority ? (
-                                <span style={{
-                                    fontSize: '0.85rem',
+                {incidents.map((incident) => {
+                    const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+                    return (
+                        <Link
+                            key={incident.id}
+                            href={`/incidents/${incident.id}`}
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+                                gap: '1rem',
+                                padding: '1rem 1.5rem',
+                                borderBottom: '1px solid var(--border)',
+                                textDecoration: 'none',
+                                color: 'inherit',
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#f8fafc';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                            }}
+                        >
+                            <div>
+                                <div style={{
                                     fontWeight: '600',
-                                    color: incident.priority === 'P1' ? 'var(--danger)' : 
-                                           incident.priority === 'P2' ? '#f97316' : 
-                                           incident.priority === 'P3' ? 'var(--warning)' : 'var(--text-muted)'
+                                    color: 'var(--text-primary)',
+                                    marginBottom: '0.25rem',
+                                    fontSize: '0.95rem'
                                 }}>
-                                    {incident.priority}
-                                </span>
-                            ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
-                            )}
-                        </div>
-                        <div>
-                            {incident.assignee ? (
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                    {incident.assignee.name}
+                                    {incident.title}
                                 </div>
-                            ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Unassigned</span>
-                            )}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            {formatDistanceToNow(new Date(incident.createdAt), userTimeZone)}
-                        </div>
-                    </Link>
-                ))}
+                                {incident.urgency === 'HIGH' && (
+                                    <span style={{
+                                        fontSize: '0.75rem',
+                                        padding: '0.15rem 0.5rem',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        color: 'var(--danger)',
+                                        borderRadius: '4px',
+                                        fontWeight: '600'
+                                    }}>
+                                        High Urgency
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <StatusBadge status={incidentStatus} size="sm" showDot />
+                            </div>
+                            <div>
+                                {incident.priority ? (
+                                    <span style={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        color: incident.priority === 'P1' ? 'var(--danger)' :
+                                            incident.priority === 'P2' ? '#f97316' :
+                                                incident.priority === 'P3' ? 'var(--warning)' : 'var(--text-muted)'
+                                    }}>
+                                        {incident.priority}
+                                    </span>
+                                ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+                                )}
+                            </div>
+                            <div>
+                                {incident.assignee ? (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                                        {incident.assignee.name}
+                                    </div>
+                                ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Unassigned</span>
+                                )}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                {formatDistanceToNow(new Date(incident.createdAt), userTimeZone)}
+                            </div>
+                        </Link>
+                    );
+                })}
             </div>
         </div>
     );
@@ -180,7 +183,7 @@ export default memo(IncidentList, (prevProps, nextProps) => {
     return (
         prevProps.serviceId === nextProps.serviceId &&
         prevProps.incidents.length === nextProps.incidents.length &&
-        prevProps.incidents.every((inc, i) => 
+        prevProps.incidents.every((inc, i) =>
             inc.id === nextProps.incidents[i]?.id &&
             inc.status === nextProps.incidents[i]?.status &&
             inc.urgency === nextProps.incidents[i]?.urgency &&

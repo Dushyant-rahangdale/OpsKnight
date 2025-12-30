@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 describe('Utility Functions', () => {
     describe('Encryption', () => {
         it('should encrypt sensitive data', () => {
-            const encrypt = (data: string, key: string) => {
+            const encrypt = (data: string, _key: string) => {
                 // Mock encryption
                 return Buffer.from(data).toString('base64');
             };
@@ -14,7 +14,7 @@ describe('Utility Functions', () => {
         });
 
         it('should decrypt encrypted data', () => {
-            const decrypt = (encrypted: string, key: string) => {
+            const decrypt = (encrypted: string, _key: string) => {
                 // Mock decryption
                 return Buffer.from(encrypted, 'base64').toString('utf-8');
             };
@@ -161,7 +161,7 @@ describe('Utility Functions', () => {
 
             const obj1 = { a: 1, b: 2 };
             const obj2 = { b: 3, c: 4 };
-            const merged = merge(obj1, obj2 as any);
+            const merged = merge(obj1, obj2 as Partial<typeof obj1>);
 
             expect(merged).toEqual({ a: 1, b: 3, c: 4 });
         });

@@ -1,6 +1,6 @@
 'use client';
 
-import { InputHTMLAttributes, ReactNode, useId } from 'react';
+import { InputHTMLAttributes, _ReactNode, useId } from 'react';
 
 interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   label?: string;

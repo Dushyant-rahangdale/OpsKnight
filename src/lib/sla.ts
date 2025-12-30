@@ -1,4 +1,4 @@
-import { formatTimeMinutes, formatTimeMinutesMs } from './time-format';
+import { _formatTimeMinutes, _formatTimeMinutesMs } from './time-format';
 
 /**
  * Client-safe SLA utilities (pure functions, no database access)

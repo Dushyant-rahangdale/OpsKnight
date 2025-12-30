@@ -7,6 +7,8 @@ import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { generateApiKey } from '@/lib/api-keys';
 import { validatePasswordStrength } from '@/lib/passwords';
+import { getEmailConfig, getSMSConfig, getPushConfig, getWhatsAppConfig } from '@/lib/notification-providers';
+
 
 type ActionState = {
     error?: string | null;
@@ -56,7 +58,7 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
         revalidatePath('/schedules');
         // Revalidate layout to update topbar
         revalidatePath('/', 'layout');
-        
+
         return { success: true };
     } catch (error) {
         console.error('Error updating profile:', error);
@@ -81,7 +83,7 @@ export async function updatePreferences(_prevState: ActionState, formData: FormD
             data: {
                 timeZone,
                 dailySummary,
-                incidentDigest: digest as any
+                incidentDigest: digest as any // eslint-disable-line @typescript-eslint/no-explicit-any
             }
         });
 
@@ -95,13 +97,43 @@ export async function updatePreferences(_prevState: ActionState, formData: FormD
 export async function updateNotificationPreferences(_prevState: ActionState, formData: FormData): Promise<ActionState> {
     try {
         const user = await getCurrentUser();
+
         const emailEnabled = formData.get('emailNotificationsEnabled') === 'on';
         const smsEnabled = formData.get('smsNotificationsEnabled') === 'on';
         const pushEnabled = formData.get('pushNotificationsEnabled') === 'on';
         const whatsappEnabled = formData.get('whatsappNotificationsEnabled') === 'on';
         // Phone number can come from SMS or WhatsApp field (they share the same number)
-        const phoneNumber = (formData.get('phoneNumber') as string | null)?.trim() || 
-                           (formData.get('phoneNumberWhatsApp') as string | null)?.trim() || null;
+        const phoneNumber = (formData.get('phoneNumber') as string | null)?.trim() ||
+            (formData.get('phoneNumberWhatsApp') as string | null)?.trim() || null;
+
+        // Check provider availability
+        if (emailEnabled) {
+            const emailConfig = await getEmailConfig();
+            if (!emailConfig.enabled) {
+                return { error: 'Email notifications cannot be enabled because no email provider is configured.' };
+            }
+        }
+
+        if (smsEnabled) {
+            const smsConfig = await getSMSConfig();
+            if (!smsConfig.enabled) {
+                return { error: 'SMS notifications cannot be enabled because no SMS provider is configured.' };
+            }
+        }
+
+        if (pushEnabled) {
+            const pushConfig = await getPushConfig();
+            if (!pushConfig.enabled) {
+                return { error: 'Push notifications cannot be enabled because no push notification provider is configured.' };
+            }
+        }
+
+        if (whatsappEnabled) {
+            const whatsappConfig = await getWhatsAppConfig();
+            if (!whatsappConfig.enabled) {
+                return { error: 'WhatsApp notifications cannot be enabled because no WhatsApp provider is configured.' };
+            }
+        }
 
         // Validate phone number if SMS or WhatsApp is enabled
         if ((smsEnabled || whatsappEnabled) && phoneNumber) {

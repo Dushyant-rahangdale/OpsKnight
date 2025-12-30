@@ -107,7 +107,7 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
     const [cursor, setCursor] = useState(() => new Date());
     const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-    const [filterLayer, setFilterLayer] = useState<string | null>(null);
+    const [filterLayer, _setFilterLayer] = useState<string | null>(null);
     
     const monthLabel = useMemo(
         () =>

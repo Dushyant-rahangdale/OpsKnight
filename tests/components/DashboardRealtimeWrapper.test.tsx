@@ -6,7 +6,7 @@ import DashboardRealtimeWrapper from '@/components/DashboardRealtimeWrapper';
 const useRealtimeMock = vi.fn(() => ({
   isConnected: true,
   metrics: { open: 5, acknowledged: 3, resolved24h: 10, highUrgency: 2 },
-  recentIncidents: [],
+  recentIncidents: [] as any[], // eslint-disable-line @typescript-eslint/no-explicit-any
   error: null
 }));
 
@@ -34,19 +34,19 @@ describe('DashboardRealtimeWrapper', () => {
         <div>Test Content</div>
       </DashboardRealtimeWrapper>
     );
-    
+
     expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
   it('should call onMetricsUpdate when metrics change', () => {
     const onMetricsUpdate = vi.fn();
-    
+
     render(
       <DashboardRealtimeWrapper onMetricsUpdate={onMetricsUpdate}>
         <div>Test</div>
       </DashboardRealtimeWrapper>
     );
-    
+
     // Metrics should be passed to callback
     expect(onMetricsUpdate).toHaveBeenCalled();
   });
@@ -59,13 +59,13 @@ describe('DashboardRealtimeWrapper', () => {
       recentIncidents: [{ id: '1', title: 'Test Incident' }],
       error: null
     });
-    
+
     render(
       <DashboardRealtimeWrapper onIncidentsUpdate={onIncidentsUpdate}>
         <div>Test</div>
       </DashboardRealtimeWrapper>
     );
-    
+
     // Component should handle incidents updates
     expect(onIncidentsUpdate).toHaveBeenCalled();
   });

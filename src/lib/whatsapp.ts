@@ -88,12 +88,12 @@ export async function sendIncidentWhatsApp(
 
         // Truncate for sanity, though WhatsApp limit is 1600 chars
         const titleMaxLength = 100;
-        let title = incident.title.length > titleMaxLength
+        const title = incident.title.length > titleMaxLength
             ? incident.title.substring(0, titleMaxLength) + '...'
             : incident.title;
 
         // Send via Twilio WhatsApp API
-        const twilio = (await import('twilio')).default as any;
+        const twilio = (await import('twilio')).default as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const client = twilio(whatsappConfig.accountSid, whatsappConfig.authToken);
 
@@ -126,7 +126,7 @@ export async function sendIncidentWhatsApp(
             });
 
             return { success: true };
-        } catch (twilioError: any) {
+        } catch (twilioError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             logger.error('WhatsApp send error', {
                 userId,
                 incidentId,
@@ -136,7 +136,7 @@ export async function sendIncidentWhatsApp(
 
             return { success: false, error: twilioError.message || 'WhatsApp send failed' };
         }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('WhatsApp notification error', {
             userId,
             incidentId,
@@ -183,7 +183,7 @@ export async function sendWhatsApp(
         }
 
         // Send via Twilio WhatsApp API
-        const twilio = (await import('twilio')).default as any;
+        const twilio = (await import('twilio')).default as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const client = twilio(whatsappConfig.accountSid, whatsappConfig.authToken);
 
@@ -194,7 +194,7 @@ export async function sendWhatsApp(
         });
 
         return { success: true, messageSid: messageResult.sid };
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('WhatsApp send error', {
             to,
             error: error.message

@@ -135,14 +135,14 @@ export default function PostmortemActionItems({ actionItems, onChange, users = [
                             label="Priority"
                             type="select"
                             value={newItem.priority || 'MEDIUM'}
-                            onChange={(e) => setNewItem({ ...newItem, priority: e.target.value as any })}
+                            onChange={(e) => setNewItem({ ...newItem, priority: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                             options={Object.entries(PRIORITY_LABELS).map(([value, label]) => ({ value, label }))}
                         />
                         <FormField
                             label="Status"
                             type="select"
                             value={newItem.status || 'OPEN'}
-                            onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })}
+                            onChange={(e) => setNewItem({ ...newItem, status: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                             options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
                         />
                     </div>
@@ -308,14 +308,14 @@ export default function PostmortemActionItems({ actionItems, onChange, users = [
                                                 label="Status"
                                                 type="select"
                                                 value={item.status}
-                                                onChange={(e) => updateItem(item.id, { status: e.target.value as any })}
+                                                onChange={(e) => updateItem(item.id, { status: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                                                 options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
                                             />
                                             <FormField
                                                 label="Priority"
                                                 type="select"
                                                 value={item.priority}
-                                                onChange={(e) => updateItem(item.id, { priority: e.target.value as any })}
+                                                onChange={(e) => updateItem(item.id, { priority: e.target.value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
                                                 options={Object.entries(PRIORITY_LABELS).map(([value, label]) => ({ value, label }))}
                                             />
                                         </div>

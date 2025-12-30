@@ -91,7 +91,7 @@ export default async function AppLayout({
   // This ensures name changes reflect immediately in the topbar
   const userName = dbUser?.name || session?.user?.name || null;
   const userEmail = session?.user?.email ?? null;
-  const userRole = dbUser?.role || (session?.user as any)?.role || null;
+  const userRole = dbUser?.role || (session?.user as any)?.role || null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const canCreate = userRole === 'ADMIN' || userRole === 'RESPONDER';
 

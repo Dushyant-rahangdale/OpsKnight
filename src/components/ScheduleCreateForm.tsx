@@ -7,7 +7,7 @@ import { useToast } from './ToastProvider';
 import TimeZoneSelect from './TimeZoneSelect';
 
 type ScheduleCreateFormProps = {
-    action: (prevState: any, formData: FormData) => Promise<{ error?: string } | { success?: boolean }>;
+    action: (prevState: any, formData: FormData) => Promise<{ error?: string } | { success?: boolean }>; // eslint-disable-line @typescript-eslint/no-explicit-any
     canCreate: boolean;
 };
 

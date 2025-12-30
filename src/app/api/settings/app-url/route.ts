@@ -15,7 +15,7 @@ export async function GET() {
             appUrl: settings?.appUrl || null,
             fallback: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json(
             { error: 'Failed to fetch app URL' },
             { status: 500 }
@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         await assertAdmin();
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json(
             { error: 'Unauthorized. Admin access required.' },
             { status: 403 }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
                         { status: 400 }
                     );
                 }
-            } catch (e) {
+            } catch (_e) {
                 return NextResponse.json(
                     { error: 'Invalid URL format' },
                     { status: 400 }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         revalidatePath('/settings/system');
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json(
             { error: 'Failed to update app URL' },
             { status: 500 }

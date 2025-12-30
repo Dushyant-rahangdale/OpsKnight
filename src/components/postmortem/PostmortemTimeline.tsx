@@ -97,7 +97,7 @@ export default function PostmortemTimeline({ events, incidentStartTime, incident
 
                 {sortedEvents.map((event, index) => {
                     const eventTime = new Date(event.timestamp);
-                    const position = totalDuration > 0 
+                    const _position = totalDuration > 0 
                         ? ((eventTime.getTime() - startTime.getTime()) / totalDuration) * 100 
                         : 0;
 

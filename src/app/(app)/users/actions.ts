@@ -4,8 +4,8 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
 import { randomBytes } from 'crypto';
-import { getCurrentUser, assertAdmin, assertAdminOrResponder, assertNotSelf } from '@/lib/rbac';
-import { getUserFriendlyError } from '@/lib/user-friendly-errors';
+import { _getCurrentUser, assertAdmin, assertAdminOrResponder, assertNotSelf } from '@/lib/rbac';
+import { _getUserFriendlyError } from '@/lib/user-friendly-errors';
 import { getBaseUrl } from '@/lib/env-validation';
 
 async function assertUserIsNotSoleOwner(userId: string) {

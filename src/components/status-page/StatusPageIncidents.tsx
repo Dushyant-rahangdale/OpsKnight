@@ -108,7 +108,7 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
     }, [incidents, statusFilter, serviceFilter, searchQuery]);
 
     useEffect(() => {
-        setCurrentPage(1);
+        setCurrentPage(1); // eslint-disable-line react-hooks/set-state-in-effect
     }, [statusFilter, serviceFilter, searchQuery]);
 
     const totalPages = Math.ceil(filteredIncidents.length / INCIDENTS_PER_PAGE);
@@ -147,28 +147,28 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
 
     return (
         <section style={{ marginBottom: 'clamp(2rem, 6vw, 4rem)' }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
                 flexWrap: 'wrap',
                 gap: '1rem',
             }}>
                 <div>
-                <h2 style={{ 
-                    fontSize: 'clamp(1.5rem, 4vw, 1.875rem)', 
-                    fontWeight: '800', 
-                    color: 'var(--status-text-strong, #0f172a)',
-                    margin: 0,
-                    marginBottom: '0.25rem',
-                    letterSpacing: '-0.02em',
-                }}>
+                    <h2 style={{
+                        fontSize: 'clamp(1.5rem, 4vw, 1.875rem)',
+                        fontWeight: '800',
+                        color: 'var(--status-text-strong, #0f172a)',
+                        margin: 0,
+                        marginBottom: '0.25rem',
+                        letterSpacing: '-0.02em',
+                    }}>
                         Recent Incidents
                     </h2>
                     {filteredIncidents.length > 0 && (
-                        <p style={{ 
-                            fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)', 
+                        <p style={{
+                            fontSize: 'clamp(0.8125rem, 2vw, 0.875rem)',
                             color: 'var(--status-text-muted, #64748b)',
                             margin: 0,
                         }}>
@@ -177,7 +177,7 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                     )}
                 </div>
             </div>
-            
+
             {paginatedIncidents.length === 0 ? (
                 <div style={{
                     padding: '5rem 2rem',
@@ -188,8 +188,8 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                     color: 'var(--status-text-muted, #6b7280)',
                     boxShadow: 'var(--status-card-shadow, 0 6px 16px rgba(15, 23, 42, 0.06))',
                 }}>
-                    <div style={{ 
-                        fontSize: '4rem', 
+                    <div style={{
+                        fontSize: '4rem',
                         marginBottom: '1.5rem',
                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         WebkitBackgroundClip: 'text',
@@ -199,10 +199,10 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                     }}>
                         ✓
                     </div>
-                    <p style={{ 
-                        fontSize: '1.25rem', 
-                        fontWeight: '700', 
-                        marginBottom: '0.5rem', 
+                    <p style={{
+                        fontSize: '1.25rem',
+                        fontWeight: '700',
+                        marginBottom: '0.5rem',
                         color: '#10b981',
                         letterSpacing: '-0.01em',
                     }}>
@@ -310,9 +310,9 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 'clamp(0.75rem, 2vw, 1rem)', gap: '1rem', flexWrap: 'wrap' }}>
                                         <div style={{ flex: 1, minWidth: 0, paddingLeft: 'clamp(0.75rem, 2vw, 1rem)' }}>
                                             {privacy.showIncidentTitles && (
-                                                <h3 style={{ 
-                                                    fontSize: 'clamp(1.125rem, 3vw, 1.375rem)', 
-                                                    fontWeight: '800', 
+                                                <h3 style={{
+                                                    fontSize: 'clamp(1.125rem, 3vw, 1.375rem)',
+                                                    fontWeight: '800',
                                                     color: 'var(--status-text, #111827)',
                                                     marginBottom: '0.75rem',
                                                     letterSpacing: '-0.02em',
@@ -323,9 +323,9 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                                 </h3>
                                             )}
                                             {!privacy.showIncidentTitles && (
-                                                <h3 style={{ 
-                                                    fontSize: 'clamp(1.125rem, 3vw, 1.375rem)', 
-                                                    fontWeight: '800', 
+                                                <h3 style={{
+                                                    fontSize: 'clamp(1.125rem, 3vw, 1.375rem)',
+                                                    fontWeight: '800',
                                                     color: 'var(--status-text, #111827)',
                                                     marginBottom: '0.75rem',
                                                     letterSpacing: '-0.02em',
@@ -335,19 +335,19 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                                 </h3>
                                             )}
                                             {(privacy.showAffectedServices || privacy.showIncidentTimestamps) && (
-                                                <div style={{ 
-                                                    display: 'flex', 
-                                                    gap: '1rem', 
-                                                    fontSize: '0.875rem', 
-                                                    color: 'var(--status-text-muted, #6b7280)', 
+                                                <div style={{
+                                                    display: 'flex',
+                                                    gap: '1rem',
+                                                    fontSize: '0.875rem',
+                                                    color: 'var(--status-text-muted, #6b7280)',
                                                     flexWrap: 'wrap',
                                                     alignItems: 'center',
                                                 }}>
                                                     {privacy.showAffectedServices && (
                                                         <>
-                                                            <div style={{ 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                            <div style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 gap: '0.5rem',
                                                                 flexWrap: 'wrap',
                                                             }}>
@@ -444,14 +444,14 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                                 letterSpacing: '0.05em',
                                                 transition: 'all 0.2s ease',
                                             }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                                e.currentTarget.style.boxShadow = `0 4px 12px ${statusColor.border}50`;
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                                e.currentTarget.style.boxShadow = `0 2px 8px ${statusColor.border}30`;
-                                            }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                    e.currentTarget.style.boxShadow = `0 4px 12px ${statusColor.border}50`;
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.boxShadow = `0 2px 8px ${statusColor.border}30`;
+                                                }}
                                             >
                                                 {statusColor.label}
                                             </span>
@@ -513,8 +513,8 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                     </div>
 
                                     {privacy.showIncidentDescriptions && incident.description && (
-                                        <p style={{ 
-                                            color: 'var(--status-text, #374151)', 
+                                        <p style={{
+                                            color: 'var(--status-text, #374151)',
                                             lineHeight: '1.7',
                                             marginBottom: '1rem',
                                             paddingLeft: '1rem',
@@ -571,35 +571,35 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                     )}
 
                                     {privacy.showIncidentDetails && isExpanded && timelineEvents.length > 0 && (
-                                            <div style={{
-                                                marginTop: '1.5rem',
-                                                paddingTop: '1.5rem',
-                                                borderTop: '2px solid var(--status-panel-border, #e5e7eb)',
-                                                paddingLeft: '1rem',
-                                                background: 'linear-gradient(90deg, var(--status-panel-muted-bg, #f8fafc) 0%, transparent 100%)',
-                                                borderRadius: '0.5rem',
-                                                padding: '1.5rem 1rem',
+                                        <div style={{
+                                            marginTop: '1.5rem',
+                                            paddingTop: '1.5rem',
+                                            borderTop: '2px solid var(--status-panel-border, #e5e7eb)',
+                                            paddingLeft: '1rem',
+                                            background: 'linear-gradient(90deg, var(--status-panel-muted-bg, #f8fafc) 0%, transparent 100%)',
+                                            borderRadius: '0.5rem',
+                                            padding: '1.5rem 1rem',
+                                        }}>
+                                            <h4 style={{
+                                                fontSize: '0.875rem',
+                                                fontWeight: '700',
+                                                marginBottom: '1.25rem',
+                                                color: 'var(--status-text, #374151)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.1em',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.75rem',
                                             }}>
-                                                <h4 style={{ 
-                                                    fontSize: '0.875rem', 
-                                                    fontWeight: '700', 
-                                                    marginBottom: '1.25rem',
-                                                    color: 'var(--status-text, #374151)',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.1em',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.75rem',
-                                                }}>
-                                                    <div style={{
-                                                        width: '6px',
-                                                        height: '6px',
-                                                        borderRadius: '50%',
-                                                        background: 'var(--status-primary, #3b82f6)',
-                                                        boxShadow: '0 0 0 3px color-mix(in srgb, var(--status-primary, #3b82f6) 20%, transparent)',
-                                                    }}></div>
-                                                    Timeline Updates
-                                                </h4>
+                                                <div style={{
+                                                    width: '6px',
+                                                    height: '6px',
+                                                    borderRadius: '50%',
+                                                    background: 'var(--status-primary, #3b82f6)',
+                                                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--status-primary, #3b82f6) 20%, transparent)',
+                                                }}></div>
+                                                Timeline Updates
+                                            </h4>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                 {timelineEvents.map((event, index) => (
                                                     <div
@@ -635,18 +635,18 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                                             zIndex: 1,
                                                             transition: 'all 0.2s ease',
                                                         }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.transform = 'scale(1.2)';
-                                                            e.currentTarget.style.boxShadow = '0 0 0 3px var(--status-primary, #3b82f6), 0 4px 16px color-mix(in srgb, var(--status-primary, #3b82f6) 45%, transparent)';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.transform = 'scale(1)';
-                                                            e.currentTarget.style.boxShadow = '0 0 0 2px var(--status-primary, #3b82f6), 0 2px 12px color-mix(in srgb, var(--status-primary, #3b82f6) 35%, transparent)';
-                                                        }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.transform = 'scale(1.2)';
+                                                                e.currentTarget.style.boxShadow = '0 0 0 3px var(--status-primary, #3b82f6), 0 4px 16px color-mix(in srgb, var(--status-primary, #3b82f6) 45%, transparent)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.transform = 'scale(1)';
+                                                                e.currentTarget.style.boxShadow = '0 0 0 2px var(--status-primary, #3b82f6), 0 2px 12px color-mix(in srgb, var(--status-primary, #3b82f6) 35%, transparent)';
+                                                            }}
                                                         />
                                                         <div style={{ flex: 1, paddingBottom: index < timelineEvents.length - 1 ? '1rem' : '0' }}>
-                                                            <p style={{ 
-                                                                color: 'var(--status-text, #111827)', 
+                                                            <p style={{
+                                                                color: 'var(--status-text, #111827)',
                                                                 fontSize: '0.9375rem',
                                                                 marginBottom: '0.5rem',
                                                                 fontWeight: '500',
@@ -654,8 +654,8 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                                             }}>
                                                                 {event.message}
                                                             </p>
-                                                            <span style={{ 
-                                                                fontSize: '0.8125rem', 
+                                                            <span style={{
+                                                                fontSize: '0.8125rem',
                                                                 color: 'var(--status-text-subtle, #9ca3af)',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
@@ -720,20 +720,20 @@ export default function StatusPageIncidents({ incidents, privacySettings, showPo
                                         (page >= currentPage - 1 && page <= currentPage + 1)
                                     ) {
                                         return (
-                                                <button
-                                                    key={page}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className="status-page-button"
-                                                    data-active={currentPage === page}
-                                                    style={{
-                                                        minWidth: '2.5rem',
-                                                        borderRadius: '0.5rem',
-                                                        fontSize: '0.875rem',
-                                                        fontWeight: '700',
-                                                    }}
-                                                >
-                                                    {page}
-                                                </button>
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className="status-page-button"
+                                                data-active={currentPage === page}
+                                                style={{
+                                                    minWidth: '2.5rem',
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: '700',
+                                                }}
+                                            >
+                                                {page}
+                                            </button>
                                         );
                                     } else if (
                                         page === currentPage - 2 ||

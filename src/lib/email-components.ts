@@ -171,7 +171,7 @@ export function StatusBadge(
  * Call-to-action button with OpsSentinal red gradient
  * Optimized for mobile with large touch targets
  */
-export function EmailButton(text: string, url: string, styles: EmailStyles = {}): string {
+export function EmailButton(text: string, url: string, _styles: EmailStyles = {}): string {
     return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" class="mobile-full-width mobile-spacing" style="margin: 32px auto; width: auto;">
     <tr>

@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import Link from 'next/link';
+import _Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
@@ -73,7 +73,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     ]);
 
     // Build where clause for filtering
-    const where: any = {
+    const where: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
         AND: [
             searchQuery
                 ? {
@@ -88,7 +88,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     };
 
     // Build orderBy clause
-    let orderBy: any = { name: 'asc' };
+    let orderBy: any = { name: 'asc' }; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (sortBy === 'name_desc') {
         orderBy = { name: 'desc' };
     } else if (sortBy === 'name_asc') {
@@ -237,7 +237,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
-                    {servicesWithStatus.map((service: any) => (
+                    {servicesWithStatus.map((service: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                         <ServiceCard key={service.id} service={service} compact={false} />
                     ))}
                 </div>

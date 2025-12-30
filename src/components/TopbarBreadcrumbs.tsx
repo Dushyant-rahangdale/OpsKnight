@@ -38,7 +38,7 @@ export default function TopbarBreadcrumbs() {
                         <span>Home</span>
                     </Link>
                 </li>
-                {breadcrumbs.map((breadcrumb, index) => (
+                {breadcrumbs.map((breadcrumb, _index) => (
                     <li key={breadcrumb.href} className="topbar-breadcrumb-item">
                         <svg 
                             className="topbar-breadcrumb-separator"

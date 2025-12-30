@@ -1,10 +1,10 @@
 import { Prisma } from '@prisma/client';
 import prisma from './prisma';
-import { sendNotification, NotificationChannel } from './notifications';
+// import { sendNotification, NotificationChannel } from './notifications'; // Unused
 import { buildScheduleBlocks } from './oncall';
 import { logger } from './logger';
 import { ESCALATION_LOCK_TIMEOUT_MS } from './config';
-import { formatDateTime } from './timezone';
+// import { formatDateTime } from './timezone'; // Unused
 
 /**
  * Get all active on-call users for a schedule at a given time
@@ -412,7 +412,7 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
     const { sendUserNotification } = await import('./user-notifications');
     const notificationsSent = [];
     const escalationChannels = step.notificationChannels && step.notificationChannels.length > 0
-        ? step.notificationChannels as any[]
+        ? step.notificationChannels as any[] // eslint-disable-line @typescript-eslint/no-explicit-any
         : undefined;
 
     for (const userId of targetUserIds) {

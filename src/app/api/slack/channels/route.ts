@@ -101,18 +101,18 @@ export async function GET(request: NextRequest) {
 
         // Filter to only public channels and private channels the bot is in
         const channels = (data.channels || [])
-            .filter((channel: any) => 
+            .filter((channel: any) =>  // eslint-disable-line @typescript-eslint/no-explicit-any
                 channel.is_channel && !channel.is_archived && !channel.is_private
             )
-            .map((channel: any) => ({
+            .map((channel: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
                 id: channel.id,
                 name: channel.name,
                 isPrivate: channel.is_private
             }))
-            .sort((a: any, b: any) => a.name.localeCompare(b.name));
+            .sort((a: any, b: any) => a.name.localeCompare(b.name)); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         return NextResponse.json({ channels });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] Channels API error', {
             error: error.message,
             stack: error.stack

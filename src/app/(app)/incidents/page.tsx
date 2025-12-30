@@ -59,7 +59,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
         sort: currentSort,
     });
 
-    let where: any = {};
+    let where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (currentFilter === 'mine') {
         where = {
             assigneeId: currentUser?.id,
@@ -95,7 +95,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
     }
 
     // Determine sort order
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: any = { createdAt: 'desc' }; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (currentSort === 'oldest') {
         orderBy = { createdAt: 'asc' };
     } else if (currentSort === 'updated') {
@@ -221,7 +221,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
             </div>
 
             <IncidentsListTable
-                incidents={incidents as any}
+                incidents={incidents as any} // eslint-disable-line @typescript-eslint/no-explicit-any
                 users={users}
                 canManageIncidents={permissions.isResponderOrAbove}
                 pagination={{

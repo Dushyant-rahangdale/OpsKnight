@@ -19,7 +19,7 @@ interface PostmortemImpactInputProps {
 }
 
 export default function PostmortemImpactInput({ metrics, onChange }: PostmortemImpactInputProps) {
-    const updateMetric = (key: keyof ImpactMetrics, value: any) => {
+    const updateMetric = (key: keyof ImpactMetrics, value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         onChange({ ...metrics, [key]: value });
     };
 

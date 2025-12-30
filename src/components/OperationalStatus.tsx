@@ -7,7 +7,7 @@ type Props = {
 };
 
 export default function OperationalStatus({ tone, label, detail }: Props) {
-    const isDanger = tone === 'danger';
+    const _isDanger = tone === 'danger';
     
     return (
         <div className={`ops-status-pill ${tone}`} title={detail}>

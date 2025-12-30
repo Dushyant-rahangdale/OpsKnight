@@ -265,13 +265,12 @@ class Logger {
      */
     startTimer(): Timer {
         const start = Date.now();
-        const parentLogger = this;
 
         return {
-            done(message?: string, context?: LogContext) {
+            done: (message?: string, context?: LogContext) => {
                 const duration = Date.now() - start;
                 const logMessage = message || 'Operation completed';
-                parentLogger.info(logMessage, { ...context, duration });
+                this.info(logMessage, { ...context, duration });
             }
         };
     }
@@ -290,7 +289,7 @@ class Logger {
             timer.done(`${operation} completed`, context);
             return result;
         } catch (error) {
-            const duration = Date.now() - (timer as any).start;
+            const duration = Date.now() - (timer as any).start; // eslint-disable-line @typescript-eslint/no-explicit-any
             this.error(`${operation} failed`, { ...context, error, duration });
             throw error;
         }

@@ -6,10 +6,10 @@ import StatusPageLivePreview from '@/components/status-page/StatusPageLivePrevie
 import { useRouter } from 'next/navigation';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
-import StatusPageHeader from '@/components/status-page/StatusPageHeader';
-import StatusPageServices from '@/components/status-page/StatusPageServices';
-import StatusPageIncidents from '@/components/status-page/StatusPageIncidents';
-import StatusPageAnnouncements from '@/components/status-page/StatusPageAnnouncements';
+import _StatusPageHeader from '@/components/status-page/StatusPageHeader';
+import _StatusPageServices from '@/components/status-page/StatusPageServices';
+import _StatusPageIncidents from '@/components/status-page/StatusPageIncidents';
+import _StatusPageAnnouncements from '@/components/status-page/StatusPageAnnouncements';
 import StatusPagePrivacySettings from '@/components/status-page/StatusPagePrivacySettings';
 import StatusPageWebhooksSettings from '@/components/status-page/StatusPageWebhooksSettings';
 import StatusPageSubscribers from '@/components/status-page/StatusPageSubscribers';
@@ -42,7 +42,31 @@ type StatusPageConfigProps = {
         contactEmail?: string | null;
         contactUrl?: string | null;
         emailProvider?: string | null;
-        branding?: any;
+        emailProvider?: string | null;
+        branding?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        requireAuth?: boolean;
+        privacyMode?: string;
+        showIncidentDetails?: boolean;
+        showIncidentTitles?: boolean;
+        showIncidentDescriptions?: boolean;
+        showAffectedServices?: boolean;
+        showIncidentTimestamps?: boolean;
+        showServiceMetrics?: boolean;
+        showServiceDescriptions?: boolean;
+        showServiceRegions?: boolean;
+        showTeamInformation?: boolean;
+        showCustomFields?: boolean;
+        showIncidentAssignees?: boolean;
+        showIncidentUrgency?: boolean;
+        showUptimeHistory?: boolean;
+        showRecentIncidents?: boolean;
+        maxIncidentsToShow?: number;
+        incidentHistoryDays?: number;
+        allowedCustomFields?: string[];
+        dataRetentionDays?: number | null;
+        authProvider?: string | null;
+        uptimeExcellentThreshold?: number;
+        uptimeGoodThreshold?: number;
         services: Array<{
             id: string;
             serviceId: string;
@@ -215,14 +239,14 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         subdomain: statusPage.subdomain || '',
         customDomain: statusPage.customDomain || '',
         enabled: statusPage.enabled,
-        requireAuth: (statusPage as any).requireAuth ?? false,
+        requireAuth: statusPage.requireAuth ?? false,
         showServices: statusPage.showServices,
         showIncidents: statusPage.showIncidents,
         showMetrics: statusPage.showMetrics,
         showSubscribe: statusPage.showSubscribe !== false,
-        showServicesByRegion: (statusPage as any).showServicesByRegion ?? false,
-        uptimeExcellentThreshold: (statusPage as any).uptimeExcellentThreshold ?? 99.9,
-        uptimeGoodThreshold: (statusPage as any).uptimeGoodThreshold ?? 99.0,
+        showServicesByRegion: statusPage.showServicesByRegion ?? false,
+        uptimeExcellentThreshold: statusPage.uptimeExcellentThreshold ?? 99.9,
+        uptimeGoodThreshold: statusPage.uptimeGoodThreshold ?? 99.0,
         footerText: statusPage.footerText || '',
         contactEmail: statusPage.contactEmail || '',
         contactUrl: statusPage.contactUrl || '',
@@ -246,16 +270,16 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         refreshInterval: branding.refreshInterval || 60,
         showRssLink: branding.showRssLink !== false,
         showApiLink: branding.showApiLink !== false,
-        showServiceOwners: (statusPage as any).showServiceOwners ?? false,
-        showServiceSlaTier: (statusPage as any).showServiceSlaTier ?? false,
-        showChangelog: (statusPage as any).showChangelog ?? true,
-        showRegionHeatmap: (statusPage as any).showRegionHeatmap ?? true,
-        showPostIncidentReview: (statusPage as any).showPostIncidentReview ?? true,
-        enableUptimeExports: (statusPage as any).enableUptimeExports ?? false,
-        statusApiRequireToken: (statusPage as any).statusApiRequireToken ?? false,
-        statusApiRateLimitEnabled: (statusPage as any).statusApiRateLimitEnabled ?? false,
-        statusApiRateLimitMax: (statusPage as any).statusApiRateLimitMax ?? 120,
-        statusApiRateLimitWindowSec: (statusPage as any).statusApiRateLimitWindowSec ?? 60,
+        showServiceOwners: statusPage.showServiceOwners ?? false,
+        showServiceSlaTier: statusPage.showServiceSlaTier ?? false,
+        showChangelog: statusPage.showChangelog ?? true,
+        showRegionHeatmap: statusPage.showRegionHeatmap ?? true,
+        showPostIncidentReview: statusPage.showPostIncidentReview ?? true,
+        enableUptimeExports: statusPage.enableUptimeExports ?? false,
+        statusApiRequireToken: statusPage.statusApiRequireToken ?? false,
+        statusApiRateLimitEnabled: statusPage.statusApiRateLimitEnabled ?? false,
+        statusApiRateLimitMax: statusPage.statusApiRateLimitMax ?? 120,
+        statusApiRateLimitWindowSec: statusPage.statusApiRateLimitWindowSec ?? 60,
     });
 
     const [announcementForm, setAnnouncementForm] = useState({
@@ -275,8 +299,16 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
     const [apiTokenError, setApiTokenError] = useState<string | null>(null);
     const [apiTokenPending, startApiTokenTransition] = useTransition();
 
+    type SidebarItem = {
+        id: string;
+        label: string;
+        icon?: string;
+        badge?: number;
+        link?: string;
+    };
+
     // Sidebar items - defined after announcements state
-    const sidebarItems = [
+    const sidebarItems: SidebarItem[] = [
         { id: 'general', label: 'General', icon: '⚙️' },
         { id: 'appearance', label: 'Appearance', icon: '🎨' },
         { id: 'services', label: 'Services', icon: '🔧' },
@@ -336,27 +368,27 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
 
     // Privacy settings - with defaults if not in statusPage
     const [privacySettings, setPrivacySettings] = useState({
-        privacyMode: (statusPage as any).privacyMode || 'PUBLIC',
-        showIncidentDetails: (statusPage as any).showIncidentDetails !== false,
-        showIncidentTitles: (statusPage as any).showIncidentTitles !== false,
-        showIncidentDescriptions: (statusPage as any).showIncidentDescriptions !== false,
-        showAffectedServices: (statusPage as any).showAffectedServices !== false,
-        showIncidentTimestamps: (statusPage as any).showIncidentTimestamps !== false,
-        showServiceMetrics: (statusPage as any).showServiceMetrics !== false,
-        showServiceDescriptions: (statusPage as any).showServiceDescriptions !== false,
-        showServiceRegions: (statusPage as any).showServiceRegions !== false,
-        showTeamInformation: (statusPage as any).showTeamInformation || false,
-        showCustomFields: (statusPage as any).showCustomFields || false,
-        showIncidentAssignees: (statusPage as any).showIncidentAssignees || false,
-        showIncidentUrgency: (statusPage as any).showIncidentUrgency !== false,
-        showUptimeHistory: (statusPage as any).showUptimeHistory !== false,
-        showRecentIncidents: (statusPage as any).showRecentIncidents !== false,
-        maxIncidentsToShow: (statusPage as any).maxIncidentsToShow || 50,
-        incidentHistoryDays: (statusPage as any).incidentHistoryDays || 90,
-        allowedCustomFields: (statusPage as any).allowedCustomFields || [],
-        dataRetentionDays: (statusPage as any).dataRetentionDays || null,
-        requireAuth: (statusPage as any).requireAuth || false,
-        authProvider: (statusPage as any).authProvider || null,
+        privacyMode: statusPage.privacyMode || 'PUBLIC',
+        showIncidentDetails: statusPage.showIncidentDetails !== false,
+        showIncidentTitles: statusPage.showIncidentTitles !== false,
+        showIncidentDescriptions: statusPage.showIncidentDescriptions !== false,
+        showAffectedServices: statusPage.showAffectedServices !== false,
+        showIncidentTimestamps: statusPage.showIncidentTimestamps !== false,
+        showServiceMetrics: statusPage.showServiceMetrics !== false,
+        showServiceDescriptions: statusPage.showServiceDescriptions !== false,
+        showServiceRegions: statusPage.showServiceRegions !== false,
+        showTeamInformation: statusPage.showTeamInformation || false,
+        showCustomFields: statusPage.showCustomFields || false,
+        showIncidentAssignees: statusPage.showIncidentAssignees || false,
+        showIncidentUrgency: statusPage.showIncidentUrgency !== false,
+        showUptimeHistory: statusPage.showUptimeHistory !== false,
+        showRecentIncidents: statusPage.showRecentIncidents !== false,
+        maxIncidentsToShow: statusPage.maxIncidentsToShow || 50,
+        incidentHistoryDays: statusPage.incidentHistoryDays || 90,
+        allowedCustomFields: statusPage.allowedCustomFields || [],
+        dataRetentionDays: statusPage.dataRetentionDays || null,
+        requireAuth: statusPage.requireAuth || false,
+        authProvider: statusPage.authProvider || null,
     });
 
     const selectedServiceIds = Array.from(selectedServices);
@@ -522,7 +554,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                 // Clear success message after 3 seconds
                 setTimeout(() => setSuccessMessage(null), 3000);
                 router.refresh();
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setError(getUserFriendlyError(err) || 'Failed to save settings');
             }
@@ -621,7 +653,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                     affectedServiceIds: [],
                 });
 
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setAnnouncementError(getUserFriendlyError(err) || 'Failed to create announcement');
             }
@@ -645,7 +677,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                 }
 
                 setAnnouncements((current) => current.filter((announcement) => announcement.id !== id));
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setAnnouncementError(getUserFriendlyError(err) || 'Failed to delete announcement');
             }
@@ -709,7 +741,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                 }
                 setApiTokenValue(data?.token || null);
                 setApiTokenName('');
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setApiTokenError(getUserFriendlyError(err) || 'Failed to create token');
             }
@@ -737,7 +769,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                         current.map((token) => token.id === id ? { ...token, revokedAt: data.apiToken.revokedAt } : token)
                     );
                 }
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
                 setApiTokenError(getUserFriendlyError(err) || 'Failed to revoke token');
             }
@@ -912,7 +944,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
         branding: previewBranding,
         services: previewServices,
         statusPageServices: previewStatusPageServices,
-        announcements: previewAnnouncements.map((a: any) => ({
+        announcements: previewAnnouncements.map((a: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
             ...a,
             startDate: a.startDate.toISOString(),
             endDate: a.endDate ? a.endDate.toISOString() : null,
@@ -945,17 +977,17 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                 <div className="status-page-config-tabs">
                     <div className="status-page-config-tabs-list">
                         {sidebarItems.map((item) => {
-                            const ItemComponent = (item as any).link ? 'a' : 'button';
+                            const ItemComponent = item.link ? 'a' : 'button';
                             const isActive = activeSection === item.id;
                             return (
                                 <ItemComponent
                                     key={item.id}
-                                    type={!(item as any).link ? "button" : undefined}
-                                    href={(item as any).link}
-                                    onClick={() => !(item as any).link && setActiveSection(item.id)}
+                                    type={!item.link ? "button" : undefined}
+                                    href={item.link}
+                                    onClick={() => !item.link && setActiveSection(item.id)}
                                     className={`status-page-config-tab ${isActive ? 'is-active' : ''}`}
                                 >
-                                    {(item as any).icon && <span className="status-page-config-tab-icon">{(item as any).icon}</span>}
+                                    {item.icon && <span className="status-page-config-tab-icon">{item.icon}</span>}
                                     {item.label}
                                     {item.badge ? (
                                         <span className={`status-page-config-tab-badge ${isActive ? 'is-active' : ''}`}>
@@ -1509,7 +1541,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                 {activeSection === 'privacy' && (
                                     <StatusPagePrivacySettings
                                         settings={privacySettings}
-                                        onChange={(settings) => setPrivacySettings(settings as any)}
+                                        onChange={(settings) => setPrivacySettings(settings)}
                                     />
                                 )}
 

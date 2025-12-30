@@ -25,7 +25,7 @@ export default function DashboardTimelineView({ incidents, services }: Dashboard
   const [zoomLevel, setZoomLevel] = useState<'day' | 'week' | 'month'>('week');
 
   // Group incidents by time period
-  const now = new Date();
+  const _now = new Date();
   const getTimeKey = (date: Date) => {
     const d = new Date(date);
     if (zoomLevel === 'day') {

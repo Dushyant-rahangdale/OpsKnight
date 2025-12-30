@@ -80,7 +80,7 @@ describe('StatusPageConfig Component', () => {
     });
 
     it('renders sidebar with emoji icons', () => {
-        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />);
+        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         expect(screen.getByText(/General/)).toBeDefined();
         expect(screen.getByText(/⚙️/)).toBeDefined();
@@ -91,7 +91,7 @@ describe('StatusPageConfig Component', () => {
     });
 
     it('renders the sticky save bar', () => {
-        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />);
+        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         expect(screen.getByText(/Save Settings/)).toBeDefined();
         expect(screen.getByText(/💾/)).toBeDefined();
@@ -99,7 +99,7 @@ describe('StatusPageConfig Component', () => {
     });
 
     it('switches sections when sidebar items are clicked', () => {
-        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />);
+        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const appearanceTab = screen.getByText('Appearance');
         fireEvent.click(appearanceTab);
@@ -109,7 +109,7 @@ describe('StatusPageConfig Component', () => {
     });
 
     it('toggles live preview panel', () => {
-        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />);
+        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // Use "Show Preview" as identified in the component
         const previewBtn = screen.getByText(/Show Preview/i);
@@ -125,7 +125,7 @@ describe('StatusPageConfig Component', () => {
             json: () => Promise.resolve({ success: true }),
         });
 
-        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />);
+        render(<StatusPageConfig statusPage={mockStatusPage as any} allServices={mockAllServices} />); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         const saveBtn = screen.getByText(/Save Settings/);
         fireEvent.click(saveBtn);

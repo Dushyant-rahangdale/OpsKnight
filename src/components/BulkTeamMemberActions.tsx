@@ -24,7 +24,7 @@ export default function BulkTeamMemberActions({
     canManageMembers,
     canAssignOwnerAdmin,
     addMember,
-    teamId
+    _teamId
 }: BulkTeamMemberActionsProps) {
     const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
     const [role, setRole] = useState<string>('MEMBER');

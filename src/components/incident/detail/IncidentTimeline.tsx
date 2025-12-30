@@ -1,6 +1,6 @@
 'use client';
 
-import TimelineEvent from '../TimelineEvent';
+import _TimelineEvent from '../TimelineEvent';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 
@@ -227,7 +227,7 @@ export default function IncidentTimeline({
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                                 {groupEvents.map((event, index) => {
-                                    const isFirst = index === 0 && groupIndex === 0;
+                                    const _isFirst = index === 0 && groupIndex === 0;
                                     const isLast = index === groupEvents.length - 1 && groupIndex === Object.keys(groupedEvents).length - 1;
                                     const eventColor = getEventColor(event.type);
                                     

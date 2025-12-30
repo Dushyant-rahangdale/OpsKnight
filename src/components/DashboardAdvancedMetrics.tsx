@@ -16,7 +16,7 @@ export default function DashboardAdvancedMetrics({
   resolvedIncidents,
   acknowledgedIncidents,
   criticalIncidents,
-  unassignedIncidents,
+  _unassignedIncidents,
   servicesCount
 }: AdvancedMetricsProps) {
   const resolutionRate = totalIncidents > 0 ? ((resolvedIncidents / totalIncidents) * 100).toFixed(1) : '0';

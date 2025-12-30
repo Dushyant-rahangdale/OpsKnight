@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, _NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authenticateApiKey, hasApiScopes } from '@/lib/api-auth';
 import { jsonError, jsonOk } from '@/lib/api-response';
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         return jsonOk({ service });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         return jsonError(error.message || 'Internal Server Error', 500);
     }
 }

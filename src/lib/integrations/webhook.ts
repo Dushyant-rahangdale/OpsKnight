@@ -4,7 +4,7 @@
  */
 
 export type WebhookPayload = {
-    [key: string]: any;
+    [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 export type WebhookConfig = {
@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: WebhookConfig = {
     }
 };
 
-function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: any, path: string): any { // eslint-disable-line @typescript-eslint/no-explicit-any
     return path.split('.').reduce((current, key) => current?.[key], obj);
 }
 
@@ -51,7 +51,7 @@ export function transformWebhookToEvent(
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     const finalConfig = { ...DEFAULT_CONFIG, ...config };

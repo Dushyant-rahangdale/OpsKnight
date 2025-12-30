@@ -10,7 +10,7 @@ type TimelineEventProps = {
     isLast?: boolean;
 };
 
-export default function TimelineEvent({ message, createdAt, isFirst = false, isLast = false }: TimelineEventProps) {
+export default function TimelineEvent({ message, createdAt, _isFirst = false, isLast = false }: TimelineEventProps) {
     const { userTimeZone } = useTimezone();
     return (
         <div style={{ position: 'relative', paddingLeft: '1.5rem', paddingBottom: isLast ? 0 : '1.5rem' }}>

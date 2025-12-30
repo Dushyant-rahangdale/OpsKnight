@@ -40,7 +40,7 @@ export default function UserCreateForm({ action, className = '', disabled = fals
     useEffect(() => {
         if (state?.success) {
             formRef.current?.reset();
-            setEmail('');
+            setEmail(''); // eslint-disable-line react-hooks/set-state-in-effect
             setEmailError(null);
         }
     }, [state?.success]);

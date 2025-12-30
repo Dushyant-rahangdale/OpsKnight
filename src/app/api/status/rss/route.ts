@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
                 'Content-Type': 'application/rss+xml; charset=utf-8',
             },
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.rss_error', { error: error instanceof Error ? error.message : String(error) });
         return new NextResponse('Failed to generate RSS feed', { status: 500 });
     }

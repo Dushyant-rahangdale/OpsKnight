@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 
 export type RealtimeEvent = 
     | { type: 'connected'; timestamp: string }
-    | { type: 'incidents_updated'; incidents: any[]; timestamp: string }
+    | { type: 'incidents_updated'; incidents: any[]; timestamp: string } // eslint-disable-line @typescript-eslint/no-explicit-any
     | { type: 'metrics_updated'; metrics: { open: number; acknowledged: number; resolved24h: number; highUrgency: number }; timestamp: string }
     | { type: 'heartbeat'; timestamp: string }
     | { type: 'error'; message: string; timestamp: string };
@@ -19,7 +19,7 @@ export type RealtimeMetrics = {
 export function useRealtime() {
     const [isConnected, setIsConnected] = useState(false);
     const [metrics, setMetrics] = useState<RealtimeMetrics | null>(null);
-    const [recentIncidents, setRecentIncidents] = useState<any[]>([]);
+    const [recentIncidents, setRecentIncidents] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [error, setError] = useState<string | null>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);

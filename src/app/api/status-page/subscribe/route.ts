@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
                     provider: emailConfig.provider
                 });
             }
-        } catch (emailError: any) {
+        } catch (emailError: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             // Log error but don't fail the subscription - email can be resent later
             logger.error('api.status_page.subscription.verification_email_failed', {
                 statusPageId,
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
         logger.info('api.status_page.subscription.created', { statusPageId, email });
 
         return jsonOk({ success: true, message: 'Subscription created. Please check your email to verify.' }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status_page.subscription.error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to create subscription', 500);
     }

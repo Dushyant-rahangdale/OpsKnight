@@ -40,7 +40,7 @@ export default function LayerCreateForm({
         const start = formData.get('start') as string;
         const end = formData.get('end') as string;
         const rotationLengthHours = Number(formData.get('rotationLengthHours'));
-        
+
         if (name && start && rotationLengthHours && !isNaN(rotationLengthHours) && rotationLengthHours > 0) {
             setPreviewData({
                 name,
@@ -88,7 +88,7 @@ export default function LayerCreateForm({
                     <h4 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: 'var(--text-secondary)' }}>
                         Add Layer
                     </h4>
-                    <span 
+                    <span
                         title="Layers allow you to run multiple rotation patterns simultaneously. For example, you can have a 'day' layer (6 AM - 6 PM) and a 'night' layer (6 PM - 6 AM) to provide 24/7 coverage with different teams."
                         style={{
                             width: '18px',
@@ -156,32 +156,32 @@ export default function LayerCreateForm({
             borderRadius: '12px',
             marginTop: '1.5rem'
         }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
-                        Add Layer
-                    </h4>
-                    <span 
-                        title="Layers allow you to run multiple rotation patterns simultaneously. For example, you can have a 'day' layer (6 AM - 6 PM) and a 'night' layer (6 PM - 6 AM) to provide 24/7 coverage with different teams."
-                        style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            background: '#e0f2fe',
-                            color: '#0c4a6e',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.7rem',
-                            fontWeight: '600',
-                            cursor: 'help',
-                            border: '1px solid #bae6fd'
-                        }}
-                    >
-                        ?
-                    </span>
-                </div>
-            <form 
-                onSubmit={handleSubmit} 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
+                    Add Layer
+                </h4>
+                <span
+                    title="Layers allow you to run multiple rotation patterns simultaneously. For example, you can have a 'day' layer (6 AM - 6 PM) and a 'night' layer (6 PM - 6 AM) to provide 24/7 coverage with different teams."
+                    style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#e0f2fe',
+                        color: '#0c4a6e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        cursor: 'help',
+                        border: '1px solid #bae6fd'
+                    }}
+                >
+                    ?
+                </span>
+            </div>
+            <form
+                onSubmit={handleSubmit}
                 style={{ display: 'grid', gap: '0.75rem' }}
                 onChange={(e) => {
                     const form = e.currentTarget;
@@ -279,7 +279,7 @@ export default function LayerCreateForm({
                     </button>
                 </div>
             </form>
-            
+
             {showPreview && previewData && (
                 <SchedulePreview
                     layers={[{
@@ -295,8 +295,11 @@ export default function LayerCreateForm({
                         }))
                     }]}
                     timeZone={timeZone}
-                    startDate={new Date()}
-                    endDate={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
+                    startDate={previewData.start ? new Date(previewData.start) : new Date()}
+                    endDate={previewData.start
+                        ? new Date(new Date(previewData.start).getTime() + 7 * 24 * 60 * 60 * 1000)
+                        : new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
+                    }
                 />
             )}
         </div>

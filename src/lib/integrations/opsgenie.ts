@@ -30,7 +30,7 @@ export function transformOpsgenieToEvent(payload: OpsgenieEvent): {
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     if (!payload.alert) {

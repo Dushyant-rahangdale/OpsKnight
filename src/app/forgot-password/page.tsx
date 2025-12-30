@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
             } else {
                 setError(data.message || 'Something went wrong.');
             }
-        } catch (err) {
+        } catch (_err) {
             setError('An unexpected error occurred.');
         } finally {
             setIsSubmitting(false);

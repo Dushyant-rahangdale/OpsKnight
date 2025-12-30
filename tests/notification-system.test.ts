@@ -73,7 +73,7 @@ describe('Notification System Tests', () => {
         serviceNotificationChannels: ['SLACK'],
         slackWebhookUrl: 'https://hooks.slack.com/test',
         policy: null,
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       vi.mocked(prisma.incident.findUnique).mockResolvedValue({
         id: incidentId,
@@ -87,9 +87,9 @@ describe('Notification System Tests', () => {
           serviceNotificationChannels: ['SLACK'],
           slackWebhookUrl: 'https://hooks.slack.com/test',
         }
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-      vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'notif-1' } as any);
+      vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'notif-1' } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const slackSpy = vi.spyOn(slack, 'notifySlackForIncident');
       slackSpy.mockResolvedValue({ success: true });
@@ -107,7 +107,7 @@ describe('Notification System Tests', () => {
       const user2Id = 'user-2';
       const scheduleId = 'sched-1';
 
-      (vi.mocked(prisma.user.create) as any).mockImplementation(({ data }: any) => Promise.resolve({ id: data.email === 'user1@example.com' ? user1Id : user2Id, ...data }));
+      (vi.mocked(prisma.user.create) as any).mockImplementation(({ data }: any) => Promise.resolve({ id: data.email === 'user1@example.com' ? user1Id : user2Id, ...data })); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       vi.mocked(prisma.onCallSchedule.findUnique).mockResolvedValue({
         id: scheduleId,
@@ -130,7 +130,7 @@ describe('Notification System Tests', () => {
           }
         ],
         overrides: []
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Mock resolveEscalationTarget internal logic dependencies if necessary
       // Actually resolveEscalationTarget probably uses several prisma calls.
@@ -145,17 +145,16 @@ describe('Notification System Tests', () => {
   describe('Team Lead Functionality', () => {
     it('should return only team lead when notifyOnlyTeamLead is true', async () => {
       const teamLeadId = 'lead-1';
-      const memberId = 'member-1';
       const teamId = 'team-1';
 
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: teamId,
         teamLeadId: teamLeadId
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
         userId: teamLeadId
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const users = await resolveEscalationTarget('TEAM', teamId, new Date(), true);
 
@@ -170,7 +169,7 @@ describe('Notification System Tests', () => {
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: teamId,
         teamLeadId: teamLeadId
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue(null);
 
@@ -189,7 +188,7 @@ describe('Notification System Tests', () => {
         { userId: teamLeadId },
         { userId: member1Id },
         { userId: member2Id }
-      ] as any);
+      ] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const users = await resolveEscalationTarget('TEAM', teamId, new Date(), false);
 
@@ -325,7 +324,7 @@ describe('Notification System Tests', () => {
         id: userId,
         phoneNumber: '+1234567890',
         name: 'Test User'
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       vi.mocked(prisma.incident.findUnique).mockResolvedValue({
         id: incidentId,
@@ -333,7 +332,7 @@ describe('Notification System Tests', () => {
         urgency: 'HIGH',
         service: { id: serviceId, name: 'Test Service' },
         assignee: null
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Mock getWhatsAppConfig
       vi.spyOn(notificationProviders, 'getWhatsAppConfig').mockResolvedValue({
@@ -343,7 +342,7 @@ describe('Notification System Tests', () => {
         authToken: 'test-token',
         whatsappNumber: '+1234567890',
         whatsappContentSid: 'test-content-sid'
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const result = await sendIncidentWhatsApp(userId, incidentId, 'triggered');
 
@@ -364,14 +363,14 @@ describe('Notification System Tests', () => {
         smsNotificationsEnabled: true,
         pushNotificationsEnabled: true,
         whatsappNotificationsEnabled: true,
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Mock channel availability
       vi.spyOn(notificationProviders, 'isChannelAvailable').mockResolvedValue(true);
       vi.spyOn(notificationProviders, 'getSMSConfig').mockResolvedValue({
         enabled: true,
         provider: 'twilio',
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const channels = await getUserNotificationChannels(userId);
 
@@ -419,11 +418,11 @@ describe('Notification System Tests', () => {
             ]
           }
         }
-      } as any);
+      } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-      vi.mocked(prisma.incident.updateMany).mockResolvedValue({ count: 1 } as any);
-      vi.mocked(prisma.incidentEvent.create).mockResolvedValue({} as any);
-      vi.mocked(prisma.incident.update).mockResolvedValue({} as any);
+      vi.mocked(prisma.incident.updateMany).mockResolvedValue({ count: 1 } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      vi.mocked(prisma.incidentEvent.create).mockResolvedValue({} as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      vi.mocked(prisma.incident.update).mockResolvedValue({} as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Mock SMS sending
       const smsSpy = vi.spyOn(sms, 'sendIncidentSMS');
@@ -431,7 +430,7 @@ describe('Notification System Tests', () => {
 
       // Mock sendUserNotification to avoid real notification logic
       const notificationModule = await import('../src/lib/user-notifications');
-      vi.spyOn(notificationModule, 'sendUserNotification').mockResolvedValue({ success: true, channelsUsed: [] } as any);
+      vi.spyOn(notificationModule, 'sendUserNotification').mockResolvedValue({ success: true, channelsUsed: [] } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Execute escalation
       const result = await executeEscalation(incidentId, 0);
@@ -441,3 +440,4 @@ describe('Notification System Tests', () => {
     });
   });
 });
+

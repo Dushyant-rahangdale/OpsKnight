@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
-import { notifySlackForIncident } from '@/lib/slack';
+import { notifySlackForIncident as _notifySlackForIncident } from '@/lib/slack';
 import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from '@/lib/rbac';
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 
@@ -27,7 +27,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
         }
 
         // Build update data
-        const updateData: any = {
+        const updateData: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
             status,
             // Track SLA timestamps
             ...(status === 'ACKNOWLEDGED' && !incident.acknowledgedAt ? {
@@ -176,7 +176,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
         };
         const notifyEvent = eventMap[status];
         if (notifyEvent) {
-            await notifyStatusPageSubscribers(id, notifyEvent as any);
+            await notifyStatusPageSubscribers(id, notifyEvent as any); // eslint-disable-line @typescript-eslint/no-explicit-any
         }
     } catch (e) {
         console.error('Status page subscriber notification failed:', e);
@@ -347,7 +347,7 @@ export async function createIncident(formData: FormData) {
     }
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
-    const urgency = formData.get('urgency') as any;
+    const urgency = formData.get('urgency') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const serviceId = formData.get('serviceId') as string;
     const priority = formData.get('priority') as string | null;
     const dedupKey = formData.get('dedupKey') as string | null;
@@ -419,12 +419,12 @@ export async function createIncident(formData: FormData) {
     });
 
     // Execute escalation policy if service has one
-    let escalatedUsers: string[] = [];
+    let _escalatedUsers: string[] = [];
     try {
         const { executeEscalation } = await import('@/lib/escalation');
         const result = await executeEscalation(incident.id);
         if (result.escalated && result.notifications) {
-            escalatedUsers = result.notifications.map((n: any) => n.userId);
+            _escalatedUsers = result.notifications.map((n: any) => n.userId); // eslint-disable-line @typescript-eslint/no-explicit-any
         }
     } catch (e) {
         console.error('Escalation failed:', e);

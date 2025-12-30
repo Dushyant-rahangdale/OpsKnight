@@ -3,7 +3,7 @@
 import { useReportWebVitals } from 'next/web-vitals';
 
 // Type definition for Web Vitals Metric
-type Metric = {
+type _Metric = {
   name: string;
   value: number;
   id: string;
@@ -27,7 +27,7 @@ type Metric = {
  * - INP (Interaction to Next Paint): Responsiveness (replaces FID)
  */
 export default function WebVitalsReporter() {
-  useReportWebVitals((metric: any) => {
+  useReportWebVitals((metric: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     // Validate that we received a proper metric object
     if (!metric || typeof metric !== 'object' || !metric.name || typeof metric.value !== 'number') {
       if (process.env.NODE_ENV === 'development') {

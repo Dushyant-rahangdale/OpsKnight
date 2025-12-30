@@ -42,7 +42,7 @@ describe('Validation Schemas', () => {
       const invalidData = {
         title: 'Test Incident',
         serviceId: 'service-123',
-        urgency: 'INVALID' as any,
+        urgency: 'INVALID' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       };
 
       const result = IncidentCreateSchema.safeParse(invalidData);
@@ -83,7 +83,7 @@ describe('Validation Schemas', () => {
 
     it('should reject invalid event_action', () => {
       const invalidData = {
-        event_action: 'invalid' as any,
+        event_action: 'invalid' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         dedup_key: 'test-key',
         payload: {
           summary: 'Test summary',

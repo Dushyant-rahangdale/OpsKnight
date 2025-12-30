@@ -1,7 +1,10 @@
 /**
  * Integration Tests for Forgot Password Flow (REAL DB)
  */
-import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterAll, beforeAll } from 'vitest';
+
+const runIntegration = Boolean(process.env.VITEST_USE_REAL_DB);
+const describeIntegration = runIntegration ? describe : describe.skip;
 
 // Mocks - Use aliases to match source code imports exactly
 vi.mock('@/lib/email', () => ({
@@ -19,9 +22,17 @@ import {
     createTestNotificationProvider,
 } from '../helpers/test-db';
 
-import { initiatePasswordReset } from '@/lib/password-reset';
+let initiatePasswordReset: typeof import('@/lib/password-reset').initiatePasswordReset;
 
-describe('Forgot Password Integration', () => {
+describeIntegration('Forgot Password Integration', () => {
+    beforeAll(async () => {
+        if (!runIntegration) return;
+        vi.unmock('@/lib/prisma');
+        vi.unmock('../src/lib/prisma');
+        vi.resetModules();
+        ({ initiatePasswordReset } = await import('@/lib/password-reset'));
+    });
+
     beforeEach(async () => {
         await resetDatabase();
         vi.clearAllMocks();
@@ -33,7 +44,7 @@ describe('Forgot Password Integration', () => {
 
     it('should send EMAIL when email provider is enabled', async () => {
         // 1. Setup User and Provider
-        const user = await createTestUser({ email: 'user@example.com' });
+        const _user = await createTestUser({ email: 'user@example.com' });
         await createTestNotificationProvider('resend', { apiKey: 'test-key', fromEmail: 'test@example.com' }, { enabled: true });
 
         // 2. Initiate Reset
@@ -62,7 +73,7 @@ describe('Forgot Password Integration', () => {
 
     it('should fallback to SMS when email fails or disabled', async () => {
         // 1. Setup User (with phone)
-        const user = await createTestUser({
+        const _user = await createTestUser({
             email: 'smsuser@example.com',
             phoneNumber: '+15555555555',
             smsNotificationsEnabled: true
@@ -86,7 +97,7 @@ describe('Forgot Password Integration', () => {
     });
 
     it('should rate limit requests', async () => {
-        const user = await createTestUser({ email: 'limit@example.com' });
+        const _user = await createTestUser({ email: 'limit@example.com' });
         await createTestNotificationProvider('resend', { enabled: true });
 
         // Do 5 requests (MAX is 5)

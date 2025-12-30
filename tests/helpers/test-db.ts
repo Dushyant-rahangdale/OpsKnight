@@ -15,13 +15,24 @@ export async function resetDatabase() {
 
     const tables = tablenames.map(({ tablename }) => `"${tablename}"`).join(', ');
 
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
+    try {
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code === '40P01') { // Deadlock
+        console.log('Deadlock detected during reset, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE;`);
+        return;
+      }
+      throw error;
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Error resetting database:', message);
     if (message.includes("Can't reach database") || message.includes('Canbt reach database')) {
       console.error('Check if your database at DATABASE_URL is running.');
     }
+    throw error; // Fail the test if reset fails
   }
 }
 
@@ -64,8 +75,8 @@ export async function createTestService(
   return await prisma.service.create({
     data: {
       name,
-      ...(teamId ? { teamId } : {}),
       ...overrides,
+      ...(teamId ? { teamId } : {}),
     },
   });
 }

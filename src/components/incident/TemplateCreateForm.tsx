@@ -14,7 +14,7 @@ type TemplateCreateFormProps = {
 };
 
 export default function TemplateCreateForm({ services, action }: TemplateCreateFormProps) {
-    const [state, formAction, isPending] = useActionState(action, null);
+    const [_state, formAction, isPending] = useActionState(action, null);
 
     return (
         <form action={formAction} style={{ display: 'grid', gap: '1.5rem' }}>

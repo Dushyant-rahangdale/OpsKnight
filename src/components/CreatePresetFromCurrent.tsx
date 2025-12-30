@@ -56,7 +56,7 @@ export default function CreatePresetFromCurrent({
                 if (onPresetCreated) {
                     onPresetCreated();
                 }
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to save preset');
             }
         });

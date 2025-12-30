@@ -16,7 +16,7 @@ export type AzureAlertData = {
             firedDateTime?: string;
             description?: string;
         };
-        alertContext?: any;
+        alertContext?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         context?: {
             id?: string;
             name?: string;
@@ -30,7 +30,7 @@ export type AzureAlertData = {
                 }>;
             };
         };
-        properties?: any;
+        properties?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 };
 
@@ -41,7 +41,7 @@ export function transformAzureToEvent(data: AzureAlertData): {
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     const essentials = data.data?.essentials;

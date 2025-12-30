@@ -30,7 +30,7 @@ export type SentryEvent = {
         timestamp: number;
         platform: string;
         tags?: Record<string, string>;
-        contexts?: Record<string, any>;
+        contexts?: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
     project?: {
         name: string;
@@ -45,7 +45,7 @@ export function transformSentryToEvent(payload: SentryEvent): {
         summary: string;
         source: string;
         severity: 'critical' | 'error' | 'warning' | 'info';
-        custom_details: any;
+        custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     };
 } {
     // Handle new issue format

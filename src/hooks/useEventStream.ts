@@ -6,7 +6,7 @@ type EventStreamOptions = {
     incidentId?: string;
     serviceId?: string;
     enabled?: boolean;
-    onMessage?: (data: any) => void;
+    onMessage?: (data: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
     onError?: (error: Error) => void;
 };
 
@@ -21,7 +21,7 @@ type EventStreamOptions = {
  */
 export function useEventStream(options: EventStreamOptions = {}) {
     const { incidentId, serviceId, enabled = true, onMessage, onError } = options;
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const eventSourceRef = useRef<EventSource | null>(null);
@@ -57,7 +57,7 @@ export function useEventStream(options: EventStreamOptions = {}) {
             }
         };
 
-        eventSource.onerror = (err) => {
+        eventSource.onerror = (_err) => {
             setIsConnected(false);
             const error = new Error('Event stream connection error');
             setError(error);

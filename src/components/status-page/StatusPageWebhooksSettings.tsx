@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Card, Button, FormField, Switch } from '@/components/ui';
 
 interface Webhook {
@@ -35,22 +35,23 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
         events: [] as string[],
     });
 
-    useEffect(() => {
-        loadWebhooks();
-    }, [statusPageId]);
-
-    const loadWebhooks = async () => {
+    const loadWebhooks = useCallback(async () => {
         try {
             const response = await fetch(`/api/status-page/webhooks?statusPageId=${statusPageId}`);
             if (!response.ok) throw new Error('Failed to load webhooks');
             const data = await response.json();
             setWebhooks(data.webhooks || []);
-        } catch (err: any) {
+        } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             setError(err.message || 'Failed to load webhooks');
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [statusPageId]);
+
+    useEffect(() => {
+        loadWebhooks();
+    }, [loadWebhooks]);
+
 
     const handleCreate = () => {
         if (!formData.url || formData.events.length === 0) {
@@ -78,13 +79,14 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
                 setFormData({ url: '', events: [] });
                 setShowForm(false);
                 await loadWebhooks();
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to create webhook');
             }
         });
     };
 
     const handleDelete = (id: string) => {
+        // eslint-disable-next-line no-alert
         if (!confirm('Are you sure you want to delete this webhook?')) return;
 
         startTransition(async () => {
@@ -98,7 +100,7 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
                 }
 
                 await loadWebhooks();
-            } catch (err: any) {
+            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                 setError(err.message || 'Failed to delete webhook');
             }
         });
@@ -160,6 +162,10 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
                                         placeholder="https://your-api.com/webhooks/status"
                                         required
                                     />
+                                    <p className="text-sm text-gray-500">
+                                        Webhooks allow you to receive HTTP POST requests when incidents are created, updated, or resolved. The payload will include the event type and incident details.
+                                        For security, you can verify the <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">X-Webhook-Signature</code> header using your webhook secret.
+                                    </p>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)', fontWeight: '500' }}>
                                             Events to Subscribe To
@@ -200,7 +206,7 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
 
                     {webhooks.length === 0 && !showForm && (
                         <div style={{ padding: 'var(--spacing-6)', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            <p>No webhooks configured. Click "Add Webhook" to create one.</p>
+                            <p>No webhooks configured. Click &quot;Add Webhook&quot; to create one.</p>
                         </div>
                     )}
 
@@ -242,7 +248,7 @@ export default function StatusPageWebhooksSettings({ statusPageId }: StatusPageW
                                                                 });
                                                                 if (!response.ok) throw new Error('Failed to update webhook');
                                                                 await loadWebhooks();
-                                                            } catch (err: any) {
+                                                            } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                                                                 setError(err.message || 'Failed to update webhook');
                                                             }
                                                         }}

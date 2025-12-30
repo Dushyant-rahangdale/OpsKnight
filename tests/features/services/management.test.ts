@@ -146,7 +146,7 @@ describe('Service Management', () => {
             const result = await listServices({ status: 'OPERATIONAL' });
 
             expect(listServices).toHaveBeenCalledWith({ status: 'OPERATIONAL' });
-            expect(result.every((s: any) => s.status === 'OPERATIONAL')).toBe(true);
+            expect(result.every((s: any) => s.status === 'OPERATIONAL')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
         });
     });
 

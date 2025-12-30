@@ -37,7 +37,7 @@ type UserTableProps = {
     deactivateUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
     reactivateUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
     deleteUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
-    generateInvite: (userId: string, prevState: any, formData: FormData) => Promise<any>;
+    generateInvite: (userId: string, prevState: any, formData: FormData) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     addUserToTeam: (userId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
     sortBy?: string;
     sortOrder?: string;
@@ -48,7 +48,7 @@ export default function UserTable({
     teams,
     ownerCountByTeam,
     currentUserId,
-    currentUserRole,
+    _currentUserRole,
     isAdmin,
     isAdminOrResponder,
     updateUserRole,
@@ -85,7 +85,7 @@ export default function UserTable({
     }, [searchParams, pathname, sortBy, sortOrder]);
 
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [isPending, startTransition] = useTransition();
+    const [_isPending, _startTransition] = useTransition();
 
     // Memoize toggle functions to prevent unnecessary re-renders
     const toggleUser = useCallback((id: string) => {
@@ -221,7 +221,7 @@ export default function UserTable({
                         const deactivate = async (formData?: FormData) => {
                             await deactivateUser(user.id, formData);
                         };
-                        const reactivate = async (formData?: FormData) => {
+                        const _reactivate = async (formData?: FormData) => {
                             await reactivateUser(user.id, formData);
                         };
                         const removeUser = async (formData?: FormData) => {

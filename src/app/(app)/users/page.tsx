@@ -61,7 +61,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         redirect('/setup');
     }
 
-    const where: any = {
+    const where: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
         AND: [
             query
                 ? {
@@ -219,7 +219,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     }
 
     // Keep old function for backwards compatibility
-    function buildSortUrlOld(field: string): string {
+    function _buildSortUrlOld(field: string): string {
         const params = new URLSearchParams(baseParams);
         const newOrder = sortBy === field && sortOrder === 'asc' ? 'desc' : 'asc';
         params.set('sortBy', field);

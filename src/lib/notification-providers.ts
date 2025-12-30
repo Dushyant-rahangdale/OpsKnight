@@ -57,7 +57,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
         });
 
         if (resendProvider && resendProvider.enabled && resendProvider.config) {
-            const config = resendProvider.config as any;
+            const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.apiKey) {
                 return {
                     enabled: true,
@@ -75,7 +75,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
         });
 
         if (sendgridProvider && sendgridProvider.enabled && sendgridProvider.config) {
-            const config = sendgridProvider.config as any;
+            const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.apiKey) {
                 return {
                     enabled: true,
@@ -93,7 +93,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
         });
 
         if (smtpProvider && smtpProvider.enabled && smtpProvider.config) {
-            const config = smtpProvider.config as any;
+            const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.host && config.user && config.password) {
                 return {
                     enabled: true,
@@ -115,7 +115,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
         });
 
         if (sesProvider && sesProvider.enabled && sesProvider.config) {
-            const config = sesProvider.config as any;
+            const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.accessKeyId && config.secretAccessKey) {
                 return {
                     enabled: true,
@@ -163,7 +163,7 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             });
 
             if (provider && provider.enabled && provider.config) {
-                const config = provider.config as any;
+                const config = provider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
                 if (preferredProvider === 'resend' && config.apiKey) {
                     return {
                         enabled: true,
@@ -241,7 +241,7 @@ export async function getWhatsAppConfig(): Promise<SMSConfig> {
         });
 
         if (twilioProvider && twilioProvider.config) {
-            const config = twilioProvider.config as any;
+            const config = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
             // Prioritize specific WhatsApp credentials, fall back to global Twilio credentials
             const accountSid = config.whatsappAccountSid || config.accountSid;
@@ -281,7 +281,7 @@ export async function getSMSConfig(): Promise<SMSConfig> {
         });
 
         if (twilioProvider && twilioProvider.enabled && twilioProvider.config) {
-            const config = twilioProvider.config as any;
+            const config = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.accountSid && config.authToken) {
                 return {
                     enabled: true,
@@ -300,7 +300,7 @@ export async function getSMSConfig(): Promise<SMSConfig> {
         });
 
         if (awsProvider && awsProvider.enabled && awsProvider.config) {
-            const config = awsProvider.config as any;
+            const config = awsProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.accessKeyId && config.secretAccessKey) {
                 return {
                     enabled: true,
@@ -331,7 +331,7 @@ export async function getPushConfig(): Promise<PushConfig> {
         });
 
         if (firebaseProvider && firebaseProvider.enabled && firebaseProvider.config) {
-            const config = firebaseProvider.config as any;
+            const config = firebaseProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.projectId && config.privateKey) {
                 return {
                     enabled: true,
@@ -348,7 +348,7 @@ export async function getPushConfig(): Promise<PushConfig> {
         });
 
         if (onesignalProvider && onesignalProvider.enabled && onesignalProvider.config) {
-            const config = onesignalProvider.config as any;
+            const config = onesignalProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
             if (config.appId && config.restApiKey) {
                 return {
                     enabled: true,

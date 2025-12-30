@@ -41,7 +41,7 @@ describe('API Routes - Incidents', () => {
                 id: 'key-1',
                 userId: 'user-1',
                 scopes: ['read:other'],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
             vi.mocked(apiAuth.hasApiScopes).mockReturnValue(false);
 
             const req = await createMockRequest('GET', '/api/incidents');
@@ -61,7 +61,7 @@ describe('API Routes - Incidents', () => {
                 id: 'key-1',
                 userId: 'user-1',
                 scopes: ['incidents:read'],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
             vi.mocked(apiAuth.hasApiScopes).mockReturnValue(true);
 
             // Mock user context
@@ -69,9 +69,9 @@ describe('API Routes - Incidents', () => {
                 id: 'user-1',
                 role: 'ADMIN',
                 teamMemberships: [],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-            vi.mocked(prisma.incident.findMany).mockResolvedValue(mockIncidents as any);
+            vi.mocked(prisma.incident.findMany).mockResolvedValue(mockIncidents as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const req = await createMockRequest('GET', '/api/incidents');
             const res = await incidentRoute.GET(req);
@@ -95,25 +95,25 @@ describe('API Routes - Incidents', () => {
                 id: 'key-1',
                 userId: 'user-1',
                 scopes: ['incidents:write'],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
             vi.mocked(apiAuth.hasApiScopes).mockReturnValue(true);
 
             vi.mocked(prisma.user.findUnique).mockResolvedValue({
                 id: 'user-1',
                 role: 'ADMIN',
                 teamMemberships: [],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(prisma.service.findUnique).mockResolvedValue({
                 id: 'svc-1',
                 teamId: 'team-1',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             vi.mocked(prisma.incident.create).mockResolvedValue({
                 id: 'inc-new',
                 ...incidentData,
                 status: 'OPEN',
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             // Second findUnique for webhook logic
             vi.mocked(prisma.incident.findUnique).mockResolvedValue({
@@ -123,7 +123,7 @@ describe('API Routes - Incidents', () => {
                 service: { id: 'svc-1', name: 'Svc 1' },
                 assignee: null,
                 createdAt: new Date()
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const req = await createMockRequest('POST', '/api/incidents', incidentData);
             const res = await incidentRoute.POST(req);
@@ -144,14 +144,14 @@ describe('API Routes - Incidents', () => {
                 id: 'key-1',
                 userId: 'user-1',
                 scopes: ['incidents:write'],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
             vi.mocked(apiAuth.hasApiScopes).mockReturnValue(true);
 
             vi.mocked(prisma.user.findUnique).mockResolvedValue({
                 id: 'user-1',
                 role: 'ADMIN',
                 teamMemberships: [],
-            } as any);
+            } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
             const req = await createMockRequest('POST', '/api/incidents', invalidData);
             const res = await incidentRoute.POST(req);

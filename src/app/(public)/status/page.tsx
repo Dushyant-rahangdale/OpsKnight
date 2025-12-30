@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
         };
     }
 
-    const branding = statusPage.branding && typeof statusPage.branding === 'object' && !Array.isArray(statusPage.branding) ? statusPage.branding as Record<string, any> : {};
+    const branding = statusPage.branding && typeof statusPage.branding === 'object' && !Array.isArray(statusPage.branding) ? statusPage.branding as Record<string, any> : {}; // eslint-disable-line @typescript-eslint/no-explicit-any
     const metaTitle = (branding.metaTitle as string) || statusPage.name;
     const metaDescription = (branding.metaDescription as string) || `Status page for ${statusPage.name}`;
     const baseUrl = getBaseUrl();
@@ -132,7 +132,7 @@ export default async function PublicStatusPage() {
                 },
             });
             return renderStatusPage(newStatusPage);
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Status page creation error:', error);
             const isTableMissing = error.message?.includes('does not exist') ||
                 error.code === '42P01' ||
@@ -182,10 +182,10 @@ export default async function PublicStatusPage() {
     return renderStatusPage(statusPage);
 }
 
-async function renderStatusPage(statusPage: any) {
+async function renderStatusPage(statusPage: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     // Parse branding
     const branding = statusPage.branding && typeof statusPage.branding === 'object' && !Array.isArray(statusPage.branding)
-        ? statusPage.branding as Record<string, any>
+        ? statusPage.branding as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
         : {};
 
     const backgroundColor = branding.backgroundColor || '#ffffff';
@@ -203,11 +203,11 @@ async function renderStatusPage(statusPage: any) {
 
     // Get current service statuses
     const serviceIds = statusPage.services
-        .filter((sp: any) => sp.showOnPage)
-        .map((sp: any) => sp.serviceId);
+        .filter((sp: any) => sp.showOnPage) // eslint-disable-line @typescript-eslint/no-explicit-any
+        .map((sp: any) => sp.serviceId); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     // If no services are configured, get all services (or show empty state)
-    let services: any[] = [];
+    let services: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (serviceIds.length > 0) {
         services = await prisma.service.findMany({
             where: { id: { in: serviceIds } },
@@ -248,12 +248,12 @@ async function renderStatusPage(statusPage: any) {
         const activeIncidents = service.incidents || [];
 
         // Filter out resolved incidents (shouldn't happen, but just in case)
-        const unresolvedIncidents = activeIncidents.filter((inc: any) =>
+        const unresolvedIncidents = activeIncidents.filter((inc: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
             inc.status !== 'RESOLVED' && inc.status !== 'SNOOZED' && inc.status !== 'SUPPRESSED'
         );
 
-        const highUrgencyIncidents = unresolvedIncidents.filter((inc: any) => inc.urgency === 'HIGH');
-        const lowUrgencyIncidents = unresolvedIncidents.filter((inc: any) => inc.urgency === 'LOW');
+        const highUrgencyIncidents = unresolvedIncidents.filter((inc: any) => inc.urgency === 'HIGH'); // eslint-disable-line @typescript-eslint/no-explicit-any
+        const lowUrgencyIncidents = unresolvedIncidents.filter((inc: any) => inc.urgency === 'LOW'); // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // Determine status based on incidents
         // Priority: HIGH urgency incidents = MAJOR_OUTAGE, LOW urgency = PARTIAL_OUTAGE, none = OPERATIONAL
@@ -323,11 +323,11 @@ async function renderStatusPage(statusPage: any) {
         },
     });
 
-    const activeIncidents = allIncidents.filter((inc: any) =>
+    const activeIncidents = allIncidents.filter((inc: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
         inc.status !== 'RESOLVED' && inc.status !== 'SNOOZED' && inc.status !== 'SUPPRESSED'
     );
-    const hasOutage = activeIncidents.some((inc: any) => inc.urgency === 'HIGH');
-    const hasDegraded = activeIncidents.some((inc: any) => inc.urgency === 'LOW');
+    const hasOutage = activeIncidents.some((inc: any) => inc.urgency === 'HIGH'); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const hasDegraded = activeIncidents.some((inc: any) => inc.urgency === 'LOW'); // eslint-disable-line @typescript-eslint/no-explicit-any
     const overallStatus = hasOutage ? 'outage' : hasDegraded ? 'degraded' : 'operational';
     const affectedServices = services.filter((service) => service.status && service.status !== 'OPERATIONAL').length;
     const activeIncidentCount = activeIncidents.length;
@@ -353,7 +353,7 @@ async function renderStatusPage(statusPage: any) {
     };
 
     const serviceLookup = new Map(services.map((service) => [service.id, service] as const));
-    const announcementsWithServices = statusPage.announcements.map((announcement: any) => {
+    const announcementsWithServices = statusPage.announcements.map((announcement: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         const affectedServiceIds = normalizeAffectedServiceIds(announcement.affectedServiceIds).filter((id) => serviceLookup.has(id));
         const affectedServices = affectedServiceIds
             .map((serviceId) => {
@@ -374,7 +374,7 @@ async function renderStatusPage(statusPage: any) {
     });
 
     const activeMaintenanceServiceIds = new Set<string>();
-    announcementsWithServices.forEach((announcement: any) => {
+    announcementsWithServices.forEach((announcement: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
         if (announcement.type !== 'MAINTENANCE' || !announcement.isActive) {
             return;
         }
@@ -512,7 +512,7 @@ async function renderStatusPage(statusPage: any) {
                     paddingTop: 'clamp(1.5rem, 4vw, 2rem)',
                     paddingBottom: 'clamp(1.5rem, 4vw, 2rem)',
                     boxSizing: 'border-box',
-                    ['--status-card-shadow' as any]: '0 6px 16px rgba(15, 23, 42, 0.05)',
+                    ['--status-card-shadow' as any]: '0 6px 16px rgba(15, 23, 42, 0.05)', // eslint-disable-line @typescript-eslint/no-explicit-any
                 }}>
                     <section style={{ marginBottom: 'clamp(2rem, 6vw, 3rem)' }}>
                         <div style={{
@@ -683,7 +683,7 @@ async function renderStatusPage(statusPage: any) {
                         </section>
                     )}
 
-                    {statusPage.showChangelog && announcementsWithServices.some((item: any) => item.type === 'UPDATE') && (
+                    {statusPage.showChangelog && announcementsWithServices.some((item: any) => item.type === 'UPDATE') && ( // eslint-disable-line @typescript-eslint/no-explicit-any
                         <section style={{ marginBottom: 'clamp(2rem, 6vw, 4rem)' }}>
                             <div style={{ marginBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
                                 <h2 style={{
@@ -705,9 +705,9 @@ async function renderStatusPage(statusPage: any) {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(0.75rem, 2vw, 1rem)' }}>
                                 {announcementsWithServices
-                                    .filter((item: any) => item.type === 'UPDATE')
+                                    .filter((item: any) => item.type === 'UPDATE') // eslint-disable-line @typescript-eslint/no-explicit-any
                                     .slice(0, 6)
-                                    .map((update: any) => (
+                                    .map((update: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                                         <div
                                             key={update.id}
                                             style={{

@@ -2,7 +2,7 @@
 
 import './SettingsPageHeader.css';
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import _Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Search } from 'lucide-react';
 import { SETTINGS_NAV_SECTIONS, type SettingsNavItem } from './navConfig';

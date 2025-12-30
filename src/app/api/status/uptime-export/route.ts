@@ -49,7 +49,7 @@ function buildSimplePdf(lines: string[]) {
 export async function GET(req: NextRequest) {
     try {
         await assertAdmin();
-    } catch (error) {
+    } catch (_error) {
         return new NextResponse('Unauthorized', { status: 403 });
     }
 
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
                 'Content-Disposition': `attachment; filename="uptime-${year}-${String(monthIndex + 1).padStart(2, '0')}.csv"`,
             },
         });
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.uptime_export_error', { error: error instanceof Error ? error.message : String(error) });
         return new NextResponse('Failed to export uptime report', { status: 500 });
     }

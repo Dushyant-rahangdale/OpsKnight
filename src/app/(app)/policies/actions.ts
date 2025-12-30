@@ -189,7 +189,7 @@ export async function addPolicyStep(policyId: string, formData: FormData): Promi
                 targetScheduleId: targetType === 'SCHEDULE' ? targetId : null,
                 delayMinutes,
                 stepOrder: nextStepOrder,
-                notificationChannels: notificationChannels.length > 0 ? notificationChannels as any[] : [],
+                notificationChannels: notificationChannels.length > 0 ? notificationChannels as any[] : [], // eslint-disable-line @typescript-eslint/no-explicit-any
                 notifyOnlyTeamLead: targetType === 'TEAM' ? notifyOnlyTeamLead : false
             }
         });
@@ -258,13 +258,13 @@ export async function updatePolicyStep(stepId: string, formData: FormData): Prom
         return { error: `Target ${finalTargetType} is required` };
     }
 
-    const updateData: any = {
+    const updateData: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
         targetType: finalTargetType,
         targetUserId: finalTargetType === 'USER' ? targetId : null,
         targetTeamId: finalTargetType === 'TEAM' ? targetId : null,
         targetScheduleId: finalTargetType === 'SCHEDULE' ? targetId : null,
         delayMinutes,
-        notificationChannels: finalChannels as any[],
+        notificationChannels: finalChannels as any[], // eslint-disable-line @typescript-eslint/no-explicit-any
         notifyOnlyTeamLead: finalTargetType === 'TEAM' ? notifyOnlyTeamLead : false
     };
 

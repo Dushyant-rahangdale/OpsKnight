@@ -16,7 +16,7 @@ export default function DashboardRealTimeUpdates({ autoRefreshInterval = 60 }: R
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-auto-refresh');
     if (saved !== null) {
-      setIsEnabled(saved === 'true');
+      setIsEnabled(saved === 'true'); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, []);
 

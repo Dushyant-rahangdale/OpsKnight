@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
         });
 
         return response;
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] OAuth callback error', {
             error: error.message,
             stack: error.stack

@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getAuthOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import type { Role, User, UserStatus } from '@prisma/client';
-import { DigestLevel } from '@prisma/client';
+import { type Role, type User, type UserStatus, DigestLevel } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 type Credentials = { email?: string; password?: string };
@@ -12,7 +11,7 @@ function getCredentialsAuthorize(authOptions: Awaited<ReturnType<typeof getAuthO
   if (
     !provider ||
     typeof (provider as unknown as { options?: { authorize?: unknown } }).options?.authorize !==
-      'function'
+    'function'
   ) {
     throw new Error('Credentials provider authorize function not found');
   }
@@ -68,7 +67,7 @@ describe('Authentication Logic', () => {
 
       const passwordHash = 'hashed-pw';
       mockUserFindUnique(makeUser({ passwordHash }));
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const result = await authorize({
         email: 'test@example.com',
@@ -88,7 +87,7 @@ describe('Authentication Logic', () => {
       const authorize = getCredentialsAuthorize(authOptions);
 
       mockUserFindUnique(makeUser({ passwordHash: 'hash' }));
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+      vi.spyOn(bcrypt, 'compare').mockResolvedValue(false as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const result = await authorize({
         email: 'test@example.com',
@@ -132,7 +131,7 @@ describe('Authentication Logic', () => {
           name: 'Invited User',
         })
       );
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       await authorize({
         email: 'invited@example.com',

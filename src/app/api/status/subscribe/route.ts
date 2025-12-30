@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
         const data = await response.json();
         return jsonOk(data, response.status);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.subscribe.error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to subscribe', 500);
     }

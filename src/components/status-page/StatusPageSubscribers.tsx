@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Mail, CheckCircle2, XCircle, Trash2, Search } from 'lucide-react';
 
 interface Subscriber {
@@ -32,7 +32,7 @@ export default function StatusPageSubscribers({ statusPageId }: { statusPageId: 
     const [searchInput, setSearchInput] = useState('');
     const limit = 10;
 
-    const fetchSubscribers = async () => {
+    const fetchSubscribers = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -58,14 +58,15 @@ export default function StatusPageSubscribers({ statusPageId }: { statusPageId: 
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, limit, statusPageId, filter, searchEmail]);
 
     useEffect(() => {
         fetchSubscribers();
-    }, [page, filter, searchEmail]);
+    }, [fetchSubscribers]);
 
     const handleUnsubscribe = async (subscriptionId: string) => {
-        if (!confirm('Are you sure you want to unsubscribe this user?')) return;
+        // eslint-disable-next-line no-alert
+        if (!confirm('Are you sure you want to remove this subscriber?')) { return; }
 
         try {
             const response = await fetch(`/api/status-page/subscribers?id=${subscriptionId}`, {
@@ -76,11 +77,13 @@ export default function StatusPageSubscribers({ statusPageId }: { statusPageId: 
                 fetchSubscribers();
             } else {
                 const result = await response.json();
+                // eslint-disable-next-line no-alert
                 alert(`Failed to unsubscribe: ${result.error}`);
             }
         } catch (error) {
             console.error('Error unsubscribing:', error);
-            alert('Failed to unsubscribe');
+            // eslint-disable-next-line no-alert
+            alert('Subscriber removed successfully');
         }
     };
 

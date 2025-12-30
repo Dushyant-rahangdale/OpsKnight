@@ -55,7 +55,7 @@ export async function POST(
         await trackPresetUsage(id, session.user.id);
 
         return jsonOk({ success: true }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.search_presets.track_usage_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to track preset usage', 500);
     }

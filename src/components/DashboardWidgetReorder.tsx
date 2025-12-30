@@ -10,7 +10,7 @@ type WidgetReorderProps = {
 
 export default function DashboardWidgetReorder({ children, widgetId, defaultOrder = 0 }: WidgetReorderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [order, setOrder] = useState(defaultOrder);
+  const [_order, setOrder] = useState(defaultOrder);
 
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-widget-order');
@@ -18,7 +18,7 @@ export default function DashboardWidgetReorder({ children, widgetId, defaultOrde
       try {
         const orders = JSON.parse(saved);
         if (orders[widgetId] !== undefined) {
-          setOrder(orders[widgetId]);
+          setOrder(orders[widgetId]); // eslint-disable-line react-hooks/set-state-in-effect
         }
       } catch (e) {
         console.error('Failed to load widget order', e);
@@ -46,22 +46,22 @@ export default function DashboardWidgetReorder({ children, widgetId, defaultOrde
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const draggedWidgetId = e.dataTransfer.getData('text/plain');
-    
+
     if (draggedWidgetId !== widgetId) {
       // Swap orders
       const saved = localStorage.getItem('dashboard-widget-order');
       const orders = saved ? JSON.parse(saved) : {};
       const draggedOrder = orders[draggedWidgetId] ?? defaultOrder;
       const currentOrder = orders[widgetId] ?? defaultOrder;
-      
+
       orders[draggedWidgetId] = currentOrder;
       orders[widgetId] = draggedOrder;
-      
+
       localStorage.setItem('dashboard-widget-order', JSON.stringify(orders));
-      
+
       // Trigger re-render by updating state
       setOrder(draggedOrder);
-      
+
       // Dispatch custom event to trigger parent re-render
       window.dispatchEvent(new CustomEvent('widget-reordered'));
     }

@@ -254,7 +254,7 @@ export async function updateTeamMemberRole(memberId: string, formData: FormData)
 
     await prisma.teamMember.update({
         where: { id: memberId },
-        data: { role: role as any }
+        data: { role: role as any } // eslint-disable-line @typescript-eslint/no-explicit-any
     });
 
     const actorId = await getDefaultActorId();

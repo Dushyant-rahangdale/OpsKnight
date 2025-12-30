@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
             },
             updatedAt: new Date().toISOString(),
         }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError('Failed to fetch status', 500);
     }

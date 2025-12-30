@@ -32,17 +32,17 @@ export async function POST(req: NextRequest) {
             return jsonError('Unauthorized', 401);
         }
 
-        let body: any;
+        let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         try {
             body = await req.json();
-        } catch (error) {
+        } catch (_error) {
             return jsonError('Invalid JSON in request body.', 400);
         }
         const event = transformPagerDutyToEvent(body as PagerDutyEvent);
         const result = await processEvent(event, integration.serviceId, integration.id);
 
         return jsonOk({ status: 'success', result }, 202);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.integration.pagerduty_error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Internal Server Error', 500);
     }

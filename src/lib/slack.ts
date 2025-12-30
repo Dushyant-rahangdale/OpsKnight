@@ -101,7 +101,7 @@ export async function sendSlackNotification(
     }
 
     const color = STATUS_COLORS[eventType] || '#757575';
-    const appUrl = getBaseUrl();
+    const _appUrl = getBaseUrl();
 
     const blocks = buildSlackBlocks(incident, eventType, additionalMessage, false); // No interactive buttons in webhook mode
 

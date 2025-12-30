@@ -106,7 +106,7 @@ export default function LoginClient({ callbackUrl, errorCode, passwordSet, ssoEn
         setError('');
         try {
             await signIn('oidc', { callbackUrl });
-        } catch (err) {
+        } catch (_err) {
             setError('SSO authentication failed. Please try again.');
             setIsSSOLoading(false);
         }
@@ -152,7 +152,7 @@ export default function LoginClient({ callbackUrl, errorCode, passwordSet, ssoEn
             } else if (result?.ok) {
                 router.push(result?.url || callbackUrl);
             }
-        } catch (err) {
+        } catch (_err) {
             setError('An unexpected error occurred. Please try again.');
             passwordInputRef.current?.focus();
         } finally {

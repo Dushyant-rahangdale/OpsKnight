@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         const channel = searchParams.get('channel');
         const status = searchParams.get('status');
 
-        const where: any = {
+        const where: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
             userId: user.id
         };
 

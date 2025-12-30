@@ -61,15 +61,19 @@ export default function IncidentSidebar({
     onAddWatcher,
     onRemoveWatcher
 }: IncidentSidebarProps) {
+    const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const incidentForSLA = incident as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const serviceForSLA = incident.service as Service;
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Status & Actions Card */}
-            <div className="glass-panel" style={{ 
-                padding: '1.5rem', 
-                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', 
-                border: '1px solid #e6e8ef', 
+            <div className="glass-panel" style={{
+                padding: '1.5rem',
+                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                border: '1px solid #e6e8ef',
                 borderRadius: '0px',
-                boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)' 
+                boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h4 style={{ fontWeight: '700', fontSize: '1.1rem' }}>Actions</h4>
@@ -79,16 +83,16 @@ export default function IncidentSidebar({
                 </div>
 
                 {/* Status Display */}
-                <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    gap: '0.75rem', 
-                    padding: '0.75rem', 
-                    borderRadius: '0px', 
-                    background: '#fff', 
-                    border: '1px solid #e6e8ef', 
-                    marginBottom: '1rem' 
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    borderRadius: '0px',
+                    background: '#fff',
+                    border: '1px solid #e6e8ef',
+                    marginBottom: '1rem'
                 }}>
                     <div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.25rem' }}>
@@ -98,7 +102,7 @@ export default function IncidentSidebar({
                             {incident.status}
                         </div>
                     </div>
-                    <StatusBadge status={incident.status as any} size="md" showDot />
+                    <StatusBadge status={incidentStatus} size="md" showDot />
                 </div>
 
                 {/* Quick Actions */}
@@ -122,7 +126,7 @@ export default function IncidentSidebar({
 
             {/* SLA Indicator */}
             <div style={{ marginBottom: '0.5rem' }}>
-                <SLAIndicator incident={incident as any} service={incident.service as Service} showDetails={true} />
+                <SLAIndicator incident={incidentForSLA} service={serviceForSLA} showDetails={true} />
             </div>
 
             {/* Watchers */}
@@ -135,12 +139,12 @@ export default function IncidentSidebar({
             />
 
             {/* Tags */}
-            <div className="glass-panel" style={{ 
-                padding: '1.5rem', 
-                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', 
-                border: '1px solid #e6e8ef', 
+            <div className="glass-panel" style={{
+                padding: '1.5rem',
+                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                border: '1px solid #e6e8ef',
                 borderRadius: '0px',
-                boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)' 
+                boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)'
             }}>
                 <IncidentTags
                     incidentId={incident.id}
@@ -151,12 +155,12 @@ export default function IncidentSidebar({
 
             {/* Postmortem Section - Only show for resolved incidents */}
             {incident.status === 'RESOLVED' && (
-                <div className="glass-panel" style={{ 
-                    padding: '1.5rem', 
-                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', 
-                    border: '1px solid #e6e8ef', 
+                <div className="glass-panel" style={{
+                    padding: '1.5rem',
+                    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                    border: '1px solid #e6e8ef',
                     borderRadius: '0px',
-                    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)' 
+                    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)'
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ fontWeight: '700', fontSize: '1.1rem' }}>Postmortem</h4>
@@ -167,7 +171,7 @@ export default function IncidentSidebar({
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                         Document what happened, why it happened, and how to prevent it in the future.
                     </p>
-                    <Link 
+                    <Link
                         href={`/postmortems/${incident.id}`}
                         style={{
                             display: 'block',

@@ -32,7 +32,7 @@ type CustomField = {
     type: 'TEXT' | 'NUMBER' | 'DATE' | 'SELECT' | 'BOOLEAN' | 'URL' | 'EMAIL';
     required: boolean;
     defaultValue?: string | null;
-    options?: any;
+    options?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 type TemplateFormWrapperProps = {

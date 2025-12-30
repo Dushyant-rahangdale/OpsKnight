@@ -20,7 +20,7 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
 
   // Only set time after component mounts on client
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
     setLastUpdated(new Date());
   }, []);
 
@@ -28,14 +28,14 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-auto-refresh');
     if (saved !== null) {
-      setAutoRefreshEnabled(saved === 'true');
+      setAutoRefreshEnabled(saved === 'true'); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, []);
 
   // Auto-refresh timer
   useEffect(() => {
     if (!autoRefreshEnabled) {
-      setTimeUntilRefresh(autoRefreshInterval);
+      setTimeUntilRefresh(autoRefreshInterval); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 
@@ -122,14 +122,14 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
         }}
         title="Refresh dashboard data"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ 
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{
           animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
           transformOrigin: 'center'
         }}>
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 3v5h-5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3 21v-5h5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 3v5h-5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 21v-5h5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {isRefreshing ? 'Refreshing...' : 'Refresh'}
         <style jsx>{`

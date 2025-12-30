@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mock the incident creation form
-const IncidentCreationForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
+const IncidentCreationForm = ({ onSubmit }: { onSubmit: (data: unknown) => void }) => {
     const [formData, setFormData] = React.useState({
         title: '',
         description: '',

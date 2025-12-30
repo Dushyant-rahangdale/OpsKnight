@@ -24,7 +24,7 @@ export default async function ProfileSettingsPage() {
         : null;
 
     const name = user?.name || session?.user?.name || '';
-    const role = user?.role || (session?.user as any)?.role || 'USER';
+    const role = user?.role || (session?.user as any)?.role || 'USER'; // eslint-disable-line @typescript-eslint/no-explicit-any
     const timeZone = getUserTimeZone(user ?? undefined);
     const memberSince = user?.createdAt ? formatDateTime(user.createdAt, timeZone, { format: 'date' }) : 'Unknown';
 

@@ -10,6 +10,7 @@ const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
     .filter(Boolean);
 const API_RATE_LIMIT_MAX = Number(process.env.API_RATE_LIMIT_MAX || 300);
 const API_RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
+const STATUS_DOMAIN_CACHE_TTL = Number(process.env.STATUS_PAGE_DOMAIN_CACHE_TTL || 60);
 
 function isPublicPath(pathname: string) {
     // Exact matches for public paths
@@ -25,6 +26,56 @@ function isPublicPath(pathname: string) {
     // Public static assets in /public folder (images, etc)
     // Only allow specific extensions to avoid leaking pages as static files
     return /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+}
+
+function normalizeHostname(value?: string | null) {
+    if (!value) return '';
+    return value.split(':')[0]?.trim().toLowerCase() || '';
+}
+
+function parseHostname(value?: string | null) {
+    if (!value) return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        try {
+            return normalizeHostname(new URL(trimmed).host);
+        } catch {
+            return '';
+        }
+    }
+    return normalizeHostname(trimmed);
+}
+
+function buildSubdomainHost(subdomain: string, appHost: string) {
+    const cleanSubdomain = parseHostname(subdomain);
+    if (!cleanSubdomain) return '';
+    if (cleanSubdomain.includes('.')) {
+        return cleanSubdomain;
+    }
+    const baseHost = normalizeHostname(appHost);
+    if (!baseHost) return '';
+    return `${cleanSubdomain}.${baseHost}`;
+}
+
+async function fetchStatusDomainConfig(origin: string) {
+    try {
+        const response = await fetch(`${origin}/api/status-page/domains`, {
+            next: { revalidate: STATUS_DOMAIN_CACHE_TTL },
+            headers: { 'x-internal-request': 'status-domain-check' },
+        });
+        if (!response.ok) {
+            return null;
+        }
+        return await response.json() as {
+            enabled: boolean;
+            subdomain?: string | null;
+            customDomain?: string | null;
+            appHost?: string | null;
+        };
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -126,6 +177,40 @@ export async function middleware(req: NextRequest) {
                     { status: 429, headers: { 'Retry-After': String(retryAfter) } }
                 );
             }
+        }
+    }
+
+    if (pathname.startsWith('/api/status-page/domains')) {
+        return response;
+    }
+
+    const statusConfig = await fetchStatusDomainConfig(req.nextUrl.origin);
+    if (statusConfig?.enabled) {
+        const hostname = normalizeHostname(req.headers.get('host'));
+        const allowedHosts = new Set<string>();
+        if (statusConfig.subdomain && statusConfig.appHost) {
+            const subdomainHost = buildSubdomainHost(statusConfig.subdomain, statusConfig.appHost);
+            if (subdomainHost) {
+                allowedHosts.add(subdomainHost);
+            }
+        }
+        if (statusConfig.customDomain) {
+            const customHost = parseHostname(statusConfig.customDomain);
+            if (customHost) {
+                allowedHosts.add(customHost);
+            }
+        }
+        if (hostname && allowedHosts.has(hostname)) {
+            if (!pathname.startsWith('/api') && !pathname.startsWith('/status')) {
+                const url = req.nextUrl.clone();
+                url.pathname = '/status';
+                const rewriteResponse = NextResponse.rewrite(url);
+                Object.entries(securityHeaders).forEach(([key, value]) => {
+                    rewriteResponse.headers.set(key, value);
+                });
+                return rewriteResponse;
+            }
+            return response;
         }
     }
 

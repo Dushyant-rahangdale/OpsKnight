@@ -81,7 +81,7 @@ export default async function CreateIncidentPage({ searchParams }: { searchParam
 
                 {/* Template Selector and Form */}
                 <TemplateFormWrapper
-                    templates={templates as any}
+                    templates={templates as any} // eslint-disable-line @typescript-eslint/no-explicit-any
                     services={services}
                     users={users}
                     selectedTemplateId={templateId}

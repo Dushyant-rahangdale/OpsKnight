@@ -20,7 +20,7 @@ export async function getNotificationProviders() {
         id: p.id,
         provider: p.provider,
         enabled: p.enabled,
-        config: p.config as any,
+        config: p.config as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         updatedAt: p.updatedAt
     }));
 }
@@ -32,7 +32,7 @@ export async function updateNotificationProvider(
     providerId: string | null,
     provider: string,
     enabled: boolean,
-    config: Record<string, any>
+    config: Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
 ) {
     try {
         await assertAdmin();

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 
 // Global modal state to prevent conflicts
-let globalModalState: {
+const globalModalState: {
     search: boolean;
     quickActions: boolean;
     userMenu: boolean;
@@ -42,10 +42,10 @@ export function useModalState(modalName: ModalName) {
             setIsOpenLocal(globalModalState[modalName]);
         };
         listeners.get(modalName)!.add(listener);
-        
+
         // Sync initial state
-        setIsOpenLocal(globalModalState[modalName]);
-        
+        setIsOpenLocal(globalModalState[modalName]); // eslint-disable-line react-hooks/set-state-in-effect
+
         return () => {
             listeners.get(modalName)?.delete(listener);
         };
@@ -53,7 +53,7 @@ export function useModalState(modalName: ModalName) {
 
     const setIsOpen = useCallback((open: boolean | ((prev: boolean) => boolean)) => {
         const newValue = typeof open === 'function' ? open(globalModalState[modalName]) : open;
-        
+
         if (newValue) {
             // Close other modals
             Object.keys(globalModalState).forEach(key => {

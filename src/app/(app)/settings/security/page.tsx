@@ -35,7 +35,7 @@ export default async function SecuritySettingsPage() {
     const ssoEnabled = Boolean(oidcConfig?.enabled);
     const hasPassword = Boolean(user?.passwordHash);
     const timeZone = getUserTimeZone(user ?? undefined);
-    const isAdmin = (session?.user as any)?.role === 'ADMIN';
+    const isAdmin = (session?.user as any)?.role === 'ADMIN'; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const ssoFormConfig = oidcConfig
         ? {

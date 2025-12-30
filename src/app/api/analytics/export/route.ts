@@ -34,7 +34,7 @@ function escapeCSV(value: string | number | null | undefined): string {
     return str;
 }
 
-function generateCSV(data: any[][]): string {
+function generateCSV(data: any[][]): string { // eslint-disable-line @typescript-eslint/no-explicit-any
     return data.map(row => row.map(escapeCSV).join(',')).join('\n');
 }
 

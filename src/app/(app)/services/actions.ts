@@ -44,7 +44,7 @@ export async function createIntegration(formData: FormData) {
     revalidatePath(`/services/${serviceId}/integrations`);
 }
 
-export async function deleteIntegration(integrationId: string, serviceId: string, formData?: FormData) {
+export async function deleteIntegration(integrationId: string, serviceId: string, _formData?: FormData) {
     try {
         await assertAdminOrResponder();
     } catch (error) {
@@ -102,7 +102,7 @@ export async function updateService(serviceId: string, formData: FormData) {
             teamId: teamId || null,
             escalationPolicyId: escalationPolicyId || null,
             serviceNotificationChannels: serviceNotificationChannels.length > 0 
-                ? (serviceNotificationChannels as any[])
+                ? (serviceNotificationChannels as any[]) // eslint-disable-line @typescript-eslint/no-explicit-any
                 : [] // Default: no channels selected
         }
     });

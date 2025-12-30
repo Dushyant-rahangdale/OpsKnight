@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Spinner from '@/components/ui/Spinner';
+import _Spinner from '@/components/ui/Spinner';
 
 type Props = {
     userId: string;
@@ -37,7 +37,7 @@ export default function GenerateResetLinkButton({ userId, userName, className }:
             } else {
                 setError(data.error || 'Failed to generate link');
             }
-        } catch (err) {
+        } catch (_err) {
             setError('An error occurred');
         } finally {
             setIsLoading(false);

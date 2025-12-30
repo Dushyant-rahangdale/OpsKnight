@@ -69,6 +69,7 @@ const nextConfig: NextConfig = {
     // Make twilio optional - it's only needed if WhatsApp notifications are enabled
     // Use IgnorePlugin to prevent webpack from trying to resolve it at build time
     if (isServer) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const webpack = require('webpack');
       config.plugins = config.plugins || [];
       // Ignore twilio module resolution - it will be loaded dynamically at runtime if needed

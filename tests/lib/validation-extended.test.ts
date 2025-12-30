@@ -58,7 +58,7 @@ describe('Extended Validation Schema Tests', () => {
       const payload = {
         title: 'Test Incident',
         serviceId: 'service-123',
-        urgency: 'MEDIUM' as any,
+        urgency: 'MEDIUM' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       };
       const result = IncidentCreateSchema.safeParse(payload);
       expect(result.success).toBe(false);
@@ -94,7 +94,7 @@ describe('Extended Validation Schema Tests', () => {
 
     it('should reject invalid status', () => {
       const payload = {
-        status: 'INVALID' as any,
+        status: 'INVALID' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       };
       const result = IncidentPatchSchema.safeParse(payload);
       expect(result.success).toBe(false);
@@ -150,7 +150,7 @@ describe('Extended Validation Schema Tests', () => {
         payload: {
           summary: 'Test',
           source: 'test',
-          severity: 'low' as any,
+          severity: 'low' as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         },
       };
       const result = EventSchema.safeParse(payload);

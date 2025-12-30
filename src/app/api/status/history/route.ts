@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
                 endDate: new Date().toISOString(),
             },
         }, 200);
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('api.status.history.error', { error: error instanceof Error ? error.message : String(error) });
         return jsonError(error.message || 'Failed to fetch history', 500);
     }

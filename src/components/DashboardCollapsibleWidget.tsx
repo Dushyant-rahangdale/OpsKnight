@@ -20,7 +20,7 @@ export default function DashboardCollapsibleWidget({
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    setIsMounted(true); // eslint-disable-line react-hooks/set-state-in-effect
     // Ensure expanded state matches defaultExpanded after mount
     setIsExpanded(defaultExpanded !== false);
   }, [defaultExpanded]);
@@ -69,7 +69,7 @@ export default function DashboardCollapsibleWidget({
             color: 'var(--text-muted)'
           }}
         >
-          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       {shouldShowContent && (
