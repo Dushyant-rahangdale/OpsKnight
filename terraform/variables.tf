@@ -1,6 +1,10 @@
 variable "aws_region" {
   description = "AWS region to deploy resources"
-  default     = "us-east-1"
+}
+
+variable "availability_zone" {
+  description = "Availability Zone for the persistent volume and ASG"
+  default     = "us-east-1a"
 }
 
 variable "github_username" {
@@ -39,7 +43,6 @@ variable "project_name" {
 
 variable "instance_type" {
   description = "EC2 instance type"
-  default     = "t3.micro"
 }
 
 variable "ssh_key_name" {
@@ -56,7 +59,7 @@ variable "your_ip" {
 variable "your_ipv6" {
   description = "Your IPv6 subnet for SSH access (CIDR notation, e.g., 2401:4900:8838:c07c::/64)"
   type        = string
-  default     = ""  # Optional, only needed if you use IPv6
+  default     = "" # Optional, only needed if you use IPv6
 }
 
 variable "app_port" {
@@ -77,7 +80,7 @@ variable "origin_key" {
 }
 
 variable "cloudflare_tunnel_token" {
-  description = "Token for Cloudflare Tunnel"
+  description = "Cloudflare Tunnel (cloudflared) token used for `cloudflared service install --token`"
   type        = string
   sensitive   = true
 }

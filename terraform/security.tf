@@ -54,9 +54,9 @@ resource "aws_security_group" "web_sg" {
 
   # HTTP - Only from Cloudflare
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
     cidr_blocks      = local.cloudflare_ipv4
     ipv6_cidr_blocks = local.cloudflare_ipv6
     description      = "HTTP from Cloudflare"
@@ -64,9 +64,9 @@ resource "aws_security_group" "web_sg" {
 
   # HTTPS - Only from Cloudflare
   ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
     cidr_blocks      = local.cloudflare_ipv4
     ipv6_cidr_blocks = local.cloudflare_ipv6
     description      = "HTTPS from Cloudflare"
@@ -74,12 +74,12 @@ resource "aws_security_group" "web_sg" {
 
   # Egress - Allow all outbound traffic (updating packages, pulling docker images)
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
-    description = "Allow all outbound traffic"
+    description      = "Allow all outbound traffic"
   }
 
   tags = {

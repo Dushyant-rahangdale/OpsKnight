@@ -25,21 +25,28 @@ resource "aws_launch_template" "app_lt" {
   instance_market_options {
     market_type = "spot"
     spot_options {
-      spot_instance_type = "one-time"
+      spot_instance_type             = "one-time"
       instance_interruption_behavior = "terminate"
     }
   }
 
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    github_username = var.github_username
-    github_token    = var.github_token
-    db_password     = var.db_password
-    nextauth_secret = var.nextauth_secret
-    nextauth_url    = var.nextauth_url
-    origin_cert     = var.origin_cert
-    origin_key      = var.origin_key
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_profile.name
+  }
+
+  # Normalize CRLF->LF to avoid cloud-init /bin/bash^M bad interpreter errors
+  user_data = base64encode(replace(templatefile("${path.module}/user_data.sh", {
+    github_username         = var.github_username
+    github_token            = var.github_token
+    db_password             = var.db_password
+    nextauth_secret         = var.nextauth_secret
+    nextauth_url            = var.nextauth_url
     cloudflare_tunnel_token = var.cloudflare_tunnel_token
-  }))
+    origin_cert             = var.origin_cert
+    origin_key              = var.origin_key
+    volume_id               = aws_ebs_volume.postgres_data.id
+    aws_region              = var.aws_region
+  }), "\r\n", "\n"))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -60,7 +67,10 @@ resource "aws_launch_template" "app_lt" {
 
 resource "aws_autoscaling_group" "app_asg" {
   name                = "${var.project_name}-asg"
-  vpc_zone_identifier = data.aws_subnets.default.ids  # Use default VPC subnets
+  vpc_zone_identifier = data.aws_subnets.default.ids # Use default VPC subnets
+  # NOTE: To use the persistent volume, we MUST be in the same AZ.
+  # We will filter the subnets below to only include the one in var.availability_zone
+  
   min_size            = 1
   max_size            = 1
   desired_capacity    = 1
@@ -73,7 +83,7 @@ resource "aws_autoscaling_group" "app_asg" {
   instance_refresh {
     strategy = "Rolling"
     preferences {
-      min_healthy_percentage = 0  # Allow full teardown for replacement if 1 instance
+      min_healthy_percentage = 0 # Allow full teardown for replacement if 1 instance
     }
   }
 
@@ -93,5 +103,11 @@ data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
+  }
+  
+  # Only select subnets in our target AZ
+  filter {
+    name   = "availability-zone"
+    values = [var.availability_zone]
   }
 }
