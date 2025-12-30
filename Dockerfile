@@ -105,13 +105,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-# Copy Prisma and all its dependencies from builder (needed for migrations)
+COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+# Copy base node_modules first
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Then copy Prisma-specific files (must be AFTER base node_modules to avoid being overwritten)
+# This ensures Prisma CLI and client are available for migrations
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
-COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Switch to non-root user
 USER nextjs
@@ -131,5 +135,5 @@ RUN chmod +x docker-entrypoint.sh
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {let data='';r.on('data',(c)=>data+=c);r.on('end',()=>{const res=JSON.parse(data);process.exit(res.status==='healthy'?0:1)});}).on('error',()=>process.exit(1))"
 
-# Use entrypoint script that runs migrations before starting app
+# Run entrypoint which does: migrate → start app
 ENTRYPOINT ["./docker-entrypoint.sh"]
