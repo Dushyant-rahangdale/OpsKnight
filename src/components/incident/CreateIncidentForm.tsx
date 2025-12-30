@@ -73,10 +73,10 @@ export default function CreateIncidentForm({
     useEffect(() => {
         if (selectedTemplate) {
             setTitle(selectedTemplate.title); // eslint-disable-line react-hooks/set-state-in-effect
-            setDescription(selectedTemplate.descriptionText || ''); // eslint-disable-line react-hooks/set-state-in-effect
-            setServiceId(selectedTemplate.defaultService?.id || ''); // eslint-disable-line react-hooks/set-state-in-effect
-            setUrgency(selectedTemplate.defaultUrgency); // eslint-disable-line react-hooks/set-state-in-effect
-            setPriority(selectedTemplate.defaultPriority || ''); // eslint-disable-line react-hooks/set-state-in-effect
+            setDescription(selectedTemplate.descriptionText || '');  
+            setServiceId(selectedTemplate.defaultService?.id || '');  
+            setUrgency(selectedTemplate.defaultUrgency);  
+            setPriority(selectedTemplate.defaultPriority || '');  
         }
     }, [selectedTemplate]); // Watch for selectedTemplate changes
 

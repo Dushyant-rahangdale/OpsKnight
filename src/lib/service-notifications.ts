@@ -98,7 +98,7 @@ export async function sendServiceNotifications(
           });
         }
       } catch (error: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         logger.error('Slack notification error', {
           incidentId,
           error: error.message,
@@ -133,7 +133,7 @@ export async function sendServiceNotifications(
           }
           return null;
         } catch (error: any) {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
+           
           logger.error('Webhook notification error', {
             incidentId,
             webhookId: webhook.id,
@@ -173,7 +173,7 @@ export async function sendServiceNotifications(
           errors.push(`Legacy webhook failed: ${result.error}`);
         }
       } catch (error: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         logger.error('Legacy webhook notification error', {
           incidentId,
           error: error.message,
@@ -187,7 +187,7 @@ export async function sendServiceNotifications(
       errors: errors.length > 0 ? errors : undefined,
     };
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     logger.error('Service notification error', {
       incidentId,
       error: error.message,

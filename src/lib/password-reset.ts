@@ -99,11 +99,19 @@ export async function initiatePasswordReset(
       // For this implementation, I'll assume we can use a direct email helper.
       try {
         const { sendEmail } = await import('@/lib/email');
+        const { getPasswordResetEmailTemplate } = await import('@/lib/password-reset-email-template');
+
+        const emailTemplate = getPasswordResetEmailTemplate({
+          userName: user.name,
+          resetLink,
+          expiryMinutes: 60,
+        });
+
         const result = await sendEmail({
           to: user.email,
-          subject: 'Reset your password',
-          text: `Click here to reset your password: ${resetLink}`, // Fallback
-          html: `<p>You requested a password reset. Click the link below to reset it:</p><p><a href="${resetLink}">Reset Password</a></p><p>This link expires in 1 hour.</p>`,
+          subject: emailTemplate.subject,
+          text: emailTemplate.text,
+          html: emailTemplate.html,
         });
 
         if (result.success) {
@@ -237,7 +245,7 @@ async function logAttempt(
   userId: string | undefined,
   data: any
 ) {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+
   try {
     await prisma.auditLog.create({
       data: {
@@ -265,7 +273,7 @@ async function simulateWork(startTime: number) {
   // bcrypt.compare is async
   try {
     await bcrypt.compare('dummy-password', dummy);
-  } catch {} // Ignore result
+  } catch { } // Ignore result
 
   // Ensure we wait at least a minimum time if hashing was too fast
   const elapsed = Date.now() - startTime;

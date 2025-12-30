@@ -147,7 +147,7 @@ export async function sendNotification(
       throw new Error(result.error || 'Notification delivery failed');
     }
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     await prisma.notification.update({
       where: { id: notification.id },
       data: {

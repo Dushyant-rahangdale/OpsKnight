@@ -243,9 +243,10 @@ await prisma.$transaction(async (tx) => {
 
 ### ESLint and Linting
 
-- **Zero Warnings Policy**: Code must pass `npm run lint:check` (max-warnings 0)
+- **Zero Warnings Policy for Modified Files**: Files you modify must pass linting checks
 - **Pre-commit Hooks**: Husky runs linting automatically
-- **Fix Issues**: Use `npm run lint:fix` to auto-fix issues
+- **Fix Issues**: Use `npm run lint:fix -- file1 file2` to auto-fix issues in specific files
+- **Scope**: Only fix lint errors in files you are actively working on, not the entire codebase
 
 ### Code Review Checklist
 
@@ -430,13 +431,15 @@ npm run test:run
 #### 2. Check Linting
 
 ```bash
-npm run lint:check
+# Check linting for specific files you modified
+npx eslint src/path/to/your/file1.ts src/path/to/your/file2.tsx
 ```
 
-- ZERO warnings or errors allowed
-- Fix all linting issues with `npm run lint:fix`
+- ZERO warnings or errors allowed **in files you modified**
+- Fix linting issues in your files with `npx eslint --fix src/path/to/your/file.ts`
 - Manually fix any issues that can't be auto-fixed
-- Never push code with linting errors
+- Never push code with linting errors in your modified files
+- You are NOT responsible for fixing pre-existing lint errors in other files
 
 #### 3. Verify TypeScript Compilation
 
@@ -517,10 +520,11 @@ Before running `git push`, verify:
 4. Ensure test data is properly cleaned up
 
 **Lint Errors?**
-1. Run `npm run lint:fix` to auto-fix
+1. Run `npx eslint --fix src/path/to/your/file.ts` to auto-fix specific files
 2. Review the changes made by auto-fix
-3. Manually fix remaining issues
+3. Manually fix remaining issues in your files
 4. Check ESLint error messages for guidance
+5. Only fix lint errors in files you are working on, not unrelated files
 
 **TypeScript Errors?**
 1. Read the error messages and locations

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return jsonOk({ service });
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     return jsonError(error.message || 'Internal Server Error', 500);
   }
 }

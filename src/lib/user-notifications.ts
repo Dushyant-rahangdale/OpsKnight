@@ -11,7 +11,7 @@
 import prisma from './prisma';
 import { sendNotification, NotificationChannel } from './notifications';
 import { notifySlackForIncident } from './slack';
-import { isChannelAvailable } from './notification-providers';
+import { isChannelAvailable, getEmailConfig } from './notification-providers';
 import { createInAppNotifications } from './in-app-notifications';
 import { logger } from './logger';
 
@@ -84,9 +84,10 @@ export async function sendUserNotification(
 ): Promise<{ success: boolean; channelsUsed: NotificationChannel[]; errors?: string[] }> {
     let channels: NotificationChannel[];
 
+    const userChannels = await getUserNotificationChannels(userId);
+
     // If escalation step specifies channels, use those (filtered by user preferences and availability)
     if (escalationChannels && escalationChannels.length > 0) {
-        const userChannels = await getUserNotificationChannels(userId);
         // Intersection: only use channels that are both in escalation step AND available for user
         channels = escalationChannels.filter(ch => userChannels.includes(ch));
 
@@ -96,7 +97,7 @@ export async function sendUserNotification(
         }
     } else {
         // Use user preferences
-        channels = await getUserNotificationChannels(userId);
+        channels = userChannels;
     }
 
     const errors: string[] = [];

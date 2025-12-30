@@ -30,6 +30,7 @@ enum AuditEntityType {
   TEAM
   TEAM_MEMBER
   SERVICE
+  ESCALATION_POLICY
 }
 
 enum ServiceStatus {

@@ -1,122 +1,193 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { POST } from '@/app/api/status-page/subscribe/route';
+import { GET, DELETE } from '@/app/api/status-page/subscribers/route';
+import VerifyPage from '@/app/(public)/status/verify/[token]/page';
+import UnsubscribePage from '@/app/(public)/status/unsubscribe/[token]/page';
+import { notifyStatusPageSubscribers } from '@/lib/status-page-notifications';
+import {
+  testPrisma,
+  resetDatabase,
+  createTestStatusPage,
+  createTestService,
+  linkServiceToStatusPage,
+  createTestIncident,
+  createTestStatusPageSubscription,
+  createTestUser
+} from '../helpers/test-db';
 
-/**
- * Integration tests for status page subscription flow
- *
- * These tests verify the end-to-end subscription workflow:
- * 1. User subscribes via API
- * 2. Verification email is sent (mocked)
- * 3. User verifies subscription
- * 4. User receives incident notifications
- * 5. User unsubscribes
- *
- * Note: These are placeholder tests. In a real implementation, you would:
- * - Set up a test database
- * - Mock the email sending service
- * - Create test fixtures for status pages and incidents
- * - Test actual API endpoints
- */
+const describeIfRealDB = process.env.VITEST_USE_REAL_DB === '1' ? describe : describe.skip;
 
-describe('Status Page Subscription Integration', () => {
-  beforeEach(() => {
-    // Set up test environment
-    // - Clear test database
-    // - Set up test fixtures
+// Mock dependencies
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn(),
+}));
+
+vi.mock('@/lib/auth', () => ({
+  getAuthOptions: vi.fn(),
+}));
+
+vi.mock('@/lib/email', () => ({
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('@/lib/notification-providers', async (importOriginal) => {
+  const actual = await importOriginal() as any;
+  return {
+    ...actual,
+    getStatusPageEmailConfig: vi.fn().mockResolvedValue({ enabled: true, provider: 'resend' }),
+  };
+});
+
+import { getServerSession } from 'next-auth';
+import { sendEmail } from '@/lib/email';
+
+describeIfRealDB('Status Page Subscription Integration', () => {
+  beforeAll(() => {
+    process.env.VITEST_USE_REAL_DB = '1';
   });
 
-  afterEach(() => {
-    // Clean up test data
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    await resetDatabase();
   });
 
-  describe('Subscription Flow', () => {
-    it('should create a new subscription', async () => {
-      // Test: POST /api/status-page/subscribe
-      // Expected: Subscription created, verification email sent
-      expect(true).toBe(true); // Placeholder
+  describe('Public Subscription Flow (POST /api/status-page/subscribe)', () => {
+    it('should create a new unverified subscription', async () => {
+      const sp = await createTestStatusPage();
+
+      const req = new Request('http://localhost/api/status-page/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ statusPageId: sp.id, email: 'user@example.com' }),
+      });
+
+      const res = await POST(req as any);
+      expect(res.status).toBe(200);
+
+      const sub = await testPrisma.statusPageSubscription.findFirst({
+        where: { email: 'user@example.com' }
+      });
+      expect(sub).toBeDefined();
+      expect(sub?.verified).toBe(false);
+      expect(sub?.verificationToken).not.toBeNull();
+      expect(sendEmail).toHaveBeenCalled();
     });
 
-    it('should handle duplicate subscriptions', async () => {
-      // Test: Subscribe twice with same email
-      // Expected: Return success, don't create duplicate
-      expect(true).toBe(true); // Placeholder
-    });
+    it('should resubscribe an unsubscribed user', async () => {
+      const sp = await createTestStatusPage();
+      const sub = await createTestStatusPageSubscription(sp.id, 'user@example.com', {
+        unsubscribedAt: new Date(),
+        verified: true
+      });
 
-    it('should resubscribe previously unsubscribed email', async () => {
-      // Test: Subscribe email that was previously unsubscribed
-      // Expected: Update existing record, set unsubscribedAt to null
-      expect(true).toBe(true); // Placeholder
-    });
+      const req = new Request('http://localhost/api/status-page/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ statusPageId: sp.id, email: 'user@example.com' }),
+      });
 
-    it('should reject invalid email addresses', async () => {
-      // Test: POST with invalid email
-      // Expected: 400 Bad Request
-      expect(true).toBe(true); // Placeholder
-    });
+      const res = await POST(req as any);
+      expect(res.status).toBe(200);
 
-    it('should reject subscription for disabled status page', async () => {
-      // Test: POST with disabled status page ID
-      // Expected: 404 Not Found
-      expect(true).toBe(true); // Placeholder
+      const updatedSub = await testPrisma.statusPageSubscription.findUnique({ where: { id: sub.id } });
+      expect(updatedSub?.unsubscribedAt).toBeNull();
+      expect(updatedSub?.verified).toBe(false);
     });
   });
 
-  describe('Email Verification Flow', () => {
-    it('should send verification email on subscription', async () => {
-      // Test: Subscribe and verify email was sent
-      // Expected: Email service called with correct template
-      expect(true).toBe(true); // Placeholder
-    });
-
+  describe('Verification Flow', () => {
     it('should verify subscription with valid token', async () => {
-      // Test: GET /status/unsubscribe/[token] with verification token
-      // Expected: Subscription marked as verified
-      expect(true).toBe(true); // Placeholder
-    });
+      const sp = await createTestStatusPage();
+      const sub = await createTestStatusPageSubscription(sp.id, 'user@example.com', {
+        verified: false,
+        verificationToken: 'valid-token'
+      });
 
-    it('should reject invalid verification token', async () => {
-      // Test: GET with invalid token
-      // Expected: 404 Not Found or error message
-      expect(true).toBe(true); // Placeholder
+      // Call the Server Component function directly
+      await VerifyPage({ params: Promise.resolve({ token: 'valid-token' }) });
+
+      const updatedSub = await testPrisma.statusPageSubscription.findUnique({ where: { id: sub.id } });
+      expect(updatedSub?.verified).toBe(true);
+      expect(updatedSub?.verificationToken).toBeNull();
     });
   });
 
   describe('Unsubscribe Flow', () => {
     it('should unsubscribe with valid token', async () => {
-      // Test: GET /status/unsubscribe/[token]
-      // Expected: Subscription marked as unsubscribed
-      expect(true).toBe(true); // Placeholder
-    });
+      const sp = await createTestStatusPage();
+      const sub = await createTestStatusPageSubscription(sp.id, 'user@example.com', {
+        token: 'unsubscribe-token'
+      });
 
-    it('should reject invalid unsubscribe token', async () => {
-      // Test: GET with invalid token
-      // Expected: 404 Not Found
-      expect(true).toBe(true); // Placeholder
+      await UnsubscribePage({ params: Promise.resolve({ token: 'unsubscribe-token' }) });
+
+      const updatedSub = await testPrisma.statusPageSubscription.findUnique({ where: { id: sub.id } });
+      expect(updatedSub?.unsubscribedAt).not.toBeNull();
     });
   });
 
-  describe('Notification Delivery', () => {
-    it('should send email on incident creation to verified subscribers', async () => {
-      // Test: Create incident, verify emails sent to subscribers
-      // Expected: Email sent only to verified subscribers
-      expect(true).toBe(true); // Placeholder
+  describe('Admin Subscriber Management', () => {
+    let adminUser: any;
+
+    beforeEach(async () => {
+      adminUser = await createTestUser({ email: 'admin@example.com', role: 'ADMIN' });
+      (getServerSession as any).mockResolvedValue({
+        user: { email: adminUser.email, role: 'ADMIN' }
+      });
     });
 
-    it('should not send email to unsubscribed users', async () => {
-      // Test: Create incident, verify no email to unsubscribed
-      // Expected: Email not sent
-      expect(true).toBe(true); // Placeholder
+    it('should list verified subscribers (Admin Only)', async () => {
+      const sp = await createTestStatusPage();
+      await createTestStatusPageSubscription(sp.id, 'user1@example.com', { verified: true });
+      await createTestStatusPageSubscription(sp.id, 'user2@example.com', { verified: false });
+
+      const req = {
+        nextUrl: {
+          searchParams: new URLSearchParams({ statusPageId: sp.id, verified: 'true' })
+        }
+      };
+
+      const res = await GET(req as any);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.subscribers).toHaveLength(1);
+      expect(data.subscribers[0].email).toBe('user1@example.com');
     });
 
-    it('should not send email to unverified subscribers', async () => {
-      // Test: Create incident, verify no email to unverified
-      // Expected: Email not sent
-      expect(true).toBe(true); // Placeholder
-    });
+    it('should mark subscriber as unsubscribed', async () => {
+      const sp = await createTestStatusPage();
+      const sub = await createTestStatusPageSubscription(sp.id, 'user@example.com');
 
-    it('should send email on incident resolution', async () => {
-      // Test: Resolve incident, verify email sent
-      // Expected: Resolved email template sent
-      expect(true).toBe(true); // Placeholder
+      const req = {
+        nextUrl: {
+          searchParams: new URLSearchParams({ id: sub.id })
+        }
+      };
+
+      const res = await DELETE(req as any);
+      expect(res.status).toBe(200);
+
+      const updatedSub = await testPrisma.statusPageSubscription.findUnique({ where: { id: sub.id } });
+      expect(updatedSub?.unsubscribedAt).not.toBeNull();
+    });
+  });
+
+  describe('Incident Notifications', () => {
+    it('should send email to verified subscribers when incident occurs', async () => {
+      const service = await createTestService('Data API');
+      const sp = await createTestStatusPage();
+      await linkServiceToStatusPage(sp.id, service.id);
+      await createTestStatusPageSubscription(sp.id, 'verified@example.com', { verified: true });
+      await createTestStatusPageSubscription(sp.id, 'unverified@example.com', { verified: false });
+
+      const incident = await createTestIncident('API Outage', service.id);
+
+      await notifyStatusPageSubscribers(incident.id, 'triggered');
+
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+      expect(sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'verified@example.com' }),
+        expect.anything()
+      );
     });
   });
 });

@@ -136,7 +136,7 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
         responseBody: responseText,
       };
     } catch (fetchError: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+       
       if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
         return { success: false, error: 'Webhook request timed out after retries' };
       }
@@ -146,7 +146,7 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
       clearTimeout(timeoutId);
     }
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     console.error('Webhook send error:', error);
     return { success: false, error: error.message };
   }
@@ -185,7 +185,7 @@ export function generateIncidentWebhookPayload(
   },
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated'
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const baseUrl = getBaseUrl();
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
 
@@ -240,7 +240,7 @@ export function formatGoogleChatPayload(
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
   baseUrl: string
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
   const _statusColor =
     eventType === 'triggered'
@@ -329,7 +329,7 @@ export function formatMicrosoftTeamsPayload(
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
   baseUrl: string
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
   const _accentColor =
     eventType === 'triggered'
@@ -421,7 +421,7 @@ export function formatDiscordPayload(
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
   baseUrl: string
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
   const color =
     eventType === 'triggered'
@@ -489,7 +489,7 @@ export function formatSlackPayload(
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
   baseUrl: string
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
 
   // Status color mapping
@@ -585,7 +585,7 @@ export function formatWebhookPayloadByType(
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
   baseUrl: string
 ): Record<string, any> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   switch (webhookType.toUpperCase()) {
     case 'GOOGLE_CHAT':
       return formatGoogleChatPayload(incident, eventType, baseUrl);
@@ -636,7 +636,7 @@ export async function sendIncidentWebhook(
       secret,
     });
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     console.error('Send incident webhook error:', error);
     return { success: false, error: error.message };
   }

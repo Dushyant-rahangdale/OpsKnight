@@ -26,40 +26,15 @@ import { getUserNotificationChannels } from '../src/lib/user-notifications';
 import * as slack from '../src/lib/slack';
 import * as notificationProviders from '../src/lib/notification-providers';
 import * as sms from '../src/lib/sms';
+import { resetDatabase } from './helpers/test-db';
 
 describe('Notification System Tests', () => {
   beforeEach(async () => {
-    // Clean up test data
-    await prisma.notification.deleteMany();
-    await prisma.incident.deleteMany();
-    await prisma.onCallLayerUser.deleteMany();
-    await prisma.onCallLayer.deleteMany();
-    await prisma.onCallOverride.deleteMany();
-    await prisma.onCallShift.deleteMany();
-    await prisma.onCallSchedule.deleteMany();
-    await prisma.teamMember.deleteMany();
-    await prisma.escalationRule.deleteMany();
-    await prisma.escalationPolicy.deleteMany();
-    await prisma.service.deleteMany();
-    await prisma.team.deleteMany();
-    await prisma.user.deleteMany();
+    await resetDatabase();
   });
 
   afterEach(async () => {
-    // Clean up after each test
-    await prisma.notification.deleteMany();
-    await prisma.incident.deleteMany();
-    await prisma.onCallLayerUser.deleteMany();
-    await prisma.onCallLayer.deleteMany();
-    await prisma.onCallOverride.deleteMany();
-    await prisma.onCallShift.deleteMany();
-    await prisma.onCallSchedule.deleteMany();
-    await prisma.teamMember.deleteMany();
-    await prisma.escalationRule.deleteMany();
-    await prisma.escalationPolicy.deleteMany();
-    await prisma.service.deleteMany();
-    await prisma.team.deleteMany();
-    await prisma.user.deleteMany();
+    await resetDatabase();
   });
 
   describe('Service Notification Isolation', () => {

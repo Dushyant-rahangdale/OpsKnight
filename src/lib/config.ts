@@ -8,7 +8,7 @@ const numberFromEnv = (value: string | undefined, fallback: number) => {
 
 export const EVENT_TRANSACTION_MAX_ATTEMPTS = numberFromEnv(
     process.env.EVENT_TRANSACTION_MAX_ATTEMPTS,
-    3
+    5
 );
 
 export const ESCALATION_LOCK_TIMEOUT_MS = numberFromEnv(

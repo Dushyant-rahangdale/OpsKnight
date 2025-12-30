@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     if (body.sms) {
       const smsProvider = body.sms.provider === 'twilio' ? 'twilio' : 'aws-sns';
       const smsConfig: any = {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         enabled: body.sms.enabled || false,
       };
 
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
     if (body.push) {
       const pushProvider = body.push.provider === 'firebase' ? 'firebase' : 'onesignal';
       const pushConfig: any = {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         enabled: body.push.enabled || false,
       };
 

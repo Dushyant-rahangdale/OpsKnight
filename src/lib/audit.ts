@@ -10,7 +10,7 @@ export async function getDefaultActorId() {
 
 export async function logAudit(params: {
     action: string;
-    entityType: 'USER' | 'TEAM' | 'TEAM_MEMBER' | 'SERVICE';
+    entityType: 'USER' | 'TEAM' | 'TEAM_MEMBER' | 'SERVICE' | 'ESCALATION_POLICY';
     entityId?: string | null;
     actorId?: string | null;
     details?: AuditDetails | null;

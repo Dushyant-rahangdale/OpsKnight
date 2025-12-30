@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     return jsonOk({ services });
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     return jsonError(error.message || 'Internal Server Error', 500);
   }
 }

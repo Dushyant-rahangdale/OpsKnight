@@ -62,7 +62,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     return jsonOk({ preset }, 200);
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     logger.error('api.search_presets.fetch_one_error', {
       error: error instanceof Error ? error.message : String(error),
     });
@@ -174,7 +174,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     logger.info('api.search_presets.updated', { presetId: updated.id });
     return jsonOk({ preset: updated }, 200);
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     logger.error('api.search_presets.update_error', {
       error: error instanceof Error ? error.message : String(error),
     });
@@ -215,7 +215,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     logger.info('api.search_presets.deleted', { presetId: id });
     return jsonOk({ success: true }, 200);
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     logger.error('api.search_presets.delete_error', {
       error: error instanceof Error ? error.message : String(error),
     });

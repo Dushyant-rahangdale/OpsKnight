@@ -14,7 +14,7 @@ export { buildOrderByFromCriteria, searchParamsToCriteria, criteriaToSearchParam
  * Build Prisma where clause from filter criteria
  */
 export function buildWhereFromCriteria(criteria: FilterCriteria, currentUserId?: string): any {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
+   
   const where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   // Status filter
@@ -143,7 +143,7 @@ export async function getAccessiblePresets(
 
     return presets as SearchPresetWithCreator[];
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+     
     // Handle case where table doesn't exist yet (migration not applied)
     if (error?.code === 'P2021' || error?.message?.includes('does not exist')) {
       console.warn(

@@ -319,17 +319,20 @@ export async function updateTeamMemberNotifications(memberId: string, receiveNot
 }
 
 export async function removeTeamMember(memberId: string): Promise<{ error?: string } | undefined> {
-    try {
-        await assertAdminOrResponder();
-    } catch (error) {
-        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Responder access required.' };
-    }
+    // First get the member to find the team ID
     const member = await prisma.teamMember.findUnique({
         where: { id: memberId }
     });
 
     if (!member) {
         return { error: 'Member not found.' };
+    }
+
+    // Check if user is admin or owner of this specific team
+    try {
+        await assertAdminOrTeamOwner(member.teamId);
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Unauthorized. Admin or Team Owner access required.' };
     }
 
     if (member.role === 'OWNER') {

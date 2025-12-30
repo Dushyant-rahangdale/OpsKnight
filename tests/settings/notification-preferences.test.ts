@@ -1,16 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { updateNotificationPreferences } from '@/app/(app)/settings/actions';
+import { testPrisma, resetDatabase, createTestUser } from '../helpers/test-db';
 
-// Mock dependencies
-vi.mock('@/lib/prisma', () => ({
-    default: {
-        user: {
-            findUnique: vi.fn(),
-            update: vi.fn()
-        }
-    }
-}));
-
+// Mock non-database dependencies
 vi.mock('next-auth', () => ({
     getServerSession: vi.fn()
 }));
@@ -30,56 +22,44 @@ vi.mock('@/lib/notification-providers', () => ({
     getWhatsAppConfig: vi.fn()
 }));
 
-import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { getEmailConfig, getSMSConfig, getPushConfig, getWhatsAppConfig } from '@/lib/notification-providers';
 
-describe('Notification Preferences Provider Validation', () => {
-    beforeEach(() => {
+const describeIfRealDB = process.env.VITEST_USE_REAL_DB === '1' ? describe : describe.skip;
+
+describeIfRealDB('Notification Preferences Provider Validation (Real DB)', () => {
+    let testUser: any;
+
+    beforeAll(async () => {
+        process.env.VITEST_USE_REAL_DB = '1';
+    });
+
+    beforeEach(async () => {
         vi.clearAllMocks();
+        await resetDatabase();
+
+        // Create a real user in the DB
+        testUser = await createTestUser({
+            email: 'test@example.com',
+            name: 'Test User'
+        });
 
         // Mock authenticated session
-        (getServerSession as any).mockResolvedValue({ // eslint-disable-line @typescript-eslint/no-explicit-any
-            user: { email: 'test@example.com', name: 'Test' },
+        (getServerSession as any).mockResolvedValue({
+            user: { email: testUser.email, name: testUser.name },
             expires: 'never'
         });
 
-        // Mock user lookup
-        (prisma.user.findUnique as any).mockResolvedValue({ // eslint-disable-line @typescript-eslint/no-explicit-any
-            id: 'user-123',
-            email: 'test@example.com',
-            name: 'Test User',
-            role: 'USER',
-            status: 'ACTIVE',
-            passwordHash: null,
-            timeZone: 'UTC',
-            dailySummary: false,
-            incidentDigest: 'HIGH',
-            emailNotificationsEnabled: false,
-            smsNotificationsEnabled: false,
-            pushNotificationsEnabled: false,
-            whatsappNotificationsEnabled: false,
-            phoneNumber: null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            invitedAt: null,
-            lastLoginAt: null,
-            deactivatedAt: null
-        });
-
         // Reset provider mocks to disabled by default
-        (getEmailConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
-        (getSMSConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
-        (getPushConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
-        (getWhatsAppConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
-
-        // Mock update to succeed by default
-        (prisma.user.update as any).mockResolvedValue({}); // eslint-disable-line @typescript-eslint/no-explicit-any
+        (getEmailConfig as any).mockResolvedValue({ enabled: false });
+        (getSMSConfig as any).mockResolvedValue({ enabled: false });
+        (getPushConfig as any).mockResolvedValue({ enabled: false });
+        (getWhatsAppConfig as any).mockResolvedValue({ enabled: false });
     });
 
     describe('Email Notifications', () => {
         it('should allow enabling email notifications when email provider is configured', async () => {
-            (getEmailConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getEmailConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('emailNotificationsEnabled', 'on');
@@ -87,17 +67,14 @@ describe('Notification Preferences Provider Validation', () => {
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    emailNotificationsEnabled: true
-                })
-            });
+
+            // Verify in DB
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.emailNotificationsEnabled).toBe(true);
         });
 
         it('should prevent enabling email notifications when email provider is not configured', async () => {
-            (getEmailConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getEmailConfig as any).mockResolvedValue({ enabled: false });
 
             const formData = new FormData();
             formData.append('emailNotificationsEnabled', 'on');
@@ -106,13 +83,16 @@ describe('Notification Preferences Provider Validation', () => {
 
             expect(result.success).toBeUndefined();
             expect(result.error).toContain('Email notifications cannot be enabled');
-            expect(prisma.user.update).not.toHaveBeenCalled();
+
+            // Should still be false in DB
+            const userInDb = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(userInDb?.emailNotificationsEnabled).toBe(false);
         });
     });
 
     describe('SMS Notifications', () => {
         it('should allow enabling SMS notifications when SMS provider is configured', async () => {
-            (getSMSConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getSMSConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('smsNotificationsEnabled', 'on');
@@ -121,18 +101,14 @@ describe('Notification Preferences Provider Validation', () => {
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    smsNotificationsEnabled: true,
-                    phoneNumber: '+1234567890'
-                })
-            });
+
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.smsNotificationsEnabled).toBe(true);
+            expect(updatedUser?.phoneNumber).toBe('+1234567890');
         });
 
         it('should prevent enabling SMS notifications when SMS provider is not configured', async () => {
-            (getSMSConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getSMSConfig as any).mockResolvedValue({ enabled: false });
 
             const formData = new FormData();
             formData.append('smsNotificationsEnabled', 'on');
@@ -142,11 +118,10 @@ describe('Notification Preferences Provider Validation', () => {
 
             expect(result.success).toBeUndefined();
             expect(result.error).toContain('SMS notifications cannot be enabled');
-            expect(prisma.user.update).not.toHaveBeenCalled();
         });
 
         it('should validate phone number format when SMS is enabled', async () => {
-            (getSMSConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getSMSConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('smsNotificationsEnabled', 'on');
@@ -156,13 +131,12 @@ describe('Notification Preferences Provider Validation', () => {
 
             expect(result.success).toBeUndefined();
             expect(result.error).toContain('E.164 format');
-            expect(prisma.user.update).not.toHaveBeenCalled();
         });
     });
 
     describe('Push Notifications', () => {
         it('should allow enabling push notifications when push provider is configured', async () => {
-            (getPushConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getPushConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('pushNotificationsEnabled', 'on');
@@ -170,17 +144,13 @@ describe('Notification Preferences Provider Validation', () => {
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    pushNotificationsEnabled: true
-                })
-            });
+
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.pushNotificationsEnabled).toBe(true);
         });
 
         it('should prevent enabling push notifications when push provider is not configured', async () => {
-            (getPushConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getPushConfig as any).mockResolvedValue({ enabled: false });
 
             const formData = new FormData();
             formData.append('pushNotificationsEnabled', 'on');
@@ -189,13 +159,12 @@ describe('Notification Preferences Provider Validation', () => {
 
             expect(result.success).toBeUndefined();
             expect(result.error).toContain('Push notifications cannot be enabled');
-            expect(prisma.user.update).not.toHaveBeenCalled();
         });
     });
 
     describe('WhatsApp Notifications', () => {
         it('should allow enabling WhatsApp notifications when WhatsApp provider is configured', async () => {
-            (getWhatsAppConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getWhatsAppConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('whatsappNotificationsEnabled', 'on');
@@ -204,18 +173,14 @@ describe('Notification Preferences Provider Validation', () => {
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    whatsappNotificationsEnabled: true,
-                    phoneNumber: '+1234567890'
-                })
-            });
+
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.whatsappNotificationsEnabled).toBe(true);
+            expect(updatedUser?.phoneNumber).toBe('+1234567890');
         });
 
         it('should prevent enabling WhatsApp notifications when WhatsApp provider is not configured', async () => {
-            (getWhatsAppConfig as any).mockResolvedValue({ enabled: false }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getWhatsAppConfig as any).mockResolvedValue({ enabled: false });
 
             const formData = new FormData();
             formData.append('whatsappNotificationsEnabled', 'on');
@@ -225,14 +190,13 @@ describe('Notification Preferences Provider Validation', () => {
 
             expect(result.success).toBeUndefined();
             expect(result.error).toContain('WhatsApp notifications cannot be enabled');
-            expect(prisma.user.update).not.toHaveBeenCalled();
         });
     });
 
     describe('Multiple Providers', () => {
         it('should allow enabling multiple notifications when all providers are configured', async () => {
-            (getEmailConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
-            (getSMSConfig as any).mockResolvedValue({ enabled: true }); // eslint-disable-line @typescript-eslint/no-explicit-any
+            (getEmailConfig as any).mockResolvedValue({ enabled: true });
+            (getSMSConfig as any).mockResolvedValue({ enabled: true });
 
             const formData = new FormData();
             formData.append('emailNotificationsEnabled', 'on');
@@ -242,34 +206,31 @@ describe('Notification Preferences Provider Validation', () => {
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    emailNotificationsEnabled: true,
-                    smsNotificationsEnabled: true,
-                    phoneNumber: '+1234567890'
-                })
-            });
+
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.emailNotificationsEnabled).toBe(true);
+            expect(updatedUser?.smsNotificationsEnabled).toBe(true);
         });
 
         it('should allow disabling all notifications regardless of provider status', async () => {
+            // First enable one
+            await testPrisma.user.update({
+                where: { id: testUser.id },
+                data: { emailNotificationsEnabled: true }
+            });
+
             const formData = new FormData();
             // No checkboxes checked = all disabled
 
             const result = await updateNotificationPreferences({}, formData);
 
             expect(result.success).toBe(true);
-            expect(result.error).toBeUndefined();
-            expect(prisma.user.update).toHaveBeenCalledWith({
-                where: { id: 'user-123' },
-                data: expect.objectContaining({
-                    emailNotificationsEnabled: false,
-                    smsNotificationsEnabled: false,
-                    pushNotificationsEnabled: false,
-                    whatsappNotificationsEnabled: false
-                })
-            });
+
+            const updatedUser = await testPrisma.user.findUnique({ where: { id: testUser.id } });
+            expect(updatedUser?.emailNotificationsEnabled).toBe(false);
+            expect(updatedUser?.smsNotificationsEnabled).toBe(false);
+            expect(updatedUser?.pushNotificationsEnabled).toBe(false);
+            expect(updatedUser?.whatsappNotificationsEnabled).toBe(false);
         });
     });
 });

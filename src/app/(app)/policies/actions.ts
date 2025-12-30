@@ -69,7 +69,7 @@ export async function createPolicy(formData: FormData) {
 
     await logAudit({
         action: 'escalation_policy.created',
-        entityType: 'SERVICE',
+        entityType: 'ESCALATION_POLICY',
         entityId: policy.id,
         actorId: await getDefaultActorId(),
         details: { name, stepCount: steps.length }
@@ -99,7 +99,7 @@ export async function updatePolicy(policyId: string, formData: FormData) {
 
     await logAudit({
         action: 'escalation_policy.updated',
-        entityType: 'SERVICE',
+        entityType: 'ESCALATION_POLICY',
         entityId: policyId,
         actorId: await getDefaultActorId(),
         details: { name }
@@ -133,7 +133,7 @@ export async function deletePolicy(policyId: string) {
 
     await logAudit({
         action: 'escalation_policy.deleted',
-        entityType: 'SERVICE',
+        entityType: 'ESCALATION_POLICY',
         entityId: policyId,
         actorId: await getDefaultActorId()
     });
@@ -196,7 +196,7 @@ export async function addPolicyStep(policyId: string, formData: FormData): Promi
 
         await logAudit({
             action: 'escalation_policy.step_added',
-            entityType: 'SERVICE',
+            entityType: 'ESCALATION_POLICY',
             entityId: policyId,
             actorId: await getDefaultActorId(),
             details: { stepOrder: nextStepOrder, targetType }
@@ -276,7 +276,7 @@ export async function updatePolicyStep(stepId: string, formData: FormData): Prom
 
         await logAudit({
             action: 'escalation_policy.step_updated',
-            entityType: 'SERVICE',
+            entityType: 'ESCALATION_POLICY',
             entityId: step.policyId,
             actorId: await getDefaultActorId(),
             details: { stepId, stepOrder: step.stepOrder, targetType: finalTargetType }
@@ -330,7 +330,7 @@ export async function deletePolicyStep(stepId: string): Promise<{ error?: string
 
         await logAudit({
             action: 'escalation_policy.step_deleted',
-            entityType: 'SERVICE',
+            entityType: 'ESCALATION_POLICY',
             entityId: policyId,
             actorId: await getDefaultActorId(),
             details: { deletedStepOrder }
@@ -397,7 +397,7 @@ export async function movePolicyStep(stepId: string, direction: 'up' | 'down'): 
 
         await logAudit({
             action: 'escalation_policy.step_moved',
-            entityType: 'SERVICE',
+            entityType: 'ESCALATION_POLICY',
             entityId: policyId,
             actorId: await getDefaultActorId(),
             details: { stepId, from: currentOrder, to: newOrder }

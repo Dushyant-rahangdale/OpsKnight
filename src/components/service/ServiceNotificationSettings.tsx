@@ -45,7 +45,7 @@ export default function ServiceNotificationSettings({
             setShowSuccessMessage(true); // eslint-disable-line react-hooks/set-state-in-effect
             // Auto-enable SLACK channel if not already enabled
             if (!channels.includes('SLACK')) {
-                setChannels([...channels, 'SLACK']); // eslint-disable-line react-hooks/set-state-in-effect
+                setChannels([...channels, 'SLACK']);  
             }
             // Remove the param from URL
             window.history.replaceState({}, '', window.location.pathname);

@@ -170,7 +170,7 @@ export default function SearchPresetManager({
           sharedWithTeams: [],
         });
       } catch (err: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         setError(err.message || 'Failed to save preset');
       }
     });
@@ -191,7 +191,7 @@ export default function SearchPresetManager({
         router.refresh();
         setShowDeleteConfirm(null);
       } catch (err: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         setError(err.message || 'Failed to delete preset');
       }
     });
@@ -211,7 +211,7 @@ export default function SearchPresetManager({
 
         router.refresh();
       } catch (err: any) {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+         
         setError(err.message || 'Failed to duplicate preset');
       }
     });

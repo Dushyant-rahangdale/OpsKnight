@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { getAuthOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
 import { type Role, type User, type UserStatus, DigestLevel } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { testPrisma, resetDatabase, createTestUser } from '../helpers/test-db';
+
+const describeIfRealDB = process.env.VITEST_USE_REAL_DB === '1' ? describe : describe.skip;
 
 type Credentials = { email?: string; password?: string };
 
@@ -22,42 +24,15 @@ function getCredentialsAuthorize(authOptions: Awaited<ReturnType<typeof getAuthO
   ).options.authorize;
 }
 
-function mockUserFindUnique(value: User | null) {
-  (
-    vi.spyOn(prisma.user, 'findUnique') as unknown as {
-      mockResolvedValue: (v: User | null) => unknown;
-    }
-  ).mockResolvedValue(value);
-}
+describeIfRealDB('Authentication Logic (Real DB)', () => {
+  beforeAll(async () => {
+    // Ensure we are in real DB mode for these tests if this file is run
+    process.env.VITEST_USE_REAL_DB = '1';
+  });
 
-function makeUser(overrides: Partial<User> = {}): User {
-  const now = new Date();
-  return {
-    id: 'u1',
-    name: 'Test User',
-    email: 'test@example.com',
-    role: 'ADMIN' as Role,
-    status: 'ACTIVE' as UserStatus,
-    passwordHash: 'hashed-pw',
-    timeZone: 'UTC',
-    dailySummary: true,
-    incidentDigest: DigestLevel.HIGH,
-    emailNotificationsEnabled: false,
-    smsNotificationsEnabled: false,
-    pushNotificationsEnabled: false,
-    whatsappNotificationsEnabled: false,
-    phoneNumber: null,
-    invitedAt: null,
-    deactivatedAt: null,
-    createdAt: now,
-    updatedAt: now,
-    ...overrides,
-  } as User;
-}
-
-describe('Authentication Logic', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await resetDatabase();
   });
 
   describe('CredentialsProvider authorize', () => {
@@ -65,17 +40,21 @@ describe('Authentication Logic', () => {
       const authOptions = await getAuthOptions();
       const authorize = getCredentialsAuthorize(authOptions);
 
-      const passwordHash = 'hashed-pw';
-      mockUserFindUnique(makeUser({ passwordHash }));
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const password = 'password123';
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await createTestUser({
+        email: 'test@example.com',
+        passwordHash,
+        role: 'ADMIN'
+      });
 
       const result = await authorize({
         email: 'test@example.com',
-        password: 'password123',
+        password: password,
       });
 
       expect(result).toEqual({
-        id: 'u1',
+        id: user.id,
         name: 'Test User',
         email: 'test@example.com',
         role: 'ADMIN',
@@ -86,12 +65,12 @@ describe('Authentication Logic', () => {
       const authOptions = await getAuthOptions();
       const authorize = getCredentialsAuthorize(authOptions);
 
-      mockUserFindUnique(makeUser({ passwordHash: 'hash' }));
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(false as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const passwordHash = await bcrypt.hash('correct-password', 10);
+      await createTestUser({ email: 'test@example.com', passwordHash });
 
       const result = await authorize({
         email: 'test@example.com',
-        password: 'wrong',
+        password: 'wrong-password',
       });
 
       expect(result).toBeNull();
@@ -101,7 +80,12 @@ describe('Authentication Logic', () => {
       const authOptions = await getAuthOptions();
       const authorize = getCredentialsAuthorize(authOptions);
 
-      mockUserFindUnique(makeUser({ passwordHash: 'hash', status: 'DISABLED' as UserStatus }));
+      const passwordHash = await bcrypt.hash('password', 10);
+      await createTestUser({
+        email: 'test@example.com',
+        passwordHash,
+        status: 'DISABLED' as UserStatus
+      });
 
       const result = await authorize({
         email: 'test@example.com',
@@ -115,56 +99,52 @@ describe('Authentication Logic', () => {
       const authOptions = await getAuthOptions();
       const authorize = getCredentialsAuthorize(authOptions);
 
-      mockUserFindUnique(
-        makeUser({
-          email: 'invited@example.com',
-          passwordHash: 'hash',
-          status: 'INVITED' as UserStatus,
-          name: 'Invited User',
-        })
-      );
-      const updateSpy = vi.spyOn(prisma.user, 'update');
-      (updateSpy as unknown as { mockResolvedValue: (v: User) => unknown }).mockResolvedValue(
-        makeUser({
-          email: 'invited@example.com',
-          status: 'ACTIVE' as UserStatus,
-          name: 'Invited User',
-        })
-      );
-      vi.spyOn(bcrypt, 'compare').mockResolvedValue(true as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const password = 'password123';
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await createTestUser({
+        email: 'invited@example.com',
+        passwordHash,
+        status: 'INVITED' as UserStatus,
+        name: 'Invited User',
+      });
 
       await authorize({
         email: 'invited@example.com',
-        password: 'password',
+        password: password,
       });
 
-      expect(updateSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { email: 'invited@example.com' },
-          data: expect.objectContaining({ status: 'ACTIVE' }),
-        })
-      );
+      // Verification: Check DB for status update
+      const updatedUser = await testPrisma.user.findUnique({
+        where: { email: 'invited@example.com' }
+      });
+
+      expect(updatedUser?.status).toBe('ACTIVE');
+      expect(updatedUser?.invitedAt).toBeNull();
     });
   });
 
   describe('Callbacks', () => {
     it('jwt callback should update token from DB', async () => {
       const authOptions = await getAuthOptions();
-      const token: Record<string, unknown> = { sub: 'u1', role: 'USER' };
 
-      mockUserFindUnique(
-        makeUser({
-          id: 'u1',
-          name: 'New Name',
-          email: 'new@example.com',
-          role: 'ADMIN' as Role,
-        })
-      );
+      const user = await createTestUser({
+        name: 'Initial Name',
+        role: 'USER',
+      });
+
+      const token: Record<string, unknown> = { sub: user.id, role: 'USER' };
+
+      // Simulate name change in DB
+      await testPrisma.user.update({
+        where: { id: user.id },
+        data: { name: 'New Name', role: 'ADMIN' }
+      });
 
       const jwtCallback = authOptions.callbacks?.jwt as unknown as (args: {
         token: Record<string, unknown>;
         user?: unknown;
       }) => Promise<Record<string, unknown>>;
+
       const result = await jwtCallback({ token });
 
       expect(result.role).toBe('ADMIN');

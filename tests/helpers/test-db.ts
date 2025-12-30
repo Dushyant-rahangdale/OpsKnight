@@ -122,18 +122,119 @@ export async function createTestNotificationProvider(
 
 export async function createTestEscalationPolicy(
   name: string,
-  steps: Array<Prisma.EscalationRuleCreateWithoutPolicyInput>,
+  steps: Array<any>,
   overrides: Partial<Prisma.EscalationPolicyCreateInput> = {}
 ) {
   return await prisma.escalationPolicy.create({
     data: {
       name,
       steps: {
-        create: steps.map(s => ({
-          notificationChannels: [],
-          ...s,
+        create: steps.map(s => {
+          const { targetUserId, targetScheduleId, targetTeamId, targetUser, targetSchedule, targetTeam, ...rest } = s;
+          const data: any = {
+            notificationChannels: [],
+            ...rest
+          };
+
+          // Prioritize scalar IDs if provided, otherwise fallback to relations
+          if (targetUserId) data.targetUserId = targetUserId;
+          else if (targetUser) data.targetUser = targetUser;
+
+          if (targetScheduleId) data.targetScheduleId = targetScheduleId;
+          else if (targetSchedule) data.targetSchedule = targetSchedule;
+
+          if (targetTeamId) data.targetTeamId = targetTeamId;
+          else if (targetTeam) data.targetTeam = targetTeam;
+
+          return data;
+        }),
+      },
+      ...overrides,
+    },
+  });
+}
+
+export async function createTestStatusPage(overrides: Partial<Prisma.StatusPageCreateInput> = {}) {
+  return await prisma.statusPage.create({
+    data: {
+      name: 'Test Status Page',
+      enabled: true,
+      ...overrides,
+    },
+  });
+}
+
+export async function linkServiceToStatusPage(statusPageId: string, serviceId: string, overrides: Partial<Prisma.StatusPageServiceUncheckedCreateInput> = {}) {
+  return await prisma.statusPageService.create({
+    data: {
+      statusPageId,
+      serviceId,
+      showOnPage: true,
+      ...overrides,
+    },
+  });
+}
+
+export async function createTestStatusPageSubscription(statusPageId: string, email: string, overrides: Partial<Prisma.StatusPageSubscriptionUncheckedCreateInput> = {}) {
+  return await prisma.statusPageSubscription.create({
+    data: {
+      statusPageId,
+      email,
+      token: Math.random().toString(36).substring(2),
+      verified: true,
+      ...overrides,
+    },
+  });
+}
+
+export async function createTestOnCallSchedule(name: string, layers: any[] = []) {
+  return await prisma.onCallSchedule.create({
+    data: {
+      name,
+      layers: {
+        create: layers.map((layer, index) => ({
+          name: layer.name || `Layer ${index}`,
+          start: layer.start || new Date(),
+          rotationLengthHours: layer.rotationLengthHours || 168,
+          users: {
+            create: (layer.userIds || []).map((userId: string, pos: number) => ({
+              userId,
+              position: pos,
+            })),
+          },
         })),
       },
+    },
+    include: {
+      layers: {
+        include: {
+          users: true,
+        },
+      },
+    },
+  });
+}
+
+export async function createTestScheduleOverride(scheduleId: string, userId: string, start: Date, end: Date, replacesUserId?: string) {
+  return await prisma.onCallOverride.create({
+    data: {
+      scheduleId,
+      userId,
+      start,
+      end,
+      replacesUserId,
+    },
+  });
+}
+
+export async function createTestStatusPageWebhook(statusPageId: string, url: string, overrides: Partial<Prisma.StatusPageWebhookUncheckedCreateInput> = {}) {
+  return await prisma.statusPageWebhook.create({
+    data: {
+      statusPageId,
+      url,
+      secret: 'test-secret',
+      events: ['incident.created', 'incident.updated'],
+      enabled: true,
       ...overrides,
     },
   });
