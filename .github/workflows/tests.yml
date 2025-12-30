@@ -62,7 +62,12 @@ jobs:
         run: |
           mkdir -p reports
           npm run test:ci:unit
-          npm run test:ci:db
+        
+      - name: Database integration tests
+        # Enable real database for integration and resilience tests
+        env:
+          VITEST_USE_REAL_DB: '1'
+        run: npm run test:ci:db
 
       - name: Upload test report artifact (JUnit)
         if: always()
