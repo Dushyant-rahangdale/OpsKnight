@@ -141,7 +141,14 @@ export default function ResetPasswordPage() {
                 <div className="login-bg-orb login-bg-orb-3"></div>
             </div>
 
-            <div className="login-card" style={{ maxWidth: '450px', margin: 'auto' }}>
+            <div className="login-card" style={{
+                maxWidth: '480px',
+                margin: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 'auto',
+                gridTemplateColumns: 'none' // Override grid
+            }}>
                 <section className="login-form" aria-label="Reset Password form" style={{ width: '100%', padding: '0 2rem' }}>
                     <div className="login-form-wrapper">
                         <div className="login-form-header">
