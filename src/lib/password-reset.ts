@@ -108,7 +108,10 @@ export async function initiatePasswordReset(email: string, ipAddress?: string): 
         }
 
         // Strategy B: SMS (if Email failed or disabled)
-        if (!sent && smsConfig.enabled && user.phoneNumber && user.smsNotificationsEnabled) {
+        // NOTE: For password reset, we ignore user.smsNotificationsEnabled preference
+        // because this is a security-critical operation that should use all available
+        // system-configured channels regardless of user notification preferences.
+        if (!sent && smsConfig.enabled && user.phoneNumber) {
             try {
                 const { sendSMS } = await import('@/lib/sms');
                 const result = await sendSMS({
