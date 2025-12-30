@@ -123,9 +123,13 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Copy entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Health check with improved error handling
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {let data='';r.on('data',(c)=>data+=c);r.on('end',()=>{const res=JSON.parse(data);process.exit(res.status==='healthy'?0:1)});}).on('error',()=>process.exit(1))"
 
-# Start the application
-CMD ["node", "server.js"]
+# Use entrypoint script that runs migrations before starting app
+ENTRYPOINT ["./docker-entrypoint.sh"]

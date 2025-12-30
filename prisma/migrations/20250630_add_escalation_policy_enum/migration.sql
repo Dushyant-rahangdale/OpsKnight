@@ -1,0 +1,2 @@
+-- AlterEnum: Add ESCALATION_POLICY to AuditEntityType
+ALTER TYPE "AuditEntityType" ADD VALUE IF NOT EXISTS 'ESCALATION_POLICY';

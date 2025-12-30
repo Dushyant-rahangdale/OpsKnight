@@ -154,8 +154,6 @@ services:
       - .env
     depends_on:
       - db
-    command: >
-      sh -c "node node_modules/prisma/build/index.js migrate deploy && node server.js"
 
   db:
     image: postgres:15-alpine
