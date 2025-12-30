@@ -72,7 +72,7 @@ describe('Notification Flow Integration Tests (Real DB)', () => {
         stepOrder: 0,
         delayMinutes: 0,
         targetType: 'USER',
-        targetUserId: user.id,
+        targetUser: { connect: { id: user.id } },
         // Force EMAIL for deterministic assertion
         notificationChannels: ['EMAIL'],
       },
@@ -137,7 +137,7 @@ describe('Notification Flow Integration Tests (Real DB)', () => {
         stepOrder: 0,
         delayMinutes: 0,
         targetType: 'TEAM',
-        targetTeamId: team.id,
+        targetTeam: { connect: { id: team.id } },
         notifyOnlyTeamLead: true,
         notificationChannels: ['EMAIL'],
       },

@@ -364,6 +364,11 @@ export default function LoginClient({ callbackUrl, errorCode, passwordSet, ssoEn
                                     Password
                                     <span className="sr-only"> (required)</span>
                                 </label>
+                                <div style={{ marginBottom: '0.35rem', textAlign: 'right' }}>
+                                    <a href="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }} tabIndex={-1}>
+                                        Forgot password?
+                                    </a>
+                                </div>
                                 <div className="login-input-wrapper">
                                     <input
                                         id="password"

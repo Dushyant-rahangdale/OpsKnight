@@ -6,6 +6,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import RoleSelector from './RoleSelector';
 import InviteLinkButton from './InviteLinkButton';
 import DeleteUserButton from './DeleteUserButton';
+import GenerateResetLinkButton from './GenerateResetLinkButton';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 
@@ -359,6 +360,9 @@ export default function UserTable({
                                             <>
                                                 {user.status === "INVITED" && (
                                                     <InviteLinkButton action={inviteUser} className="invite-link-inline" />
+                                                )}
+                                                {user.status === "ACTIVE" && (
+                                                    <GenerateResetLinkButton userId={user.id} userName={user.name} />
                                                 )}
                                                 {user.status === "ACTIVE" && user.id !== currentUserId && (
                                                     <form action={deactivate}>

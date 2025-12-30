@@ -1,0 +1,127 @@
+/**
+ * Integration Tests for Forgot Password Flow (REAL DB)
+ */
+import { describe, it, expect, beforeEach, vi, beforeAll, afterAll } from 'vitest';
+
+// Mocks
+vi.mock('../../src/lib/email', () => ({
+    sendEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('../../src/lib/sms', () => ({
+    sendSMS: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+import {
+    testPrisma,
+    resetDatabase,
+    createTestUser,
+    createTestNotificationProvider,
+} from '../helpers/test-db';
+
+import { initiatePasswordReset } from '../../src/lib/password-reset';
+
+describe('Forgot Password Integration', () => {
+    // We need to re-import mocked internal modules to spy on them?
+    // initiatePasswordReset imports them dynamically.
+    // We can spy on the mocks we set up above.
+    // But since initiatePasswordReset uses `import(...)`, we need to make sure the mock structure matches export.
+
+    beforeEach(async () => {
+        await resetDatabase();
+        vi.clearAllMocks();
+    });
+
+    afterAll(async () => {
+        await testPrisma.$disconnect();
+    });
+
+    it('should send EMAIL when email provider is enabled', async () => {
+        // 1. Setup User and Provider
+        const user = await createTestUser({ email: 'user@example.com' });
+        await createTestNotificationProvider('resend', { apiKey: 'test-key', fromEmail: 'test@example.com' }, { enabled: true });
+
+        // 2. Initiate Reset
+        const result = await initiatePasswordReset('user@example.com', '127.0.0.1');
+
+        // 3. Verify Result
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('receive password reset instructions');
+
+        // 4. Verify DB Token
+        const token = await testPrisma.verificationToken.findFirst({
+            where: { identifier: 'user@example.com' }
+        });
+        expect(token).toBeDefined();
+
+        // 5. Verify Audit Log
+        const log = await testPrisma.auditLog.findFirst({
+            where: { action: 'PASSWORD_RESET_INITIATED', details: { path: ['targetEmail'], equals: 'user@example.com' } }
+        });
+        expect(log).toBeDefined();
+
+        // 6. Verify Email Sent (Mock)
+        const emailModule = await import('../../src/lib/email');
+        expect(emailModule.sendEmail).toHaveBeenCalled();
+    });
+
+    it('should fallback to SMS when email fails or disabled', async () => {
+        // 1. Setup User (with phone)
+        const user = await createTestUser({
+            email: 'smsuser@example.com',
+            phoneNumber: '+15555555555',
+            smsNotificationsEnabled: true
+        });
+        // 2. Setup Providers: Email disabled, SMS enabled
+        await createTestNotificationProvider('resend', {}, { enabled: false });
+        await createTestNotificationProvider('twilio', { accountSid: 'AC...', authToken: '...' }, { enabled: true });
+
+        // 3. Initiate Reset
+        const result = await initiatePasswordReset('smsuser@example.com', '127.0.0.1');
+
+        // 4. Verify Result
+        expect(result.success).toBe(true);
+
+        // 5. Verify SMS Sent
+        const smsModule = await import('../../src/lib/sms');
+        expect(smsModule.sendSMS).toHaveBeenCalledWith(expect.objectContaining({
+            to: '+15555555555',
+            message: expect.stringContaining('Reset your password')
+        }));
+    });
+
+    it('should rate limit requests', async () => {
+        const user = await createTestUser({ email: 'limit@example.com' });
+        await createTestNotificationProvider('resend', { enabled: true });
+
+        // Do 5 requests (MAX is 5)
+        for (let i = 0; i < 5; i++) {
+            await initiatePasswordReset('limit@example.com', '127.0.0.1');
+        }
+
+        // 6th request should throw/fail? 
+        // initiatePasswordReset catches error and returns success false? 
+        // No, `checkRateLimit` throws Error, caught by catch block -> success: false.
+
+        const result = await initiatePasswordReset('limit@example.com', '127.0.0.1');
+        expect(result.success).toBe(false);
+        expect(result.message).toBe('An internal error occurred.'); // Or explicit message if we want user to know?
+        // Wait, generic msg for security or specific for rate limit?
+        // My implementation returns generic "An internal error occurred." on catch.
+        // If I want to verify it was rate limit, I'd check logs or if I rethrow.
+        // For security, usually correct to hide, but maybe 'Too many requests' is safe.
+        // For now, testing that it fails is enough.
+    }, 10000); // Higher timeout
+
+    it('should not reveal non-existent users', async () => {
+        const result = await initiatePasswordReset('ghost@example.com', '127.0.0.1');
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('receive password reset instructions');
+
+        // Ensure no token created
+        const token = await testPrisma.verificationToken.findFirst({
+            where: { identifier: 'ghost@example.com' }
+        });
+        expect(token).toBeNull();
+    });
+});

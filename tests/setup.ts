@@ -66,6 +66,9 @@ const mockPrisma = {
   verificationToken: createMockModel(),
   account: createMockModel(),
   session: createMockModel(),
+
+  auditLog: createMockModel(),
+  inAppNotification: createMockModel(),
   $transaction: vi
     .fn()
     .mockImplementation((cb: (tx: typeof mockPrisma) => unknown) => cb(mockPrisma)),
@@ -74,18 +77,30 @@ const mockPrisma = {
 
 // Default test mode: mock Prisma so unit tests don't require a DB.
 // For DB-backed integration tests, run with VITEST_USE_REAL_DB=1 to skip Prisma mocking.
-if (!process.env.VITEST_USE_REAL_DB) {
-  // Mock Prisma under both import paths used in the codebase.
-  vi.mock('../src/lib/prisma', () => ({
+// Default test mode: mock Prisma so unit tests don't require a DB.
+// For DB-backed integration tests, run with VITEST_USE_REAL_DB=1 to skip Prisma mocking.
+// NOTE: vi.mock is hoisted, so we must check the env var inside the factory or use doMock (if supported).
+// However, doMock might be too late for some imports.
+// The reliable way with hoisting is to check inside.
+vi.mock('../src/lib/prisma', async (importOriginal) => {
+  if (process.env.VITEST_USE_REAL_DB) {
+    return importOriginal();
+  }
+  return {
     __esModule: true,
     default: mockPrisma,
-  }));
+  };
+});
 
-  vi.mock('@/lib/prisma', () => ({
+vi.mock('@/lib/prisma', async (importOriginal) => {
+  if (process.env.VITEST_USE_REAL_DB) {
+    return importOriginal();
+  }
+  return {
     __esModule: true,
     default: mockPrisma,
-  }));
-}
+  };
+});
 
 // Mock Twilio globally for dynamic requires
 vi.mock('twilio', () => {

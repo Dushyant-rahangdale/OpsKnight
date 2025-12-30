@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
 import { assertAdminOrResponder, assertAdmin, assertAdminOrTeamOwner } from '@/lib/rbac';
+import { logger } from '@/lib/logger';
 
 type TeamFormState = {
     error?: string | null;
@@ -57,17 +58,20 @@ export async function createTeam(_prevState: TeamFormState, formData: FormData):
         }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.created',
         entityType: 'TEAM',
         entityId: team.id,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: { name }
     });
 
     revalidatePath('/teams');
     revalidatePath('/services');
     revalidatePath('/audit');
+
+    logger.info('team.created', { teamId: team.id, name, actorId });
 
     return { success: true };
 }
@@ -105,17 +109,20 @@ export async function updateTeam(teamId: string, formData: FormData) {
         }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.updated',
         entityType: 'TEAM',
         entityId: teamId,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: { name, teamLeadId: teamLeadId || null }
     });
 
     revalidatePath('/teams');
     revalidatePath('/services');
     revalidatePath('/audit');
+
+    logger.info('team.updated', { teamId, name, teamLeadId: teamLeadId || null, actorId });
 }
 
 export async function deleteTeam(teamId: string) {
@@ -137,16 +144,19 @@ export async function deleteTeam(teamId: string) {
         where: { id: teamId }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.deleted',
         entityType: 'TEAM',
         entityId: teamId,
-        actorId: await getDefaultActorId()
+        actorId
     });
 
     revalidatePath('/teams');
     revalidatePath('/services');
     revalidatePath('/audit');
+
+    logger.info('team.deleted', { teamId, actorId });
 }
 
 export async function addTeamMember(teamId: string, formData: FormData) {
@@ -185,17 +195,20 @@ export async function addTeamMember(teamId: string, formData: FormData) {
         }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.member.added',
         entityType: 'TEAM_MEMBER',
         entityId: `${teamId}:${userId}`,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: { teamId, userId, role }
     });
 
     revalidatePath('/teams');
     revalidatePath('/users');
     revalidatePath('/audit');
+
+    logger.info('team.member.added', { teamId, userId, role, actorId });
 }
 
 export async function updateTeamMemberRole(memberId: string, formData: FormData): Promise<{ error?: string } | undefined> {
@@ -244,17 +257,20 @@ export async function updateTeamMemberRole(memberId: string, formData: FormData)
         data: { role: role as any }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.member.role.updated',
         entityType: 'TEAM_MEMBER',
         entityId: memberId,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: { teamId: member.teamId, userId: member.userId, role }
     });
 
     revalidatePath('/teams');
     revalidatePath('/users');
     revalidatePath('/audit');
+
+    logger.info('team.member.role.updated', { memberId, teamId: member.teamId, userId: member.userId, role, actorId });
 }
 
 export async function updateTeamMemberNotifications(memberId: string, receiveNotifications: boolean): Promise<{ error?: string } | undefined> {
@@ -278,11 +294,12 @@ export async function updateTeamMemberNotifications(memberId: string, receiveNot
         data: { receiveTeamNotifications: receiveNotifications }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.member.notifications.updated',
         entityType: 'TEAM_MEMBER',
         entityId: memberId,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: {
             teamId: member.teamId,
             userId: member.userId,
@@ -291,6 +308,14 @@ export async function updateTeamMemberNotifications(memberId: string, receiveNot
     });
 
     revalidatePath('/teams');
+
+    logger.info('team.member.notifications.updated', {
+        memberId,
+        teamId: member.teamId,
+        userId: member.userId,
+        receiveTeamNotifications: receiveNotifications,
+        actorId
+    });
 }
 
 export async function removeTeamMember(memberId: string): Promise<{ error?: string } | undefined> {
@@ -319,15 +344,18 @@ export async function removeTeamMember(memberId: string): Promise<{ error?: stri
         where: { id: memberId }
     });
 
+    const actorId = await getDefaultActorId();
     await logAudit({
         action: 'team.member.removed',
         entityType: 'TEAM_MEMBER',
         entityId: memberId,
-        actorId: await getDefaultActorId(),
+        actorId,
         details: { teamId: member.teamId, userId: member.userId }
     });
 
     revalidatePath('/teams');
     revalidatePath('/users');
     revalidatePath('/audit');
+
+    logger.info('team.member.removed', { memberId, teamId: member.teamId, userId: member.userId, actorId });
 }
