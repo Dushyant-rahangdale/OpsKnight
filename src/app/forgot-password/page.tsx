@@ -25,7 +25,6 @@ export default function ForgotPasswordPage() {
             });
             const data = await res.json();
 
-            // As a security measure, we treat all responses as success in UI if 200, but API also always returns success msg on 200.
             if (res.ok) {
                 setIsSent(true);
                 setMessage(data.message);
@@ -47,36 +46,61 @@ export default function ForgotPasswordPage() {
                 <div className="login-bg-orb login-bg-orb-3"></div>
             </div>
 
-            <div className="login-card" style={{
+            <div className="login-card glass-panel" style={{
                 maxWidth: '480px',
                 margin: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 'auto',
-                gridTemplateColumns: 'none' // Override grid
+                gridTemplateColumns: 'none',
+                background: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
             }}>
-                <section className="login-form" aria-label="Forgot Password form" style={{ width: '100%', padding: '0 2rem' }}>
+                <section className="login-form" aria-label="Forgot Password form" style={{
+                    width: '100%',
+                    padding: '2.5rem 2rem',
+                    background: 'transparent',
+                    boxShadow: 'none'
+                }}>
                     <div className="login-form-wrapper">
-                        <div className="login-form-header">
-                            <div className="login-form-logo">
+                        <div className="login-form-header" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                            <div className="login-form-logo" style={{ marginBottom: '1rem' }}>
                                 <img src="/logo.svg" alt="OpsSentinal" className="login-form-logo-img" />
                             </div>
                             <div className="login-form-branding">
-                                <h2 className="login-title">Reset Password</h2>
+                                <h2 className="login-title" style={{ fontSize: '1.5rem' }}>Reset Password</h2>
                                 <p className="login-subtitle">
-                                    Enter your email to receive reset instructions
+                                    Enter your email to receive instructions
                                 </p>
                             </div>
                         </div>
 
                         {isSent ? (
-                            <div className="login-alert success" role="alert">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                <span>{message}</span>
-                                <div style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                                    <Link href="/login" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+                            <div className="login-alert success" role="alert" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1rem' }}>
+                                <div style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    background: 'rgba(34, 197, 94, 0.1)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--color-success)'
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                                <div style={{ fontSize: '1rem', fontWeight: 500 }}>
+                                    Check your inbox
+                                </div>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                    {message}
+                                </p>
+                                <div style={{ marginTop: '0.5rem' }}>
+                                    <Link href="/login" className="login-btn login-btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', width: 'auto', padding: '0.6rem 1.5rem' }}>
                                         Return to Sign In
                                     </Link>
                                 </div>
@@ -95,6 +119,7 @@ export default function ForgotPasswordPage() {
                                             placeholder="name@company.com"
                                             className="login-input"
                                             disabled={isSubmitting}
+                                            style={{ background: 'rgba(255, 255, 255, 0.8)' }}
                                         />
                                     </div>
                                 </div>
@@ -120,8 +145,12 @@ export default function ForgotPasswordPage() {
                                     )}
                                 </button>
 
-                                <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
-                                    <Link href="/login" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+                                <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    <p style={{ marginBottom: '1rem' }}>
+                                        If you don't receive an email or SMS,<br />
+                                        please contact your administrator.
+                                    </p>
+                                    <Link href="/login" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500 }}>
                                         Back to Sign In
                                     </Link>
                                 </div>

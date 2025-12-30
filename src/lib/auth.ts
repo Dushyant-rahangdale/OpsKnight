@@ -72,7 +72,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             })
         ],
         pages: {
-            signIn: '/login'
+            signIn: '/login',
+            signOut: '/auth/signout'
         },
         callbacks: {
             async jwt({ token, user }) {
