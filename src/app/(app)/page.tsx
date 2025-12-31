@@ -21,6 +21,10 @@ import DashboardRealtimeWrapper from '@/components/DashboardRealtimeWrapper';
 import DashboardCommandCenter from '@/components/dashboard/DashboardCommandCenter';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel';
 import OnCallWidget from '@/components/dashboard/OnCallWidget';
+import SidebarWidget, {
+  WIDGET_ICON_BG,
+  WIDGET_ICON_COLOR,
+} from '@/components/dashboard/SidebarWidget';
 import styles from '@/components/dashboard/Dashboard.module.css';
 import {
   buildDateFilter,
@@ -831,60 +835,33 @@ export default async function Dashboard({
             <OnCallWidget activeShifts={activeShifts} />
 
             {/* Performance Metrics Widget */}
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background:
-                      'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            <SidebarWidget
+              title="Performance Metrics"
+              iconBg={WIDGET_ICON_BG.green}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={WIDGET_ICON_COLOR.green}
+                  strokeWidth="2"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#16a34a"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Performance Metrics
-                </h3>
-              </div>
+                  <path
+                    d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            >
               <DashboardPerformanceMetrics
                 mtta={mttaMinutes}
                 mttr={slaMetrics.mttr}
                 ackSlaRate={slaMetrics.ackCompliance}
                 resolveSlaRate={slaMetrics.resolveCompliance}
               />
-            </div>
+            </SidebarWidget>
 
             {/* SLA Metrics Widget - Enhanced SLA Tracking */}
             <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
@@ -906,54 +883,27 @@ export default async function Dashboard({
               </Suspense>
             </div>
 
-            {/* Advanced Metrics - Metrics */}
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background:
-                      'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            {/* Advanced Metrics */}
+            <SidebarWidget
+              title="Advanced Metrics"
+              iconBg={WIDGET_ICON_BG.blue}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={WIDGET_ICON_COLOR.blue}
+                  strokeWidth="2"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Advanced Metrics
-                </h3>
-              </div>
+                  <path
+                    d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            >
               <DashboardAdvancedMetrics
                 totalIncidents={allIncidentsCount}
                 openIncidents={allOpenIncidentsCount}
@@ -963,56 +913,29 @@ export default async function Dashboard({
                 unassignedIncidents={unassignedCount}
                 servicesCount={services.length}
               />
-            </div>
+            </SidebarWidget>
 
-            {/* Period Comparison Widget - Comparison */}
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background:
-                      'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            {/* Period Comparison Widget */}
+            <SidebarWidget
+              title="Period Comparison"
+              iconBg={WIDGET_ICON_BG.orange}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={WIDGET_ICON_COLOR.orange}
+                  strokeWidth="2"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M3 3v18h18M7 16l4-4 4 4 6-6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Period Comparison
-                </h3>
-              </div>
+                  <path
+                    d="M3 3v18h18M7 16l4-4 4 4 6-6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            >
               <DashboardPeriodComparison
                 current={{
                   total: totalInRange,
@@ -1031,109 +954,55 @@ export default async function Dashboard({
                 periodLabel={periodLabels.current}
                 previousPeriodLabel={periodLabels.previous}
               />
-            </div>
+            </SidebarWidget>
 
-            {/* Service Health Widget - Service Health */}
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background:
-                      'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.05) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            {/* Service Health Widget */}
+            <SidebarWidget
+              title="Service Health"
+              iconBg={WIDGET_ICON_BG.green}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={WIDGET_ICON_COLOR.green}
+                  strokeWidth="2"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#16a34a"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Service Health
-                </h3>
-              </div>
+                  <path
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            >
               <DashboardServiceHealth services={servicesWithIncidents} />
-            </div>
+            </SidebarWidget>
 
-            {/* Urgency Distribution - Charts */}
-            <div className="glass-panel" style={{ background: 'white', padding: '1.5rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background:
-                      'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+            {/* Urgency Distribution Widget */}
+            <SidebarWidget
+              title="Urgency Distribution"
+              iconBg={WIDGET_ICON_BG.red}
+              icon={
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={WIDGET_ICON_COLOR.red}
+                  strokeWidth="2"
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--color-error)"
-                    strokeWidth="2"
-                  >
-                    <path
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontSize: '1.1rem',
-                    fontWeight: '700',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  Urgency Distribution
-                </h3>
-              </div>
+                  <path
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            >
               <DashboardUrgencyDistribution data={urgencyDistribution} />
-            </div>
+            </SidebarWidget>
           </aside>
         </div>
       </main>
