@@ -61,22 +61,12 @@ jobs:
           sarif_file: reports/eslint-security.sarif
         continue-on-error: true
 
-      - name: Upload ESLint JUnit Report
+      - name: Upload SAST Reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eslint-security-report
+          name: sast-reports
           path: reports/eslint-security.xml
-        continue-on-error: true
-
-      - name: Publish ESLint Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: reports/eslint-security.xml
-          check_name: 'ESLint Security Results'
-          comment_title: '🔒 ESLint Security Scan'
-          comment_mode: 'always'
         continue-on-error: true
 
   sca:
@@ -140,9 +130,13 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
         continue-on-error: true
 
-      - name: Run Trivy vulnerability scanner (JSON for JUnit)
-        run: |
-          docker run --rm -v $(pwd):/workspace aquasec/trivy:latest fs --format json --output /workspace/reports/trivy-results.json --severity CRITICAL,HIGH,MEDIUM /workspace || true
+      - name: Run Trivy vulnerability scanner (JSON)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'json'
+          output: 'reports/trivy-results.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
         continue-on-error: true
 
       - name: Convert Trivy JSON to JUnit
@@ -186,26 +180,14 @@ jobs:
           sarif_file: 'reports/trivy-results.sarif'
         continue-on-error: true
 
-      - name: Upload Security Reports
+      - name: Upload SCA Reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: sca-security-reports
+          name: sca-reports
           path: |
             reports/npm-audit.xml
             reports/trivy-results.xml
-        continue-on-error: true
-
-      - name: Publish SCA Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            reports/npm-audit.xml
-            reports/trivy-results.xml
-          check_name: 'SCA Security Results'
-          comment_title: '🔒 Dependency & Container Security'
-          comment_mode: 'always'
         continue-on-error: true
 
       - name: Generate SBOM
@@ -281,22 +263,12 @@ jobs:
           sarif_file: reports/results_sarif.sarif
         continue-on-error: true
 
-      - name: Upload Checkov JUnit Report
+      - name: Upload IaC Reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: checkov-report
+          name: iac-reports
           path: reports/results_junitxml.xml
-        continue-on-error: true
-
-      - name: Publish Checkov Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: reports/results_junitxml.xml
-          check_name: 'IaC Security Results'
-          comment_title: '🔒 Infrastructure Security (Checkov)'
-          comment_mode: 'always'
         continue-on-error: true
 
   dast:
@@ -314,4 +286,39 @@ jobs:
           target: 'https://example.com' # Placeholder - replace with staging URL
           rules_file_name: '.zap/rules.tsv'
           fail_action: false
+        continue-on-error: true
+
+  # Consolidated security summary - runs after all scanning jobs
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [sast, sca, iac, secrets, dast]
+    if: always()
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports
+        continue-on-error: true
+
+      - name: Combine all JUnit reports
+        run: |
+          mkdir -p combined-reports
+          find reports -name "*.xml" -exec cp {} combined-reports/ \; 2>/dev/null || true
+          ls -la combined-reports/ || true
+          
+          # Create fallback if no reports
+          if [ -z "$(ls -A combined-reports 2>/dev/null)" ]; then
+            echo '<?xml version="1.0"?><testsuites><testsuite name="security" tests="0"/></testsuites>' > combined-reports/fallback.xml
+          fi
+        continue-on-error: true
+
+      - name: Publish Security Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: combined-reports/*.xml
+          check_name: '🔒 Security Scan Results'
+          comment_title: '🔒 Security Suite Summary'
+          comment_mode: 'always'
         continue-on-error: true
