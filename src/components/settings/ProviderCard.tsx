@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 import type { ProviderRecord, ProviderConfigSchema, SaveStatus } from '@/types/notification-types';
+import styles from './Settings.module.css';
 
 interface ProviderCardProps {
   providerConfig: ProviderConfigSchema;
@@ -22,7 +23,6 @@ export default function ProviderCard({
 }: ProviderCardProps) {
   const { userTimeZone } = useTimezone();
 
-  // For WhatsApp, enabled state is stored in the whatsappEnabled field of Twilio config
   const initialEnabled =
     providerConfig.key === 'whatsapp'
       ? !!(
@@ -31,7 +31,6 @@ export default function ProviderCard({
         )
       : existing?.enabled || false;
 
-  // Check if provider has required configuration
   const hasRequiredConfig =
     existing?.config &&
     Object.keys(existing.config).length > 0 &&
@@ -57,7 +56,6 @@ export default function ProviderCard({
     setError(null);
 
     try {
-      // Validate required fields if enabled
       if (enabled) {
         const requiredFields = providerConfig.fields.filter(f => f.required);
         for (const field of requiredFields) {
@@ -68,11 +66,9 @@ export default function ProviderCard({
         }
       }
 
-      // Special handling for WhatsApp - it's stored in Twilio provider config
       if (providerConfig.key === 'whatsapp') {
+        const { updateNotificationProvider } = await import('@/app/(app)/settings/system/actions');
         if (!twilioProvider) {
-          const { updateNotificationProvider } =
-            await import('@/app/(app)/settings/system/actions');
           await updateNotificationProvider(null, 'twilio', false, {
             whatsappNumber: (config.whatsappNumber as string) || '',
             whatsappEnabled: enabled,
@@ -82,7 +78,7 @@ export default function ProviderCard({
           });
         } else {
           const twilioConfig = twilioProvider.config as Record<string, unknown>;
-          const updatedTwilioConfig = {
+          await updateNotificationProvider(twilioProvider.id, 'twilio', twilioProvider.enabled, {
             ...twilioConfig,
             whatsappNumber:
               (config.whatsappNumber as string) || (twilioConfig.whatsappNumber as string) || '',
@@ -99,16 +95,7 @@ export default function ProviderCard({
               (config.whatsappAuthToken as string) ||
               (twilioConfig.whatsappAuthToken as string) ||
               '',
-          };
-
-          const { updateNotificationProvider } =
-            await import('@/app/(app)/settings/system/actions');
-          await updateNotificationProvider(
-            twilioProvider.id,
-            'twilio',
-            twilioProvider.enabled,
-            updatedTwilioConfig
-          );
+          });
         }
       } else {
         const { updateNotificationProvider } = await import('@/app/(app)/settings/system/actions');
@@ -128,49 +115,33 @@ export default function ProviderCard({
     }
   };
 
-  const handleToggleEnabled = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEnabled = e.target.checked;
-
-    // Check if provider is configured before enabling
+  const handleToggleEnabled = async (newEnabled: boolean) => {
     if (newEnabled && !hasRequiredConfig) {
       // eslint-disable-next-line no-alert
-      alert(
-        'Please configure this provider first before enabling it. Click "Configure" to add required settings.'
-      );
+      alert('Please configure this provider first before enabling it.');
       return;
     }
 
     setEnabled(newEnabled);
 
     try {
+      const { updateNotificationProvider } = await import('@/app/(app)/settings/system/actions');
       if (providerConfig.key === 'whatsapp') {
         if (!twilioProvider) {
-          const { updateNotificationProvider } =
-            await import('@/app/(app)/settings/system/actions');
           await updateNotificationProvider(null, 'twilio', false, {
             whatsappNumber: (config.whatsappNumber as string) || '',
             whatsappEnabled: newEnabled,
           });
         } else {
           const twilioConfig = twilioProvider.config as Record<string, unknown>;
-          const updatedTwilioConfig = {
+          await updateNotificationProvider(twilioProvider.id, 'twilio', twilioProvider.enabled, {
             ...twilioConfig,
             whatsappNumber:
               (config.whatsappNumber as string) || (twilioConfig.whatsappNumber as string) || '',
             whatsappEnabled: newEnabled,
-          };
-
-          const { updateNotificationProvider } =
-            await import('@/app/(app)/settings/system/actions');
-          await updateNotificationProvider(
-            twilioProvider.id,
-            'twilio',
-            twilioProvider.enabled,
-            updatedTwilioConfig
-          );
+          });
         }
       } else {
-        const { updateNotificationProvider } = await import('@/app/(app)/settings/system/actions');
         await updateNotificationProvider(
           existing?.id || null,
           providerConfig.key,
@@ -178,7 +149,6 @@ export default function ProviderCard({
           config
         );
       }
-
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       setEnabled(!newEnabled);
@@ -190,102 +160,93 @@ export default function ProviderCard({
   };
 
   return (
-    <div className="settings-provider-card">
-      <div className="settings-provider-header">
-        <div className="settings-provider-meta">
-          <div className="settings-provider-title">
+    <div className={styles.providerCard}>
+      <div className={styles.providerHeader}>
+        <div className={styles.providerMeta}>
+          <div className={styles.providerTitle}>
             <h3>{providerConfig.name}</h3>
-            <span className={`settings-provider-status ${enabled ? 'enabled' : 'disabled'}`}>
+            <span className={enabled ? styles.statusEnabled : styles.statusDisabled}>
               {enabled ? 'Enabled' : 'Disabled'}
             </span>
           </div>
-          <p className="settings-provider-description">{providerConfig.description}</p>
+          <p className={styles.providerDescription}>{providerConfig.description}</p>
         </div>
-        <div className="settings-provider-actions">
-          <label
-            className={`settings-provider-toggle ${!hasRequiredConfig && !enabled ? 'is-disabled' : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={handleToggleEnabled}
+        <div className={styles.providerActions}>
+          <div className={styles.toggleContainer}>
+            <button
+              type="button"
+              className={`${styles.toggle} ${enabled ? styles.toggleEnabled : ''} ${!hasRequiredConfig && !enabled ? styles.toggleDisabled : ''}`}
+              onClick={() => handleToggleEnabled(!enabled)}
               disabled={isSaving || (!enabled && !hasRequiredConfig)}
               title={!hasRequiredConfig && !enabled ? 'Configure this provider first' : ''}
-              className="settings-switch-input"
+              aria-label={enabled ? 'Disable provider' : 'Enable provider'}
             />
-            <span className="settings-provider-toggle-text">{enabled ? 'On' : 'Off'}</span>
-          </label>
+            <span className={styles.toggleLabel}>{enabled ? 'On' : 'Off'}</span>
+          </div>
 
-          <button type="button" onClick={onToggle} className="settings-link-button">
+          <button type="button" onClick={onToggle} className={styles.configureBtn}>
             {isExpanded ? 'Collapse' : 'Configure'}
           </button>
         </div>
       </div>
 
       {isExpanded && (
-        <form onSubmit={handleSave} className="settings-provider-form">
-          <label className="settings-checkbox-row">
-            <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
-            Enable {providerConfig.name}
-          </label>
-
-          {enabled && (
-            <div className="settings-provider-fields">
-              {providerConfig.fields.map(field => (
-                <div key={field.name}>
-                  <label className="settings-field-label">
-                    {field.label}{' '}
-                    {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                  </label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      value={(config[field.name] as string) || ''}
-                      onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
-                      placeholder={field.placeholder}
-                      required={field.required && enabled}
-                      rows={4}
-                      className="settings-textarea settings-input mono"
-                    />
-                  ) : field.type === 'checkbox' ? (
-                    <label className="settings-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={(config[field.name] as boolean) || false}
-                        onChange={e => setConfig({ ...config, [field.name]: e.target.checked })}
-                      />
-                      {field.label}
-                    </label>
-                  ) : (
+        <form onSubmit={handleSave} className={styles.providerForm}>
+          <div className={styles.fieldGroup}>
+            {providerConfig.fields.map(field => (
+              <div key={field.name}>
+                <label className={styles.fieldLabel}>
+                  {field.label}
+                  {field.required && <span className={styles.fieldRequired}>*</span>}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    value={(config[field.name] as string) || ''}
+                    onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
+                    placeholder={field.placeholder}
+                    required={field.required && enabled}
+                    rows={4}
+                    className={`${styles.fieldInput} ${styles.fieldTextarea} ${styles.fieldInputMono}`}
+                  />
+                ) : field.type === 'checkbox' ? (
+                  <label className={styles.checkboxRow}>
                     <input
-                      type={field.type}
-                      value={(config[field.name] as string) || ''}
-                      onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
-                      placeholder={field.placeholder}
-                      required={field.required && enabled}
-                      className={`settings-input ${field.type === 'password' ? 'mono' : ''}`}
+                      type="checkbox"
+                      checked={(config[field.name] as boolean) || false}
+                      onChange={e => setConfig({ ...config, [field.name]: e.target.checked })}
                     />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                    {field.label}
+                  </label>
+                ) : (
+                  <input
+                    type={field.type}
+                    value={(config[field.name] as string) || ''}
+                    onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
+                    placeholder={field.placeholder}
+                    required={field.required && enabled}
+                    className={`${styles.fieldInput} ${field.type === 'password' ? styles.fieldInputMono : ''}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
 
-          <div className="settings-provider-footer">
-            <button type="submit" disabled={isSaving} className="settings-primary-button">
+          <div className={styles.formFooter}>
+            <button type="submit" disabled={isSaving} className={styles.primaryBtn}>
               {isSaving ? 'Saving...' : 'Save Configuration'}
             </button>
             {saveStatus === 'success' && (
-              <div className="settings-alert success">OK Saved successfully</div>
+              <div className={`${styles.alert} ${styles.alertSuccess}`}>✓ Saved successfully</div>
             )}
             {saveStatus === 'error' && error && (
-              <div className="settings-alert error">Error: {error}</div>
+              <div className={`${styles.alert} ${styles.alertError}`}>✕ {error}</div>
             )}
           </div>
         </form>
       )}
 
       {existing && !isExpanded && (
-        <p className="settings-provider-updated">
+        <p className={styles.lastUpdated}>
           Last updated: {formatDateTime(existing.updatedAt, userTimeZone, { format: 'datetime' })}
         </p>
       )}
