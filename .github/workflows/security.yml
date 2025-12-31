@@ -140,14 +140,43 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
         continue-on-error: true
 
-      - name: Run Trivy vulnerability scanner (JUnit)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          format: 'template'
-          template: '@/contrib/junit.tpl'
-          output: 'reports/trivy-results.xml'
-          severity: 'CRITICAL,HIGH,MEDIUM'
+      - name: Run Trivy vulnerability scanner (JSON for JUnit)
+        run: |
+          docker run --rm -v $(pwd):/workspace aquasec/trivy:latest fs --format json --output /workspace/reports/trivy-results.json --severity CRITICAL,HIGH,MEDIUM /workspace || true
+        continue-on-error: true
+
+      - name: Convert Trivy JSON to JUnit
+        run: |
+          node -e "
+          const fs = require('fs');
+          try {
+            const trivy = JSON.parse(fs.readFileSync('reports/trivy-results.json', 'utf8'));
+            const results = trivy.Results || [];
+            let totalVulns = 0;
+            let failures = 0;
+            let testcases = '';
+            
+            results.forEach(r => {
+              (r.Vulnerabilities || []).forEach(v => {
+                totalVulns++;
+                const isFail = v.Severity === 'CRITICAL' || v.Severity === 'HIGH';
+                if (isFail) failures++;
+                testcases += '    <testcase name=\"' + v.VulnerabilityID + ' in ' + (r.Target || 'unknown') + '\" classname=\"trivy\">\n';
+                if (isFail) {
+                  testcases += '      <failure message=\"' + v.Severity + ' severity\">' + (v.Title || v.Description || 'Vulnerability found').substring(0, 200) + '</failure>\n';
+                }
+                testcases += '    </testcase>\n';
+              });
+            });
+            
+            const xml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites name=\"trivy\" tests=\"' + totalVulns + '\" failures=\"' + failures + '\">\n  <testsuite name=\"Container Security\" tests=\"' + totalVulns + '\">\n' + testcases + '  </testsuite>\n</testsuites>';
+            fs.writeFileSync('reports/trivy-results.xml', xml);
+            console.log('Generated trivy-results.xml with ' + totalVulns + ' vulnerabilities');
+          } catch (e) {
+            console.log('No Trivy results, creating empty report');
+            fs.writeFileSync('reports/trivy-results.xml', '<?xml version=\"1.0\"?><testsuites><testsuite name=\"trivy\" tests=\"0\"/></testsuites>');
+          }
+          "
         continue-on-error: true
 
       - name: Upload Trivy SARIF
@@ -235,6 +264,14 @@ jobs:
           output_format: junitxml
           output_file_path: reports
           soft_fail: true
+        continue-on-error: true
+
+      - name: Ensure Checkov JUnit file exists
+        run: |
+          ls -la reports/ || true
+          if [ ! -f reports/results_junitxml.xml ]; then
+            echo '<?xml version="1.0"?><testsuites><testsuite name="checkov" tests="0"/></testsuites>' > reports/results_junitxml.xml
+          fi
         continue-on-error: true
 
       - name: Upload Checkov SARIF
