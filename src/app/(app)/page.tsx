@@ -8,7 +8,6 @@ import DashboardPerformanceMetrics from '@/components/DashboardPerformanceMetric
 import DashboardQuickFilters from '@/components/DashboardQuickFilters';
 import DashboardTimeRange from '@/components/DashboardTimeRange';
 import DashboardRefresh from '@/components/DashboardRefresh';
-import DashboardExport from '@/components/DashboardExport';
 import DashboardFilterChips from '@/components/DashboardFilterChips';
 import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
 import DashboardSavedFilters from '@/components/DashboardSavedFilters';
@@ -20,6 +19,8 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { Suspense } from 'react';
 import DashboardRealtimeWrapper from '@/components/DashboardRealtimeWrapper';
 import DashboardCommandCenter from '@/components/dashboard/DashboardCommandCenter';
+import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel';
+import OnCallWidget from '@/components/dashboard/OnCallWidget';
 import styles from '@/components/dashboard/Dashboard.module.css';
 import {
   buildDateFilter,
