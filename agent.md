@@ -694,11 +694,21 @@ refactor: simplify auth middleware
 
 ### Branch Strategy
 
-- `main`: Production-ready code
+- `main`: Production-ready code (**PROTECTED**: No direct pushes)
 - `develop`: Development branch
 - `feature/*`: New features
 - `fix/*`: Bug fixes
 - `test/*`: Test improvements
+
+### Pull Request (PR) Policy
+
+**CRITICAL**: Direct pushes to `main` are **FORBIDDEN**.
+
+1.  **Create Feature Branch**: Always create a new branch from `main` or `develop`.
+2.  **Make Changes**: Commit your changes to the feature branch.
+3.  **Open Pull Request**: Create a PR to merge your branch into `main`.
+4.  **Review**: Wait for code review approval before merging.
+5.  **Merge**: Squash and merge after checks pass.
 
 ### Pre-Push Workflow
 
