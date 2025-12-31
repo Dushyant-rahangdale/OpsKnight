@@ -6,21 +6,22 @@ exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/null) 2>&1
 echo "==> user-data start: $(date -Is)"
 
 # ---------------------------
-# Install Docker (AL2023)
+# Base packages (AL2023)
 # ---------------------------
 dnf update -y
-dnf install -y docker git curl-minimal
+dnf install -y docker git curl-minimal unzip util-linux coreutils
 
 systemctl enable --now docker
 usermod -a -G docker ec2-user || true
 
 # ---------------------------
 # Install Docker Compose (binary)
+# NOTE: GitHub "latest" is okay, but pinning is better in prod.
 # ---------------------------
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
   -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
-/usr/local/bin/docker-compose version
+/usr/local/bin/docker-compose version || true
 
 # ---------------------------
 # Install Cloudflare Tunnel (cloudflared)
@@ -36,7 +37,7 @@ EOF
 dnf clean all
 dnf makecache -y
 dnf install -y cloudflared
-cloudflared --version
+cloudflared --version || true
 
 # token is passed as ARGUMENT (not --token)
 cloudflared service install "${cloudflare_tunnel_token}"
@@ -52,67 +53,99 @@ mkdir -p /home/ec2-user/app
 cd /home/ec2-user/app
 
 # ---------------------------
-# Attach Persistent Volume
+# Install AWS CLI v2 (needed for attach-volume)
 # ---------------------------
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
-REGION=${aws_region}
-VOLUME_ID=${volume_id}
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+./aws/install
+/usr/local/bin/aws --version || true
+
+# ---------------------------
+# Attach + Mount Persistent EBS Volume (Postgres)
+# ---------------------------
+TOKEN="$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
+
+INSTANCE_ID="$(curl -fsS -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-id)"
+
+REGION="${aws_region}"
+VOLUME_ID="${volume_id}"
 
 echo "Attaching volume $VOLUME_ID to instance $INSTANCE_ID in region $REGION"
 
-# Install AWS CLI (v2)
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip -q awscliv2.zip
-./aws/install
+aws ec2 attach-volume \
+  --volume-id "$VOLUME_ID" \
+  --instance-id "$INSTANCE_ID" \
+  --device /dev/sdf \
+  --region "$REGION" || true
 
-# Attach Volume
-aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device /dev/sdf --region $REGION
+echo "Waiting for volume to become available as a block device..."
+DEVICE=""
 
-# Wait for device to appear
-DEVICE="/dev/sdf"
-# On Nitro instances (like t3), it might show up as /dev/nvme*n1.
-# We loop to find the new device that matches our volume attachment.
-echo "Waiting for volume to attach..."
-for i in {1..45}; do
-  if [ -e "/dev/sdf" ]; then
+# Prefer stable by-id path on Nitro
+BYID_PATH="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${volume_id}"
+
+for i in {1..180}; do
+  if [ -e "$BYID_PATH" ]; then
+    DEVICE="$(readlink -f "$BYID_PATH")"
+    break
+  fi
+
+  if [ -b "/dev/sdf" ]; then
     DEVICE="/dev/sdf"
     break
   fi
-  # Check nvme devices if sdf is not there (AWS renames devices on Nitro)
-  # This finds the device name (e.g., nvme1n1) that matches the volume serial (stripped of dashes)
-  # AWS NVMe serials often contain the volume ID without dashes.
-  # Note: lsblk -o SERIAL might not show the full ID on some older kernels, but usually works on AL2023.
-  # Fallback: just look for the second disk if only 2 exist or check nvme names.
-  # Better approach for AL2023:
-  NVME_DEVICE=$(lsblk -d -o NAME,SERIAL | grep "$${VOLUME_ID//-/}" | awk '{print $1}')
-  if [ -n "$NVME_DEVICE" ]; then
-     DEVICE="/dev/$NVME_DEVICE"
-     break
+
+  # Fallback: match NVMe SERIAL against volume-id without dashes
+  VOL_NODASH="$(echo "$VOLUME_ID" | tr -d '-')"
+  NVME_DEVICE="$(lsblk -d -o NAME,SERIAL 2>/dev/null | grep -F "$VOL_NODASH" | awk '{print $1}' || true)"
+  if [ -n "$NVME_DEVICE" ] && [ -b "/dev/$NVME_DEVICE" ]; then
+    DEVICE="/dev/$NVME_DEVICE"
+    break
   fi
+
   sleep 2
 done
 
-echo "Volume attached at $DEVICE"
-
-# Create Mount Point
-MOUNT_POINT="/mnt/postgres_data"
-mkdir -p $MOUNT_POINT
-
-# Format if needed (check for filesystem)
-if ! file -s $DEVICE | grep -q "filesystem"; then
-    echo "Formatting new volume..."
-    mkfs.ext4 $DEVICE
+# FIX: correct variable check (was "$${DEVICE}" which is wrong in bash)
+if [ -z "$DEVICE" ]; then
+  echo "ERROR: Volume device not found after waiting. Exiting."
+  lsblk || true
+  exit 1
 fi
 
-# Mount
-mount $DEVICE $MOUNT_POINT || echo "Mount failed, checking if already mounted"
-echo "$DEVICE $MOUNT_POINT ext4 defaults,nofail 0 2" >> /etc/fstab
+echo "Volume device detected at: $DEVICE"
+
+MOUNT_POINT="/mnt/postgres_data"
+mkdir -p "$MOUNT_POINT"
+
+# Format if needed (no filesystem signature)
+if ! file -s "$DEVICE" | grep -qi "filesystem"; then
+  echo "Formatting $DEVICE as ext4..."
+  mkfs.ext4 -F "$DEVICE"
+fi
+
+# Mount (idempotent-ish)
+if ! mountpoint -q "$MOUNT_POINT"; then
+  mount "$DEVICE" "$MOUNT_POINT"
+fi
+
+# Persist in fstab (avoid duplicate lines)
+FSTAB_LINE="$DEVICE $MOUNT_POINT ext4 defaults,nofail 0 2"
+grep -qF "$FSTAB_LINE" /etc/fstab || echo "$FSTAB_LINE" >> /etc/fstab
+
+# ---------------------------
+# Postgres persistence FIX:
+# Don't mount PGDATA directly to filesystem root (lost+found issue).
+# Use a subdirectory.
+# ---------------------------
+PGDATA_DIR="$MOUNT_POINT/pgdata"
+mkdir -p "$PGDATA_DIR"
 
 # Ensure permissions (70:70 is standard postgres uid:gid in alpine image)
-chown -R 70:70 $MOUNT_POINT
-chmod 700 $MOUNT_POINT
-
+chown -R 70:70 "$PGDATA_DIR"
+chmod 700 "$PGDATA_DIR"
 
 # ---------------------------
 # Write Nginx Config
@@ -141,6 +174,8 @@ EOT
 
 # ---------------------------
 # Write Docker Compose File
+# IMPORTANT: use $${VAR} where you want literal $${VAR} in the rendered file
+# (so Terraform templatefile doesn't try to interpret it).
 # ---------------------------
 cat <<'EOT' > docker-compose.yml
 services:
@@ -160,7 +195,7 @@ services:
     container_name: opssentinal_db
     restart: always
     volumes:
-      - /mnt/postgres_data:/var/lib/postgresql/data
+      - /mnt/postgres_data/pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: $${POSTGRES_USER}
       POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
@@ -189,7 +224,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - WATCHTOWER_NOTIFICATIONS=slack
-      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=https://hooks.slack.com/services/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
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=$${WATCHTOWER_SLACK_HOOK_URL}
       - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=opssentinal
     command: --interval 300 --cleanup --notifications-level=info
 EOT
@@ -205,13 +240,16 @@ echo "${github_token}" | docker login ghcr.io -u "${github_username}" --password
 # Create .env file
 # ---------------------------
 cat <<ENV > .env
-DATABASE_URL="postgresql://ops_user:${db_password}@db:5432/opssentinal"
-NEXTAUTH_SECRET="${nextauth_secret}"
-NEXTAUTH_URL="${nextauth_url}"
+DATABASE_URL=postgresql://ops_user:${db_password}@db:5432/opssentinal
+NEXTAUTH_SECRET=${nextauth_secret}
+NEXTAUTH_URL=${nextauth_url}
 
-POSTGRES_USER="ops_user"
-POSTGRES_PASSWORD="${db_password}"
-POSTGRES_DB="opssentinal"
+POSTGRES_USER=ops_user
+POSTGRES_PASSWORD=${db_password}
+POSTGRES_DB=opssentinal
+
+# Watchtower Slack hook (recommended to pass from TF var)
+WATCHTOWER_SLACK_HOOK_URL="${watchtower_slack_hook_url}"
 ENV
 
 chown ec2-user:ec2-user .env
@@ -221,6 +259,7 @@ chmod 600 .env
 # Write Certificates
 # ---------------------------
 mkdir -p /home/ec2-user/app/certs
+
 cat <<CERT > /home/ec2-user/app/certs/origin.crt
 ${origin_cert}
 CERT
@@ -233,7 +272,7 @@ chown -R ec2-user:ec2-user /home/ec2-user/app/certs
 chmod 600 /home/ec2-user/app/certs/origin.key
 
 # ---------------------------
-# Start script
+# Start script (separate, idempotent)
 # ---------------------------
 cat <<'SCRIPT' > /home/ec2-user/app/start.sh
 #!/bin/bash
@@ -241,6 +280,8 @@ set -euo pipefail
 cd /home/ec2-user/app
 
 /usr/local/bin/docker-compose pull
+
+# Start DB first
 /usr/local/bin/docker-compose up -d db
 
 echo "Waiting for database to be ready..."
@@ -248,6 +289,7 @@ until /usr/local/bin/docker-compose exec -T db pg_isready -U ops_user -d opssent
   sleep 2
 done
 
+# Start everything
 /usr/local/bin/docker-compose up -d
 SCRIPT
 
