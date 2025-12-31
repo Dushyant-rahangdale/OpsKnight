@@ -16,6 +16,7 @@
 import prisma from './prisma';
 import { getBaseUrl } from './env-validation';
 import { getUserTimeZone, formatDateTime } from './timezone';
+import { logger } from './logger';
 import {
     EmailButton,
     EmailContainer,
@@ -110,7 +111,7 @@ export async function sendEmail(
                 });
 
                 if (result.error) {
-                    console.error('Resend error:', result.error);
+                    logger.error('Resend email send failed', { component: 'email', provider: 'resend', error: result.error, to: options.to });
                     return { success: false, error: result.error.message || 'Resend API error' };
                 }
 
@@ -124,7 +125,7 @@ export async function sendEmail(
                     console.log('Would send via Resend:', { to: options.to, from: emailConfig.fromEmail });
                     return { success: true };
                 }
-                console.error('Resend send error:', error);
+                logger.error('Resend send error', { component: 'email', provider: 'resend', error, to: options.to });
                 return { success: false, error: err.message || 'Resend send error' };
             }
         }
@@ -141,18 +142,22 @@ export async function sendEmail(
                         subject: string;
                         html: string;
                         text: string;
+                        trackingSettings?: {
+                            clickTracking?: { enable: boolean; enableText?: boolean };
+                            openTracking?: { enable: boolean };
+                        };
                     }) => Promise<Array<{ statusCode: number; headers?: Record<string, string>; body?: unknown }>>;
                 };
 
                 // Validate API key
                 if (!emailConfig.apiKey || emailConfig.apiKey.trim() === '') {
-                    console.error('SendGrid API key is missing or empty');
+                    logger.error('SendGrid API key missing', { component: 'email', provider: 'sendgrid' });
                     return { success: false, error: 'SendGrid API key is not configured' };
                 }
 
                 // Validate from email
                 if (!emailConfig.fromEmail || emailConfig.fromEmail.trim() === '') {
-                    console.error('SendGrid from email is missing or empty');
+                    logger.error('SendGrid from email missing', { component: 'email', provider: 'sendgrid' });
                     return { success: false, error: 'SendGrid from email is not configured' };
                 }
 
@@ -164,6 +169,12 @@ export async function sendEmail(
                     subject: options.subject,
                     html: options.html,
                     text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+                    // Disable click and open tracking for security-critical emails (password resets, etc.)
+                    // This prevents SendGrid from wrapping URLs with tracking domains
+                    trackingSettings: {
+                        clickTracking: { enable: false, enableText: false },
+                        openTracking: { enable: false }
+                    }
                 });
 
                 // Check response for errors
@@ -181,10 +192,12 @@ export async function sendEmail(
                         });
                         return { success: true };
                     } else {
-                        console.error('SendGrid returned error status:', {
+                        logger.error('SendGrid returned error status', {
+                            component: 'email',
+                            provider: 'sendgrid',
                             statusCode: response.statusCode,
                             body: response.body,
-                            headers: response.headers
+                            to: options.to
                         });
                         return {
                             success: false,
@@ -192,24 +205,24 @@ export async function sendEmail(
                         };
                     }
                 } else {
-                    console.error('SendGrid returned empty response');
+                    logger.error('SendGrid returned empty response', { component: 'email', provider: 'sendgrid', to: options.to });
                     return { success: false, error: 'SendGrid API returned empty response' };
                 }
             } catch (error: unknown) {
                 // If SendGrid package is not installed, fall back to console log
                 const err = error as { code?: string; message?: string; response?: { body?: unknown; statusCode?: number; headers?: Record<string, string> } };
                 if (err.code === 'MODULE_NOT_FOUND') {
-                    console.error('SendGrid package not installed. Install with: npm install @sendgrid/mail');
+                    logger.warn('SendGrid package not installed', { component: 'email', provider: 'sendgrid', installCommand: 'npm install @sendgrid/mail' });
                     return { success: false, error: 'SendGrid package not installed. Install with: npm install @sendgrid/mail' };
                 }
 
                 // Log full error details
-                console.error('SendGrid send error:', {
-                    message: err.message,
-                    code: err.code,
-                    response: err.response?.body,
+                logger.error('SendGrid send error', {
+                    component: 'email',
+                    provider: 'sendgrid',
+                    error: err,
                     statusCode: err.response?.statusCode,
-                    headers: err.response?.headers
+                    to: options.to
                 });
 
                 // Extract error message from SendGrid response if available
@@ -263,10 +276,10 @@ export async function sendEmail(
                 // If nodemailer package is not installed, fall back to console log
                 const err = error as { code?: string; message?: string };
                 if (err.code === 'MODULE_NOT_FOUND') {
-                    console.error('Nodemailer package not installed. Install with: npm install nodemailer');
+                    logger.warn('Nodemailer package not installed', { component: 'email', provider: 'smtp', installCommand: 'npm install nodemailer' });
                     return { success: false, error: 'Nodemailer package not installed. Install with: npm install nodemailer' };
                 }
-                console.error('SMTP send error:', error);
+                logger.error('SMTP send error', { component: 'email', provider: 'smtp', error, to: options.to });
                 return { success: false, error: err.message || 'SMTP send error' };
             }
         }
@@ -326,10 +339,10 @@ export async function sendEmail(
             } catch (error: unknown) {
                 const err = error as { code?: string; message?: string };
                 if (err.code === 'MODULE_NOT_FOUND') {
-                    console.error('AWS SES SDK package not installed. Install with: npm install @aws-sdk/client-ses');
+                    logger.warn('AWS SES SDK not installed', { component: 'email', provider: 'ses', installCommand: 'npm install @aws-sdk/client-ses' });
                     return { success: false, error: 'AWS SES SDK package not installed. Install with: npm install @aws-sdk/client-ses' };
                 }
-                console.error('SES send error:', error);
+                logger.error('SES send error', { component: 'email', provider: 'ses', error, to: options.to });
                 return { success: false, error: err.message || 'SES send error' };
             }
         }
@@ -337,7 +350,7 @@ export async function sendEmail(
         // No provider configured
         return { success: false, error: 'No email provider configured' };
     } catch (error: unknown) {
-        console.error('Email send error:', error);
+        logger.error('Email send error', { component: 'email', error, to: options.to });
         const err = error as { message?: string };
         return { success: false, error: err.message || 'Email send error' };
     }
@@ -573,7 +586,7 @@ export async function sendIncidentEmail(
             text: `${incident.title}\n\nService: ${incident.service.name}\nStatus: ${incident.status}\nUrgency: ${incident.urgency}\n\n${subjectTag} update. View: ${incidentUrl}`
         });
     } catch (error: unknown) {
-        console.error('Send incident email error:', error);
+        logger.error('Send incident email error', { component: 'email', error, incidentId, userId, eventType });
         const err = error as { message?: string };
         return { success: false, error: err.message || 'Send incident email error' };
     }

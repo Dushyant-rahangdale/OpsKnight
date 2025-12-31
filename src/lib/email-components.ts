@@ -101,7 +101,7 @@ export function EmailHeader(title: string, subtitle?: string, styles: EmailStyle
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin: 0;">
                     <tr>
                         <td style="padding-right: 12px; vertical-align: middle;">
-                            ${getOpsGuardLogo(56)}
+                            ${getOpsSentinalLogo(56)}
                         </td>
                         <td style="vertical-align: middle;">
                             <span class="mobile-logo-name" style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">OpsSentinal</span>
@@ -279,7 +279,7 @@ export function SubscriberEmailHeader(pageName: string, title: string, subtitle?
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin: 0;">
                     <tr>
                         <td style="padding-right: 12px; vertical-align: middle;">
-                            ${getOpsGuardLogo(44)}
+                            ${getOpsSentinalLogo(44)}
                         </td>
                         <td style="vertical-align: middle;">
                             <span class="mobile-logo-name" style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">OpsSentinal</span>
@@ -337,7 +337,7 @@ export function SubscriberEmailFooter(unsubscribeUrl: string, pageName: string):
                 </p>
                 <a href="https://OpsSentinal.com" target="_blank" style="text-decoration: none; display: inline-block; margin-top: 8px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        ${getOpsGuardLogo(24)}
+                        ${getOpsSentinalLogo(24)}
                         <span style="color: #1f2937; font-size: 16px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em;">OpsSentinal</span>
                     </div>
                 </a>
@@ -351,9 +351,21 @@ export function SubscriberEmailFooter(unsubscribeUrl: string, pageName: string):
  * SVG Icons (inline for email compatibility)
  */
 
-function getOpsGuardLogo(width: number): string {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://OpsSentinal.com';
-    return `<img src="${appUrl}/logo.png" width="${width}" height="${width}" alt="OpsSentinal" style="display: block; width: ${width}px; height: ${width}px; border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;" />`;
+function getOpsSentinalLogo(width: number): string {
+    // Inline SVG logo for email compatibility - works in all email clients without external dependencies
+    return `<svg width="${width}" height="${width}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+        <!-- Shield background -->
+        <path d="M50 5 L85 20 L85 45 Q85 75 50 95 Q15 75 15 45 L15 20 Z" fill="url(#grad)" stroke="#991b1b" stroke-width="2"/>
+        <!-- Gradient definition -->
+        <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+        <!-- OS Text -->
+        <text x="50" y="58" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">OS</text>
+    </svg>`;
 }
 
 function getCheckIcon(size: number, color: string): string {
