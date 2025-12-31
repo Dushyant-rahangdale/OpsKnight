@@ -21,6 +21,14 @@ import { Suspense } from 'react';
 import DashboardRealtimeWrapper from '@/components/DashboardRealtimeWrapper';
 import DashboardCommandCenter from '@/components/dashboard/DashboardCommandCenter';
 import styles from '@/components/dashboard/Dashboard.module.css';
+import {
+  buildDateFilter,
+  buildIncidentWhere,
+  buildIncidentOrderBy,
+  getDaysFromRange,
+  getRangeLabel,
+  type DashboardFilters as DashboardFilterParams,
+} from '@/lib/dashboard-utils';
 
 export const revalidate = 30;
 
@@ -78,69 +86,40 @@ export default async function Dashboard({
     : null;
   const userName = user?.name || 'there';
 
-  // Build date filter
-  const dateFilter: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (range && range !== 'all') {
-    if (range === 'custom' && customStart && customEnd) {
-      dateFilter.createdAt = {
-        gte: new Date(customStart),
-        lte: new Date(customEnd),
-      };
-    } else {
-      const days = parseInt(range);
-      if (!isNaN(days)) {
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        dateFilter.createdAt = {
-          gte: startDate,
-        };
-      }
-    }
-  }
+  // Build filters using utility functions
+  const filterParams: DashboardFilterParams = {
+    status,
+    service,
+    assignee,
+    urgency,
+    range,
+    customStart,
+    customEnd,
+  };
 
-  // Build filter query
-  const where: any = { ...dateFilter }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (status && status !== 'ALL') where.status = status;
-  if (assignee !== undefined) {
-    if (assignee === '') {
-      where.assigneeId = null;
-    } else {
-      where.assigneeId = assignee;
-    }
-  }
-  if (service) where.serviceId = service;
-  if (urgency) where.urgency = urgency;
+  // Main query where clause (includes status filter)
+  const where = buildIncidentWhere(filterParams);
 
-  const metricsWhere: any = { ...dateFilter }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (assignee !== undefined) {
-    if (assignee === '') {
-      metricsWhere.assigneeId = null;
-    } else {
-      metricsWhere.assigneeId = assignee;
-    }
-  }
-  if (service) metricsWhere.serviceId = service;
-  if (urgency) metricsWhere.urgency = urgency;
+  // Metrics where clause (excludes status filter for aggregate counts)
+  const metricsWhere = buildIncidentWhere(filterParams, { includeStatus: false });
 
-  const chartWhere: any = { ...metricsWhere }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  delete chartWhere.urgency;
+  // Chart where clause (excludes urgency for distribution charts)
+  const chartWhere = buildIncidentWhere(filterParams, {
+    includeStatus: false,
+    includeUrgency: false,
+  });
 
-  const assigneeFilter = assignee !== undefined ? (assignee === '' ? null : assignee) : undefined;
+  // MTTA where clause
+  const mttaWhere = { ...metricsWhere, acknowledgedAt: { not: null } };
+
+  // Date filter for SLA calculations
+  const dateFilter = buildDateFilter(range, customStart, customEnd);
   const metricsStartDate = dateFilter.createdAt?.gte;
   const metricsEndDate = dateFilter.createdAt?.lte;
-  const mttaWhere: any = { ...metricsWhere, acknowledgedAt: { not: null } }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const assigneeFilter = assignee !== undefined ? (assignee === '' ? null : assignee) : undefined;
 
-  // Build orderBy
-  const orderBy: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (sortBy === 'createdAt') {
-    orderBy.createdAt = sortOrder;
-  } else if (sortBy === 'status') {
-    orderBy.status = sortOrder;
-  } else if (sortBy === 'urgency') {
-    orderBy.urgency = sortOrder;
-  } else {
-    orderBy.createdAt = 'desc';
-  }
+  // Build orderBy using utility function
+  const orderBy = buildIncidentOrderBy(sortBy, sortOrder);
 
   const skip = (page - 1) * INCIDENTS_PER_PAGE;
 
@@ -331,13 +310,6 @@ export default async function Dashboard({
   ].filter(item => item.value > 0);
 
   // Calculate previous period data for comparison
-  const getDaysFromRange = (range: string): number => {
-    if (range === 'all') return 0;
-    if (range === 'custom') return 30; // Default to 30 days for custom
-    const days = parseInt(range);
-    return isNaN(days) ? 30 : days;
-  };
-
   const currentPeriodDays = getDaysFromRange(range);
   const previousPeriodStart = new Date();
   previousPeriodStart.setDate(previousPeriodStart.getDate() - currentPeriodDays * 2);
@@ -487,13 +459,6 @@ export default async function Dashboard({
 
   // Calculate total incidents for the selected range
   const totalInRange = metricsTotalCount;
-  const getRangeLabel = () => {
-    if (range === '7') return '(7d)';
-    if (range === '30') return '(30d)';
-    if (range === '90') return '(90d)';
-    if (range === 'all') return '(All Time)';
-    return '(30d)';
-  };
 
   return (
     <DashboardRealtimeWrapper>
@@ -505,7 +470,7 @@ export default async function Dashboard({
           metricsOpenCount={metricsOpenCount}
           metricsResolvedCount={metricsResolvedCount}
           unassignedCount={unassignedCount}
-          rangeLabel={getRangeLabel()}
+          rangeLabel={getRangeLabel(range)}
           incidents={incidents}
           filters={{
             status: status || undefined,
