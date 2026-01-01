@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 const NAV_ITEMS = [
     {
@@ -32,6 +33,17 @@ const NAV_ITEMS = [
         ),
     },
     {
+        href: '/m/notifications',
+        label: 'Alerts',
+        icon: (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                <path d="M12 4a6 6 0 0 0-6 6v3l-1.3 2.6a.5.5 0 0 0 .4.8h13.8a.5.5 0 0 0 .4-.8L18 13v-3a6 6 0 0 0-6-6Z" strokeLinecap="round" />
+                <path d="M9 17v1a3 3 0 0 0 6 0v-1" strokeLinecap="round" />
+            </svg>
+        ),
+        hasBadge: true,
+    },
+    {
         href: '/m/more',
         label: 'More',
         icon: (
@@ -46,6 +58,26 @@ const NAV_ITEMS = [
 
 export default function MobileNav() {
     const pathname = usePathname();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch notification count
+    useEffect(() => {
+        const fetchCount = async () => {
+            try {
+                const res = await fetch('/api/notifications?limit=1');
+                if (res.ok) {
+                    const data = await res.json();
+                    const unread = (data.notifications || []).filter((n: { unread: boolean }) => n.unread).length;
+                    setUnreadCount(data.unreadCount || unread);
+                }
+            } catch {
+                // Silent fail
+            }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const isActive = (href: string) => {
         if (href === '/m' && pathname === '/m') return true;
@@ -63,7 +95,30 @@ export default function MobileNav() {
                         href={item.href}
                         className={`mobile-nav-item ${active ? 'active' : ''}`}
                     >
-                        <span className="mobile-nav-icon">{item.icon}</span>
+                        <span className="mobile-nav-icon" style={{ position: 'relative' }}>
+                            {item.icon}
+                            {/* Notification badge */}
+                            {'hasBadge' in item && item.hasBadge && unreadCount > 0 && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '-4px',
+                                    right: '-6px',
+                                    minWidth: '16px',
+                                    height: '16px',
+                                    borderRadius: '8px',
+                                    background: '#dc2626',
+                                    color: 'white',
+                                    fontSize: '0.6rem',
+                                    fontWeight: '700',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0 3px'
+                                }}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </span>
                         <span className="mobile-nav-label">{item.label}</span>
                     </Link>
                 );
@@ -71,3 +126,4 @@ export default function MobileNav() {
         </nav>
     );
 }
+

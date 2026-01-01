@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import TopbarNotifications from '@/components/TopbarNotifications';
 
 type MobileHeaderProps = {
     systemStatus?: 'ok' | 'warning' | 'danger';
@@ -23,16 +22,15 @@ export default function MobileHeader({ systemStatus = 'ok' }: MobileHeaderProps)
                 <span className="mobile-header-title">OpsSentinal</span>
             </Link>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <TopbarNotifications />
-                <div
-                    className="mobile-header-status"
-                    style={{ background: status.bg, color: status.color }}
-                >
-                    <span className="mobile-status-dot" style={{ background: status.color }} />
-                    <span className="mobile-status-text">{status.label}</span>
-                </div>
+            <div
+                className="mobile-header-status"
+                style={{ background: status.bg, color: status.color }}
+            >
+                <span className="mobile-status-dot" style={{ background: status.color }} />
+                <span className="mobile-status-text">{status.label}</span>
             </div>
         </header>
     );
 }
+
+
