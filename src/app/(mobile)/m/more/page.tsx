@@ -24,27 +24,17 @@ export default async function MobileMorePage() {
         <div className="mobile-dashboard">
             {/* User Info Card */}
             <MobileCard className="mobile-metric-card" style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="mobile-user-profile">
                     <MobileAvatar
                         name={user?.name || 'User'}
                         size="lg"
                     />
-                    <div>
-                        <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{user?.name || 'User'}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{user?.email}</div>
-                        <div style={{
-                            display: 'inline-block',
-                            fontSize: '0.7rem',
-                            fontWeight: '600',
-                            color: 'var(--text-primary)',
-                            background: 'var(--badge-neutral-bg)',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '4px',
-                            textTransform: 'uppercase',
-                            marginTop: '0.375rem',
-                        }}>
+                    <div className="mobile-user-info">
+                        <div className="mobile-user-name">{user?.name || 'User'}</div>
+                        <div className="mobile-user-email">{user?.email}</div>
+                        <span className="mobile-user-role">
                             {user?.role || 'user'}
-                        </div>
+                        </span>
                     </div>
                 </div>
             </MobileCard>
@@ -132,8 +122,8 @@ function MenuLink({
                 transition: 'background 0.2s',
             }}
         >
-            <span style={{ fontSize: '1.25rem', width: '24px', textAlign: 'center' }}>{icon}</span>
-            <span style={{ fontWeight: '500', fontSize: '0.95rem' }}>{label}</span>
+            <span className="mobile-menu-icon">{icon}</span>
+            <span style={{ fontWeight: '500', fontSize: '0.95rem', flex: 1 }}>{label}</span>
             <svg
                 style={{ marginLeft: 'auto' }}
                 width="16"

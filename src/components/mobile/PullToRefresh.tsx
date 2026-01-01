@@ -95,15 +95,37 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
                     opacity: Math.min(pullChange / pullThreshold, 1)
                 }}>
                     {refreshing ? (
-                        <div className="ptr-spinner" style={{ animation: 'spin 1s linear infinite' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5">
+                        <div className="ptr-spinner" style={{
+                            animation: 'spin 1s linear infinite',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: 'var(--bg-secondary)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5">
                                 <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" strokeLinecap="round" />
                             </svg>
                         </div>
                     ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" style={{ transform: `rotate(${pullChange > pullThreshold ? 180 : 0}deg)`, transition: 'transform 0.2s' }}>
-                            <path d="M12 5v14M19 12l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: pullChange > pullThreshold * 0.8 ? 'rgba(220, 38, 38, 0.1)' : 'var(--bg-secondary)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                            transition: 'background 0.2s ease'
+                        }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={pullChange > pullThreshold * 0.8 ? '#dc2626' : 'var(--primary)'} strokeWidth="2.5" style={{ transform: `rotate(${pullChange > pullThreshold ? 180 : 0}deg)`, transition: 'transform 0.2s, stroke 0.2s' }}>
+                                <path d="M12 5v14M19 12l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
                     )}
                 </div>
             </div>
