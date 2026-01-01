@@ -53,9 +53,12 @@ describe('assertServiceNameAvailable', () => {
   });
 
   it('throws a conflict error when the name is already taken', async () => {
-    vi.mocked(prisma.service.findFirst).mockResolvedValue({ id: 'svc-1' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.service.findFirst).mockResolvedValue({ id: 'svc-1' } as any);
 
-    await expect(assertServiceNameAvailable('Billing')).rejects.toBeInstanceOf(UniqueNameConflictError);
+    await expect(assertServiceNameAvailable('Billing')).rejects.toBeInstanceOf(
+      UniqueNameConflictError
+    );
   });
 
   it('throws when the name is empty after trimming', async () => {
@@ -83,7 +86,8 @@ describe('assertEscalationPolicyNameAvailable', () => {
   });
 
   it('throws a conflict error when policy name is already taken', async () => {
-    vi.mocked(prisma.escalationPolicy.findFirst).mockResolvedValue({ id: 'pol-1' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.escalationPolicy.findFirst).mockResolvedValue({ id: 'pol-1' } as any);
 
     await expect(assertEscalationPolicyNameAvailable('Primary')).rejects.toBeInstanceOf(
       UniqueNameConflictError
@@ -128,7 +132,8 @@ describe('assertWebhookIntegrationNameAvailable', () => {
   });
 
   it('throws a conflict error when webhook name is already taken', async () => {
-    vi.mocked(prisma.webhookIntegration.findFirst).mockResolvedValue({ id: 'wh-1' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.webhookIntegration.findFirst).mockResolvedValue({ id: 'wh-1' } as any);
 
     await expect(assertWebhookIntegrationNameAvailable('Slack')).rejects.toBeInstanceOf(
       UniqueNameConflictError
