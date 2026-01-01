@@ -326,7 +326,8 @@ export async function middleware(req: NextRequest) {
 
     // Unauthenticated user trying to access protected route - redirect to login
     const url = req.nextUrl.clone();
-    url.pathname = '/login';
+    // Redirect mobile users to mobile login page
+    url.pathname = isMobile && !preferDesktop ? '/m/login' : '/login';
     url.searchParams.set('callbackUrl', req.nextUrl.pathname + req.nextUrl.search);
     const redirectResponse = NextResponse.redirect(url);
     // Apply security headers to redirect
