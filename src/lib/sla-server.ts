@@ -2,6 +2,13 @@ import 'server-only';
 import type { SLAMetrics } from './sla';
 import { Prisma } from '@prisma/client';
 import { formatDateTime } from './timezone';
+import {
+  buildOnCallLoad,
+  buildServiceSlaTable,
+  buildStatusAges,
+  calculateMtbfMs,
+  calculatePercentile,
+} from './analytics-metrics';
 
 /**
  * Extended SLA Metrics Filter
@@ -22,9 +29,28 @@ type SLAMetricsFilter = {
 
 const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'] as const;
 
+type IncidentSLAResult = {
+  ackSLA: {
+    breached: boolean;
+    timeRemaining: number | null;
+    targetMinutes: number;
+  };
+  resolveSLA: {
+    breached: boolean;
+    timeRemaining: number | null;
+    targetMinutes: number;
+  };
+};
+
 function startOfDay(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function startOfHour(date: Date) {
+  const next = new Date(date);
+  next.setMinutes(0, 0, 0);
   return next;
 }
 
@@ -35,15 +61,18 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function toHourKey(date: Date) {
+  const dayKey = toDateKey(date);
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  return `${dayKey}-${hour}`;
+}
+
 function formatDayLabel(date: Date, timeZone: string = 'UTC') {
   return formatDateTime(date, timeZone, { format: 'short' });
 }
 
-function percentile(values: number[], percentileValue: number) {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.ceil((percentileValue / 100) * sorted.length) - 1);
-  return sorted[index];
+function formatHourLabel(date: Date, timeZone: string = 'UTC') {
+  return formatDateTime(date, timeZone, { format: 'time' });
 }
 
 function isAfterHours(date: Date) {
@@ -146,6 +175,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     previousIncidents,
     alertsCount,
     futureShifts,
+    windowShifts,
+    activeOverrides,
     statusTrends,
     services,
     assigneeCounts,
@@ -185,6 +216,11 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       where: { end: { gte: now }, start: { lte: coverageWindowEnd } },
       select: { start: true, end: true, userId: true },
     }),
+    prisma.onCallShift.findMany({
+      where: { end: { gte: start }, start: { lte: end } },
+      select: { start: true, end: true, userId: true },
+    }),
+    prisma.onCallOverride.count({ where: { end: { gte: now } } }),
     prisma.incident.groupBy({
       by: ['status'],
       where: recentIncidentWhere,
@@ -227,7 +263,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
             incidentId: { in: recentIncidentIds },
             message: { contains: 'escalated to', mode: 'insensitive' },
           },
-          select: { incidentId: true },
+          select: { incidentId: true, createdAt: true },
         }),
         prisma.incidentEvent.findMany({
           where: {
@@ -251,8 +287,25 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   for (const i of recentIncidents) if (i.acknowledgedAt) ackMap.set(i.id, i.acknowledgedAt);
   for (const e of ackEvents) if (!ackMap.has(e.incidentId)) ackMap.set(e.incidentId, e.createdAt);
 
+  const mttaSamples: number[] = [];
+  const mttrSamples: number[] = [];
+  for (const incident of recentIncidents) {
+    const ackAt = ackMap.get(incident.id);
+    if (ackAt && incident.createdAt) {
+      mttaSamples.push(ackAt.getTime() - incident.createdAt.getTime());
+    }
+
+    if (incident.status === 'RESOLVED') {
+      const resolvedAt = incident.resolvedAt || incident.updatedAt;
+      if (resolvedAt && incident.createdAt) {
+        mttrSamples.push(resolvedAt.getTime() - incident.createdAt.getTime());
+      }
+    }
+  }
+
   // Calc Metrics Helper
-  const calculateSetMetrics = (incidents: typeof recentIncidents, eventsMap: Map<string, Date>) => {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const calculateSetMetrics = (incidents: any[], eventsMap: Map<string, Date>) => {
     let ackSum = 0,
       ackCount = 0;
     let resolveSum = 0,
@@ -289,6 +342,17 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   };
 
   const currentStats = calculateSetMetrics(recentIncidents, ackMap);
+
+  const prevAckMap = new Map<string, Date>();
+  for (const incident of previousIncidents) {
+    if (incident.acknowledgedAt) prevAckMap.set(incident.id, incident.acknowledgedAt);
+  }
+  const prevStatsDetailed = calculateSetMetrics(previousIncidents, prevAckMap);
+
+  const mttaP50Ms = calculatePercentile(mttaSamples, 50);
+  const mttaP95Ms = calculatePercentile(mttaSamples, 95);
+  const mttrP50Ms = calculatePercentile(mttrSamples, 50);
+  const mttrP95Ms = calculatePercentile(mttrSamples, 95);
 
   // Ack Rate & Map for legacy logic re-use if needed
   const ackRate = currentStats.ackRate;
@@ -365,37 +429,60 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     : 100;
 
   // Charts: Daily Trends
-  const trendStartDay = startOfDay(start);
-  const trendSeries = Array.from({ length: windowDays }, (_, idx) => {
-    const day = new Date(trendStartDay);
-    day.setDate(trendStartDay.getDate() + idx);
+  const useHourlyTrend = windowDays === 1;
+  const trendStart = startOfDay(start);
+  const trendSeries = Array.from({ length: useHourlyTrend ? 24 : windowDays }, (_, idx) => {
+    const point = new Date(trendStart);
+    if (useHourlyTrend) {
+      point.setHours(trendStart.getHours() + idx);
+    } else {
+      point.setDate(trendStart.getDate() + idx);
+    }
     return {
-      date: day,
-      key: toDateKey(day),
-      label: formatDayLabel(day, userTimeZone),
+      date: point,
+      key: useHourlyTrend ? toHourKey(point) : toDateKey(point),
+      label: useHourlyTrend
+        ? formatHourLabel(point, userTimeZone)
+        : formatDayLabel(point, userTimeZone),
       count: 0,
       ackSum: 0,
       ackCount: 0,
+      ackSlaMet: 0,
       resolveSum: 0,
       resolveCount: 0,
+      escalationCount: 0,
     };
   });
-  const trendIndex = new Map(trendSeries.map((entry, idx) => [entry.key, idx]));
+  const trendIndex = new Map(trendSeries.map(entry => [entry.key, entry]));
+  const getTrendKey = (date: Date) =>
+    useHourlyTrend ? toHourKey(startOfHour(date)) : toDateKey(startOfDay(date));
 
   for (const incident of recentIncidents) {
-    const key = toDateKey(startOfDay(incident.createdAt));
-    const idx = trendIndex.get(key);
-    if (idx !== undefined) {
-      trendSeries[idx].count += 1;
+    const key = getTrendKey(incident.createdAt);
+    const trendEntry = trendIndex.get(key);
+    if (trendEntry) {
+      trendEntry.count += 1;
       const ackAt = ackMap.get(incident.id);
       if (ackAt) {
-        trendSeries[idx].ackSum += ackAt.getTime() - incident.createdAt.getTime();
-        trendSeries[idx].ackCount += 1;
+        trendEntry.ackSum += ackAt.getTime() - incident.createdAt.getTime();
+        trendEntry.ackCount += 1;
+        const ackTarget = incident.service.targetAckMinutes ?? defaultAckTarget;
+        const ackDiffMin = (ackAt.getTime() - incident.createdAt.getTime()) / 60000;
+        if (ackDiffMin <= ackTarget) trendEntry.ackSlaMet += 1;
       }
       if (incident.status === 'RESOLVED' && incident.resolvedAt) {
-        trendSeries[idx].resolveSum += incident.resolvedAt.getTime() - incident.createdAt.getTime();
-        trendSeries[idx].resolveCount += 1;
+        trendEntry.resolveSum += incident.resolvedAt.getTime() - incident.createdAt.getTime();
+        trendEntry.resolveCount += 1;
       }
+    }
+  }
+
+  for (const event of escalationEvents) {
+    if (!event.createdAt) continue;
+    const key = getTrendKey(event.createdAt);
+    const trendEntry = trendIndex.get(key);
+    if (trendEntry) {
+      trendEntry.escalationCount += 1;
     }
   }
 
@@ -454,9 +541,27 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     }))
     .sort((a, b) => b.count - a.count);
 
+  const serviceTargets = new Map<string, { ackMinutes: number; resolveMinutes: number }>();
+  for (const incident of recentIncidents) {
+    if (!serviceTargets.has(incident.serviceId)) {
+      serviceTargets.set(incident.serviceId, {
+        ackMinutes: incident.service.targetAckMinutes ?? defaultAckTarget,
+        resolveMinutes: incident.service.targetResolveMinutes ?? defaultResolveTarget,
+      });
+    }
+  }
+
+  const serviceSlaTable = buildServiceSlaTable(
+    recentIncidents,
+    ackMap,
+    serviceTargets,
+    serviceNameMap,
+    defaultAckTarget,
+    defaultResolveTarget
+  );
+
   // Coverage & Others
-  // Simplified MTBF (null for now as placeholder)
-  const mtbfMs = null;
+  const mtbfMs = calculateMtbfMs(recentIncidents.map(i => i.createdAt));
   const afterHoursCount = recentIncidents.filter(i => isAfterHours(i.createdAt)).length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
@@ -485,6 +590,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const escalationRate = totalRecent ? (escalatedIds.size / totalRecent) * 100 : 0;
   const reopenRate = solvedIncidents.length ? (reopenedIds.size / solvedIncidents.length) * 100 : 0;
   const autoResolvedCount = solvedIncidents.filter(i => autoResolvedIds.has(i.id)).length;
+  const manualResolvedCount = Math.max(0, solvedIncidents.length - autoResolvedCount);
+  const eventsCount =
+    ackEvents.length + escalationEvents.length + reopenEvents.length + autoResolveEvents.length;
   const autoResolveRate = solvedIncidents.length
     ? (autoResolvedCount / solvedIncidents.length) * 100
     : 0;
@@ -502,23 +610,21 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   }));
 
   // Status Mix
-  const statusOrder: (typeof allowedStatus)[number][] = [
-    'OPEN',
-    'ACKNOWLEDGED',
-    'SNOOZED',
-    'SUPPRESSED',
-    'RESOLVED',
-  ];
+  const statusOrder = [...allowedStatus];
   const statusMap = new Map(statusTrends.map(e => [e.status, e._count._all]));
   const statusMix = statusOrder.map(status => ({ status, count: statusMap.get(status) ?? 0 }));
+
+  const statusAges = buildStatusAges(recentIncidents, now, statusOrder);
 
   // Assignee Load
   const assigneeIds = assigneeCounts
     .map(e => e.assigneeId)
     .filter((id): id is string => Boolean(id));
-  const usersById = assigneeIds.length
+  const onCallUserIds = Array.from(new Set(windowShifts.map(shift => shift.userId)));
+  const userIds = Array.from(new Set([...assigneeIds, ...onCallUserIds]));
+  const usersById = userIds.length
     ? await prisma.user.findMany({
-        where: { id: { in: assigneeIds } },
+        where: { id: { in: userIds } },
         select: { id: true, name: true, email: true },
       })
     : [];
@@ -529,16 +635,19 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     count: e._count._all,
   }));
 
+  const onCallLoad = buildOnCallLoad(windowShifts, recentIncidents, start, end, userNameMap);
+  const onCallUsersCount = onCallUserIds.length;
+
   return {
     // Lifecycle
     mttr: currentStats.mttr ? currentStats.mttr / 60000 : null,
     mttd: currentStats.mtta ? currentStats.mtta / 60000 : null,
     mtti: null,
     mttk: null,
-    mttaP50: null,
-    mttaP95: null,
-    mttrP50: null,
-    mttrP95: null,
+    mttaP50: mttaP50Ms === null ? null : mttaP50Ms / 60000,
+    mttaP95: mttaP95Ms === null ? null : mttaP95Ms / 60000,
+    mttrP50: mttrP50Ms === null ? null : mttrP50Ms / 60000,
+    mttrP95: mttrP95Ms === null ? null : mttrP95Ms / 60000,
     mtbfMs,
 
     // Compliance
@@ -564,10 +673,25 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     reopenRate: Math.round(reopenRate * 100) / 100,
     autoResolveRate: Math.round(autoResolveRate * 100) / 100,
 
+    previousPeriod: {
+      totalIncidents: prevStatsDetailed.count,
+      mtta: prevStatsDetailed.mtta ? prevStatsDetailed.mtta / 60000 : null,
+      mttr: prevStatsDetailed.mttr ? prevStatsDetailed.mttr / 60000 : null,
+      ackRate: Math.round(prevStatsDetailed.ackRate * 100) / 100,
+      resolveRate: Math.round(prevStatsDetailed.resolveRate * 100) / 100,
+    },
+
+    // Events
+    autoResolvedCount,
+    manualResolvedCount,
+    eventsCount,
+
     // Coverage
     coveragePercent: Math.round(coveragePercent * 100) / 100,
     coverageGapDays,
     onCallHoursMs,
+    onCallUsersCount,
+    activeOverrides,
 
     // Golden Signals
     avgLatencyP99: null,
@@ -582,11 +706,18 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       count: s.count,
       mtta: s.ackCount ? s.ackSum / s.ackCount / 60000 : 0,
       mttr: s.resolveCount ? s.resolveSum / s.resolveCount / 60000 : 0,
+      ackRate: s.count ? (s.ackCount / s.count) * 100 : 0,
+      resolveRate: s.count ? (s.resolveCount / s.count) * 100 : 0,
+      ackCompliance: s.ackCount ? (s.ackSlaMet / s.ackCount) * 100 : 0,
+      escalationRate: s.count ? (s.escalationCount / s.count) * 100 : 0,
     })),
     statusMix,
     topServices: serviceMetrics.slice(0, 5),
     serviceMetrics,
     assigneeLoad,
+    statusAges,
+    onCallLoad,
+    serviceSlaTable,
     insights,
 
     // V2 Additions
@@ -603,8 +734,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function checkIncidentSLA(incidentId: string): Promise<any> {
+export async function checkIncidentSLA(incidentId: string): Promise<IncidentSLAResult> {
   const { default: prisma } = await import('./prisma');
   const incident = await prisma.incident.findUnique({
     where: { id: incidentId },
