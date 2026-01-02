@@ -1114,19 +1114,26 @@ export default async function AnalyticsV2Page({
             </span>
             <div>
               <span className="sla-coverage-eyebrow">Coverage Outlook</span>
-              <h3>Next 14 days staffing readiness</h3>
+              <h3>Staffing readiness for the next 14 days</h3>
             </div>
           </div>
-          <div className="sla-coverage-meta">
+          <div className="sla-coverage-chips">
             <span>Coverage {formatPercent(metrics.coveragePercent)}</span>
             <span>{metrics.coverageGapDays.toLocaleString()} gap days</span>
+            <span>{formatHours(metrics.onCallHoursMs)} scheduled</span>
           </div>
         </div>
         <div className="sla-coverage-body">
-          <div className="sla-coverage-track">
-            <span style={{ width: `${metrics.coveragePercent.toFixed(1)}%` }} />
+          <div className="sla-coverage-progress">
+            <div className="sla-coverage-track">
+              <span style={{ width: `${metrics.coveragePercent.toFixed(1)}%` }} />
+            </div>
+            <div className="sla-coverage-progress-meta">
+              <span>Target 100%</span>
+              <span>Current {formatPercent(metrics.coveragePercent)}</span>
+            </div>
           </div>
-          <div className="sla-coverage-grid">
+          <div className="sla-coverage-stats">
             <div>
               <span>Coverage</span>
               <strong>{formatPercent(metrics.coveragePercent)}</strong>
@@ -1159,7 +1166,7 @@ export default async function AnalyticsV2Page({
             </span>
             <div>
               <span className="sla-summary-eyebrow">SLA Summary</span>
-              <h3>Latency, breach, and burn performance</h3>
+              <h3>Latency distribution and SLA risk signals</h3>
             </div>
           </div>
           <div className="sla-summary-meta">
@@ -1168,46 +1175,64 @@ export default async function AnalyticsV2Page({
           </div>
         </div>
         <div className="sla-summary-body">
-          <div className="sla-summary-grid">
-            <div>
-              <span>MTTA p50</span>
-              <strong>{metrics.mttaP50 === null ? '--' : formatMinutes(metrics.mttaP50)}</strong>
+          <div className="sla-summary-columns">
+            <div className="sla-summary-block">
+              <div className="sla-summary-block-title">Latency percentiles</div>
+              <div className="sla-summary-grid">
+                <div>
+                  <span>MTTA p50</span>
+                  <strong>
+                    {metrics.mttaP50 === null ? '--' : formatMinutes(metrics.mttaP50)}
+                  </strong>
+                </div>
+                <div>
+                  <span>MTTA p95</span>
+                  <strong>
+                    {metrics.mttaP95 === null ? '--' : formatMinutes(metrics.mttaP95)}
+                  </strong>
+                </div>
+                <div>
+                  <span>MTTR p50</span>
+                  <strong>
+                    {metrics.mttrP50 === null ? '--' : formatMinutes(metrics.mttrP50)}
+                  </strong>
+                </div>
+                <div>
+                  <span>MTTR p95</span>
+                  <strong>
+                    {metrics.mttrP95 === null ? '--' : formatMinutes(metrics.mttrP95)}
+                  </strong>
+                </div>
+              </div>
             </div>
-            <div>
-              <span>MTTA p95</span>
-              <strong>{metrics.mttaP95 === null ? '--' : formatMinutes(metrics.mttaP95)}</strong>
-            </div>
-            <div>
-              <span>MTTR p50</span>
-              <strong>{metrics.mttrP50 === null ? '--' : formatMinutes(metrics.mttrP50)}</strong>
-            </div>
-            <div>
-              <span>MTTR p95</span>
-              <strong>{metrics.mttrP95 === null ? '--' : formatMinutes(metrics.mttrP95)}</strong>
-            </div>
-            <div>
-              <span>High urgency share</span>
-              <strong>{formatPercent(metrics.highUrgencyRate)}</strong>
-            </div>
-            <div>
-              <span>Ack SLA breaches</span>
-              <strong>{metrics.ackBreaches.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span>Resolve SLA breaches</span>
-              <strong>{metrics.resolveBreaches.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span>Ack SLA burn</span>
-              <strong>{formatPercent(ackSlaBurnRate)}</strong>
-            </div>
-            <div>
-              <span>Resolve SLA burn</span>
-              <strong>{formatPercent(resolveSlaBurnRate)}</strong>
-            </div>
-            <div>
-              <span>Unassigned active</span>
-              <strong>{metrics.unassignedActive.toLocaleString()}</strong>
+            <div className="sla-summary-block">
+              <div className="sla-summary-block-title">Breaches &amp; burn</div>
+              <div className="sla-summary-grid">
+                <div>
+                  <span>Ack SLA breaches</span>
+                  <strong>{metrics.ackBreaches.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span>Resolve SLA breaches</span>
+                  <strong>{metrics.resolveBreaches.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span>Ack SLA burn</span>
+                  <strong>{formatPercent(ackSlaBurnRate)}</strong>
+                </div>
+                <div>
+                  <span>Resolve SLA burn</span>
+                  <strong>{formatPercent(resolveSlaBurnRate)}</strong>
+                </div>
+                <div>
+                  <span>High urgency share</span>
+                  <strong>{formatPercent(metrics.highUrgencyRate)}</strong>
+                </div>
+                <div>
+                  <span>Unassigned active</span>
+                  <strong>{metrics.unassignedActive.toLocaleString()}</strong>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1221,7 +1246,7 @@ export default async function AnalyticsV2Page({
             </span>
             <div>
               <span className="sla-service-eyebrow">SLA Compliance by Service</span>
-              <h3>Response and resolve adherence for top services</h3>
+              <h3>Response and resolve adherence per service</h3>
             </div>
           </div>
           <div className="sla-service-meta">
@@ -1234,32 +1259,31 @@ export default async function AnalyticsV2Page({
           {metrics.serviceSlaTable.length === 0 ? (
             <div className="sla-service-empty">No SLA data in this window.</div>
           ) : (
-            <div className="sla-service-grid">
+            <div className="sla-service-list">
               {metrics.serviceSlaTable.map(entry => (
-                <article key={entry.id} className="sla-service-card">
-                  <div className="sla-service-card-head">
-                    <span className="sla-service-name">{entry.name}</span>
-                    <span className="sla-service-tag">Service</span>
+                <div key={entry.id} className="sla-service-row">
+                  <div className="sla-service-row-name">{entry.name}</div>
+                  <div className="sla-service-row-metrics">
+                    <div className="sla-service-row-metric">
+                      <div>
+                        <span>Ack SLA</span>
+                        <strong>{formatPercent(entry.ackRate)}</strong>
+                      </div>
+                      <div className="sla-service-row-bar">
+                        <span style={{ width: `${entry.ackRate.toFixed(1)}%` }} />
+                      </div>
+                    </div>
+                    <div className="sla-service-row-metric is-resolve">
+                      <div>
+                        <span>Resolve SLA</span>
+                        <strong>{formatPercent(entry.resolveRate)}</strong>
+                      </div>
+                      <div className="sla-service-row-bar">
+                        <span style={{ width: `${entry.resolveRate.toFixed(1)}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="sla-service-metrics">
-                    <div>
-                      <span>Ack SLA</span>
-                      <strong>{formatPercent(entry.ackRate)}</strong>
-                    </div>
-                    <div>
-                      <span>Resolve SLA</span>
-                      <strong>{formatPercent(entry.resolveRate)}</strong>
-                    </div>
-                  </div>
-                  <div className="sla-service-bars">
-                    <div className="sla-service-bar">
-                      <span style={{ width: `${entry.ackRate.toFixed(1)}%` }} />
-                    </div>
-                    <div className="sla-service-bar is-resolve">
-                      <span style={{ width: `${entry.resolveRate.toFixed(1)}%` }} />
-                    </div>
-                  </div>
-                </article>
+                </div>
               ))}
             </div>
           )}
@@ -1274,7 +1298,7 @@ export default async function AnalyticsV2Page({
             </span>
             <div>
               <span className="sla-compliance-eyebrow">SLA Compliance</span>
-              <h3>Overall adherence across response and coverage</h3>
+              <h3>Adherence across response, resolve, and coverage</h3>
             </div>
           </div>
           <div className="sla-compliance-meta">
@@ -1286,13 +1310,34 @@ export default async function AnalyticsV2Page({
         <div className="sla-compliance-body">
           <div className="sla-compliance-grid">
             <div className="sla-compliance-card">
-              <GaugeChart value={metrics.ackCompliance} label="Ack SLA" size={120} />
+              <div className="sla-compliance-card-head">
+                <span>Ack SLA</span>
+                <strong>{formatPercent(metrics.ackCompliance)}</strong>
+              </div>
+              <GaugeChart value={metrics.ackCompliance} label="Ack SLA" size={110} />
+              <div className="sla-compliance-bar">
+                <span style={{ width: `${metrics.ackCompliance.toFixed(1)}%` }} />
+              </div>
             </div>
             <div className="sla-compliance-card">
-              <GaugeChart value={metrics.resolveCompliance} label="Resolve SLA" size={120} />
+              <div className="sla-compliance-card-head">
+                <span>Resolve SLA</span>
+                <strong>{formatPercent(metrics.resolveCompliance)}</strong>
+              </div>
+              <GaugeChart value={metrics.resolveCompliance} label="Resolve SLA" size={110} />
+              <div className="sla-compliance-bar is-resolve">
+                <span style={{ width: `${metrics.resolveCompliance.toFixed(1)}%` }} />
+              </div>
             </div>
             <div className="sla-compliance-card">
-              <GaugeChart value={metrics.coveragePercent} label="Coverage" size={120} />
+              <div className="sla-compliance-card-head">
+                <span>Coverage</span>
+                <strong>{formatPercent(metrics.coveragePercent)}</strong>
+              </div>
+              <GaugeChart value={metrics.coveragePercent} label="Coverage" size={110} />
+              <div className="sla-compliance-bar is-coverage">
+                <span style={{ width: `${metrics.coveragePercent.toFixed(1)}%` }} />
+              </div>
             </div>
           </div>
         </div>
