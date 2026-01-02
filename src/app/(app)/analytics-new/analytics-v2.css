@@ -2546,7 +2546,7 @@
 
 .analytics-v2 .activity-github-legend-swatch {
     display: grid;
-    grid-template-columns: repeat(5, 10px);
+    grid-template-columns: repeat(3, 10px);
     gap: 4px;
 }
 
@@ -2554,23 +2554,15 @@
     width: 10px;
     height: 10px;
     border-radius: 3px;
-    background: rgba(59, 130, 246, 0.12);
+    background: #22c55e;
 }
 
 .analytics-v2 .activity-github-legend-swatch span:nth-child(2) {
-    background: rgba(59, 130, 246, 0.25);
+    background: #f59e0b;
 }
 
 .analytics-v2 .activity-github-legend-swatch span:nth-child(3) {
-    background: rgba(59, 130, 246, 0.4);
-}
-
-.analytics-v2 .activity-github-legend-swatch span:nth-child(4) {
-    background: rgba(59, 130, 246, 0.6);
-}
-
-.analytics-v2 .activity-github-legend-swatch span:nth-child(5) {
-    background: rgba(59, 130, 246, 0.85);
+    background: #ef4444;
 }
 
 @media (max-width: 900px) {
@@ -4123,23 +4115,15 @@
 }
 
 [data-theme='dark'] .analytics-v2 .activity-github-legend-swatch span {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(34, 197, 94, 0.8);
 }
 
 [data-theme='dark'] .analytics-v2 .activity-github-legend-swatch span:nth-child(2) {
-    background: rgba(59, 130, 246, 0.35);
+    background: rgba(245, 158, 11, 0.8);
 }
 
 [data-theme='dark'] .analytics-v2 .activity-github-legend-swatch span:nth-child(3) {
-    background: rgba(59, 130, 246, 0.5);
-}
-
-[data-theme='dark'] .analytics-v2 .activity-github-legend-swatch span:nth-child(4) {
-    background: rgba(59, 130, 246, 0.7);
-}
-
-[data-theme='dark'] .analytics-v2 .activity-github-legend-swatch span:nth-child(5) {
-    background: rgba(59, 130, 246, 0.9);
+    background: rgba(239, 68, 68, 0.85);
 }
 
 .h-280 {
