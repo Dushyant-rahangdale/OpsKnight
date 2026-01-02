@@ -241,7 +241,7 @@ export default async function Dashboard({
     calculateSLAMetrics({
       serviceId: service,
       assigneeId: assigneeFilter,
-      urgency,
+      urgency: urgency as 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
       startDate: metricsStartDate,
       endDate: metricsEndDate,
       includeAllTime: range === 'all',
@@ -381,25 +381,25 @@ export default async function Dashboard({
   // Fetch counts for all services at once using aggregation
   const [serviceActiveCounts, serviceCriticalCounts] = await Promise.all([
     serviceIds.length > 0
-        ? prisma.incident.groupBy({
-            by: ['serviceId'],
-            where: {
-              serviceId: { in: serviceIds },
-              status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-            },
-            _count: { _all: true },
-          })
+      ? prisma.incident.groupBy({
+          by: ['serviceId'],
+          where: {
+            serviceId: { in: serviceIds },
+            status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+          },
+          _count: { _all: true },
+        })
       : [],
     serviceIds.length > 0
-        ? prisma.incident.groupBy({
-            by: ['serviceId'],
-            where: {
-              serviceId: { in: serviceIds },
-              status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-              urgency: 'HIGH',
-            },
-            _count: { _all: true },
-          })
+      ? prisma.incident.groupBy({
+          by: ['serviceId'],
+          where: {
+            serviceId: { in: serviceIds },
+            status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+            urgency: 'HIGH',
+          },
+          _count: { _all: true },
+        })
       : [],
   ]);
 
