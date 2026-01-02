@@ -162,7 +162,7 @@
     padding: 0.3rem 0.6rem;
     border-radius: 999px;
     background: rgba(148, 163, 184, 0.16);
-    color: var(--text-muted);
+    color: #1f2937;
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -171,7 +171,7 @@
 
 .analytics-update {
     font-size: 0.78rem;
-    color: var(--text-muted);
+    color: #475569;
 }
 
 .analytics-header-actions {
@@ -252,6 +252,26 @@
     font-size: 0.9rem;
     color: var(--text-secondary);
     max-width: 520px;
+}
+
+.analytics-header-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+}
+
+.analytics-header-highlights span {
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.9);
+    color: #1d4ed8;
+    font-weight: 600;
 }
 
 /* Premium Gradients */

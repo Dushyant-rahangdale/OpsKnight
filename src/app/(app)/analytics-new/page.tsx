@@ -273,6 +273,12 @@ export default async function AnalyticsV2Page({
           <p className="analytics-header-subtitle">
             Incident health, SLA performance, and on-call readiness.
           </p>
+          <div className="analytics-header-highlights">
+            <span>Coverage outlook</span>
+            <span>SLA compliance</span>
+            <span>Ownership load</span>
+            <span>Service health</span>
+          </div>
         </div>
 
         <div className="analytics-header-actions">
