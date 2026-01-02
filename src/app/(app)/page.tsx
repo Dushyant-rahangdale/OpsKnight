@@ -6,7 +6,6 @@ import DashboardFilters from '@/components/DashboardFilters';
 import IncidentTable from '@/components/IncidentTable';
 import DashboardPerformanceMetrics from '@/components/DashboardPerformanceMetrics';
 import DashboardQuickFilters from '@/components/DashboardQuickFilters';
-import DashboardTimeRange from '@/components/DashboardTimeRange';
 import DashboardFilterChips from '@/components/DashboardFilterChips';
 import DashboardAdvancedMetrics from '@/components/DashboardAdvancedMetrics';
 import DashboardSavedFilters from '@/components/DashboardSavedFilters';
@@ -64,8 +63,9 @@ export default async function Dashboard({
     typeof awaitedSearchParams.assignee === 'string' ? awaitedSearchParams.assignee : undefined;
   const service =
     typeof awaitedSearchParams.service === 'string' ? awaitedSearchParams.service : undefined;
-  const urgency =
+  const urgencyParam =
     typeof awaitedSearchParams.urgency === 'string' ? awaitedSearchParams.urgency : undefined;
+  const urgency = (['HIGH', 'MEDIUM', 'LOW'].includes(urgencyParam || '') ? urgencyParam : undefined) as 'HIGH' | 'MEDIUM' | 'LOW' | undefined;
   const page =
     typeof awaitedSearchParams.page === 'string' ? parseInt(awaitedSearchParams.page) || 1 : 1;
   const sortBy =
@@ -84,9 +84,9 @@ export default async function Dashboard({
   const email = session?.user?.email ?? null;
   const user = email
     ? await prisma.user.findUnique({
-        where: { email },
-        select: { name: true },
-      })
+      where: { email },
+      select: { name: true },
+    })
     : null;
   const userName = user?.name || 'there';
 
@@ -213,7 +213,7 @@ export default async function Dashboard({
     // All-time counts (for Command Center and Advanced Metrics)
     prisma.incident.count({
       where: {
-        status: { not: 'RESOLVED' },
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
       },
     }),
     prisma.incident.count({
@@ -223,13 +223,13 @@ export default async function Dashboard({
     }),
     prisma.incident.count({
       where: {
-        status: { not: 'RESOLVED' },
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
         urgency: 'HIGH',
       },
     }),
     prisma.incident.count({
       where: {
-        status: { not: 'RESOLVED' },
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
         assigneeId: null,
       },
     }),
@@ -261,7 +261,7 @@ export default async function Dashboard({
     }),
     prisma.incident.count({
       where: {
-        status: { not: 'RESOLVED' },
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
         ...metricsWhere,
       },
     }),
@@ -273,7 +273,7 @@ export default async function Dashboard({
     }),
     prisma.incident.count({
       where: {
-        status: { not: 'RESOLVED' },
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
         urgency: 'HIGH',
         ...metricsWhere,
       },
@@ -340,37 +340,37 @@ export default async function Dashboard({
   const previousPeriodIncidents =
     currentPeriodDays > 0
       ? await Promise.all([
-          prisma.incident.count({
-            where: {
-              ...previousPeriodWhere,
-            },
-          }),
-          prisma.incident.count({
-            where: {
-              status: { not: 'RESOLVED' },
-              ...previousPeriodWhere,
-            },
-          }),
-          prisma.incident.count({
-            where: {
-              status: 'RESOLVED',
-              ...previousPeriodWhere,
-            },
-          }),
-          prisma.incident.count({
-            where: {
-              status: 'ACKNOWLEDGED',
-              ...previousPeriodWhere,
-            },
-          }),
-          prisma.incident.count({
-            where: {
-              status: { not: 'RESOLVED' },
-              urgency: 'HIGH',
-              ...previousPeriodWhere,
-            },
-          }),
-        ])
+        prisma.incident.count({
+          where: {
+            ...previousPeriodWhere,
+          },
+        }),
+        prisma.incident.count({
+          where: {
+            status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+            ...previousPeriodWhere,
+          },
+        }),
+        prisma.incident.count({
+          where: {
+            status: 'RESOLVED',
+            ...previousPeriodWhere,
+          },
+        }),
+        prisma.incident.count({
+          where: {
+            status: 'ACKNOWLEDGED',
+            ...previousPeriodWhere,
+          },
+        }),
+        prisma.incident.count({
+          where: {
+            status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+            urgency: 'HIGH',
+            ...previousPeriodWhere,
+          },
+        }),
+      ])
       : [0, 0, 0, 0, 0];
 
   const [prevTotal, prevOpen, prevResolved, prevAcknowledged, prevCritical] =
@@ -383,24 +383,24 @@ export default async function Dashboard({
   const [serviceActiveCounts, serviceCriticalCounts] = await Promise.all([
     serviceIds.length > 0
       ? prisma.incident.groupBy({
-          by: ['serviceId'],
-          where: {
-            serviceId: { in: serviceIds },
-            status: { not: 'RESOLVED' },
-          },
-          _count: { _all: true },
-        })
+        by: ['serviceId'],
+        where: {
+          serviceId: { in: serviceIds },
+          status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+        },
+        _count: { _all: true },
+      })
       : [],
     serviceIds.length > 0
       ? prisma.incident.groupBy({
-          by: ['serviceId'],
-          where: {
-            serviceId: { in: serviceIds },
-            status: { not: 'RESOLVED' },
-            urgency: 'HIGH',
-          },
-          _count: { _all: true },
-        })
+        by: ['serviceId'],
+        where: {
+          serviceId: { in: serviceIds },
+          status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+          urgency: 'HIGH',
+        },
+        _count: { _all: true },
+      })
       : [],
   ]);
 
