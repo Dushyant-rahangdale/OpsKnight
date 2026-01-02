@@ -1,9 +1,4 @@
-/*
-  Warnings:
 
-  - You are about to drop the `WebVital` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- AlterEnum
 ALTER TYPE "IncidentUrgency" ADD VALUE 'MEDIUM';
 
