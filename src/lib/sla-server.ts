@@ -44,8 +44,12 @@ type IncidentSLAResult = {
 
 function startOfDay(date: Date) {
   const next = new Date(date);
-  next.setHours(0, 0, 0, 0);
+  next.setUTCHours(0, 0, 0, 0);
   return next;
+}
+
+function toDateKey(date: Date) {
+  return date.toISOString().split('T')[0];
 }
 
 function startOfHour(date: Date) {
@@ -54,16 +58,9 @@ function startOfHour(date: Date) {
   return next;
 }
 
-function toDateKey(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function toHourKey(date: Date) {
   const dayKey = toDateKey(date);
-  const hour = `${date.getHours()}`.padStart(2, '0');
+  const hour = `${date.getUTCHours()}`.padStart(2, '0');
   return `${dayKey}-${hour}`;
 }
 
@@ -155,7 +152,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   heatmapStart.setDate(now.getDate() - 365);
   const heatmapWhere: Prisma.IncidentWhereInput = {
     ...recentIncidentWhere,
-    createdAt: { gte: heatmapStart, ...(end ? { lte: end } : {}) },
+    createdAt: { gte: heatmapStart, lte: now }, // Always up to NOW
   };
 
   // Previous Period Query (for Trends/Insights)
@@ -182,6 +179,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     assigneeCounts,
     recurringTitleCounts,
     heatmapIncidents,
+    urgencyCounts,
   ] = await Promise.all([
     prisma.incident.count({ where: activeWhere }),
     prisma.incident.count({ where: { ...activeWhere, assigneeId: null } }),
@@ -245,6 +243,11 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       where: heatmapWhere,
       select: { createdAt: true },
     }),
+    prisma.incident.groupBy({
+      by: ['urgency'],
+      where: recentIncidentWhere,
+      _count: { _all: true },
+    }),
   ]);
 
   // 4. Fetch Incident Events
@@ -281,6 +284,20 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         }),
       ])
     : [[], [], [], []];
+  const [firstNotes, firstAlerts] = recentIncidentIds.length
+    ? await Promise.all([
+        prisma.incidentNote.groupBy({
+          by: ['incidentId'],
+          where: { incidentId: { in: recentIncidentIds } },
+          _min: { createdAt: true },
+        }),
+        prisma.alert.groupBy({
+          by: ['incidentId'],
+          where: { incidentId: { in: recentIncidentIds } },
+          _min: { createdAt: true },
+        }),
+      ])
+    : [[], []];
 
   // Build Global Ack Map
   const ackMap = new Map<string, Date>();
@@ -302,6 +319,37 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       }
     }
   }
+
+  const firstNoteMap = new Map(
+    firstNotes
+      .filter(entry => entry._min.createdAt)
+      .map(entry => [entry.incidentId, entry._min.createdAt as Date])
+  );
+  const firstAlertMap = new Map(
+    firstAlerts
+      .filter(entry => entry._min.createdAt)
+      .map(entry => [entry.incidentId, entry._min.createdAt as Date])
+  );
+  const mttiSamples = recentIncidents
+    .map(incident => {
+      const noteAt = firstNoteMap.get(incident.id);
+      if (!noteAt) return null;
+      return Math.max(0, noteAt.getTime() - incident.createdAt.getTime());
+    })
+    .filter((diff): diff is number => diff !== null);
+  const mttkSamples = recentIncidents
+    .map(incident => {
+      const alertAt = firstAlertMap.get(incident.id);
+      if (!alertAt) return null;
+      return Math.max(0, incident.createdAt.getTime() - alertAt.getTime());
+    })
+    .filter((diff): diff is number => diff !== null);
+  const mttiMs = mttiSamples.length
+    ? mttiSamples.reduce((sum, diff) => sum + diff, 0) / mttiSamples.length
+    : null;
+  const mttkMs = mttkSamples.length
+    ? mttkSamples.reduce((sum, diff) => sum + diff, 0) / mttkSamples.length
+    : null;
 
   // Calc Metrics Helper
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -601,7 +649,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // Heatmap
   const heatmapAggregation = new Map<string, number>();
   for (const incident of heatmapIncidents) {
-    const key = toDateKey(startOfDay(incident.createdAt));
+    const d = new Date(incident.createdAt);
+    // Force UTC date key: YYYY-MM-DD
+    const key = d.toISOString().split('T')[0];
     heatmapAggregation.set(key, (heatmapAggregation.get(key) || 0) + 1);
   }
   const heatmapData = Array.from(heatmapAggregation.entries()).map(([dateStr, count]) => ({
@@ -615,6 +665,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const statusMix = statusOrder.map(status => ({ status, count: statusMap.get(status) ?? 0 }));
 
   const statusAges = buildStatusAges(recentIncidents, now, statusOrder);
+
+  // Urgency Mix
+  const urgencyMix = urgencyCounts.map(e => ({ urgency: e.urgency, count: e._count._all }));
 
   // Assignee Load
   const assigneeIds = assigneeCounts
@@ -642,8 +695,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     // Lifecycle
     mttr: currentStats.mttr ? currentStats.mttr / 60000 : null,
     mttd: currentStats.mtta ? currentStats.mtta / 60000 : null,
-    mtti: null,
-    mttk: null,
+    mtti: mttiMs === null ? null : mttiMs / 60000,
+    mttk: mttkMs === null ? null : mttkMs / 60000,
     mttaP50: mttaP50Ms === null ? null : mttaP50Ms / 60000,
     mttaP95: mttaP95Ms === null ? null : mttaP95Ms / 60000,
     mttrP50: mttrP50Ms === null ? null : mttrP50Ms / 60000,
@@ -712,6 +765,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       escalationRate: s.count ? (s.escalationCount / s.count) * 100 : 0,
     })),
     statusMix,
+    urgencyMix,
     topServices: serviceMetrics.slice(0, 5),
     serviceMetrics,
     assigneeLoad,

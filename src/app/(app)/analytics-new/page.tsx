@@ -8,13 +8,10 @@ import { getAuthOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import prisma from '@/lib/prisma';
 import MetricCard from '@/components/analytics/MetricCard';
-import ChartCard from '@/components/analytics/ChartCard';
 import AnalyticsFilters from '@/components/analytics/AnalyticsFilters';
 import FilterChips from '@/components/analytics/FilterChips';
-import BarChart from '@/components/analytics/BarChart';
-import PieChart from '@/components/analytics/PieChart';
-import ProgressBar from '@/components/analytics/ProgressBar';
 import MetricIcon from '@/components/analytics/MetricIcon';
+
 import {
   Shield,
   CheckCircle,
@@ -36,7 +33,7 @@ import GaugeChart from '@/components/analytics/GaugeChart';
 import HeatmapCalendar from '@/components/analytics/HeatmapCalendar';
 import LineChart from '@/components/analytics/LineChart';
 import ServiceHealthTable from '@/components/analytics/ServiceHealthTable';
-import InsightCard from '@/components/analytics/InsightCard';
+
 import './analytics-v2.css';
 
 export const dynamic = 'force-dynamic';
@@ -152,8 +149,13 @@ export default async function AnalyticsV2Page({
   const formatHours = (ms: number) => `${(ms / 3600000).toFixed(1)}h`;
   const getComplianceStatus = (val: number) =>
     val >= 95 ? 'success' : val >= 80 ? 'warning' : 'danger';
-  const maxTrend = Math.max(1, ...metrics.trendSeries.map(e => e.count));
   const lowUrgencyCount = Math.max(0, metrics.totalIncidents - metrics.highUrgencyCount);
+  const highUrgencyPercent = metrics.totalIncidents
+    ? (metrics.highUrgencyCount / metrics.totalIncidents) * 100
+    : 0;
+  const lowUrgencyPercent = metrics.totalIncidents
+    ? (lowUrgencyCount / metrics.totalIncidents) * 100
+    : 0;
   const ackSlaBurnRate = Math.max(0, 100 - metrics.ackCompliance);
   const resolveSlaBurnRate = Math.max(0, 100 - metrics.resolveCompliance);
   const activeFilterCount =
@@ -220,6 +222,40 @@ export default async function AnalyticsV2Page({
     status: statusFilter,
     urgency: urgencyFilter,
   });
+  const insightCounts = metrics.insights.reduce(
+    (acc, insight) => {
+      if (insight.type === 'positive') acc.positive += 1;
+      else if (insight.type === 'negative') acc.negative += 1;
+      else acc.neutral += 1;
+      return acc;
+    },
+    { positive: 0, negative: 0, neutral: 0 }
+  );
+  const statusTotal = metrics.statusMix.reduce((sum, entry) => sum + entry.count, 0);
+  const statusMixWithPercent = metrics.statusMix.map(entry => ({
+    ...entry,
+    percent: statusTotal ? (entry.count / statusTotal) * 100 : 0,
+  }));
+  const topServiceMax = Math.max(1, ...metrics.topServices.map(entry => entry.count));
+  const assigneeMax = Math.max(1, ...metrics.assigneeLoad.map(entry => entry.count));
+  const statusAgeMax = Math.max(1, ...metrics.statusAges.map(entry => entry.avgMs ?? 0));
+  const onCallMax = Math.max(1, ...metrics.onCallLoad.map(entry => entry.incidentCount));
+  const resolvedTotal = metrics.autoResolvedCount + metrics.manualResolvedCount;
+  const autoResolvedShare = resolvedTotal ? (metrics.autoResolvedCount / resolvedTotal) * 100 : 0;
+  const manualResolvedShare = resolvedTotal
+    ? (metrics.manualResolvedCount / resolvedTotal) * 100
+    : 0;
+
+  const serviceHealthCounts = metrics.serviceMetrics.reduce(
+    (acc, service) => {
+      if (service.status === 'Healthy') acc.healthy += 1;
+      else if (service.status === 'Degraded') acc.degraded += 1;
+      else if (service.status === 'Critical') acc.critical += 1;
+      else acc.unknown += 1;
+      return acc;
+    },
+    { total: metrics.serviceMetrics.length, healthy: 0, degraded: 0, critical: 0, unknown: 0 }
+  );
 
   return (
     <main className="page-shell analytics-shell analytics-v2 pb-20">
@@ -268,6 +304,7 @@ export default async function AnalyticsV2Page({
           window: `${windowDays}`,
         }}
       />
+
       <div className="analytics-context analytics-context-compact">
         <div className="analytics-context-row">
           <div className="analytics-context-inline">
@@ -289,12 +326,13 @@ export default async function AnalyticsV2Page({
         />
       </div>
 
-      <div className="v2-section-header">
+      <div className="v2-section-header v2-panel-heading">
         <h2 className="v2-section-title">
           <LayoutDashboard className="w-5 h-5" /> Executive Summary
         </h2>
         <span className="text-xs text-muted-foreground">Highlights vs previous period</span>
       </div>
+
       <section className="v2-grid-4 mb-4">
         <MetricCard
           label={`Incidents (${windowDays}d)`}
@@ -308,11 +346,7 @@ export default async function AnalyticsV2Page({
           className="analytics-card-large"
         >
           <div className="analytics-kpi-meta">
-            <svg
-              className="analytics-sparkline analytics-sparkline-blue"
-              viewBox="0 0 72 24"
-              aria-hidden="true"
-            >
+            <svg className="analytics-sparkline analytics-sparkline-blue" viewBox="0 0 72 24">
               <path className="analytics-sparkline-area" d={buildSparklineAreaPath(countSeries)} />
               <path className="analytics-sparkline-line" d={buildSparklinePath(countSeries)} />
             </svg>
@@ -328,11 +362,7 @@ export default async function AnalyticsV2Page({
           className="analytics-card-large"
         >
           <div className="analytics-kpi-meta">
-            <svg
-              className="analytics-sparkline analytics-sparkline-blue"
-              viewBox="0 0 72 24"
-              aria-hidden="true"
-            >
+            <svg className="analytics-sparkline analytics-sparkline-blue" viewBox="0 0 72 24">
               <path className="analytics-sparkline-area" d={buildSparklineAreaPath(activeSeries)} />
               <path className="analytics-sparkline-line" d={buildSparklinePath(activeSeries)} />
             </svg>
@@ -350,11 +380,7 @@ export default async function AnalyticsV2Page({
           className="analytics-card-large"
         >
           <div className="analytics-kpi-meta">
-            <svg
-              className="analytics-sparkline analytics-sparkline-amber"
-              viewBox="0 0 72 24"
-              aria-hidden="true"
-            >
+            <svg className="analytics-sparkline analytics-sparkline-amber" viewBox="0 0 72 24">
               <path className="analytics-sparkline-area" d={buildSparklineAreaPath(mttaSeries)} />
               <path className="analytics-sparkline-line" d={buildSparklinePath(mttaSeries)} />
             </svg>
@@ -372,11 +398,7 @@ export default async function AnalyticsV2Page({
           className="analytics-card-large"
         >
           <div className="analytics-kpi-meta">
-            <svg
-              className="analytics-sparkline analytics-sparkline-emerald"
-              viewBox="0 0 72 24"
-              aria-hidden="true"
-            >
+            <svg className="analytics-sparkline analytics-sparkline-emerald" viewBox="0 0 72 24">
               <path className="analytics-sparkline-area" d={buildSparklineAreaPath(mttrSeries)} />
               <path className="analytics-sparkline-line" d={buildSparklinePath(mttrSeries)} />
             </svg>
@@ -386,7 +408,9 @@ export default async function AnalyticsV2Page({
           label="Resolution Compliance"
           value={formatPercent(metrics.resolveCompliance)}
           detail="SLA compliance"
-          variant={getComplianceStatus(metrics.resolveCompliance) as any}
+          variant={
+            getComplianceStatus(metrics.resolveCompliance) as 'success' | 'warning' | 'danger'
+          }
           icon={<Shield className="w-5 h-5" />}
           href="/incidents?status=RESOLVED"
           className="analytics-card-large"
@@ -406,7 +430,7 @@ export default async function AnalyticsV2Page({
           label="Ack SLA"
           value={formatPercent(metrics.ackCompliance)}
           detail="Within target"
-          variant={getComplianceStatus(metrics.ackCompliance) as any}
+          variant={getComplianceStatus(metrics.ackCompliance) as 'success' | 'warning' | 'danger'}
           icon={<Shield className="w-5 h-5" />}
           href="/incidents"
           className="analytics-card-large"
@@ -482,9 +506,7 @@ export default async function AnalyticsV2Page({
         </MetricCard>
       </section>
 
-      {/* EXTENDED METRIC GRID (Drill Downs Connected) */}
       <section className="v2-grid-4 mb-8">
-        {/* Row 1: Rates */}
         <MetricCard
           className="analytics-card-compact"
           label="Ack Rate"
@@ -521,8 +543,6 @@ export default async function AnalyticsV2Page({
           icon={<AlertCircle className="w-5 h-5 text-orange-500" />}
           href="/incidents"
         />
-
-        {/* Row 2: Operational */}
         <MetricCard
           className="analytics-card-compact"
           label="Alerts"
@@ -559,8 +579,6 @@ export default async function AnalyticsV2Page({
           icon={<AlertTriangle className="w-5 h-5 text-orange-500" />}
           href="/on-call"
         />
-
-        {/* Row 3: Coverage */}
         <MetricCard
           className="analytics-card-compact"
           label="After Hours"
@@ -599,156 +617,118 @@ export default async function AnalyticsV2Page({
         />
       </section>
 
-      {/* SPLIT ROW: Intelligent Insights & Response Trends */}
-      <div className={`${showInsights ? 'v2-grid-split' : 'w-full'} mb-8`}>
-        {/* INSIGHTS */}
+      <section className={`${showInsights ? 'v2-grid-split' : 'w-full'} mb-8 insights-trends`}>
         {showInsights && (
-          <div className="glass-panel p-4 h-full analytics-insights">
-            <div className="analytics-insights-header">
-              <div className="analytics-insights-title">
-                <Sparkles className="w-4 h-4 text-purple-500" />
-                <span>Smart Insights</span>
+          <div className="insights-panel v2-panel-insights">
+            <div className="insights-panel-header">
+              <div className="insights-panel-title-row">
+                <span className="insights-panel-icon">
+                  <Sparkles className="w-4 h-4" />
+                </span>
+                <div>
+                  <div className="insights-panel-kicker">Smart Insights</div>
+                  <h3 className="insights-panel-title">
+                    Key signals in the last {windowDays} days
+                  </h3>
+                </div>
               </div>
-              <span className="analytics-insights-badge">Last {windowDays} days</span>
+              <div className="insights-panel-badges">
+                <span>Attention {insightCounts.negative}</span>
+                <span>Opportunity {insightCounts.positive}</span>
+                <span>Neutral {insightCounts.neutral}</span>
+              </div>
             </div>
-            <div className="analytics-insights-list">
+            <div className="insights-panel-body">
               {metrics.insights.slice(0, 5).map((insight, i) => (
                 <div
-                  className={`analytics-insights-item ${insight.type === 'positive' ? 'is-positive' : insight.type === 'negative' ? 'is-negative' : ''}`}
+                  className={`insights-panel-row ${insight.type === 'positive' ? 'is-positive' : insight.type === 'negative' ? 'is-negative' : ''}`}
                   key={i}
                 >
-                  <div className="analytics-insights-item-title">
-                    <span className="analytics-insights-item-dot" />
-                    <span>
-                      {insight.type === 'positive'
-                        ? 'Opportunity'
-                        : insight.type === 'negative'
-                          ? 'Attention'
-                          : 'Insight'}
-                    </span>
+                  <div className="insights-panel-row-tag">
+                    {insight.type === 'positive'
+                      ? 'Opportunity'
+                      : insight.type === 'negative'
+                        ? 'Attention'
+                        : 'Insight'}
                   </div>
-                  <div className="analytics-insights-item-text">{insight.text}</div>
+                  <div className="insights-panel-row-text">{insight.text}</div>
                 </div>
               ))}
-            </div>
-            <div className="analytics-insights-footer">
-              <span>{metrics.totalIncidents.toLocaleString()} incidents analyzed</span>
-              <span>Updated just now</span>
             </div>
           </div>
         )}
 
-        {/* CHART */}
-        <div>
-          <ChartCard
-            title={`Response Performance Trends (Last ${windowDays} Days)`}
-            subtitle="MTTA vs MTTR"
-            className="chart-accent-amber analytics-trend-card"
-          >
-            <div className="h-280">
-              {metrics.totalIncidents === 0 ? (
-                <div className="analytics-empty-state">
-                  <div className="analytics-empty-title">No incidents in this window</div>
-                  <div className="analytics-empty-description">
-                    Response trends will appear once incidents are logged.
+        <div className="trends-panel v2-panel-trends">
+          <div className="trends-panel-header">
+            <div className="trends-panel-title-row">
+              <span className="trends-panel-icon">
+                <TrendingUp className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="trends-panel-kicker">Response Performance Trends</div>
+                <h3 className="trends-panel-title">MTTA vs MTTR · Last {windowDays} days</h3>
+              </div>
+            </div>
+            <div className="trends-panel-badges">
+              <span className="trends-badge trends-badge-mtta">
+                MTTA avg {formatMinutes(metrics.mttd)}
+              </span>
+              <span className="trends-badge trends-badge-mttr">
+                MTTR avg {formatMinutes(metrics.mttr)}
+              </span>
+            </div>
+          </div>
+          <div className="trends-panel-body">
+            {metrics.totalIncidents === 0 ? (
+              <div className="analytics-empty-state">
+                <div className="analytics-empty-title">No incidents in this window</div>
+              </div>
+            ) : (
+              <div className="trends-panel-grid">
+                <div className="trends-panel-chart">
+                  <LineChart
+                    data={metrics.trendSeries}
+                    lines={[
+                      { key: 'mtta', color: '#f59e0b', label: 'MTTA' },
+                      { key: 'mttr', color: '#10b981', label: 'MTTR' },
+                    ]}
+                    height={280}
+                    valueFormatter={(v: number) => formatTimeMinutesMs(v * 60000)}
+                  />
+                </div>
+                <div className="trends-panel-stats">
+                  <div className="trends-panel-stat">
+                    <span>MTTA delta</span>
+                    <strong>
+                      {mttaDelta !== null && (
+                        <span
+                          className={`analytics-trend-arrow ${mttaDelta > 0 ? 'trend-negative' : 'trend-positive'}`}
+                        >
+                          {mttaDelta > 0 ? '⬆' : '⬇'}
+                        </span>
+                      )}
+                      {mttaDelta === null ? '--' : `${Math.abs(mttaDelta).toFixed(1)}%`}
+                    </strong>
+                  </div>
+                  <div className="trends-panel-stat">
+                    <span>MTTR delta</span>
+                    <strong>
+                      {mttrDelta !== null && (
+                        <span
+                          className={`analytics-trend-arrow ${mttrDelta > 0 ? 'trend-negative' : 'trend-positive'}`}
+                        >
+                          {mttrDelta > 0 ? '⬆' : '⬇'}
+                        </span>
+                      )}
+                      {mttrDelta === null ? '--' : `${Math.abs(mttrDelta).toFixed(1)}%`}
+                    </strong>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className="analytics-trend-header">
-                    <div className="analytics-trend-legend">
-                      <span className="analytics-trend-chip">
-                        <span className="analytics-trend-dot amber" />
-                        MTTA (Response)
-                      </span>
-                      <span className="analytics-trend-chip">
-                        <span className="analytics-trend-dot emerald" />
-                        MTTR (Resolution)
-                      </span>
-                    </div>
-                    <div className="analytics-trend-meta">
-                      <span className="analytics-trend-meta-label">Window</span>
-                      <span className="analytics-trend-meta-value">{windowDays} days</span>
-                    </div>
-                  </div>
-                  <div className="analytics-trend-grid">
-                    <div className="analytics-trend-chart">
-                      <LineChart
-                        data={metrics.trendSeries}
-                        lines={[
-                          { key: 'mtta', color: '#f59e0b', label: 'MTTA (Response)' },
-                          { key: 'mttr', color: '#10b981', label: 'MTTR (Resolution)' },
-                        ]}
-                        height={280}
-                        valueFormatter={(v: number) => formatTimeMinutesMs(v * 60000)}
-                      />
-                    </div>
-                    <div className="analytics-trend-rail">
-                      <div className="analytics-trend-rail-block">
-                        <div className="analytics-trend-rail-title">Current averages</div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTA avg</span>
-                          <strong>{formatMinutes(metrics.mttd)}</strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTR avg</span>
-                          <strong>{formatMinutes(metrics.mttr)}</strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>Resolve SLA</span>
-                          <strong>{formatPercent(metrics.resolveCompliance)}</strong>
-                        </div>
-                      </div>
-                      <div className="analytics-trend-rail-block">
-                        <div className="analytics-trend-rail-title">Response benchmarks</div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTA p50</span>
-                          <strong>
-                            {metrics.mttaP50 === null ? '--' : formatMinutes(metrics.mttaP50)}
-                          </strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTA p95</span>
-                          <strong>
-                            {metrics.mttaP95 === null ? '--' : formatMinutes(metrics.mttaP95)}
-                          </strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTR p50</span>
-                          <strong>
-                            {metrics.mttrP50 === null ? '--' : formatMinutes(metrics.mttrP50)}
-                          </strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTR p95</span>
-                          <strong>
-                            {metrics.mttrP95 === null ? '--' : formatMinutes(metrics.mttrP95)}
-                          </strong>
-                        </div>
-                      </div>
-                      <div className="analytics-trend-rail-block">
-                        <div className="analytics-trend-rail-title">Change vs prev</div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTA delta</span>
-                          <strong>
-                            {mttaDelta === null ? '--' : `${Math.abs(mttaDelta).toFixed(1)}%`}
-                          </strong>
-                        </div>
-                        <div className="analytics-trend-stat">
-                          <span>MTTR delta</span>
-                          <strong>
-                            {mttrDelta === null ? '--' : `${Math.abs(mttrDelta).toFixed(1)}%`}
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </ChartCard>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
       <section className="glass-panel mb-8 analytics-narrative analytics-narrative-compact">
         <div className="analytics-narrative-header">
@@ -794,322 +774,426 @@ export default async function AnalyticsV2Page({
         </div>
       </section>
 
-      {/* OPERATIONAL MIX - 3 Cols */}
-      <div className="v2-grid-3 mb-8">
-        <ChartCard title="Incident Volume Trend" className="chart-accent-blue">
-          <div className="h-200">
-            {metrics.totalIncidents === 0 ? (
-              <div className="analytics-empty-state">
-                <div className="analytics-empty-title">No incident volume yet</div>
-                <div className="analytics-empty-description">
-                  Chart appears when incidents are created.
-                </div>
-              </div>
-            ) : (
-              <BarChart data={metrics.trendSeries} maxValue={maxTrend} height={200} showValues />
-            )}
+      <section className="operational-grid mb-8">
+        <div className="operational-card">
+          <div className="operational-card-header">
+            <h3>Incident Volume Trend</h3>
+            <span>Window {windowDays} days</span>
           </div>
-        </ChartCard>
-        <ChartCard title="Current Status Mix" className="chart-accent-slate">
-          {metrics.totalIncidents === 0 ? (
-            <div className="analytics-empty-state">
-              <div className="analytics-empty-title">No status distribution</div>
-              <div className="analytics-empty-description">
-                Create incidents to populate the mix.
-              </div>
+          <div className="operational-card-body">
+            <div className="operational-chart h-200 w-full pl-0 pr-0">
+              {metrics.totalIncidents === 0 ? (
+                <div className="analytics-empty-state">
+                  <div className="analytics-empty-title">No incident volume yet</div>
+                </div>
+              ) : (
+                <LineChart
+                  data={metrics.trendSeries}
+                  lines={[{ key: 'count', color: '#6366f1', label: 'Volume' }]}
+                  height={180}
+                  showLegend={false}
+                  valueFormatter={v => v.toFixed(0)}
+                />
+              )}
             </div>
-          ) : (
-            <div className="flex items-center gap-6 h-200">
-              <PieChart
-                data={metrics.statusMix.map(e => ({
-                  label: e.status,
-                  value: e.count,
-                  color: getStatusColor(e.status),
-                }))}
-                size={140}
-              />
-              <div className="flex flex-col gap-2 text-xs">
-                {metrics.statusMix.map(e => (
-                  <div key={e.status} className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-sm"
-                      style={{ background: getStatusColor(e.status) }}
+          </div>
+        </div>
+        <div className="operational-card">
+          <div className="operational-card-header">
+            <h3>Current Status Mix</h3>
+            <span>{metrics.totalIncidents.toLocaleString()} incidents</span>
+          </div>
+          <div className="operational-card-body">
+            <div className="operational-status-list">
+              {statusMixWithPercent.map(entry => (
+                <div key={entry.status} className="operational-status-row">
+                  <div className="operational-status-head">
+                    <span
+                      className="operational-status-dot"
+                      style={{ background: getStatusColor(entry.status) }}
                     />
-                    <span>{e.status}</span>
-                    <span className="font-bold ml-auto">{e.count}</span>
+                    <span className="operational-status-name">{entry.status}</span>
+                    <span className="operational-status-count">{entry.count}</span>
+                    <span className="operational-status-share">{entry.percent.toFixed(1)}%</span>
                   </div>
-                ))}
-              </div>
+                  <div className="operational-status-bar">
+                    <span
+                      style={{
+                        width: `${entry.percent.toFixed(1)}%`,
+                        background: getStatusColor(entry.status),
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </ChartCard>
-        <ChartCard title="Assignee Load" className="chart-accent-indigo">
-          <div className="flex flex-col gap-3 h-200 overflow-y-auto pr-2 custom-scrollbar">
-            {metrics.assigneeLoad.length === 0 ? (
-              <div className="analytics-empty-state">
-                <div className="analytics-empty-title">No assignee load yet</div>
-                <div className="analytics-empty-description">
-                  Assign incidents to see load distribution.
-                </div>
-              </div>
-            ) : (
-              metrics.assigneeLoad.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-3 p-1 rounded hover:bg-muted/50">
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${i < 3 ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 text-sm truncate">{a.name}</span>
-                  <span className="font-bold text-sm bg-muted px-2 rounded">{a.count}</span>
-                </div>
-              ))
-            )}
           </div>
-        </ChartCard>
-      </div>
+        </div>
+        <div className="operational-card">
+          <div className="operational-card-header">
+            <h3>Assignee Load</h3>
+            <span>{metrics.assigneeLoad.length} responders</span>
+          </div>
+          <div className="operational-card-body">
+            {metrics.assigneeLoad.map((entry, index) => {
+              const percent = (entry.count / assigneeMax) * 100;
+              return (
+                <div key={entry.id} className="operational-status-row operational-assignee-row">
+                  <div className="operational-status-head">
+                    <span className={`operational-rank ${index < 3 ? 'is-top' : ''}`}>
+                      {index + 1}
+                    </span>
+                    <span className="operational-status-name">{entry.name}</span>
+                    <span className="operational-status-count">{entry.count}</span>
+                  </div>
+                  <div className="operational-status-bar">
+                    <span style={{ width: `${percent.toFixed(1)}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-      <div className="v2-section-header">
+      <div className="v2-section-header v2-panel-heading">
         <h2 className="v2-section-title">
-          <BarChart3 className="w-5 h-5" /> Distribution & Mix
+          <BarChart3 className="w-5 h-5" /> Distribution &amp; Mix
         </h2>
         <span className="text-xs text-muted-foreground">Service, urgency, and status age</span>
       </div>
-      <div className="v2-grid-3 mb-8">
-        <ChartCard title="Top Services by Incidents" className="chart-accent-blue">
-          <div className="flex flex-col gap-2 h-200 overflow-y-auto pr-2 custom-scrollbar">
+
+      <section className="distribution-grid mb-8">
+        <div className="distribution-card">
+          <div className="distribution-card-header">
+            <h3>Top Services by Incidents</h3>
+            <span>{metrics.topServices.length} services</span>
+          </div>
+          <div className="distribution-card-body">
             {metrics.topServices.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No incidents in this window.</div>
+              <div className="distribution-empty">No incidents in this window.</div>
             ) : (
-              metrics.topServices.map((service, index) => (
-                <div
-                  key={service.id}
-                  className="flex items-center gap-3 p-1 rounded hover:bg-muted/50"
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${index < 3 ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="flex-1 text-sm truncate">{service.name}</span>
-                  <span className="font-bold text-sm bg-muted px-2 rounded">{service.count}</span>
-                </div>
-              ))
+              metrics.topServices.map((service, index) => {
+                const percent = (service.count / topServiceMax) * 100;
+                const share = metrics.totalIncidents
+                  ? (service.count / metrics.totalIncidents) * 100
+                  : 0;
+                return (
+                  <div key={service.id} className="distribution-row">
+                    <div className="distribution-row-head">
+                      <span className={`distribution-rank ${index < 3 ? 'is-top' : ''}`}>
+                        {index + 1}
+                      </span>
+                      <span className="distribution-name">{service.name}</span>
+                      <span className="distribution-count">{service.count}</span>
+                      <span className="distribution-share">{share.toFixed(1)}%</span>
+                    </div>
+                    <div className="distribution-bar">
+                      <span style={{ width: `${percent.toFixed(1)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        </ChartCard>
-        <ChartCard title="Urgency Mix" className="chart-accent-rose">
-          <div className="flex items-center gap-6 h-200">
-            <PieChart
-              data={[
-                { label: 'HIGH', value: metrics.highUrgencyCount, color: '#dc2626' },
-                { label: 'LOW', value: lowUrgencyCount, color: '#6b7280' },
-              ]}
-              size={140}
-            />
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#dc2626' }} />
-                <span>HIGH</span>
-                <span className="font-bold ml-auto">{metrics.highUrgencyCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background: '#6b7280' }} />
-                <span>LOW</span>
-                <span className="font-bold ml-auto">{lowUrgencyCount}</span>
+        </div>
+
+        <div className="distribution-card">
+          <div className="distribution-card-header">
+            <h3>Urgency Mix</h3>
+            <span>{metrics.totalIncidents.toLocaleString()} incidents</span>
+          </div>
+          <div className="distribution-card-body distribution-urgency">
+            <div className="distribution-urgency-row">
+              <span>High urgency</span>
+              <strong>{metrics.highUrgencyCount.toLocaleString()}</strong>
+              <em>{highUrgencyPercent.toFixed(1)}%</em>
+              <div className="distribution-urgency-bar">
+                <span style={{ width: `${highUrgencyPercent.toFixed(1)}%` }} />
               </div>
             </div>
-          </div>
-        </ChartCard>
-        <ChartCard title="State Age Breakdown" className="chart-accent-slate">
-          <div className="flex flex-col gap-2 h-200 overflow-y-auto pr-2 custom-scrollbar">
-            {metrics.statusAges.map(entry => (
-              <div key={entry.status} className="flex items-center gap-2 text-sm">
-                <span className="flex-1">{entry.status}</span>
-                <span className="font-semibold">
-                  {entry.avgMs === null ? '--' : formatHours(entry.avgMs)}
-                </span>
+            <div className="distribution-urgency-row is-low">
+              <span>Low urgency</span>
+              <strong>{lowUrgencyCount.toLocaleString()}</strong>
+              <em>{lowUrgencyPercent.toFixed(1)}%</em>
+              <div className="distribution-urgency-bar">
+                <span style={{ width: `${lowUrgencyPercent.toFixed(1)}%` }} />
               </div>
-            ))}
+            </div>
+            <div className="distribution-urgency-footnote">Window: {windowDays} days</div>
           </div>
-        </ChartCard>
-      </div>
+        </div>
 
-      <div className="v2-section-header">
+        <div className="distribution-card">
+          <div className="distribution-card-header">
+            <h3>State Age Breakdown</h3>
+            <span>Average time</span>
+          </div>
+          <div className="distribution-card-body">
+            {metrics.statusAges.length === 0 ? (
+              <div className="distribution-empty">No status age data available.</div>
+            ) : (
+              metrics.statusAges.map(entry => {
+                const percent = statusAgeMax ? ((entry.avgMs ?? 0) / statusAgeMax) * 100 : 0;
+                return (
+                  <div key={entry.status} className="distribution-row">
+                    <div className="distribution-row-head">
+                      <span className="distribution-name">{entry.status}</span>
+                      <span className="distribution-count">
+                        {entry.avgMs === null ? '--' : formatHours(entry.avgMs)}
+                      </span>
+                    </div>
+                    <div className="distribution-bar distribution-bar-muted">
+                      <span style={{ width: `${percent.toFixed(1)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="v2-section-header v2-panel-heading">
         <h2 className="v2-section-title">
-          <Users className="w-5 h-5" /> Ownership & Reliability
+          <Users className="w-5 h-5" /> Ownership &amp; Reliability
         </h2>
         <span className="text-xs text-muted-foreground">On-call load and recurring incidents</span>
       </div>
-      <div className="v2-grid-3 mb-8">
-        <ChartCard title="On-Call Load" className="chart-accent-indigo">
-          <div className="flex flex-col gap-3 h-200 overflow-y-auto pr-2 custom-scrollbar">
+
+      <section className="ownership-grid mb-8">
+        <div className="ownership-card">
+          <div className="ownership-card-header">
+            <h3>On-Call Load</h3>
+            <span>{metrics.onCallLoad.length} responders</span>
+          </div>
+          <div className="ownership-card-body">
             {metrics.onCallLoad.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No on-call shifts in this window.</div>
+              <div className="ownership-empty">No on-call shifts in this window.</div>
             ) : (
-              metrics.onCallLoad.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-3 p-1 rounded hover:bg-muted/50"
-                >
-                  <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${index < 3 ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="flex-1 text-sm truncate">{entry.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatHours(entry.hoursMs)}
-                  </span>
-                  <span className="font-bold text-sm bg-muted px-2 rounded">
-                    {entry.incidentCount}
-                  </span>
-                </div>
-              ))
+              metrics.onCallLoad.map((entry, index) => {
+                const percent = onCallMax ? (entry.incidentCount / onCallMax) * 100 : 0;
+                return (
+                  <div key={entry.id} className="ownership-row">
+                    <div className="ownership-row-top">
+                      <span className={`ownership-rank ${index < 3 ? 'is-top' : ''}`}>
+                        {index + 1}
+                      </span>
+                      <span className="ownership-name">{entry.name}</span>
+                      <span className="ownership-meta">{formatHours(entry.hoursMs)}</span>
+                      <span className="ownership-count">{entry.incidentCount}</span>
+                    </div>
+                    <div className="ownership-bar">
+                      <span style={{ width: `${percent.toFixed(1)}%` }} />
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
-        </ChartCard>
-        <ChartCard title="Recurring Incident Titles" className="chart-accent-amber">
-          <div className="flex flex-col gap-2 h-200 overflow-y-auto pr-2 custom-scrollbar">
+        </div>
+
+        <div className="ownership-card">
+          <div className="ownership-card-header">
+            <h3>Recurring Incident Titles</h3>
+            <span>{metrics.recurringTitles.length} patterns</span>
+          </div>
+          <div className="ownership-card-body">
             {metrics.recurringTitles.length === 0 ? (
-              <div className="text-sm text-muted-foreground">
-                No recurring incidents in this window.
-              </div>
+              <div className="ownership-empty">No recurring incidents in this window.</div>
             ) : (
               metrics.recurringTitles.map(entry => (
-                <div key={entry.title} className="flex items-center gap-2 text-sm">
-                  <span className="flex-1 truncate">{entry.title}</span>
-                  <span className="font-semibold">{entry.count}</span>
+                <div key={entry.title} className="ownership-row ownership-row-compact">
+                  <div>
+                    <div className="ownership-name">{entry.title}</div>
+                    <div className="ownership-meta">Recurring pattern</div>
+                  </div>
+                  <span className="ownership-count">{entry.count}</span>
                 </div>
               ))
             )}
           </div>
-        </ChartCard>
-        <ChartCard title="Resolution Breakdown" className="chart-accent-emerald">
-          <div className="flex flex-col gap-3 h-200">
-            <div className="flex items-center justify-between text-sm">
-              <span>Auto-resolved</span>
-              <span className="font-semibold">
-                {metrics.autoResolvedCount.toLocaleString()} (
-                {formatPercent(metrics.autoResolveRate)})
-              </span>
+        </div>
+
+        <div className="ownership-card">
+          <div className="ownership-card-header">
+            <h3>Resolution Breakdown</h3>
+            <span>{metrics.eventsCount.toLocaleString()} events logged</span>
+          </div>
+          <div className="ownership-card-body">
+            <div className="ownership-kpi-grid">
+              <div className="ownership-kpi">
+                <span>Auto-resolved</span>
+                <strong>{metrics.autoResolvedCount.toLocaleString()}</strong>
+                <em>{formatPercent(autoResolvedShare)}</em>
+              </div>
+              <div className="ownership-kpi">
+                <span>Manual resolved</span>
+                <strong>{metrics.manualResolvedCount.toLocaleString()}</strong>
+                <em>{formatPercent(manualResolvedShare)}</em>
+              </div>
+              <div className="ownership-kpi">
+                <span>Reopen rate</span>
+                <strong>{formatPercent(metrics.reopenRate)}</strong>
+                <em>Last {windowDays} days</em>
+              </div>
+              <div className="ownership-kpi">
+                <span>Event volume</span>
+                <strong>{metrics.eventsCount.toLocaleString()}</strong>
+                <em>Incident events</em>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>Manual resolved</span>
-              <span className="font-semibold">{metrics.manualResolvedCount.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>Reopen rate</span>
-              <span className="font-semibold">{formatPercent(metrics.reopenRate)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>Event volume</span>
-              <span className="font-semibold">{metrics.eventsCount.toLocaleString()}</span>
+            <div className="ownership-share">
+              <div className="ownership-share-track">
+                <span style={{ width: `${manualResolvedShare.toFixed(1)}%` }} />
+              </div>
+              <div className="ownership-share-labels">
+                <span>Auto</span>
+                <span>Manual</span>
+              </div>
             </div>
           </div>
-        </ChartCard>
-      </div>
-
-      {/* SERVICE HEALTH MATRIX */}
-      <section className="glass-panel mb-8 overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Activity className="w-5 h-5 text-blue-500" /> Service Health Matrix
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            {metrics.serviceMetrics.length} Services Monitored
-          </span>
         </div>
-        <ServiceHealthTable services={metrics.serviceMetrics} />
       </section>
 
-      <div className="v2-section-header">
+      <section className="service-health-section mb-8">
+        <div className="service-health-shell">
+          <header className="service-health-header">
+            <div className="service-health-title">
+              <span className="service-health-icon">
+                <Activity className="w-5 h-5" />
+              </span>
+              <div>
+                <span className="service-health-eyebrow">Service Health Matrix</span>
+                <h3 className="service-health-heading">
+                  Operational health across monitored services
+                </h3>
+              </div>
+            </div>
+            <div className="service-health-meta">
+              <div className="service-health-meta-card">
+                <span>Services monitored</span>
+                <strong>{serviceHealthCounts.total.toLocaleString()}</strong>
+                <em>Active catalog</em>
+              </div>
+              <div className="service-health-meta-card is-critical">
+                <span>Critical</span>
+                <strong>{serviceHealthCounts.critical.toLocaleString()}</strong>
+                <em>Immediate focus</em>
+              </div>
+              <div className="service-health-meta-card is-degraded">
+                <span>Degraded</span>
+                <strong>{serviceHealthCounts.degraded.toLocaleString()}</strong>
+                <em>Needs attention</em>
+              </div>
+              <div className="service-health-meta-card is-healthy">
+                <span>Healthy</span>
+                <strong>{serviceHealthCounts.healthy.toLocaleString()}</strong>
+                <em>Stable</em>
+              </div>
+            </div>
+          </header>
+          <div className="service-health-body">
+            <ServiceHealthTable services={metrics.serviceMetrics} />
+          </div>
+        </div>
+      </section>
+
+      <div className="v2-section-header v2-panel-heading">
         <h2 className="v2-section-title">
-          <Shield className="w-5 h-5" /> SLA & Coverage
+          <Shield className="w-5 h-5" /> SLA &amp; Coverage
         </h2>
         <span className="text-xs text-muted-foreground">Targets, breaches, and scheduling</span>
       </div>
-      <section className="glass-panel mb-8 overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">Coverage Outlook</h3>
+
+      <section className="glass-panel mb-8 overflow-hidden v2-panel-surface v2-panel-coverage">
+        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between v2-panel-surface-header">
+          <h3 className="font-semibold text-foreground v2-panel-surface-title">Coverage Outlook</h3>
           <span className="text-xs text-muted-foreground">Next 14 days</span>
         </div>
         <div className="p-4">
-          <div className="analytics-table">
-            <div className="analytics-table-row">
+          <div className="sla-kpi-grid">
+            <div className="sla-kpi-card">
               <span>Coverage</span>
               <strong>{formatPercent(metrics.coveragePercent)}</strong>
+              <div className="sla-kpi-bar">
+                <span style={{ width: `${metrics.coveragePercent.toFixed(1)}%` }} />
+              </div>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Coverage gap days</span>
               <strong>{metrics.coverageGapDays.toLocaleString()}</strong>
+              <em>Next 14 days</em>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Scheduled on-call hours</span>
               <strong>{formatHours(metrics.onCallHoursMs)}</strong>
+              <em>{metrics.onCallUsersCount.toLocaleString()} responders</em>
             </div>
-            <div className="analytics-table-row">
-              <span>Unique responders scheduled</span>
+            <div className="sla-kpi-card">
+              <span>Unique responders</span>
               <strong>{metrics.onCallUsersCount.toLocaleString()}</strong>
+              <em>Scheduled</em>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Active overrides</span>
               <strong>{metrics.activeOverrides.toLocaleString()}</strong>
+              <em>Current</em>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="glass-panel mb-8 overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">SLA Summary</h3>
+      <section className="glass-panel mb-8 overflow-hidden v2-panel-surface v2-panel-sla-summary">
+        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between v2-panel-surface-header">
+          <h3 className="font-semibold text-foreground v2-panel-surface-title">SLA Summary</h3>
           <span className="text-xs text-muted-foreground">{windowDays} day window</span>
         </div>
         <div className="p-4">
-          <div className="analytics-table">
-            <div className="analytics-table-row">
+          <div className="sla-kpi-grid">
+            <div className="sla-kpi-card">
               <span>MTTA p50</span>
               <strong>{metrics.mttaP50 === null ? '--' : formatMinutes(metrics.mttaP50)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>MTTA p95</span>
               <strong>{metrics.mttaP95 === null ? '--' : formatMinutes(metrics.mttaP95)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>MTTR p50</span>
               <strong>{metrics.mttrP50 === null ? '--' : formatMinutes(metrics.mttrP50)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>MTTR p95</span>
               <strong>{metrics.mttrP95 === null ? '--' : formatMinutes(metrics.mttrP95)}</strong>
             </div>
           </div>
-          <div className="analytics-table mt-4">
-            <div className="analytics-table-row">
+          <div className="sla-kpi-grid mt-4">
+            <div className="sla-kpi-card">
               <span>High urgency share</span>
               <strong>{formatPercent(metrics.highUrgencyRate)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Ack SLA breaches</span>
               <strong>{metrics.ackBreaches.toLocaleString()}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Resolve SLA breaches</span>
               <strong>{metrics.resolveBreaches.toLocaleString()}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Ack SLA burn</span>
               <strong>{formatPercent(ackSlaBurnRate)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Resolve SLA burn</span>
               <strong>{formatPercent(resolveSlaBurnRate)}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Unassigned active incidents</span>
               <strong>{metrics.unassignedActive.toLocaleString()}</strong>
             </div>
-            <div className="analytics-table-row">
+            <div className="sla-kpi-card">
               <span>Incident events logged</span>
               <strong>{metrics.eventsCount.toLocaleString()}</strong>
             </div>
@@ -1117,59 +1201,85 @@ export default async function AnalyticsV2Page({
         </div>
       </section>
 
-      <section className="glass-panel mb-8 overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">SLA Compliance by Service</h3>
+      <section className="glass-panel mb-8 overflow-hidden v2-panel-surface v2-panel-sla-service">
+        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between v2-panel-surface-header">
+          <h3 className="font-semibold text-foreground v2-panel-surface-title">
+            SLA Compliance by Service
+          </h3>
           <span className="text-xs text-muted-foreground">Top services by volume</span>
         </div>
         <div className="p-4">
-          <div className="analytics-table">
-            {metrics.serviceSlaTable.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No SLA data in this window.</div>
-            ) : (
-              metrics.serviceSlaTable.map(entry => (
-                <div key={entry.id} className="analytics-table-row">
+          {metrics.serviceSlaTable.length === 0 ? (
+            <div className="distribution-empty">No SLA data in this window.</div>
+          ) : (
+            <div className="sla-service-table">
+              <div className="sla-service-header">
+                <span>Service</span>
+                <span>Ack SLA</span>
+                <span>Resolve SLA</span>
+              </div>
+              {metrics.serviceSlaTable.map(entry => (
+                <div key={entry.id} className="sla-service-row">
                   <span>{entry.name}</span>
-                  <strong>
-                    Ack {formatPercent(entry.ackRate)} | Resolve {formatPercent(entry.resolveRate)}
-                  </strong>
+                  <strong>{formatPercent(entry.ackRate)}</strong>
+                  <strong>{formatPercent(entry.resolveRate)}</strong>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="glass-panel mb-8 overflow-hidden v2-panel-surface v2-panel-gauges">
+        <div className="p-4 border-b border-border/50 bg-muted/20 flex items-center justify-between v2-panel-surface-header">
+          <h3 className="font-semibold text-foreground v2-panel-surface-title">SLA Compliance</h3>
+          <span className="text-xs text-muted-foreground">Current averages</span>
+        </div>
+        <div className="p-4">
+          <div className="v2-gauge-grid">
+            <div className="v2-gauge-card gauge-accent-indigo">
+              <GaugeChart value={metrics.ackCompliance} label="Ack SLA" size={120} />
+            </div>
+            <div className="v2-gauge-card gauge-accent-emerald">
+              <GaugeChart value={metrics.resolveCompliance} label="Resolve SLA" size={120} />
+            </div>
+            <div className="v2-gauge-card gauge-accent-blue">
+              <GaugeChart value={metrics.coveragePercent} label="Coverage" size={120} />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* GAUGES */}
-      <section className="mb-8">
-        <div className="v2-section-header">
-          <h2 className="v2-section-title">
-            <Shield className="w-5 h-5" /> SLA Compliance
-          </h2>
+      <section className="activity-panel mb-8">
+        <div className="activity-github-header">
+          <div className="activity-github-title">
+            <span className="activity-github-icon">
+              <Clock className="w-4 h-4" />
+            </span>
+            <div>
+              <span className="activity-github-eyebrow">Historical Activity</span>
+              <h3>Incident frequency over the last year</h3>
+            </div>
+          </div>
+          <span className="activity-github-meta">Timezone: {userTimeZone}</span>
         </div>
-        <div className="v2-gauge-grid">
-          <div className="v2-gauge-card gauge-accent-indigo">
-            <GaugeChart value={metrics.ackCompliance} label="Ack SLA" size={120} />
-          </div>
-          <div className="v2-gauge-card gauge-accent-emerald">
-            <GaugeChart value={metrics.resolveCompliance} label="Resolve SLA" size={120} />
-          </div>
-          <div className="v2-gauge-card gauge-accent-blue">
-            <GaugeChart value={metrics.coveragePercent} label="Coverage" size={120} />
-          </div>
-          <div className="v2-gauge-card gauge-accent-amber">
-            <GaugeChart value={metrics.ackRate} label="Ack Rate" size={120} />
-          </div>
-        </div>
-      </section>
 
-      {/* HEATMAP */}
-      <section className="glass-panel p-6">
-        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-          <LayoutDashboard className="w-5 h-5 text-muted-foreground" /> Historical Activity (12
-          Weeks)
-        </h3>
-        <HeatmapCalendar data={metrics.heatmapData} weeks={12} cellSize={16} gap={4} />
+        <div className="activity-github-body">
+          <div className="activity-github-heatmap">
+            <HeatmapCalendar data={metrics.heatmapData} days={365} />
+          </div>
+          <div className="activity-github-legend">
+            <span>Less</span>
+            <div className="activity-github-legend-swatch">
+              <span style={{ background: 'rgba(34, 197, 94, 0.15)' }} />
+              <span style={{ background: 'rgba(34, 197, 94, 0.5)' }} />
+              <span style={{ background: 'rgba(234, 179, 8, 0.6)' }} />
+              <span style={{ background: 'rgba(249, 115, 22, 0.7)' }} />
+              <span style={{ background: 'rgba(239, 68, 68, 0.85)' }} />
+            </div>
+            <span>More</span>
+          </div>
+        </div>
       </section>
     </main>
   );

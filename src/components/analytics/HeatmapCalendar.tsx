@@ -1,122 +1,119 @@
 'use client';
 
 interface HeatmapCalendarProps {
-    data: { date: string; count: number }[];
-    weeks?: number;
-    cellSize?: number;
-    gap?: number;
+  data: { date: string; count: number }[];
+  days?: number; // Changed from weeks to days to match usage
+  cellSize?: number;
+  gap?: number;
 }
 
 const getIntensityColor = (count: number, maxCount: number): string => {
-    if (count === 0) return 'rgba(34, 197, 94, 0.15)'; // Light green for zero
-    const intensity = Math.min(1, count / Math.max(1, maxCount));
-    if (intensity < 0.25) return 'rgba(34, 197, 94, 0.5)';  // Green - low
-    if (intensity < 0.5) return 'rgba(234, 179, 8, 0.6)';   // Yellow - medium
-    if (intensity < 0.75) return 'rgba(249, 115, 22, 0.7)'; // Orange - high
-    return 'rgba(239, 68, 68, 0.85)';                        // Red - critical
+  if (count === 0) return 'rgba(34, 197, 94, 0.15)'; // Light green for zero
+
+  // Logarithmic scale for better distribution since incident counts can vary wildly
+  const intensity = maxCount > 0 ? Math.min(1, count / maxCount) : 0;
+
+  if (intensity < 0.25) return 'rgba(34, 197, 94, 0.5)'; // Green - low
+  if (intensity < 0.5) return 'rgba(234, 179, 8, 0.6)'; // Yellow - medium
+  if (intensity < 0.75) return 'rgba(249, 115, 22, 0.7)'; // Orange - high
+  return 'rgba(239, 68, 68, 0.85)'; // Red - critical
 };
 
 const getDayLabel = (dayIndex: number): string => {
-    const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    return days[dayIndex];
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return days[dayIndex];
 };
 
 export default function HeatmapCalendar({
-    data,
-    weeks = 12,
-    cellSize = 12,
-    gap = 3
+  data,
+  days = 90, // Default to ~3 months if not specified
+  cellSize = 12,
+  gap = 4,
 }: HeatmapCalendarProps) {
-    const dataMap = new Map(data.map(d => [d.date, d.count]));
-    const maxCount = Math.max(1, ...data.map(d => d.count));
+  // Calculate weeks based on days requested
+  const weeks = Math.ceil(days / 7);
 
-    // Generate week columns (newest on right)
-    const today = new Date();
-    const cells: { date: Date; count: number; x: number; y: number }[] = [];
+  const dataMap = new Map(data.map(d => [d.date, d.count]));
+  const maxCount = Math.max(1, ...data.map(d => d.count));
 
-    for (let weekOffset = weeks - 1; weekOffset >= 0; weekOffset--) {
-        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() - (weekOffset * 7 + (6 - dayOfWeek)));
+  // Generate week columns (newest on right)
+  const today = new Date();
+  const cells: { date: Date; count: number; x: number; y: number }[] = [];
 
-            const dateKey = date.toISOString().split('T')[0];
-            const count = dataMap.get(dateKey) || 0;
+  // We render columns from left to right, but time moves left to right.
+  // The last column (right-most) should include "today".
+  // 0 = current week (right most), weeks-1 = oldest week (left most)
+  for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
+    // weekIndex 0 is the oldest week (left), weekIndex = weeks-1 is newest (right)
+    // Actually, the loop logic in original was: weeks-1 downto 0.
+    // Let's stick to: col 0 is oldest, col N is newest.
 
-            const x = (weeks - 1 - weekOffset) * (cellSize + gap);
-            const y = dayOfWeek * (cellSize + gap);
+    // Calculate date shift.
+    // If we want the RIGHTMOST column to be "this week":
+    // Offset = (weeks - 1 - weekIndex)
+    const weekOffset = weeks - 1 - weekIndex;
 
-            cells.push({ date, count, x, y });
-        }
+    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+      const date = new Date(today);
+      // Subtract days to get to the specific cell
+      // (weeks offset * 7) + (days difference from today's dayOfWeek)
+      // This logic is tricky. Let's simplify:
+      // Find the start date of the heatmap (Weeks ago).
+
+      // Reusing original logic which worked for positioning:
+      // weekOffset=0 => This week.
+      const dayDiff = weekOffset * 7 + (today.getDay() - dayOfWeek);
+      date.setDate(today.getDate() - dayDiff);
+
+      const dateKey = date.toISOString().split('T')[0];
+      const count = dataMap.get(dateKey) || 0;
+
+      const x = weekIndex * (cellSize + gap);
+      const y = dayOfWeek * (cellSize + gap);
+
+      // Only add if date is within range (mostly implicit by loop but good to control)
+      cells.push({ date, count, x, y });
     }
+  }
 
-    const width = weeks * (cellSize + gap) - gap + 20; // Extra space for day labels
-    const height = 7 * (cellSize + gap) - gap;
+  const width = weeks * (cellSize + gap) + 25; // Extra for labels
+  const height = 7 * (cellSize + gap) - gap;
 
-    return (
-        <div className="heatmap-calendar-container">
-            <svg width={width} height={height} style={{ overflow: 'visible' }}>
-                {/* Day labels */}
-                {[1, 3, 5].map(dayIndex => (
-                    <text
-                        key={dayIndex}
-                        x={-8}
-                        y={dayIndex * (cellSize + gap) + cellSize / 2 + 3}
-                        fill="#6b7280"
-                        fontSize={9}
-                        textAnchor="end"
-                    >
-                        {getDayLabel(dayIndex)}
-                    </text>
-                ))}
+  return (
+    <div className="heatmap-calendar-container" style={{ width: '100%', overflowX: 'auto' }}>
+      <svg width={width} height={height} style={{ overflow: 'visible', marginLeft: 20 }}>
+        {/* Day labels */}
+        {[1, 3, 5].map(dayIndex => (
+          <text
+            key={dayIndex}
+            x={-6}
+            y={dayIndex * (cellSize + gap) + cellSize / 1.5}
+            fill="#94a3b8"
+            fontSize={10}
+            textAnchor="end"
+            style={{ userSelect: 'none' }}
+          >
+            {getDayLabel(dayIndex).substring(0, 1)}
+          </text>
+        ))}
 
-                {/* Cells */}
-                {cells.map((cell, i) => (
-                    <g key={i}>
-                        <rect
-                            x={cell.x}
-                            y={cell.y}
-                            width={cellSize}
-                            height={cellSize}
-                            rx={2}
-                            fill={getIntensityColor(cell.count, maxCount)}
-                            className="heatmap-cell"
-                            style={{ transition: 'fill 0.2s ease' }}
-                        >
-                            <title>{`${cell.date.toLocaleDateString()}: ${cell.count} incident${cell.count !== 1 ? 's' : ''}`}</title>
-                        </rect>
-                    </g>
-                ))}
-            </svg>
-
-            {/* Legend */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                marginTop: 8,
-                justifyContent: 'flex-end'
-            }}>
-                <span style={{ fontSize: 10, color: '#6b7280', marginRight: 4 }}>Good</span>
-                {[
-                    'rgba(34, 197, 94, 0.15)',  // Light green
-                    'rgba(34, 197, 94, 0.5)',   // Green
-                    'rgba(234, 179, 8, 0.6)',   // Yellow
-                    'rgba(249, 115, 22, 0.7)',  // Orange
-                    'rgba(239, 68, 68, 0.85)'   // Red
-                ].map((color, i) => (
-                    <div
-                        key={i}
-                        style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 2,
-                            backgroundColor: color,
-                            border: '1px solid rgba(0,0,0,0.1)'
-                        }}
-                    />
-                ))}
-                <span style={{ fontSize: 10, color: '#6b7280', marginLeft: 4 }}>Critical</span>
-            </div>
-        </div>
-    );
+        {/* Cells */}
+        {cells.map((cell, i) => (
+          <rect
+            key={i}
+            x={cell.x}
+            y={cell.y}
+            width={cellSize}
+            height={cellSize}
+            rx={3}
+            fill={getIntensityColor(cell.count, maxCount)}
+            className="heatmap-cell"
+            style={{ transition: 'all 0.2s ease', cursor: 'default' }}
+          >
+            <title>{`${cell.date.toLocaleDateString()}: ${cell.count} incident${cell.count !== 1 ? 's' : ''}`}</title>
+          </rect>
+        ))}
+      </svg>
+    </div>
+  );
 }

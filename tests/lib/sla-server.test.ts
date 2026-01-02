@@ -10,6 +10,10 @@ type PrismaMock = {
   };
   alert: {
     count: ReturnType<typeof vi.fn>;
+    groupBy?: ReturnType<typeof vi.fn>;
+  };
+  incidentNote: {
+    groupBy: ReturnType<typeof vi.fn>;
   };
   onCallShift: {
     findMany: ReturnType<typeof vi.fn>;
@@ -28,6 +32,7 @@ type PrismaMock = {
 const prismaMock = prisma as unknown as PrismaMock & {
   alert?: PrismaMock['alert'];
   incident?: PrismaMock['incident'] & { groupBy?: ReturnType<typeof vi.fn> };
+  incidentNote?: PrismaMock['incidentNote'];
 };
 
 const setupBaseMocks = ({
@@ -66,6 +71,12 @@ const setupBaseMocks = ({
   if (!prismaMock.alert) {
     prismaMock.alert = { count: vi.fn() };
   }
+  if (!prismaMock.alert.groupBy) {
+    prismaMock.alert.groupBy = vi.fn();
+  }
+  if (!prismaMock.incidentNote) {
+    prismaMock.incidentNote = { groupBy: vi.fn() };
+  }
   if (!prismaMock.incident.groupBy) {
     prismaMock.incident.groupBy = vi.fn();
   }
@@ -77,6 +88,8 @@ const setupBaseMocks = ({
     .mockResolvedValueOnce(previousIncidents)
     .mockResolvedValueOnce(heatmapIncidents);
   prismaMock.alert.count.mockResolvedValueOnce(0);
+  prismaMock.alert.groupBy.mockResolvedValueOnce([]);
+  prismaMock.incidentNote.groupBy.mockResolvedValueOnce([]);
   prismaMock.onCallShift.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
   prismaMock.onCallOverride.count.mockResolvedValueOnce(0);
   prismaMock.incident.groupBy
@@ -191,5 +204,67 @@ describe('calculateSLAMetrics trend series', () => {
       expect(entry).toHaveProperty('ackCompliance');
       expect(entry).toHaveProperty('escalationRate');
     });
+  });
+});
+
+describe('calculateSLAMetrics investigation metrics', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-02T00:00:00Z'));
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('computes MTTI and MTTK from first notes and alerts', async () => {
+    const recentIncidents = [
+      {
+        id: 'inc-1',
+        createdAt: new Date('2026-01-01T10:00:00Z'),
+        updatedAt: new Date('2026-01-01T10:45:00Z'),
+        status: 'OPEN',
+        urgency: 'LOW',
+        assigneeId: null,
+        serviceId: 'service-1',
+        acknowledgedAt: null,
+        resolvedAt: null,
+        service: { targetAckMinutes: 15, targetResolveMinutes: 120 },
+      },
+      {
+        id: 'inc-2',
+        createdAt: new Date('2026-01-01T12:00:00Z'),
+        updatedAt: new Date('2026-01-01T12:20:00Z'),
+        status: 'OPEN',
+        urgency: 'LOW',
+        assigneeId: null,
+        serviceId: 'service-1',
+        acknowledgedAt: null,
+        resolvedAt: null,
+        service: { targetAckMinutes: 15, targetResolveMinutes: 120 },
+      },
+    ];
+
+    setupBaseMocks({
+      recentIncidents,
+      previousIncidents: [],
+      heatmapIncidents: [],
+      escalationEvents: [],
+    });
+
+    prismaMock.incidentNote?.groupBy.mockReset().mockResolvedValueOnce([
+      { incidentId: 'inc-1', _min: { createdAt: new Date('2026-01-01T10:30:00Z') } },
+      { incidentId: 'inc-2', _min: { createdAt: new Date('2026-01-01T12:10:00Z') } },
+    ]);
+    prismaMock.alert?.groupBy?.mockReset().mockResolvedValueOnce([
+      { incidentId: 'inc-1', _min: { createdAt: new Date('2026-01-01T09:45:00Z') } },
+      { incidentId: 'inc-2', _min: { createdAt: new Date('2026-01-01T11:50:00Z') } },
+    ]);
+
+    const metrics = await calculateSLAMetrics({ windowDays: 1, userTimeZone: 'UTC' });
+
+    expect(metrics.mtti).toBeCloseTo(20, 2);
+    expect(metrics.mttk).toBeCloseTo(12.5, 2);
   });
 });

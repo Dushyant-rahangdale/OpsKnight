@@ -3,6 +3,8 @@ import { logger } from '@/lib/logger';
 import AppUrlSettings from '@/components/settings/AppUrlSettings';
 import SettingsPage from '@/components/settings/SettingsPage';
 import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import SsoSettingsForm from '@/components/settings/SsoSettingsForm';
+import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm';
 
 // Force dynamic rendering to always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -40,22 +42,38 @@ export default async function SystemSettingsPage() {
     fallback: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   };
 
+  // Declare systemSettings outside the try block to be accessible later
+  let systemSettings: { appUrl: string | null; encryptionKey: string | null } | null = null;
+  let oidcConfig: any = null; // Declare oidcConfig here
+
   try {
-    const settings = await import('@/lib/prisma').then(m =>
+    // Fetch encryption key (sensitive, only check existence or masked)
+    // But for the form, we want to allow setting it.
+    // We need to fetch the actual value? Or just pass it?
+    // The form typically handles "masked" values.
+    systemSettings = await import('@/lib/prisma').then(m =>
       m.default.systemSettings.findUnique({
         where: { id: 'default' },
-        select: { appUrl: true },
+        select: { appUrl: true, encryptionKey: true },
       })
     );
 
-    if (settings) {
-      appUrlData.appUrl = settings.appUrl;
+    oidcConfig = await import('@/lib/prisma').then(m =>
+      m.default.oidcConfig.findFirst({
+        orderBy: { updatedAt: 'desc' },
+      })
+    );
+
+    if (systemSettings) {
+      appUrlData.appUrl = systemSettings.appUrl;
     }
   } catch (error) {
     logger.warn('Failed to fetch app URL settings from DB', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+
+  const encryptionKeySet = Boolean(systemSettings?.encryptionKey);
 
   return (
     <SettingsPage
@@ -69,6 +87,20 @@ export default async function SystemSettingsPage() {
         description="Used in emails, webhooks, and RSS feeds."
       >
         <AppUrlSettings appUrl={appUrlData.appUrl} fallback={appUrlData.fallback} />
+      </SettingsSectionCard>
+
+      <SettingsSectionCard
+        title="Encryption Key"
+        description="Required for securing sensitive credentials like SSO secrets."
+      >
+        <EncryptionKeyForm hasKey={encryptionKeySet} />
+      </SettingsSectionCard>
+
+      <SettingsSectionCard
+        title="Single Sign-On (OIDC)"
+        description="Allow users to log in with your identity provider."
+      >
+        <SsoSettingsForm config={oidcConfig} hasEncryptionKey={encryptionKeySet} />
       </SettingsSectionCard>
     </SettingsPage>
   );

@@ -77,6 +77,7 @@ export type SLAMetrics = {
     escalationRate: number;
   }>;
   statusMix: Array<{ status: string; count: number }>;
+  urgencyMix: Array<{ urgency: string; count: number }>;
   topServices: Array<{ id: string; name: string; count: number }>;
   assigneeLoad: Array<{ id: string; name: string; count: number }>;
   statusAges: Array<{ status: string; avgMs: number | null }>;
