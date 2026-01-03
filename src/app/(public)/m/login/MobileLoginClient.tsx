@@ -11,7 +11,7 @@ type Props = {
   passwordSet?: boolean;
   ssoError?: string | null;
   ssoEnabled: boolean;
-  ssoProviderType?: 'google' | 'okta' | 'azure' | 'auth0' | 'custom' | null;
+  ssoProviderType?: string | null;
   ssoProviderLabel?: string | null;
 };
 
