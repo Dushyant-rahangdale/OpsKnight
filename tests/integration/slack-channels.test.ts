@@ -72,7 +72,9 @@ describe('Slack Channels API', () => {
   });
 
   it('returns 401 when user is not authenticated', async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue(null);
+    vi.mocked(getCurrentUser).mockResolvedValueOnce(
+      null as unknown as ReturnType<typeof getCurrentUser>
+    );
 
     const req = new NextRequest('http://localhost:3000/api/slack/channels');
     const response = await GET(req);
