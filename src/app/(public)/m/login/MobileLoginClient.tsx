@@ -11,6 +11,8 @@ type Props = {
   passwordSet?: boolean;
   ssoError?: string | null;
   ssoEnabled: boolean;
+  ssoProviderType?: string | null;
+  ssoProviderLabel?: string | null;
 };
 
 function formatError(message: string | null | undefined) {
@@ -28,6 +30,8 @@ export default function MobileLoginClient({
   passwordSet,
   ssoError,
   ssoEnabled,
+  ssoProviderType,
+  ssoProviderLabel,
 }: Props) {
   const router = useRouter();
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -54,11 +58,30 @@ export default function MobileLoginClient({
     }
   }, [mounted]);
 
+  const safeCallbackUrl = callbackUrl.startsWith('/m') ? callbackUrl : '/m';
+
+  const providerLabelMap: Record<string, string> = {
+    google: 'Google',
+    okta: 'Okta',
+    azure: 'Microsoft',
+    auth0: 'Auth0',
+    custom: 'SSO',
+  };
+  const providerLabel =
+    ssoProviderLabel || providerLabelMap[ssoProviderType ?? 'custom'] || providerLabelMap.custom;
+
   const handleSSO = async () => {
     setIsSSOLoading(true);
     setError('');
     try {
-      await signIn('oidc', { callbackUrl });
+      const result = await signIn('oidc', { callbackUrl: safeCallbackUrl, redirect: false });
+      if (result?.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      window.location.assign(
+        `/api/auth/signin/oidc?callbackUrl=${encodeURIComponent(safeCallbackUrl)}`
+      );
     } catch {
       setError('SSO authentication failed.');
       setIsSSOLoading(false);
@@ -88,7 +111,7 @@ export default function MobileLoginClient({
         redirect: false,
         email: email.trim(),
         password,
-        callbackUrl,
+        callbackUrl: safeCallbackUrl,
       });
 
       if (result?.error) {
@@ -96,7 +119,7 @@ export default function MobileLoginClient({
         setPassword('');
         passwordInputRef.current?.focus();
       } else if (result?.ok) {
-        router.push(result?.url || callbackUrl);
+        router.push(result?.url || safeCallbackUrl);
       }
     } catch {
       setError('An unexpected error occurred.');
@@ -298,7 +321,7 @@ export default function MobileLoginClient({
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <span>Continue with SSO</span>
+                    <span>Continue with {providerLabel}</span>
                   </>
                 )}
               </button>
