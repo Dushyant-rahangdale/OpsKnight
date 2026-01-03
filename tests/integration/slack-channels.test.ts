@@ -48,7 +48,7 @@ describe('Slack Channels API', () => {
       email: 'user@example.com',
       role: 'ADMIN',
       timeZone: 'UTC',
-    });
+    } as Awaited<ReturnType<typeof getCurrentUser>>);
     vi.mocked(prisma.slackIntegration.findFirst).mockResolvedValue({
       id: 'integration-1',
       workspaceId: 'T123',
@@ -73,7 +73,7 @@ describe('Slack Channels API', () => {
 
   it('returns 401 when user is not authenticated', async () => {
     vi.mocked(getCurrentUser).mockResolvedValueOnce(
-      null as unknown as ReturnType<typeof getCurrentUser>
+      null as Awaited<ReturnType<typeof getCurrentUser>>
     );
 
     const req = new NextRequest('http://localhost:3000/api/slack/channels');
