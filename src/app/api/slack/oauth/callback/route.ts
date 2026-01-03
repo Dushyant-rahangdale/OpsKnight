@@ -9,18 +9,21 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { encrypt, decrypt } from '@/lib/encryption';
 
-const getFullUrl = (path: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const getFullUrl = (path: string, baseUrl: string) => {
   return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
 export async function GET(request: NextRequest) {
   try {
+    // Fetch system settings for App URL fallback
+    const settings = await prisma.systemSettings.findFirst();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || settings?.appUrl || 'http://localhost:3000';
+
     // Require authentication
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.redirect(
-        getFullUrl('/login?callbackUrl=' + encodeURIComponent(request.url))
+        getFullUrl('/login?callbackUrl=' + encodeURIComponent(request.url), appUrl)
       );
     }
 
@@ -33,19 +36,21 @@ export async function GET(request: NextRequest) {
     if (error) {
       logger.error('[Slack] OAuth error', { error });
       return NextResponse.redirect(
-        getFullUrl(`/services?error=slack_oauth_error&message=${encodeURIComponent(error)}`)
+        getFullUrl(`/services?error=slack_oauth_error&message=${encodeURIComponent(error)}`, appUrl)
       );
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(getFullUrl('/services?error=slack_oauth_missing_params'));
+      return NextResponse.redirect(
+        getFullUrl('/services?error=slack_oauth_missing_params', appUrl)
+      );
     }
 
     // Verify state
     const storedState = request.cookies.get('slack_oauth_state')?.value;
     if (!storedState || storedState !== state) {
       logger.warn('[Slack] Invalid OAuth state', { state, storedState });
-      return NextResponse.redirect(getFullUrl('/services?error=slack_oauth_invalid_state'));
+      return NextResponse.redirect(getFullUrl('/services?error=slack_oauth_invalid_state', appUrl));
     }
 
     // Get service ID if provided
@@ -62,14 +67,13 @@ export async function GET(request: NextRequest) {
       ? await decrypt(config.clientSecret)
       : process.env.SLACK_CLIENT_SECRET;
     const redirectUri =
-      config?.redirectUri ||
-      process.env.SLACK_REDIRECT_URI ||
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/slack/oauth/callback`;
+      config?.redirectUri || process.env.SLACK_REDIRECT_URI || `${appUrl}/api/slack/oauth/callback`;
 
     if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
       return NextResponse.redirect(
         getFullUrl(
-          `/services?error=slack_oauth_not_configured&message=${encodeURIComponent('Slack OAuth not configured. Please configure in Settings > Slack OAuth Configuration.')}`
+          `/services?error=slack_oauth_not_configured&message=${encodeURIComponent('Slack OAuth not configured. Please configure in Settings > Slack OAuth Configuration.')}`,
+          appUrl
         )
       );
     }
@@ -86,6 +90,7 @@ export async function GET(request: NextRequest) {
         code,
         redirect_uri: redirectUri,
       }),
+      cache: 'no-store', // Critical: Disable caching for token exchange to prevent "invalid_code" errors
     });
 
     const tokenData = await tokenResponse.json();
@@ -94,7 +99,8 @@ export async function GET(request: NextRequest) {
       logger.error('[Slack] Token exchange failed', { error: tokenData.error });
       return NextResponse.redirect(
         getFullUrl(
-          `/services?error=slack_oauth_token_error&message=${encodeURIComponent(tokenData.error || 'Unknown error')}`
+          `/services?error=slack_oauth_token_error&message=${encodeURIComponent(tokenData.error || 'Unknown error')}`,
+          appUrl
         )
       );
     }
@@ -185,7 +191,8 @@ export async function GET(request: NextRequest) {
       getFullUrl(
         serviceId
           ? `/services/${serviceId}/settings?slack_connected=true`
-          : '/settings/integrations/slack?slack_connected=true'
+          : '/settings/integrations/slack?slack_connected=true',
+        appUrl
       )
     );
     response.cookies.delete('slack_oauth_state');
@@ -199,11 +206,13 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('[Slack] OAuth callback error', {
       error: error.message,
       stack: error.stack,
     });
-    return NextResponse.redirect(getFullUrl('/services?error=slack_oauth_error'));
+    // We use localhost fallback here since we might fail before fetching settings
+    return NextResponse.redirect(
+      getFullUrl('/services?error=slack_oauth_error', 'http://localhost:3000')
+    );
   }
 }
