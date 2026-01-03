@@ -24,6 +24,10 @@ vi.mock('@/components/mobile/PwaInstallCard', () => ({
   default: () => <div data-testid="pwa-install" />,
 }));
 
+vi.mock('@/components/mobile/MobileSignOutButton', () => ({
+  default: () => <button>Sign Out</button>,
+}));
+
 describe('MobileMoreContent', () => {
   it('renders user details in the hero', () => {
     render(<MobileMoreContent name="Ada Lovelace" email="ada@ops.test" role="Admin" />);
@@ -54,6 +58,6 @@ describe('MobileMoreContent', () => {
 
     expect(screen.getByRole('link', { name: /Settings/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Help & Documentation/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Sign Out/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign Out/i })).toBeInTheDocument();
   });
 });
