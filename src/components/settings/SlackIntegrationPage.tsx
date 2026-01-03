@@ -42,6 +42,7 @@ export default function SlackIntegrationPage({
   const [channels, setChannels] = useState<SlackChannel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSetup, setShowSetup] = useState(false);
 
   // Check if Slack was just connected (from URL param)
   useEffect(() => {
@@ -101,6 +102,27 @@ export default function SlackIntegrationPage({
       >
         {/* Guided Setup Wizard (Admin Only) */}
         {!isOAuthConfigured && isAdmin && <GuidedSlackSetup />}
+
+        {/* Configuration Actions */}
+        {isOAuthConfigured && isAdmin && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={async () => {
+                if (
+                  confirm(
+                    'Are you sure you want to reset the Slack App configuration? This will require you to re-enter Client ID and Secret.'
+                  )
+                ) {
+                  await fetch('/api/settings/slack-oauth', { method: 'DELETE' });
+                  window.location.reload();
+                }
+              }}
+              className="text-xs text-red-500 hover:text-red-700 hover:underline"
+            >
+              Reset App Credentials
+            </button>
+          </div>
+        )}
 
         {/* Not Configured Warning (Non-Admin) */}
         {!isOAuthConfigured && !isAdmin && (
@@ -205,11 +227,20 @@ export default function SlackIntegrationPage({
                   </div>
                 ) : filteredChannels.length === 0 ? (
                   <div className="settings-slack-empty-channels">
-                    <p className="text-slate-600 font-medium">No channels found</p>
+                    <p className="text-slate-600 font-medium">
+                      {searchQuery ? 'No channels match your search' : 'No channels found'}
+                    </p>
                     <p className="text-slate-500 text-sm mt-1">
-                      {searchQuery
-                        ? `No channels match "${searchQuery}"`
-                        : 'Make sure to add the OpsSentinal bot to the channels you want to use.'}
+                      {searchQuery ? (
+                        <>
+                          No channels match &quot;{searchQuery}&quot;. Try a different search term.
+                        </>
+                      ) : (
+                        <>
+                          To use a channel, open it in Slack, click the channel name → Integrations
+                          → Add an App → search for your OpsSentinal bot and add it.
+                        </>
+                      )}
                     </p>
                   </div>
                 ) : (
