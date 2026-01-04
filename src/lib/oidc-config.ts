@@ -368,3 +368,14 @@ export async function checkOidcIntegrity(): Promise<{ ok: boolean; error?: strin
     };
   }
 }
+
+/**
+ * Internal helper to reset the OIDC config cache.
+ * Intended for use in tests only.
+ */
+export function resetOidcConfigCache() {
+  oidcConfigRecordCache = undefined;
+  oidcConfigRecordInFlight = undefined;
+  oidcConfigCache = undefined;
+  oidcConfigInFlight = undefined;
+}

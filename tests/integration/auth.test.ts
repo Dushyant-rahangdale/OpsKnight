@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { getAuthOptions } from '@/lib/auth';
+import { getAuthOptions, resetAuthOptionsCache } from '@/lib/auth';
+import { resetOidcConfigCache } from '@/lib/oidc-config';
 import { encryptWithKey } from '@/lib/encryption';
 import { type UserStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -89,6 +90,8 @@ describeIfRealDB('Authentication Logic (Real DB)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await resetDatabase();
+    resetAuthOptionsCache();
+    resetOidcConfigCache();
   });
 
   describe('CredentialsProvider authorize', () => {

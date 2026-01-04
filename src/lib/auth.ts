@@ -332,7 +332,6 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           });
 
           if ((token as any)?.error || !token.sub) {
-            // eslint-disable-line @typescript-eslint/no-explicit-any
             // Force unauthenticated session shape.
             (session as any).user = undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
             return session;
@@ -726,4 +725,13 @@ export async function revokeUserSessions(userId: string) {
     where: { id: userId },
     data: { tokenVersion: { increment: 1 } },
   });
+}
+
+/**
+ * Internal helper to reset the auth options cache.
+ * Intended for use in tests only.
+ */
+export function resetAuthOptionsCache() {
+  authOptionsCache = undefined;
+  authOptionsInFlight = undefined;
 }
