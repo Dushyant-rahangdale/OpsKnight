@@ -503,12 +503,7 @@ export default async function Dashboard({
                 </Link>
               </div>
 
-              <div
-                className="incident-table-scroll"
-                style={{
-                  overflowX: 'auto',
-                }}
-              >
+              <div className="incident-table-scroll" style={{ overflow: 'hidden' }}>
                 {incidents.length === 0 ? (
                   <div
                     style={{
