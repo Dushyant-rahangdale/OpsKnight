@@ -6,10 +6,15 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getOidcConfig } from '@/lib/oidc-config';
 
-const JWT_USER_REFRESH_TTL_MS = Number.parseInt(process.env.JWT_USER_REFRESH_TTL_MS ?? '60000', 10);
+function getJwtUserRefreshTtlMs() {
+  const raw = process.env.JWT_USER_REFRESH_TTL_MS ?? '60000';
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 60000;
+}
 
-const OIDC_REQUIRE_EMAIL_VERIFIED_STRICT =
-  (process.env.OIDC_REQUIRE_EMAIL_VERIFIED_STRICT ?? 'false').toLowerCase() === 'true';
+function isOidcEmailVerifiedStrict() {
+  return (process.env.OIDC_REQUIRE_EMAIL_VERIFIED_STRICT ?? 'false').toLowerCase() === 'true';
+}
 
 const AUTH_OPTIONS_CACHE_TTL_MS = Number.parseInt(
   process.env.AUTH_OPTIONS_CACHE_TTL_MS ?? '5000',
@@ -225,9 +230,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           // This ensures name changes reflect immediately without requiring re-login
           if (token.sub && typeof token.sub === 'string') {
             const lastFetchedAt = (token as any).userFetchedAt as number | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
-            const ttlMs = Number.isFinite(JWT_USER_REFRESH_TTL_MS)
-              ? JWT_USER_REFRESH_TTL_MS
-              : 60000;
+            const ttlMs = getJwtUserRefreshTtlMs();
             if (lastFetchedAt && Date.now() - lastFetchedAt < ttlMs) {
               logger.debug('[Auth] JWT callback - skipping user refresh (cached)', {
                 component: 'auth:jwt',
@@ -361,7 +364,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               });
               return false;
             }
-            if (OIDC_REQUIRE_EMAIL_VERIFIED_STRICT && emailVerifiedClaim !== true) {
+            if (isOidcEmailVerifiedStrict() && emailVerifiedClaim !== true) {
               logger.warn('[Auth] OIDC sign-in rejected: email_verified missing (strict mode)', {
                 component: 'auth:signIn',
                 email,
