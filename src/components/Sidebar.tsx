@@ -402,8 +402,10 @@ export default function Sidebar(
         className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
         style={{
           width: isMobile ? '280px' : 'var(--sidebar-width)',
-          background: 'var(--gradient-primary)',
-          borderRight: '1px solid rgba(0,0,0,0.1)',
+          background: 'linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #172554)',
+          backgroundSize: '400% 400%',
+          animation: 'sidebar-ambient 15s ease infinite',
+          borderRight: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
@@ -411,7 +413,7 @@ export default function Sidebar(
           top: 0,
           left: 0,
           color: 'white',
-          boxShadow: '2px 0 20px rgba(0, 0, 0, 0.08), inset -1px 0 0 rgba(255, 255, 255, 0.1)',
+          boxShadow: '2px 0 25px rgba(0, 0, 0, 0.15), inset -1px 0 0 rgba(255, 255, 255, 0.05)',
           overflow: 'hidden',
           zIndex: 1000,
           transition: isMobile ? 'transform var(--transition-slow) var(--ease-out)' : 'none',

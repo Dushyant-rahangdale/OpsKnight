@@ -2948,7 +2948,10 @@ select option {
 
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--gradient-primary);
+  /* Animated cinematic gradient matching Command Center */
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #172554);
+  background-size: 400% 400%;
+  animation: sidebar-ambient 15s ease infinite;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
@@ -2956,9 +2959,23 @@ select option {
   position: sticky;
   top: 0;
   color: white;
-  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08), inset -1px 0 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 2px 0 25px rgba(0, 0, 0, 0.15), inset -1px 0 0 rgba(255, 255, 255, 0.05);
   overflow: hidden;
   z-index: 1000;
+}
+
+@keyframes sidebar-ambient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .sidebar ul {
