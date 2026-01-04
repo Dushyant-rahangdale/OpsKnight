@@ -1043,4 +1043,13 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 }
 
+// ⚙️ Governance / System Config
+// Stores system-wide policies and security markers (encryption fingerprint, canary)
+model SystemConfig {
+  key       String   @id // e.g., 'encryption_fingerprint'
+  value     Json     // Flexible JSON config
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
 
