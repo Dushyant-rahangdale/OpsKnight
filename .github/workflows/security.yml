@@ -31,7 +31,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -83,7 +83,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Create reports directory
         run: mkdir -p reports
@@ -100,11 +100,11 @@ jobs:
           const audit = JSON.parse(fs.readFileSync('reports/npm-audit.json', 'utf8'));
           const vulns = audit.vulnerabilities || {};
           const entries = Object.entries(vulns);
-          
+
           let xml = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n';
           xml += '<testsuites name=\"npm-audit\" tests=\"' + entries.length + '\" failures=\"' + entries.filter(([,v]) => v.severity === 'high' || v.severity === 'critical').length + '\">\n';
           xml += '  <testsuite name=\"Dependency Security\" tests=\"' + entries.length + '\">\n';
-          
+
           entries.forEach(([name, vuln]) => {
             const severity = vuln.severity || 'unknown';
             const isFail = severity === 'high' || severity === 'critical';
@@ -114,7 +114,7 @@ jobs:
             }
             xml += '    </testcase>\n';
           });
-          
+
           xml += '  </testsuite>\n</testsuites>';
           fs.writeFileSync('reports/npm-audit.xml', xml);
           console.log('Generated npm-audit.xml with ' + entries.length + ' entries');
@@ -306,7 +306,7 @@ jobs:
           mkdir -p combined-reports
           find reports -name "*.xml" -exec cp {} combined-reports/ \; 2>/dev/null || true
           ls -la combined-reports/ || true
-          
+
           # Create fallback if no reports
           if [ -z "$(ls -A combined-reports 2>/dev/null)" ]; then
             echo '<?xml version="1.0"?><testsuites><testsuite name="security" tests="0"/></testsuites>' > combined-reports/fallback.xml

@@ -51,7 +51,7 @@ jobs:
         env:
           # CI doesn't need git hooks; this also avoids husky-related setup issues.
           HUSKY: '0'
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Prepare test database schema
         # Match pre-prod behavior by applying migrations in order.
@@ -70,14 +70,12 @@ jobs:
           mkdir -p reports
           npm run prisma:health
 
-
-
       - name: Unit tests
         # DB-backed tests share a single database; run files serially to avoid cross-test contention.
         run: |
           mkdir -p reports
           npm run test:ci:unit
-        
+
       - name: Database integration tests
         # Enable real database for integration and resilience tests
         env:
