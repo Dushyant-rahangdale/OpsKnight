@@ -190,7 +190,7 @@ export async function getWidgetData(userId: string, userRole: string): Promise<W
   const slaMetricsRaw = await calculateSLAMetrics({ useOrScope: true });
 
   // Determine trends (comparing with previous period) - handle null values
-  const currentMtta = slaMetricsRaw.mtta || 0;
+  const currentMtta = slaMetricsRaw.mttd || 0;
   const prevMtta = slaMetricsRaw.previousPeriod.mtta || 0;
   const currentMttr = slaMetricsRaw.mttr || 0;
   const prevMttr = slaMetricsRaw.previousPeriod.mttr || 0;
