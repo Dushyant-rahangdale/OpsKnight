@@ -61,47 +61,19 @@ export async function GET(req: NextRequest) {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        const incidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: effectiveServiceIds },
-                OR: [
-                    { createdAt: { gte: startDate } },
-                    { resolvedAt: { gte: startDate } },
-                    { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
-                ],
-            },
-            include: {
-                service: {
-                    select: {
-                        id: true,
-                        name: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+        const { calculateSLAMetrics } = await import('@/lib/sla-server');
+        const metrics = await calculateSLAMetrics({
+            serviceId: effectiveServiceIds,
+            startDate,
+            includeIncidents: true,
+            incidentLimit: 100
         });
 
-        const services = await prisma.service.findMany({
-            where: { id: { in: effectiveServiceIds } },
-            select: {
-                id: true,
-                name: true,
-            },
-        });
+        const incidents = metrics.recentIncidents || [];
+        const services = metrics.serviceMetrics.map(s => ({ id: s.id, name: s.name }));
 
         return jsonOk({
-            incidents: incidents.map((inc) => ({
-                id: inc.id,
-                title: inc.title,
-                status: inc.status,
-                urgency: inc.urgency,
-                service: {
-                    id: inc.service.id,
-                    name: inc.service.name,
-                },
-                createdAt: inc.createdAt.toISOString(),
-                resolvedAt: inc.resolvedAt?.toISOString() || null,
-            })),
+            incidents,
             services,
             period: {
                 days,

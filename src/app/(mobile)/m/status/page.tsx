@@ -78,31 +78,26 @@ export default async function MobileStatusPage() {
         );
     }
 
-    // Calculate service statuses
-    const serviceStatuses: ServiceStatus[] = statusPage.services.map(sp => {
-        const activeIncidents = sp.service.incidents;
-        const hasMajor = activeIncidents.some(i => i.urgency === 'HIGH');
-        const hasMinor = activeIncidents.some(i => i.urgency === 'LOW');
+    const { calculateSLAMetrics, getExternalStatusLabel } = await import('@/lib/sla-server');
 
-        let status = 'OPERATIONAL';
-        if (hasMajor) status = 'MAJOR_OUTAGE';
-        else if (hasMinor) status = 'PARTIAL_OUTAGE';
+    // Optimized: Use a single call to get metrics for all services
+    const serviceIds = statusPage.services.map(sp => sp.serviceId);
+    const metrics = await calculateSLAMetrics({ serviceId: serviceIds });
 
+    const serviceStatuses: ServiceStatus[] = statusPage.services.map((sp) => {
+        const serviceMetric = metrics.serviceMetrics.find(m => m.id === sp.serviceId);
         return {
             id: sp.service.id,
             name: sp.service.name,
-            status,
-            incidentCount: activeIncidents.length
+            status: getExternalStatusLabel(serviceMetric?.dynamicStatus || 'OPERATIONAL'),
+            incidentCount: serviceMetric?.activeCount || 0
         };
     });
 
-    // Overall status
-    let overallStatus = 'OPERATIONAL';
-    if (serviceStatuses.some(s => s.status === 'MAJOR_OUTAGE')) overallStatus = 'MAJOR_OUTAGE';
-    else if (serviceStatuses.some(s => s.status === 'PARTIAL_OUTAGE')) overallStatus = 'PARTIAL_OUTAGE';
+    // Overall status from aggregate metrics
+    const overallStatus = getExternalStatusLabel(metrics.dynamicStatus);
 
     // Get active incidents with details
-    const serviceIds = statusPage.services.map(sp => sp.serviceId);
     const activeIncidents: ActiveIncident[] = serviceIds.length > 0 ? await prisma.incident.findMany({
         where: {
             serviceId: { in: serviceIds },

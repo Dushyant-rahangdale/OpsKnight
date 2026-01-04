@@ -16,7 +16,7 @@ import { getAuthOptions } from '@/lib/auth';
  */
 export async function GET(req: NextRequest) {
     const session = await getServerSession(await getAuthOptions());
-    
+
     if (!session?.user?.email) {
         return new Response('Unauthorized', { status: 401 });
     }
@@ -145,19 +145,26 @@ export async function GET(req: NextRequest) {
                             incidents: recentIncidents,
                         });
                     } else {
-                        // Stream dashboard updates
-                        const [openCount, acknowledgedCount, resolvedCount] = await Promise.all([
-                            prisma.incident.count({ where: { status: 'OPEN' } }),
-                            prisma.incident.count({ where: { status: 'ACKNOWLEDGED' } }),
-                            prisma.incident.count({ where: { status: 'RESOLVED' } }),
-                        ]);
+                        // Stream dashboard updates via centralized SLA server
+                        const { calculateSLAMetrics } = await import('@/lib/sla-server');
+
+                        // SCOPE: Dashboard stats should be personal/team-based if not admin
+                        const slaFilters: any = { useOrScope: true };
+                        if (user.role !== 'ADMIN' && user.role !== 'RESPONDER') {
+                            slaFilters.assigneeId = user.id;
+                            const teamIds = user.teamMemberships.map(m => m.teamId);
+                            if (teamIds.length > 0) slaFilters.teamId = teamIds;
+                        }
+
+                        const slaMetrics = await calculateSLAMetrics(slaFilters);
 
                         send({
                             type: 'dashboard_stats',
                             stats: {
-                                open: openCount,
-                                acknowledged: acknowledgedCount,
-                                resolved: resolvedCount,
+                                open: slaMetrics.openCount,
+                                acknowledged: slaMetrics.acknowledgedCount,
+                                resolved: slaMetrics.resolved24h, // Aligned with realtime stream
+                                critical: slaMetrics.criticalCount,
                             },
                         });
                     }

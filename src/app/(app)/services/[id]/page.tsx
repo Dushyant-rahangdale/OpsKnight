@@ -22,7 +22,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
     const page = Math.max(1, parseInt(searchParamsResolved?.page || '1', 10));
     const skip = (page - 1) * INCIDENTS_PER_PAGE;
 
-    const [service, totalIncidentsCount] = await Promise.all([
+    const [service] = await Promise.all([
         prisma.service.findUnique({
             where: { id },
             include: {
@@ -39,14 +39,8 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                     orderBy: { createdAt: 'desc' },
                     skip,
                     take: INCIDENTS_PER_PAGE
-                },
-                _count: {
-                    select: { incidents: true }
                 }
             }
-        }),
-        prisma.incident.count({
-            where: { serviceId: id }
         })
     ]);
 
@@ -57,68 +51,21 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
     const permissions = await getUserPermissions();
     const canDeleteService = permissions.isAdmin;
 
-    // Calculate dynamic status
-    const allOpenIncidents = await prisma.incident.findMany({
-        where: {
-            serviceId: id,
-            status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] }
-        },
-        select: { urgency: true }
-    });
-    const hasCritical = allOpenIncidents.some(i => i.urgency === 'HIGH');
-    const dynamicStatus = hasCritical ? 'CRITICAL' : allOpenIncidents.length > 0 ? 'DEGRADED' : 'OPERATIONAL';
-
-    // Get all incidents for calculations
-    const allIncidents = await prisma.incident.findMany({
-        where: { serviceId: id },
-        select: {
-            status: true,
-            urgency: true,
-            createdAt: true,
-            resolvedAt: true
-        }
+    const { calculateSLAMetrics } = await import('@/lib/sla-server');
+    const slaMetrics = await calculateSLAMetrics({
+        serviceId: id,
+        includeAllTime: true
     });
 
-    const resolvedIncidents = allIncidents.filter(i => i.status === 'RESOLVED');
-    const criticalIncidents = allOpenIncidents.filter(i => i.urgency === 'HIGH');
-    const totalIncidents = service._count.incidents;
+    const activeIncidents = slaMetrics.activeIncidents;
+    const criticalIncidentsCount = slaMetrics.highUrgencyCount;
+    const totalIncidents = slaMetrics.totalIncidents;
+    const resolvedCount = slaMetrics.manualResolvedCount + slaMetrics.autoResolvedCount;
 
-    // Calculate average resolution time
-    const resolvedWithTime = resolvedIncidents.filter(i => i.resolvedAt && i.createdAt);
-    const _avgResolutionTime = resolvedWithTime.length > 0
-        ? resolvedWithTime.reduce((sum, incident) => {
-            const resolutionTime = (incident.resolvedAt!.getTime() - incident.createdAt.getTime()) / (1000 * 60);
-            return sum + resolutionTime;
-        }, 0) / resolvedWithTime.length
-        : undefined;
-
-    // Calculate SLA compliance
-    let slaCompliance = 100;
-    if (service.targetResolveMinutes && resolvedWithTime.length > 0) {
-        const slaCompliant = resolvedWithTime.filter(i => {
-            const resolutionTime = (i.resolvedAt!.getTime() - i.createdAt.getTime()) / (1000 * 60);
-            return resolutionTime <= service.targetResolveMinutes;
-        }).length;
-        slaCompliance = (slaCompliant / resolvedWithTime.length) * 100;
-    }
-
-    // Get recent incidents (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const _recentIncidents = allIncidents.filter(i => i.createdAt >= sevenDaysAgo).length;
-
-    // Calculate resolution rate
-    const resolutionRate = totalIncidents > 0
-        ? (resolvedIncidents.length / totalIncidents) * 100
-        : 100;
-
-    // Calculate MTTR (Mean Time To Resolution) in hours
-    const mttr = resolvedWithTime.length > 0
-        ? resolvedWithTime.reduce((sum, incident) => {
-            const resolutionTime = (incident.resolvedAt!.getTime() - incident.createdAt.getTime()) / (1000 * 60 * 60);
-            return sum + resolutionTime;
-        }, 0) / resolvedWithTime.length
-        : undefined;
+    const dynamicStatus = slaMetrics.serviceMetrics[0]?.dynamicStatus ?? 'OPERATIONAL';
+    const slaCompliance = slaMetrics.resolveCompliance;
+    const resolutionRate = slaMetrics.resolveRate;
+    const mttr = slaMetrics.mttr ? slaMetrics.mttr / 60 : undefined; // Convert minutes to hours for existing UI logic
 
     // Calculate incident frequency (incidents per month)
     const serviceAgeDays = (new Date().getTime() - service.createdAt.getTime()) / (1000 * 60 * 60 * 24);
@@ -126,13 +73,12 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
         ? (totalIncidents / serviceAgeDays) * 30
         : 0;
 
-    // Calculate uptime percentage (simplified - based on resolved vs total)
-    // If all incidents are resolved quickly, uptime is high
+    // Calculate uptime percentage (simplified - based on active vs total)
     const uptimePercentage = totalIncidents === 0
         ? 100
-        : Math.max(0, 100 - (allOpenIncidents.length / totalIncidents) * 100);
+        : Math.max(0, 100 - (activeIncidents / totalIncidents) * 100);
 
-    const totalPages = Math.ceil(totalIncidentsCount / INCIDENTS_PER_PAGE);
+    const totalPages = Math.ceil(totalIncidents / INCIDENTS_PER_PAGE);
     const deleteServiceWithId = deleteService.bind(null, service.id);
 
     // Cast to any to avoid type issues with StatusBadge status prop
@@ -240,7 +186,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                                 action={deleteServiceWithId}
                                 serviceName={service.name}
                                 incidentCount={totalIncidents}
-                                hasOpenIncidents={allOpenIncidents.length > 0}
+                                hasOpenIncidents={activeIncidents > 0}
                             />
                         )}
                     </div>
@@ -276,7 +222,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                         {uptimePercentage.toFixed(1)}%
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {allOpenIncidents.length} active issue{allOpenIncidents.length !== 1 ? 's' : ''}
+                        {activeIncidents} active issue{activeIncidents !== 1 ? 's' : ''}
                     </div>
                 </div>
 
@@ -324,7 +270,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                         {resolutionRate.toFixed(1)}%
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {resolvedIncidents.length} of {totalIncidents} resolved
+                        {resolvedCount} of {totalIncidents} resolved
                     </div>
                 </div>
 
@@ -350,7 +296,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                 </div>
 
                 {/* Critical Incidents */}
-                {criticalIncidents.length > 0 && (
+                {criticalIncidentsCount > 0 && (
                     <div style={{
                         padding: '1.5rem',
                         background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, #ffffff 100%)',
@@ -366,7 +312,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                             color: 'var(--danger)',
                             marginBottom: '0.5rem'
                         }}>
-                            {criticalIncidents.length}
+                            {criticalIncidentsCount}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--danger)', fontWeight: '600' }}>
                             Requires immediate attention
@@ -394,7 +340,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                             {slaCompliance.toFixed(1)}%
                         </div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            Target: {service.targetResolveMinutes}m
+                            Target Res.: {service.targetResolveMinutes}m
                         </div>
                     </div>
                 )}
@@ -418,7 +364,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                             Incidents
                         </h2>
                         <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                            {totalIncidentsCount} total incident{totalIncidentsCount !== 1 ? 's' : ''}
+                            {totalIncidents} total incident{totalIncidents !== 1 ? 's' : ''}
                         </p>
                     </div>
                     <HoverLink
@@ -436,7 +382,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                 </div>
 
                 <IncidentList
-                    incidents={service.incidents.map(i => ({
+                    incidents={service.incidents.map((i: any) => ({
                         id: i.id,
                         title: i.title,
                         status: i.status,

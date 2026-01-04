@@ -88,50 +88,14 @@ export async function GET(req: NextRequest) {
             return new NextResponse('No services configured', { status: 400 });
         }
 
-        const incidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: serviceIds },
-                OR: [
-                    { createdAt: { lt: periodEnd }, resolvedAt: { gte: periodStart } },
-                    { createdAt: { gte: periodStart, lt: periodEnd } },
-                    { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
-                ],
-            },
-            select: {
-                serviceId: true,
-                createdAt: true,
-                resolvedAt: true,
-                status: true,
-            },
-        });
+        const { calculateMultiServiceUptime } = await import('@/lib/sla-server');
+        const uptimeMap = await calculateMultiServiceUptime(serviceIds, periodStart, periodEnd);
 
-        const totalMinutes = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60);
         const uptimeRows = statusPage.services.map((sp) => {
-            const relevant = incidents.filter((incident) => incident.serviceId === sp.serviceId).filter((incident) => {
-                if (incident.status === 'SUPPRESSED' || incident.status === 'SNOOZED') {
-                    return false;
-                }
-                const incidentEnd = incident.resolvedAt || periodEnd;
-                return incident.createdAt < periodEnd && incidentEnd > periodStart;
-            });
-
-            let downtimeMinutes = 0;
-            relevant.forEach((incident) => {
-                const incidentStart = incident.createdAt > periodStart ? incident.createdAt : periodStart;
-                const incidentEnd = (incident.resolvedAt || periodEnd) < periodEnd
-                    ? (incident.resolvedAt || periodEnd)
-                    : periodEnd;
-                const incidentMinutes = (incidentEnd.getTime() - incidentStart.getTime()) / (1000 * 60);
-                if (incidentMinutes > 0) {
-                    downtimeMinutes += incidentMinutes;
-                }
-            });
-
-            const uptime = totalMinutes > 0 ? ((totalMinutes - downtimeMinutes) / totalMinutes) * 100 : 100;
             return {
                 id: sp.service.id,
                 name: sp.displayName || sp.service.name,
-                uptime: Math.max(0, Math.min(100, uptime)),
+                uptime: Math.max(0, Math.min(100, uptimeMap[sp.service.id] || 100)),
             };
         });
 

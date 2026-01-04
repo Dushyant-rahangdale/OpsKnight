@@ -11,43 +11,12 @@ export default async function MobileDashboard() {
     const userId = session?.user?.id;
 
     // Fetch key metrics and on-call status
+    const { calculateSLAMetrics } = await import('@/lib/sla-server');
+    const slaMetrics = await calculateSLAMetrics({ includeAllTime: true });
+
     const [
-        openIncidents,
-        criticalIncidents,
-        resolvedToday,
-        recentIncidents,
         currentOnCallShift,
     ] = await Promise.all([
-        prisma.incident.count({
-            where: { status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] } },
-        }),
-        prisma.incident.count({
-            where: {
-                status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-                urgency: 'HIGH',
-            },
-        }),
-        prisma.incident.count({
-            where: {
-                status: 'RESOLVED',
-                resolvedAt: {
-                    gte: new Date(new Date().setHours(0, 0, 0, 0)),
-                },
-            },
-        }),
-        prisma.incident.findMany({
-            where: { status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] } },
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-            select: {
-                id: true,
-                title: true,
-                status: true,
-                urgency: true,
-                createdAt: true,
-                service: { select: { name: true } },
-            },
-        }),
         // Check if current user is on-call
         userId ? prisma.onCallShift.findFirst({
             where: {
@@ -60,6 +29,32 @@ export default async function MobileDashboard() {
             }
         }) : null,
     ]);
+
+    const openIncidents = slaMetrics.openCount;
+    const criticalIncidents = slaMetrics.criticalCount;
+
+    // Use the last trend point for 'Today' count
+    const resolvedToday = slaMetrics.trendSeries.length > 0
+        ? slaMetrics.trendSeries[slaMetrics.trendSeries.length - 1].resolveCount
+        : (slaMetrics.manualResolvedCount + slaMetrics.autoResolvedCount);
+
+    const recentIncidents = []; // Unused old variable
+
+    // Actually, mobile dashboard wants the actual list of incidents too.
+    // Let's keep the findMany for incidents but use slaMetrics for counts.
+    const incidentList = await prisma.incident.findMany({
+        where: { status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+            id: true,
+            title: true,
+            status: true,
+            urgency: true,
+            createdAt: true,
+            service: { select: { name: true } },
+        },
+    });
 
     const userName = session?.user?.name?.split(' ')[0] || 'there';
     const hour = new Date().getHours();
@@ -166,7 +161,7 @@ export default async function MobileDashboard() {
                 </div>
 
                 <div className="mobile-incident-list">
-                    {recentIncidents.length === 0 ? (
+                    {incidentList.length === 0 ? (
                         <div
                             style={{
                                 padding: '2rem',
@@ -180,7 +175,7 @@ export default async function MobileDashboard() {
                             <p style={{ margin: 0 }}>No open incidents 🎉</p>
                         </div>
                     ) : (
-                        recentIncidents.map((incident) => (
+                        incidentList.map((incident) => (
                             <Link
                                 key={incident.id}
                                 href={`/m/incidents/${incident.id}`}

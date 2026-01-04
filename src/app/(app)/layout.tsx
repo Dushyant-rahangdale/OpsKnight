@@ -94,12 +94,9 @@ export default async function AppLayout({
 
   const canCreate = userRole === 'ADMIN' || userRole === 'RESPONDER';
 
-  const criticalOpenCount = await prisma.incident.count({
-    where: {
-      status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-      urgency: 'HIGH'
-    }
-  });
+  const { calculateSLAMetrics } = await import('@/lib/sla-server');
+  const slaMetrics = await calculateSLAMetrics();
+  const criticalOpenCount = slaMetrics.criticalCount;
 
   const statusTone = criticalOpenCount > 0 ? 'danger' : 'ok';
   const statusLabel = criticalOpenCount > 0 ? 'Red Alert' : 'Green Corridor';

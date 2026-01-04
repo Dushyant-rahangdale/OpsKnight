@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getServerSession } from 'next-auth';
 import { GET } from '@/app/api/sidebar-stats/route';
 import prisma from '@/lib/prisma';
+import { calculateSLAMetrics } from '@/lib/sla-server';
 import { parseResponse } from '../helpers/api-test';
+import type { SLAMetrics } from '@/lib/sla-server';
 
 vi.mock('next-auth', () => ({
     getServerSession: vi.fn(),
@@ -12,14 +14,15 @@ vi.mock('@/lib/auth', () => ({
     getAuthOptions: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock('@/lib/sla-server', () => ({
+    calculateSLAMetrics: vi.fn(),
+}));
+
 vi.mock('@/lib/prisma', () => ({
     __esModule: true,
     default: {
         user: {
             findUnique: vi.fn(),
-        },
-        incident: {
-            count: vi.fn(),
         },
     },
 }));
@@ -45,16 +48,16 @@ describe('API Route - Sidebar Stats', () => {
             role: 'ADMIN',
             teamMemberships: [],
         } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-        vi.mocked(prisma.incident.count).mockResolvedValue(3);
+        vi.mocked(calculateSLAMetrics).mockResolvedValue({
+            activeCount: 3,
+        } as SLAMetrics);
 
         const res = await GET();
         const { status, data } = await parseResponse(res);
 
         expect(status).toBe(200);
         expect(data.activeIncidentsCount).toBe(3);
-        expect(prisma.incident.count).toHaveBeenCalledWith({
-            where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
-        });
+        expect(calculateSLAMetrics).toHaveBeenCalledWith({ useOrScope: true });
     });
 
     it('scopes active incidents for standard users', async () => {
@@ -64,21 +67,19 @@ describe('API Route - Sidebar Stats', () => {
             role: 'USER',
             teamMemberships: [{ teamId: 'team-1' }, { teamId: 'team-2' }],
         } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-        vi.mocked(prisma.incident.count).mockResolvedValue(1);
+        vi.mocked(calculateSLAMetrics).mockResolvedValue({
+            activeCount: 1,
+        } as SLAMetrics);
 
         const res = await GET();
         const { status, data } = await parseResponse(res);
 
         expect(status).toBe(200);
         expect(data.activeIncidentsCount).toBe(1);
-        expect(prisma.incident.count).toHaveBeenCalledWith({
-            where: {
-                status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-                OR: [
-                    { assigneeId: 'user-1' },
-                    { service: { teamId: { in: ['team-1', 'team-2'] } } },
-                ],
-            },
+        expect(calculateSLAMetrics).toHaveBeenCalledWith({
+            useOrScope: true,
+            teamId: ['team-1', 'team-2'],
+            assigneeId: 'user-1',
         });
     });
 });

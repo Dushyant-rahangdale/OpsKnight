@@ -97,64 +97,29 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        const activeIncidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: effectiveServiceIds },
-                status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-            },
-            select: {
-                serviceId: true,
-                urgency: true,
-                createdAt: true,
-                resolvedAt: true,
-                status: true,
-            },
+
+        const { calculateSLAMetrics, calculateMultiServiceUptime, getExternalStatusLabel } = await import('@/lib/sla-server');
+
+        // Optimized: Single call to get metrics and incidents for all services in scope
+        const metrics = await calculateSLAMetrics({
+            serviceId: effectiveServiceIds,
+            includeIncidents: true,
+            incidentLimit: 20
         });
 
-        const incidentsByService = activeIncidents.reduce((acc, incident) => {
-            if (!acc[incident.serviceId]) {
-                acc[incident.serviceId] = [];
-            }
-            acc[incident.serviceId].push(incident);
-            return acc;
-        }, {} as Record<string, typeof activeIncidents>);
+        const recentIncidents = metrics.recentIncidents || [];
 
         const serviceStatusMap = new Map<string, string>();
-        services.forEach((service) => {
-            const incidents = incidentsByService[service.id] || [];
-            const hasHigh = incidents.some((inc) => inc.urgency === 'HIGH');
-            const hasLow = incidents.some((inc) => inc.urgency === 'LOW');
-            const status = hasHigh ? 'MAJOR_OUTAGE' : hasLow ? 'PARTIAL_OUTAGE' : 'OPERATIONAL';
-            serviceStatusMap.set(service.id, status);
+        const serviceActiveCountMap = new Map<string, number>();
+
+        metrics.serviceMetrics.forEach(m => {
+            serviceStatusMap.set(m.id, getExternalStatusLabel(m.dynamicStatus));
+            serviceActiveCountMap.set(m.id, m.activeCount);
         });
 
-        // Calculate overall status
-        const hasOutage = activeIncidents.some(inc => inc.urgency === 'HIGH');
-        const hasDegraded = activeIncidents.some(inc => inc.urgency === 'LOW');
-        const overallStatus = hasOutage ? 'outage' : hasDegraded ? 'degraded' : 'operational';
-
-        // Get recent incidents
-        const recentIncidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: effectiveServiceIds },
-                createdAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
-            },
-            select: {
-                id: true,
-                title: true,
-                status: true,
-                createdAt: true,
-                resolvedAt: true,
-                service: {
-                    select: {
-                        name: true,
-                        region: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 20,
-        });
+        const overallStatus = metrics.dynamicStatus === 'CRITICAL' ? 'outage'
+            : metrics.dynamicStatus === 'DEGRADED' ? 'degraded'
+                : 'operational';
 
         const servicesData = services.map(service => ({
             id: service.id,
@@ -163,57 +128,15 @@ export async function GET(req: NextRequest) {
             slaTier: service.slaTier ?? null,
             ownerTeam: service.team ? { id: service.team.id, name: service.team.name } : null,
             status: serviceStatusMap.get(service.id) || service.status,
-            activeIncidents: service._count.incidents,
+            activeIncidents: serviceActiveCountMap.get(service.id) || 0,
         }));
 
-        // Calculate uptime metrics (30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const allIncidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: effectiveServiceIds },
-                OR: [
-                    { createdAt: { gte: thirtyDaysAgo } },
-                    { resolvedAt: { gte: thirtyDaysAgo } },
-                    { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
-                ],
-            },
-            select: {
-                id: true,
-                serviceId: true,
-                createdAt: true,
-                resolvedAt: true,
-                status: true,
-            },
-        });
-
-        const uptimeMetrics = services.map(service => {
-            const serviceIncidents = allIncidents.filter(inc => inc.serviceId === service.id);
-            const periodEnd = new Date();
-            const totalMinutes = (periodEnd.getTime() - thirtyDaysAgo.getTime()) / (1000 * 60);
-            let downtimeMinutes = 0;
-
-            serviceIncidents.forEach(incident => {
-                if (incident.status === 'SUPPRESSED' || incident.status === 'SNOOZED') {
-                    return;
-                }
-
-                const incidentStart = incident.createdAt > thirtyDaysAgo ? incident.createdAt : thirtyDaysAgo;
-                const incidentEnd = (incident.resolvedAt || periodEnd) < periodEnd
-                    ? (incident.resolvedAt || periodEnd)
-                    : periodEnd;
-                const incidentMinutes = (incidentEnd.getTime() - incidentStart.getTime()) / (1000 * 60);
-                if (incidentMinutes > 0) {
-                    downtimeMinutes += incidentMinutes;
-                }
-            });
-
-            const uptimePercent = totalMinutes > 0 ? ((totalMinutes - downtimeMinutes) / totalMinutes) * 100 : 100;
-
-            return {
-                serviceId: service.id,
-                uptime: parseFloat(uptimePercent.toFixed(3)),
-            };
-        });
+        const uptimeMap = await calculateMultiServiceUptime(effectiveServiceIds, thirtyDaysAgo);
+        const uptimeMetrics = services.map(service => ({
+            serviceId: service.id,
+            uptime: parseFloat((uptimeMap[service.id] || 100).toFixed(3)),
+        }));
 
         const headers: Record<string, string> = statusPage.requireAuth || statusPage.statusApiRequireToken
             ? {

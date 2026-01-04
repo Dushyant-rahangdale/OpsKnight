@@ -38,11 +38,47 @@ function getBufferLimit(limit?: number) {
     return Math.max(0, Math.min(safeLimit, LOG_BUFFER_MAX));
 }
 
+const SENSITIVE_KEYS = [/pass/i, /token/i, /secret/i, /key/i, /auth/i, /email/i, /session/i, /cookie/i];
+
+function sanitizeContext(context: unknown): unknown {
+    if (!context || typeof context !== 'object') {
+        return context;
+    }
+
+    if (Array.isArray(context)) {
+        return context.map(sanitizeContext);
+    }
+
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(context as Record<string, unknown>)) {
+        if (SENSITIVE_KEYS.some(regex => regex.test(key))) {
+            sanitized[key] = '[REDACTED]';
+        } else if (typeof value === 'object' && value !== null) {
+            sanitized[key] = sanitizeContext(value);
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+}
+
 function addToBuffer(entry: LogEntry) {
     if (LOG_BUFFER_MAX <= 0) {
         return;
     }
-    logBuffer.push(entry);
+    // Deep clone and sanitize before buffering
+    const sanitizedEntry = {
+        ...entry,
+        message: entry.message.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]'),
+        context: entry.context ? sanitizeContext(entry.context) as LogContext : undefined,
+        error: entry.error ? {
+            ...entry.error,
+            message: entry.error.message.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]'),
+            stack: entry.error.stack?.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_REDACTED]')
+        } : undefined
+    };
+
+    logBuffer.push(sanitizedEntry);
     if (logBuffer.length > LOG_BUFFER_MAX) {
         logBuffer.splice(0, logBuffer.length - LOG_BUFFER_MAX);
     }

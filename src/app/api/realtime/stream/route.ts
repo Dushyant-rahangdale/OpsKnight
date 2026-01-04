@@ -70,26 +70,26 @@ export async function GET(req: NextRequest) {
                             }));
                         }
 
-                        // Get dashboard metrics
-                        const [openCount, acknowledgedCount, resolvedCount, highUrgencyCount] = await Promise.all([
-                            prisma.incident.count({ where: { status: 'OPEN' } }),
-                            prisma.incident.count({ where: { status: 'ACKNOWLEDGED' } }),
-                            prisma.incident.count({ where: { status: 'RESOLVED', resolvedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
-                            prisma.incident.count({
-                                where: {
-                                    status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-                                    urgency: 'HIGH'
-                                }
-                            })
-                        ]);
+                        // Get dashboard metrics via centralized SLA server
+                        const { calculateSLAMetrics } = await import('@/lib/sla-server');
+
+                        // SCOPE: Sidebar/Live metrics should be personal or team-based if not admin
+                        const slaFilters: any = { useOrScope: true };
+                        if (user.role !== 'ADMIN' && user.role !== 'RESPONDER') {
+                            slaFilters.assigneeId = user.id;
+                            // Team IDs would need a fetch if not in session, getCurrentUser might need expansion
+                        }
+
+                        const slaMetrics = await calculateSLAMetrics(slaFilters);
 
                         send(JSON.stringify({
                             type: 'metrics_updated',
                             metrics: {
-                                open: openCount,
-                                acknowledged: acknowledgedCount,
-                                resolved24h: resolvedCount,
-                                highUrgency: highUrgencyCount
+                                open: slaMetrics.openCount,
+                                acknowledged: slaMetrics.acknowledgedCount,
+                                resolved24h: slaMetrics.resolved24h,
+                                highUrgency: slaMetrics.criticalCount,
+                                active: slaMetrics.activeCount,
                             },
                             timestamp: new Date().toISOString()
                         }));

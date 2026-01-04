@@ -57,18 +57,15 @@ export async function GET(req: NextRequest) {
             ? serviceIds
             : (await prisma.service.findMany({ select: { id: true } })).map(s => s.id);
 
-        // Get recent incidents (last 30 days)
-        const incidents = await prisma.incident.findMany({
-            where: {
-                serviceId: { in: effectiveServiceIds },
-                createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-            },
-            include: {
-                service: true,
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
+        const { calculateSLAMetrics } = await import('@/lib/sla-server');
+        const metrics = await calculateSLAMetrics({
+            serviceId: effectiveServiceIds,
+            windowDays: 30, // Last 30 days
+            includeIncidents: true,
+            incidentLimit: 50
         });
+
+        const incidents = metrics.recentIncidents || [];
 
         const baseUrl = getBaseUrl();
         // Generate RSS XML

@@ -130,34 +130,15 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
         orderBy,
     });
 
-    const serviceIds = services.map(service => service.id);
-    const openIncidentsByService = new Map<string, { total: number; critical: number }>();
-
-    if (serviceIds.length > 0) {
-        const openIncidents = await prisma.incident.groupBy({
-            by: ['serviceId', 'urgency'],
-            where: {
-                serviceId: { in: serviceIds },
-                status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
-            },
-            _count: { _all: true },
-        });
-
-        openIncidents.forEach(group => {
-            const entry = openIncidentsByService.get(group.serviceId) || { total: 0, critical: 0 };
-            entry.total += group._count._all;
-            if (group.urgency === 'HIGH') {
-                entry.critical += group._count._all;
-            }
-            openIncidentsByService.set(group.serviceId, entry);
-        });
-    }
+    const { calculateSLAMetrics } = await import('@/lib/sla-server');
+    const slaMetrics = await calculateSLAMetrics({ includeAllTime: true });
+    const slaServiceMap = new Map(slaMetrics.serviceMetrics.map(s => [s.id, s]));
 
     const servicesWithStatus = services.map(service => {
-        const counts = openIncidentsByService.get(service.id) || { total: 0, critical: 0 };
-        const openIncidentCount = counts.total;
-        const hasCritical = counts.critical > 0;
-        const dynamicStatus = getServiceDynamicStatus({ openIncidentCount, hasCritical });
+        const slaData = slaServiceMap.get(service.id);
+        const openIncidentCount = slaData?.activeCount ?? 0;
+        const hasCritical = (slaData?.criticalCount ?? 0) > 0;
+        const dynamicStatus = slaData?.dynamicStatus ?? 'OPERATIONAL';
 
         return {
             ...service,

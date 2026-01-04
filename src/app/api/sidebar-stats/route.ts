@@ -25,19 +25,20 @@ export async function GET() {
             return jsonError('Unauthorized', 401);
         }
 
-        const where: Prisma.IncidentWhereInput = {
-            status: { in: ['OPEN', 'ACKNOWLEDGED'] }
+        const { calculateSLAMetrics } = await import('@/lib/sla-server');
+
+        const slaFilters: any = {
+            useOrScope: true
         };
 
         if (user.role !== 'ADMIN' && user.role !== 'RESPONDER') {
             const teamIds = user.teamMemberships.map((membership) => membership.teamId);
-            where.OR = [
-                { assigneeId: user.id },
-                { service: { teamId: { in: teamIds } } }
-            ];
+            slaFilters.teamId = teamIds;
+            slaFilters.assigneeId = user.id;
         }
 
-        const activeIncidentsCount = await prisma.incident.count({ where });
+        const slaMetrics = await calculateSLAMetrics(slaFilters);
+        const activeIncidentsCount = slaMetrics.activeCount;
 
         return jsonOk({ activeIncidentsCount }, 200);
     } catch (error) {
