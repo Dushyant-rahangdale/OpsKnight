@@ -198,13 +198,12 @@ export default function Sidebar(
   }, []);
 
   useEffect(() => {
-    // Check if mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    // Check if mobile via media query (more robust than raw innerWidth; behaves well on zoom)
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   }, []);
 
   useEffect(() => {
@@ -250,6 +249,7 @@ export default function Sidebar(
         key={item.href}
         href={item.href}
         className={`nav-item ${active ? 'active' : ''}`}
+        aria-current={active ? 'page' : undefined}
         style={{
           padding: 'clamp(0.5rem, 1vw, 0.625rem) clamp(0.6rem, 1.2vw, 0.75rem)',
           textDecoration: 'none',
@@ -263,19 +263,20 @@ export default function Sidebar(
           fontWeight: active ? '700' : '500',
           fontSize: 'clamp(0.82rem, 1.05vw, 0.9rem)',
           border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+          minWidth: 0,
         }}
         onMouseEnter={e => {
           if (!active) {
             e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
             e.currentTarget.style.color = 'white';
-            e.currentTarget.style.transform = 'translateX(4px)';
+            e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
           }
         }}
         onMouseLeave={e => {
           if (!active) {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = 'rgba(255,255,255,0.75)';
-            e.currentTarget.style.transform = 'translateX(0)';
+            e.currentTarget.style.boxShadow = 'none';
           }
         }}
       >
@@ -293,7 +294,17 @@ export default function Sidebar(
         >
           {item.icon}
         </span>
-        <span style={{ whiteSpace: 'nowrap', flex: 1 }}>{item.label}</span>
+        <span
+          style={{
+            whiteSpace: 'nowrap',
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {item.label}
+        </span>
         {showBadge && (
           <span
             aria-label={`${activeIncidentsCount} active incidents`}
@@ -309,6 +320,7 @@ export default function Sidebar(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {activeIncidentsCount > 99 ? '99+' : activeIncidentsCount}
@@ -401,14 +413,14 @@ export default function Sidebar(
       <aside
         className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
         style={{
-          width: isMobile ? '280px' : 'var(--sidebar-width)',
+          width: isMobile ? 'min(86vw, 320px)' : 'var(--sidebar-width)',
           background: 'linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #172554)',
           backgroundSize: '400% 400%',
           animation: 'sidebar-ambient 15s ease infinite',
           borderRight: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
-          height: '100vh',
+          height: '100dvh',
           position: isMobile ? 'fixed' : 'sticky',
           top: 0,
           left: 0,
@@ -545,10 +557,13 @@ export default function Sidebar(
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
             overflowX: 'hidden',
             padding: 'clamp(0.75rem, 1.6vw, 1rem) clamp(0.6rem, 1.4vw, 0.75rem)',
             gap: '0.5rem',
+            scrollbarGutter: 'stable',
+            overscrollBehavior: 'contain',
           }}
         >
           {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
