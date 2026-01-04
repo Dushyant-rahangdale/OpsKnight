@@ -1,16 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { POST } from '@/app/api/admin/generate-reset-link/route';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-// Mock next-auth
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}));
-
-import { getServerSession } from 'next-auth';
-
-// Mock Prisma
-const mockPrisma = {
+// Use vi.hoisted to define mocks that will be available when vi.mock is hoisted
+const mockPrisma = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
   },
@@ -24,8 +16,14 @@ const mockPrisma = {
   systemSettings: {
     findUnique: vi.fn(),
   },
-};
+}));
 
+// Mock next-auth
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn(),
+}));
+
+// Mock Prisma
 vi.mock('@/lib/prisma', () => ({
   default: mockPrisma,
 }));
@@ -36,6 +34,9 @@ vi.mock('@/lib/app-url', () => ({
   getAppUrlSync: vi.fn().mockReturnValue('http://localhost:3000'),
 }));
 
+import { POST } from '@/app/api/admin/generate-reset-link/route';
+import { getServerSession } from 'next-auth';
+
 describe('API: Admin Generate Reset Link', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,7 +44,7 @@ describe('API: Admin Generate Reset Link', () => {
 
   it('generates a reset link for a valid user when called by an admin', async () => {
     // 1. Mock Session as Admin
-    (getServerSession as any).mockResolvedValue({
+    vi.mocked(getServerSession).mockResolvedValue({
       user: {
         id: 'admin-id',
         email: 'admin@example.com',
@@ -77,7 +78,7 @@ describe('API: Admin Generate Reset Link', () => {
   });
 
   it('rejects non-admin users', async () => {
-    (getServerSession as any).mockResolvedValue({
+    vi.mocked(getServerSession).mockResolvedValue({
       user: {
         id: 'user-id',
         email: 'user@example.com',
