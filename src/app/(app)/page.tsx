@@ -86,9 +86,9 @@ export default async function Dashboard({
   const email = session?.user?.email ?? null;
   const user = email
     ? await prisma.user.findUnique({
-      where: { email },
-      select: { name: true },
-    })
+        where: { email },
+        select: { name: true },
+      })
     : null;
   const userName = user?.name || 'there';
 
@@ -130,13 +130,7 @@ export default async function Dashboard({
   const skip = (page - 1) * INCIDENTS_PER_PAGE;
 
   // Fetch Data in Parallel
-  const [
-    incidents,
-    totalCount,
-    services,
-    users,
-    slaMetrics,
-  ] = await Promise.all([
+  const [incidents, totalCount, services, users, slaMetrics] = await Promise.all([
     prisma.incident.findMany({
       where,
       select: {
@@ -233,7 +227,12 @@ export default async function Dashboard({
   const servicesWithIncidents = slaMetrics.serviceMetrics.map(s => ({
     id: s.id,
     name: s.name,
-    status: s.dynamicStatus as 'OPERATIONAL' | 'DEGRADED' | 'PARTIAL_OUTAGE' | 'MAJOR_OUTAGE' | 'MAINTENANCE',
+    status: s.dynamicStatus as
+      | 'OPERATIONAL'
+      | 'DEGRADED'
+      | 'PARTIAL_OUTAGE'
+      | 'MAJOR_OUTAGE'
+      | 'MAINTENANCE',
     activeIncidents: s.activeCount,
     criticalIncidents: s.criticalCount,
   }));

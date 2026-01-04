@@ -116,17 +116,23 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   // 2. Build Where Clauses
   const serviceWhere = filters.serviceId
-    ? { serviceId: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId }
+    ? {
+        serviceId: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId,
+      }
     : {};
 
   const teamWhere = filters.teamId
     ? filters.useOrScope
       ? {
-        OR: [
-          { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId },
-          { service: { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId } },
-        ],
-      }
+          OR: [
+            { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId },
+            {
+              service: {
+                teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId,
+              },
+            },
+          ],
+        }
       : { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId }
     : {};
 
@@ -150,14 +156,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     activeWhere.OR = [
       ...(hasServiceFilter ? [serviceWhere] : []),
       ...(hasTeamFilter ? [{ service: teamWhere }] : []),
-      ...(assigneeWhere ? [assigneeWhere] : [])
+      ...(assigneeWhere ? [assigneeWhere] : []),
     ];
   } else {
     activeWhere = {
       ...activeWhere,
       ...(hasServiceFilter ? serviceWhere : {}),
       ...(hasTeamFilter ? { service: teamWhere } : {}),
-      ...(assigneeWhere ?? {})
+      ...(assigneeWhere ?? {}),
     };
   }
 
@@ -171,13 +177,13 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     recentIncidentWhere.OR = [
       ...(hasServiceFilter ? [serviceWhere] : []),
       ...(hasTeamFilter ? [{ service: teamWhere }] : []),
-      ...(assigneeWhere ? [assigneeWhere] : [])
+      ...(assigneeWhere ? [assigneeWhere] : []),
     ];
   } else {
     Object.assign(recentIncidentWhere, {
       ...(hasServiceFilter ? serviceWhere : {}),
       ...(hasTeamFilter ? { service: teamWhere } : {}),
-      ...(assigneeWhere ?? {})
+      ...(assigneeWhere ?? {}),
     });
   }
 
@@ -219,9 +225,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     // Active breakdown (Status, Urgency, Assignment) - Batch fetch
     prisma.incident.findMany({
       where: activeWhere,
-      select: { id: true, status: true, urgency: true, assigneeId: true, serviceId: true }
+      select: { id: true, status: true, urgency: true, assigneeId: true, serviceId: true },
     }),
-    prisma.alert.count({ where: { createdAt: { gte: start }, ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}) } }),
+    prisma.alert.count({
+      where: {
+        createdAt: { gte: start },
+        ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}),
+      },
+    }),
     prisma.onCallShift.findMany({
       where: { end: { gte: now }, start: { lte: coverageWindowEnd } },
       select: { start: true, end: true, userId: true },
@@ -237,8 +248,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       _count: { _all: true },
     }),
     prisma.service.findMany({
-      where: filters.serviceId ? { id: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId } : {},
-      select: { id: true, name: true }
+      where: filters.serviceId
+        ? { id: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId }
+        : {},
+      select: { id: true, name: true },
     }),
     prisma.incident.groupBy({
       by: ['assigneeId'],
@@ -296,7 +309,15 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         description: true,
         acknowledgedAt: true,
         resolvedAt: true,
-        service: { select: { id: true, name: true, region: true, targetAckMinutes: true, targetResolveMinutes: true } },
+        service: {
+          select: {
+            id: true,
+            name: true,
+            region: true,
+            targetAckMinutes: true,
+            targetResolveMinutes: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: filters.incidentLimit || 50,
@@ -324,10 +345,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     activeStatusCountMap.set(i.status, (activeStatusCountMap.get(i.status) || 0) + 1);
   });
 
-  const activeStatusBreakdown = Array.from(activeStatusCountMap.entries()).map(([status, count]) => ({
-    status,
-    _count: { _all: count }
-  }));
+  const activeStatusBreakdown = Array.from(activeStatusCountMap.entries()).map(
+    ([status, count]) => ({
+      status,
+      _count: { _all: count },
+    })
+  );
 
   const serviceActiveCountMap = new Map<string, number>();
   const serviceCriticalCountMap = new Map<string, number>();
@@ -338,62 +361,66 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     }
   });
 
-  const serviceActiveCounts = Array.from(serviceActiveCountMap.entries()).map(([serviceId, count]) => ({
-    serviceId,
-    _count: { _all: count }
-  }));
-  const serviceCriticalCounts = Array.from(serviceCriticalCountMap.entries()).map(([serviceId, count]) => ({
-    serviceId,
-    _count: { _all: count }
-  }));
+  const serviceActiveCounts = Array.from(serviceActiveCountMap.entries()).map(
+    ([serviceId, count]) => ({
+      serviceId,
+      _count: { _all: count },
+    })
+  );
+  const serviceCriticalCounts = Array.from(serviceCriticalCountMap.entries()).map(
+    ([serviceId, count]) => ({
+      serviceId,
+      _count: { _all: count },
+    })
+  );
 
   // 4. Fetch Incident Events
   const recentIncidentIds = recentIncidents.map(i => i.id);
   const [ackEvents, escalationEvents, reopenEvents, autoResolveEvents] = recentIncidentIds.length
     ? await Promise.all([
-      prisma.incidentEvent.findMany({
-        where: {
-          incidentId: { in: recentIncidentIds },
-          message: { contains: 'acknowledged', mode: 'insensitive' },
-        },
-        select: { incidentId: true, createdAt: true },
-      }),
-      prisma.incidentEvent.findMany({
-        where: {
-          incidentId: { in: recentIncidentIds },
-          message: { contains: 'escalated to', mode: 'insensitive' },
-        },
-        select: { incidentId: true, createdAt: true },
-      }),
-      prisma.incidentEvent.findMany({
-        where: {
-          incidentId: { in: recentIncidentIds },
-          message: { contains: 'reopen', mode: 'insensitive' },
-        },
-        select: { incidentId: true },
-      }),
-      prisma.incidentEvent.findMany({
-        where: {
-          incidentId: { in: recentIncidentIds },
-          message: { contains: 'auto-resolved', mode: 'insensitive' },
-        },
-        select: { incidentId: true },
-      }),
-    ])
+        prisma.incidentEvent.findMany({
+          where: {
+            incidentId: { in: recentIncidentIds },
+            message: { contains: 'acknowledged', mode: 'insensitive' },
+          },
+          select: { incidentId: true, createdAt: true },
+        }),
+        prisma.incidentEvent.findMany({
+          where: {
+            incidentId: { in: recentIncidentIds },
+            message: { contains: 'escalated to', mode: 'insensitive' },
+          },
+          select: { incidentId: true, createdAt: true },
+        }),
+        prisma.incidentEvent.findMany({
+          where: {
+            incidentId: { in: recentIncidentIds },
+            message: { contains: 'reopen', mode: 'insensitive' },
+          },
+          select: { incidentId: true },
+        }),
+        prisma.incidentEvent.findMany({
+          where: {
+            incidentId: { in: recentIncidentIds },
+            message: { contains: 'auto-resolved', mode: 'insensitive' },
+          },
+          select: { incidentId: true },
+        }),
+      ])
     : [[], [], [], []];
   const [firstNotes, firstAlerts] = recentIncidentIds.length
     ? await Promise.all([
-      prisma.incidentNote.groupBy({
-        by: ['incidentId'],
-        where: { incidentId: { in: recentIncidentIds } },
-        _min: { createdAt: true },
-      }),
-      prisma.alert.groupBy({
-        by: ['incidentId'],
-        where: { incidentId: { in: recentIncidentIds } },
-        _min: { createdAt: true },
-      }),
-    ])
+        prisma.incidentNote.groupBy({
+          by: ['incidentId'],
+          where: { incidentId: { in: recentIncidentIds } },
+          _min: { createdAt: true },
+        }),
+        prisma.alert.groupBy({
+          by: ['incidentId'],
+          where: { incidentId: { in: recentIncidentIds } },
+          _min: { createdAt: true },
+        }),
+      ])
     : [[], []];
 
   // Build Global Ack Map
@@ -683,7 +710,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     if (!incident.serviceId) continue;
     // Note: If a service was created/deleted recently it might not be in 'services' list or 'recentIncidents' might have old ID.
     // Ensure we handle missing map entries if necessary (though services list should be fresh).
-    let s = serviceMap.get(incident.serviceId);
+    const s = serviceMap.get(incident.serviceId);
     if (!s) {
       // Fallback for edge case where service exists in incident but not in service list (e.g. soft deleted?)
       // For now, we skip or create ad-hoc. Let's skip to keep list clean.
@@ -810,9 +837,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const userIds = Array.from(new Set([...assigneeIds, ...onCallUserIds]));
   const usersById = userIds.length
     ? await prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: { id: true, name: true, email: true },
-    })
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, email: true },
+      })
     : [];
   const userNameMap = new Map(usersById.map(u => [u.id, u.name || u.email || 'Unknown']));
   const assigneeLoad = assigneeCounts.map(e => ({
@@ -927,10 +954,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     eventsPerIncident:
       totalRecent > 0
         ? (ackEvents.length +
-          escalationEvents.length +
-          reopenEvents.length +
-          autoResolveEvents.length) /
-        totalRecent
+            escalationEvents.length +
+            reopenEvents.length +
+            autoResolveEvents.length) /
+          totalRecent
         : 0,
     heatmapData,
     currentShifts: currentShiftsData.map(s => ({
@@ -938,16 +965,18 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       user: { name: s.user.name },
       schedule: { name: s.schedule.name },
     })),
-    recentIncidents: filters.includeIncidents ? recentIncidents.map(inc => ({
-      id: inc.id,
-      title: inc.title,
-      description: inc.description,
-      status: inc.status,
-      urgency: inc.urgency,
-      createdAt: inc.createdAt,
-      resolvedAt: inc.resolvedAt,
-      service: { id: inc.serviceId, name: inc.service.name, region: inc.service.region }
-    })) : undefined,
+    recentIncidents: filters.includeIncidents
+      ? recentIncidents.map(inc => ({
+          id: inc.id,
+          title: inc.title,
+          description: inc.description,
+          status: inc.status,
+          urgency: inc.urgency,
+          createdAt: inc.createdAt,
+          resolvedAt: inc.resolvedAt,
+          service: { id: inc.serviceId, name: inc.service.name, region: inc.service.region },
+        }))
+      : undefined,
   };
 }
 
@@ -1136,12 +1165,9 @@ export async function calculateMultiServiceUptime(
       AND: [
         { createdAt: { lt: endDate } },
         {
-          OR: [
-            { resolvedAt: { gte: startDate } },
-            { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }
-          ]
-        }
-      ]
+          OR: [{ resolvedAt: { gte: startDate } }, { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }],
+        },
+      ],
     },
     select: {
       serviceId: true,
@@ -1160,16 +1186,16 @@ export async function calculateMultiServiceUptime(
       continue;
     }
 
-    const serviceIncidents = incidents.filter(inc =>
-      inc.serviceId === serviceId &&
-      inc.status !== 'SUPPRESSED' &&
-      inc.status !== 'SNOOZED'
+    const serviceIncidents = incidents.filter(
+      inc => inc.serviceId === serviceId && inc.status !== 'SUPPRESSED' && inc.status !== 'SNOOZED'
     );
 
-    const intervals = serviceIncidents.map(incident => ({
-      start: incident.createdAt > startDate ? incident.createdAt : startDate,
-      end: incident.resolvedAt && incident.resolvedAt < endDate ? incident.resolvedAt : endDate,
-    })).filter(interval => interval.start < interval.end);
+    const intervals = serviceIncidents
+      .map(incident => ({
+        start: incident.createdAt > startDate ? incident.createdAt : startDate,
+        end: incident.resolvedAt && incident.resolvedAt < endDate ? incident.resolvedAt : endDate,
+      }))
+      .filter(interval => interval.start < interval.end);
 
     const downtimeMs = calculateMergedDuration(intervals);
     const uptime = ((totalMs - downtimeMs) / totalMs) * 100;

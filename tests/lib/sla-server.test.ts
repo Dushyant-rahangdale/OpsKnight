@@ -95,7 +95,10 @@ const setupBaseMocks = ({
   prismaMock.alert.count.mockResolvedValueOnce(0);
   prismaMock.alert.groupBy.mockResolvedValueOnce([]);
   prismaMock.incidentNote.groupBy.mockResolvedValueOnce([]);
-  prismaMock.onCallShift.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+  prismaMock.onCallShift.findMany
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([]);
   prismaMock.onCallOverride.count.mockResolvedValueOnce(0);
   prismaMock.incident.groupBy
     .mockResolvedValueOnce([])

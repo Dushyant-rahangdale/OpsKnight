@@ -107,7 +107,9 @@ export function buildOnCallLoad(
 
   // Optimize incident-to-shift matching using sorted arrays and pointers
   const sortedShifts = [...shifts].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const sortedIncidents = [...incidents].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const sortedIncidents = [...incidents].sort(
+    (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+  );
 
   let shiftIdx = 0;
   for (const incident of sortedIncidents) {
