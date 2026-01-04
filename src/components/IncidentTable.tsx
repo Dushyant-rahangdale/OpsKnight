@@ -62,7 +62,7 @@ export default memo(function IncidentTable({
 
     const queryString = params.toString();
     const newUrl = queryString ? `${pathname}?${queryString}` : pathname || '/';
-    router.push(newUrl);
+    router.push(newUrl, { scroll: false });
   };
 
   const renderSortArrow = () => (sortOrder === 'asc' ? '↑' : '↓');
