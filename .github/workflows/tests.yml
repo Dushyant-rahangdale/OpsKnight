@@ -70,14 +70,12 @@ jobs:
           mkdir -p reports
           npm run prisma:health
 
-
-
       - name: Unit tests
         # DB-backed tests share a single database; run files serially to avoid cross-test contention.
         run: |
           mkdir -p reports
           npm run test:ci:unit
-        
+
       - name: Database integration tests
         # Enable real database for integration and resilience tests
         env:
