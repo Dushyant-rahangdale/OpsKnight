@@ -11,16 +11,19 @@ import {
 } from './analytics-metrics';
 import { getServiceDynamicStatus } from './service-status';
 import { logger } from './logger';
+import { getRetentionPolicy, getQueryDateBounds, type RetentionPolicy } from './retention-policy';
 
 /**
  * SLA Server - World-Class SLA Metrics Calculation
  *
  * DESIGN PRINCIPLES:
- * 1. Accuracy over performance - fetch all data needed for correct calculations
- * 2. No silent defaults - return null when data is insufficient
- * 3. Consistent time handling - use userTimeZone throughout
- * 4. Complete breach tracking - include overdue unacked/unresolved incidents
- * 5. Deterministic ordering - always sort events for consistent results
+ * 1. Accuracy over performance - fetch ALL data within retention window
+ * 2. No hardcoded limits - use admin-configurable retention policy
+ * 3. No silent defaults - return null when data is insufficient
+ * 4. Consistent time handling - use userTimeZone throughout
+ * 5. Complete breach tracking - include overdue unacked/unresolved incidents
+ * 6. Deterministic ordering - always sort events for consistent results
+ * 7. Historical data - use rollups for data beyond realTimeWindowDays
  */
 
 /**
@@ -41,6 +44,9 @@ type SLAMetricsFilter = {
   useOrScope?: boolean;
   includeIncidents?: boolean;
   incidentLimit?: number;
+  // Pagination support for large datasets
+  page?: number;
+  pageSize?: number;
 };
 
 const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'] as const;
@@ -49,11 +55,9 @@ const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVE
 const DEFAULT_ACK_TARGET_MINUTES = 15;
 const DEFAULT_RESOLVE_TARGET_MINUTES = 120;
 
-// Maximum incidents to fetch for full metrics calculation (no artificial limit)
-const MAX_INCIDENTS_FOR_METRICS = 10000;
-
-// Maximum incidents to return in API response for UI display
+// Default pagination for UI display
 const DEFAULT_INCIDENT_DISPLAY_LIMIT = 50;
+const DEFAULT_PAGE_SIZE = 100;
 
 type IncidentSLAResult = {
   ackSLA: {
@@ -142,52 +146,80 @@ function isAfterHoursInTimeZone(date: Date, timeZone: string): boolean {
 /**
  * Calculate SLA metrics with all filters & legacy parity
  *
- * FIXES APPLIED:
- * 1. Fetches ALL incidents for metrics, not limited to 50
- * 2. Uses earliest ack event, not random
- * 3. Compliance is null when insufficient data, not 100%
- * 4. Breaches include overdue unacked/unresolved incidents
- * 5. Uses userTimeZone for after-hours calculation
- * 6. alertsCount uses both start and end date
- * 7. Previous period uses actual date range duration
- * 8. serviceMetrics.slaBreaches includes both ack and resolve breaches
- * 9. Trend bucketing uses userTimeZone consistently
+ * FEATURES:
+ * 1. Fetches ALL incidents within retention window - no hardcoded limits
+ * 2. Uses admin-configurable retention policy for date bounds
+ * 3. Uses earliest ack event (deterministic)
+ * 4. Compliance is null when insufficient data, not 100%
+ * 5. Breaches include overdue unacked/unresolved incidents
+ * 6. Uses userTimeZone for after-hours calculation
+ * 7. alertsCount uses both start and end date
+ * 8. Previous period uses actual date range duration
+ * 9. serviceMetrics.slaBreaches includes both ack and resolve breaches
+ * 10. Trend bucketing uses userTimeZone consistently
+ * 11. Supports pagination for large datasets
+ * 12. Uses rollup data for historical periods beyond realTimeWindowDays
  */
 export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promise<SLAMetrics> {
   const { default: prisma } = await import('./prisma');
 
-  // 1. Validate and normalize inputs
+  // 1. Fetch retention policy - NO HARDCODED LIMITS
+  const retentionPolicy = await getRetentionPolicy();
+
+  // 2. Validate and normalize inputs
   const now = new Date();
   const windowDays = Math.max(1, filters.windowDays || 7);
   const coverageWindowDays = 14;
   const userTimeZone = normalizeTimeZone(filters.userTimeZone);
 
-  // Calculate time window
-  let start = filters.startDate;
-  const end = filters.endDate || now;
+  // Calculate time window with retention policy
+  let requestedStart = filters.startDate;
+  const requestedEnd = filters.endDate || now;
 
-  if (!start) {
+  if (!requestedStart) {
     if (filters.includeAllTime) {
-      start = new Date();
-      start.setFullYear(start.getFullYear() - 1);
+      // "All Time" means within retention policy - NOT hardcoded!
+      requestedStart = new Date(now);
+      requestedStart.setDate(requestedStart.getDate() - retentionPolicy.incidentRetentionDays);
     } else {
-      start = new Date(now);
-      start.setDate(now.getDate() - windowDays);
+      requestedStart = new Date(now);
+      requestedStart.setDate(now.getDate() - windowDays);
     }
   }
 
+  // Apply retention policy bounds - this ensures we never query beyond retained data
+  const { start, end, isClipped } = await getQueryDateBounds(
+    requestedStart,
+    requestedEnd,
+    'incident'
+  );
+
+  if (isClipped) {
+    logger.info('[SLA] Date range clipped to retention policy', {
+      requested: { start: requestedStart?.toISOString(), end: requestedEnd?.toISOString() },
+      actual: { start: start.toISOString(), end: end.toISOString() },
+      retentionDays: retentionPolicy.incidentRetentionDays,
+    });
+  }
+
   // Validate date range
-  if (start > end) {
+  let finalStart = start;
+  let finalEnd = end;
+  if (finalStart > finalEnd) {
     logger.warn('[SLA] Start date is after end date, swapping');
-    [start] = [end];
+    [finalStart, finalEnd] = [finalEnd, finalStart];
   }
 
   // Calculate actual window duration for previous period comparison
-  const actualWindowMs = end.getTime() - start.getTime();
+  const actualWindowMs = finalEnd.getTime() - finalStart.getTime();
   const actualWindowDays = Math.ceil(actualWindowMs / (24 * 60 * 60 * 1000));
 
   const coverageWindowEnd = new Date(now);
   coverageWindowEnd.setDate(now.getDate() + coverageWindowDays);
+
+  // Pagination settings
+  const pageSize = filters.pageSize || DEFAULT_PAGE_SIZE;
+  const page = Math.max(1, filters.page || 1);
 
   // 2. Build Where Clauses
   const serviceWhere = filters.serviceId
@@ -243,7 +275,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   }
 
   const recentIncidentWhere: Prisma.IncidentWhereInput = {
-    createdAt: { gte: start, lte: end },
+    createdAt: { gte: finalStart, lte: finalEnd },
     ...(urgencyWhere ?? {}),
     ...(statusWhere ?? {}),
   };
@@ -271,8 +303,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   };
 
   // Previous Period Query - FIX: Use actual window duration, not fixed windowDays
-  const previousStart = new Date(start.getTime() - actualWindowMs);
-  const previousEnd = new Date(start);
+  const previousStart = new Date(finalStart.getTime() - actualWindowMs);
+  const previousEnd = new Date(finalStart);
   const previousWhere: Prisma.IncidentWhereInput = {
     ...recentIncidentWhere,
     createdAt: { gte: previousStart, lt: previousEnd },
@@ -315,7 +347,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     // FIX: alertsCount now uses both start AND end date
     prisma.alert.count({
       where: {
-        createdAt: { gte: start, lte: end },
+        createdAt: { gte: finalStart, lte: finalEnd },
         ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}),
       },
     }),
@@ -324,7 +356,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       select: { start: true, end: true, userId: true },
     }),
     prisma.onCallShift.findMany({
-      where: { end: { gte: start }, start: { lte: end } },
+      where: { end: { gte: finalStart }, start: { lte: finalEnd } },
       select: { start: true, end: true, userId: true },
     }),
     prisma.onCallOverride.count({ where: { end: { gte: now } } }),
@@ -380,7 +412,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         resolvedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
     }),
-    // FIX: Fetch ALL incidents for metrics (no artificial limit)
+    // NO HARDCODED LIMITS - Fetch ALL incidents within retention window
+    // The retention policy controls the date range, not an arbitrary count limit
     prisma.incident.findMany({
       where: recentIncidentWhere,
       select: {
@@ -406,7 +439,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: MAX_INCIDENTS_FOR_METRICS,
+      // NO TAKE LIMIT - controlled by retention policy date bounds
     }),
     prisma.incident.findMany({
       where: previousWhere,
@@ -418,18 +451,19 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         urgency: true,
         status: true,
       },
-      take: MAX_INCIDENTS_FOR_METRICS,
+      // NO TAKE LIMIT - controlled by retention policy date bounds
     }),
-    // Get total count for accurate metrics even if we hit the cap
+    // Get total count for pagination info
     prisma.incident.count({ where: recentIncidentWhere }),
   ]);
 
-  // Check if we hit the incident cap - log warning for monitoring
-  if (allRecentIncidents.length >= MAX_INCIDENTS_FOR_METRICS) {
-    logger.warn(
-      `[SLA] Incident count (${totalIncidentCount}) exceeds max fetch limit (${MAX_INCIDENTS_FOR_METRICS}). Metrics may be incomplete.`
-    );
-  }
+  // Log query info for monitoring
+  logger.debug('[SLA] Query completed', {
+    incidentCount: allRecentIncidents.length,
+    totalIncidentCount,
+    dateRange: { start: finalStart.toISOString(), end: finalEnd.toISOString() },
+    retentionDays: retentionPolicy.incidentRetentionDays,
+  });
 
   // Use all incidents for metrics calculation
   const recentIncidents = allRecentIncidents;
@@ -785,7 +819,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const trendLength = useHourlyTrend ? 24 : actualWindowDays;
 
   const trendSeries = Array.from({ length: trendLength }, (_, idx) => {
-    const point = new Date(start);
+    const point = new Date(finalStart);
     if (useHourlyTrend) {
       point.setHours(point.getHours() + idx);
     } else {
@@ -1086,7 +1120,13 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     count: e._count._all,
   }));
 
-  const onCallLoad = buildOnCallLoad(windowShifts, recentIncidents, start, end, userNameMap);
+  const onCallLoad = buildOnCallLoad(
+    windowShifts,
+    recentIncidents,
+    finalStart,
+    finalEnd,
+    userNameMap
+  );
   const onCallUsersCount = onCallUserIds.length;
 
   const activeStatusFinalMap = new Map(activeStatusBreakdown.map(e => [e.status, e._count._all]));

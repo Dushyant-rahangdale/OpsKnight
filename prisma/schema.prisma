@@ -1022,8 +1022,65 @@ model SystemSettings {
   id        String   @id @default("default")
   appUrl    String?  // Application base URL for links in emails, webhooks, etc.
   encryptionKey String? // Hex-encoded 32-byte key for encrypting secrets
+  
+  // Data Retention Policy (days)
+  incidentRetentionDays  Int @default(730)  // 2 years - how long to keep incident data
+  alertRetentionDays     Int @default(365)  // 1 year - how long to keep alert data
+  logRetentionDays       Int @default(90)   // 90 days - how long to keep log entries
+  metricsRetentionDays   Int @default(365)  // 1 year - how long to keep metric rollups
+  realTimeWindowDays     Int @default(90)   // 90 days - real-time queries, older uses rollups
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Pre-aggregated incident metrics for historical data performance
+// Used for queries beyond realTimeWindowDays
+model IncidentMetricRollup {
+  id          String   @id @default(cuid())
+  date        DateTime // Start of the period (day/week/month)
+  granularity String   @default("daily") // 'daily', 'weekly', 'monthly'
+  serviceId   String?  // Optional: per-service rollup
+  teamId      String?  // Optional: per-team rollup
+  
+  // Incident Counts
+  totalIncidents          Int @default(0)
+  openIncidents           Int @default(0)
+  acknowledgedIncidents   Int @default(0)
+  resolvedIncidents       Int @default(0)
+  highUrgencyIncidents    Int @default(0)
+  mediumUrgencyIncidents  Int @default(0)
+  lowUrgencyIncidents     Int @default(0)
+  
+  // SLA Metrics (stored in milliseconds for precision)
+  mttaSum   BigInt @default(0) // Sum of MTTA values
+  mttaCount Int    @default(0) // Count for averaging
+  mttrSum   BigInt @default(0) // Sum of MTTR values  
+  mttrCount Int    @default(0) // Count for averaging
+  
+  // SLA Compliance
+  ackSlaMet       Int @default(0)
+  ackSlaBreached  Int @default(0)
+  resolveSlaMet   Int @default(0)
+  resolveSlaBreached Int @default(0)
+  
+  // Event Counts
+  escalationCount  Int @default(0)
+  reopenCount      Int @default(0)
+  autoResolveCount Int @default(0)
+  alertCount       Int @default(0)
+  
+  // After Hours
+  afterHoursCount Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([date])
+  @@index([granularity, date])
+  @@index([serviceId, date])
+  @@index([teamId, date])
+  @@unique([date, granularity, serviceId, teamId])
 }
 
 // ⚙️ Governance / System Config
