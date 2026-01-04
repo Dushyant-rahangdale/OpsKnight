@@ -5,6 +5,7 @@ import DashboardRefresh from '../DashboardRefresh';
 import DashboardExport from '../DashboardExport';
 import DashboardTimeRange from '../DashboardTimeRange';
 import MetricCard from './MetricCard';
+import LiveClock from './LiveClock';
 import styles from './Dashboard.module.css';
 
 type SystemStatus = {
@@ -25,6 +26,7 @@ type DashboardCommandCenterProps = {
   incidents: any[];
   filters: Record<string, string | undefined>;
   currentPeriodAcknowledged: number;
+  userTimeZone?: string;
 };
 
 export default function DashboardCommandCenter({
@@ -38,6 +40,7 @@ export default function DashboardCommandCenter({
   incidents,
   filters,
   currentPeriodAcknowledged,
+  userTimeZone = 'UTC',
 }: DashboardCommandCenterProps) {
   // Determine pulse color RGB based on status label
   const getPulseRgb = () => {
@@ -79,17 +82,22 @@ export default function DashboardCommandCenter({
         }}
       >
         <div>
-          <h1
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 'var(--font-weight-bold)',
-              margin: '0 0 0.625rem 0',
-              color: 'white',
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)', // Subtle text shadow for legibility
-            }}
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.625rem' }}
           >
-            Command Center
-          </h1>
+            <h1
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 'var(--font-weight-bold)',
+                margin: 0,
+                color: 'white',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)', // Subtle text shadow for legibility
+              }}
+            >
+              Command Center
+            </h1>
+            <LiveClock timeZone={userTimeZone} />
+          </div>
 
           {/* System Status */}
           <div

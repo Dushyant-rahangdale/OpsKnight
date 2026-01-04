@@ -91,10 +91,11 @@ export default async function Dashboard({
   const user = email
     ? await prisma.user.findUnique({
         where: { email },
-        select: { name: true },
+        select: { name: true, timeZone: true },
       })
     : null;
   const userName = user?.name || 'there';
+  const userTimeZone = user?.timeZone || 'UTC';
 
   // Build filters using utility functions
   const filterParams: DashboardFilterParams = {
@@ -303,6 +304,7 @@ export default async function Dashboard({
             range: range !== 'all' ? range : undefined,
           }}
           currentPeriodAcknowledged={currentPeriodAcknowledged}
+          userTimeZone={userTimeZone}
         />
 
         {/* Main Content Grid - Two Column Layout (matching users page) */}
