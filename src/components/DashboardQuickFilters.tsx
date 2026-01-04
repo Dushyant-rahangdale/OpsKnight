@@ -104,6 +104,7 @@ export default function DashboardQuickFilters() {
           <Link
             key={filter.label}
             href={href}
+            scroll={false}
             style={{
               padding: '0.375rem 0.75rem',
               borderRadius: '999px',

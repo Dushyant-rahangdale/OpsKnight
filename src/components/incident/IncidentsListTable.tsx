@@ -11,842 +11,1256 @@ import PriorityBadge from './PriorityBadge';
 import AssigneeSection from './AssigneeSection';
 import type { IncidentListItem } from '@/types/incident-list';
 import { updateIncidentStatus } from '@/app/(app)/incidents/actions';
-import { bulkAcknowledge, bulkResolve, bulkReassign, bulkUpdatePriority, bulkSnooze, bulkUnsnooze, bulkSuppress, bulkUnsuppress, bulkUpdateUrgency, bulkUpdateStatus } from '@/app/(app)/incidents/bulk-actions';
+import {
+  bulkAcknowledge,
+  bulkResolve,
+  bulkReassign,
+  bulkUpdatePriority,
+  bulkSnooze,
+  bulkUnsnooze,
+  bulkSuppress,
+  bulkUnsuppress,
+  bulkUpdateUrgency,
+  bulkUpdateStatus,
+} from '@/app/(app)/incidents/bulk-actions';
 import { useToast } from '../ToastProvider';
 import Pagination from './Pagination';
 
 type IncidentsListTableProps = {
-    incidents: IncidentListItem[];
-    users: Array<{ id: string; name: string; email: string }>;
-    canManageIncidents: boolean;
-    pagination?: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
+  incidents: IncidentListItem[];
+  users: Array<{ id: string; name: string; email: string }>;
+  canManageIncidents: boolean;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
 };
 
-export default function IncidentsListTable({ incidents, users, canManageIncidents, pagination }: IncidentsListTableProps) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const { showToast } = useToast();
-    const { userTimeZone } = useTimezone();
-    const [_expandedRow, _setExpandedRow] = useState<string | null>(null);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [bulkAction, setBulkAction] = useState<'reassign' | 'priority' | 'snooze' | 'urgency' | 'status' | null>(null);
-    const [isPending, startTransition] = useTransition();
+export default function IncidentsListTable({
+  incidents,
+  users,
+  canManageIncidents,
+  pagination,
+}: IncidentsListTableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { showToast } = useToast();
+  const { userTimeZone } = useTimezone();
+  const [_expandedRow, _setExpandedRow] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<
+    'reassign' | 'priority' | 'snooze' | 'urgency' | 'status' | null
+  >(null);
+  const [isPending, startTransition] = useTransition();
 
-    const handleStatusChange = async (incidentId: string, status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED') => {
-        startTransition(async () => {
-            try {
-                await updateIncidentStatus(incidentId, status);
-                showToast(`Incident ${status.toLowerCase()} successfully`, 'success');
-                router.refresh();
-            } catch (error) {
-                const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
-                showToast(getUserFriendlyError(error) || 'Failed to update status', 'error');
-            }
-        });
-    };
+  const handleStatusChange = async (
+    incidentId: string,
+    status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED'
+  ) => {
+    startTransition(async () => {
+      try {
+        await updateIncidentStatus(incidentId, status);
+        showToast(`Incident ${status.toLowerCase()} successfully`, 'success');
+        router.refresh();
+      } catch (error) {
+        const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
+        showToast(getUserFriendlyError(error) || 'Failed to update status', 'error');
+      }
+    });
+  };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === incidents.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(incidents.map(i => i.id)));
+    }
+  };
 
-    const toggleSelectAll = () => {
-        if (selectedIds.size === incidents.length) {
-            setSelectedIds(new Set());
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkAction = async (
+    action:
+      | 'acknowledge'
+      | 'resolve'
+      | 'reassign'
+      | 'priority'
+      | 'snooze'
+      | 'unsnooze'
+      | 'suppress'
+      | 'unsuppress'
+      | 'urgency'
+      | 'status',
+    value?: string | number
+  ) => {
+    if (selectedIds.size === 0) {
+      showToast('Please select incidents first', 'error');
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        let result;
+        if (action === 'acknowledge') {
+          result = await bulkAcknowledge(Array.from(selectedIds));
+        } else if (action === 'resolve') {
+          result = await bulkResolve(Array.from(selectedIds));
+        } else if (action === 'reassign' && value) {
+          result = await bulkReassign(Array.from(selectedIds), value as string);
+        } else if (action === 'priority' && value !== undefined) {
+          result = await bulkUpdatePriority(Array.from(selectedIds), value as string);
+        } else if (action === 'snooze' && typeof value === 'number') {
+          result = await bulkSnooze(Array.from(selectedIds), value, null);
+        } else if (action === 'unsnooze') {
+          result = await bulkUnsnooze(Array.from(selectedIds));
+        } else if (action === 'suppress') {
+          result = await bulkSuppress(Array.from(selectedIds));
+        } else if (action === 'unsuppress') {
+          result = await bulkUnsuppress(Array.from(selectedIds));
+        } else if (action === 'urgency' && value) {
+          result = await bulkUpdateUrgency(Array.from(selectedIds), value as 'HIGH' | 'LOW');
+        } else if (action === 'status' && value) {
+          result = await bulkUpdateStatus(
+            Array.from(selectedIds),
+            value as 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED'
+          );
         } else {
-            setSelectedIds(new Set(incidents.map(i => i.id)));
+          return;
         }
-    };
 
-    const toggleSelect = (id: string) => {
-        const newSelected = new Set(selectedIds);
-        if (newSelected.has(id)) {
-            newSelected.delete(id);
+        if (result.success) {
+          showToast(`${result.count} incident(s) updated successfully`, 'success');
+          setSelectedIds(new Set());
+          setBulkAction(null);
+          router.refresh();
         } else {
-            newSelected.add(id);
+          showToast(result.error || 'Failed to update incidents', 'error');
         }
-        setSelectedIds(newSelected);
-    };
+      } catch (error) {
+        const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
+        showToast(getUserFriendlyError(error) || 'Failed to update incidents', 'error');
+      }
+    });
+  };
 
-    const handleBulkAction = async (action: 'acknowledge' | 'resolve' | 'reassign' | 'priority' | 'snooze' | 'unsnooze' | 'suppress' | 'unsuppress' | 'urgency' | 'status', value?: string | number) => {
-        if (selectedIds.size === 0) {
-            showToast('Please select incidents first', 'error');
-            return;
-        }
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    searchParams.forEach((value, key) => {
+      // Exclude page parameter - export should export all matching incidents
+      if (key !== 'page') {
+        params.append(key, value);
+      }
+    });
+    window.open(`/api/incidents/export?${params.toString()}`, '_blank');
+  };
 
-        startTransition(async () => {
-            try {
-                let result;
-                if (action === 'acknowledge') {
-                    result = await bulkAcknowledge(Array.from(selectedIds));
-                } else if (action === 'resolve') {
-                    result = await bulkResolve(Array.from(selectedIds));
-                } else if (action === 'reassign' && value) {
-                    result = await bulkReassign(Array.from(selectedIds), value as string);
-                } else if (action === 'priority' && value !== undefined) {
-                    result = await bulkUpdatePriority(Array.from(selectedIds), value as string);
-                } else if (action === 'snooze' && typeof value === 'number') {
-                    result = await bulkSnooze(Array.from(selectedIds), value, null);
-                } else if (action === 'unsnooze') {
-                    result = await bulkUnsnooze(Array.from(selectedIds));
-                } else if (action === 'suppress') {
-                    result = await bulkSuppress(Array.from(selectedIds));
-                } else if (action === 'unsuppress') {
-                    result = await bulkUnsuppress(Array.from(selectedIds));
-                } else if (action === 'urgency' && value) {
-                    result = await bulkUpdateUrgency(Array.from(selectedIds), value as 'HIGH' | 'LOW');
-                } else if (action === 'status' && value) {
-                    result = await bulkUpdateStatus(Array.from(selectedIds), value as 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED');
-                } else {
-                    return;
-                }
-
-                if (result.success) {
-                    showToast(`${result.count} incident(s) updated successfully`, 'success');
-                    setSelectedIds(new Set());
-                    setBulkAction(null);
-                    router.refresh();
-                } else {
-                    showToast(result.error || 'Failed to update incidents', 'error');
-                }
-            } catch (error) {
-                const { getUserFriendlyError } = await import('@/lib/user-friendly-errors');
-                showToast(getUserFriendlyError(error) || 'Failed to update incidents', 'error');
-            }
-        });
-    };
-
-    const handleExport = () => {
-        const params = new URLSearchParams();
-        searchParams.forEach((value, key) => {
-            // Exclude page parameter - export should export all matching incidents
-            if (key !== 'page') {
-                params.append(key, value);
-            }
-        });
-        window.open(`/api/incidents/export?${params.toString()}`, '_blank');
-    };
+  const buildUrgencyChip = (urgency: string | null | undefined) => {
+    if (!urgency) return null;
+    const u = urgency.toUpperCase();
+    const config =
+      u === 'HIGH'
+        ? { bg: 'rgba(239, 68, 68, 0.10)', border: 'rgba(239, 68, 68, 0.28)', color: '#b91c1c' }
+        : u === 'MEDIUM'
+          ? { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.28)', color: '#b45309' }
+          : { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.28)', color: '#15803d' };
 
     return (
-        <div className="glass-panel" style={{ background: 'white', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-            {/* Bulk Actions Bar */}
-            {(selectedIds.size > 0 || bulkAction) && (
-                <div style={{
-                    padding: '1rem 1.5rem',
-                    background: 'linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 100%)',
-                    color: 'white',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    flexWrap: 'wrap'
-                }}>
-                    <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>
-                        {selectedIds.size} incident{selectedIds.size !== 1 ? 's' : ''} selected
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {bulkAction === 'reassign' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            handleBulkAction('reassign', e.target.value);
-                                        }
-                                    }}
-                                    aria-label="Select assignee for bulk reassignment"
-                                    style={{
-                                        padding: '0.5rem',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'white',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Select assignee...</option>
-                                    {users.map(user => (
-                                        <option key={user.id} value={user.id}>{user.name}</option>
-                                    ))}
-                                </select>
-                                <button
-                                    onClick={() => setBulkAction(null)}
-                                    style={{
-                                        padding: '0.5rem 0.75rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: '0px',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : bulkAction === 'priority' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    onChange={(e) => {
-                                        handleBulkAction('priority', e.target.value);
-                                    }}
-                                    aria-label="Select priority for bulk update"
-                                    style={{
-                                        padding: '0.5rem',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'white',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Select priority...</option>
-                                    <option value="">Auto (Default)</option>
-                                    <option value="P1">P1 - Critical</option>
-                                    <option value="P2">P2 - High</option>
-                                    <option value="P3">P3 - Medium</option>
-                                    <option value="P4">P4 - Low</option>
-                                    <option value="P5">P5 - Info</option>
-                                </select>
-                                <button
-                                    onClick={() => setBulkAction(null)}
-                                    aria-label="Cancel bulk priority update"
-                                    style={{
-                                        padding: '0.5rem 0.75rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : bulkAction === 'snooze' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    onChange={(e) => {
-                                        const duration = parseInt(e.target.value);
-                                        if (duration) {
-                                            handleBulkAction('snooze', duration);
-                                        }
-                                    }}
-                                    aria-label="Select snooze duration for bulk action"
-                                    style={{
-                                        padding: '0.5rem',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'white',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Select snooze duration...</option>
-                                    <option value="15">15 minutes</option>
-                                    <option value="30">30 minutes</option>
-                                    <option value="60">1 hour</option>
-                                    <option value="240">4 hours</option>
-                                    <option value="480">8 hours</option>
-                                    <option value="1440">24 hours</option>
-                                </select>
-                                <button
-                                    onClick={() => setBulkAction(null)}
-                                    aria-label="Cancel bulk snooze action"
-                                    style={{
-                                        padding: '0.5rem 0.75rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : bulkAction === 'urgency' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            handleBulkAction('urgency', e.target.value as 'HIGH' | 'LOW');
-                                        }
-                                    }}
-                                    aria-label="Select urgency for bulk update"
-                                    style={{
-                                        padding: '0.5rem',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'white',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Select urgency...</option>
-                                    <option value="HIGH">HIGH</option>
-                                    <option value="LOW">LOW</option>
-                                </select>
-                                <button
-                                    onClick={() => setBulkAction(null)}
-                                    aria-label="Cancel bulk urgency update"
-                                    style={{
-                                        padding: '0.5rem 0.75rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : bulkAction === 'status' ? (
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            handleBulkAction('status', e.target.value as 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'SNOOZED' | 'SUPPRESSED');
-                                        }
-                                    }}
-                                    aria-label="Select status for bulk update"
-                                    style={{
-                                        padding: '0.5rem',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        background: 'white',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">Select status...</option>
-                                    <option value="OPEN">OPEN</option>
-                                    <option value="ACKNOWLEDGED">ACKNOWLEDGED</option>
-                                    <option value="RESOLVED">RESOLVED</option>
-                                    <option value="SNOOZED">SNOOZED</option>
-                                    <option value="SUPPRESSED">SUPPRESSED</option>
-                                </select>
-                                <button
-                                    onClick={() => setBulkAction(null)}
-                                    aria-label="Cancel bulk status update"
-                                    style={{
-                                        padding: '0.5rem 0.75rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={() => handleBulkAction('acknowledge')}
-                                    disabled={isPending}
-                                    aria-label={`Acknowledge ${selectedIds.size} selected incident${selectedIds.size !== 1 ? 's' : ''}`}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: isPending ? 'not-allowed' : 'pointer',
-                                        opacity: isPending ? 0.6 : 1
-                                    }}
-                                >
-                                    ✓ Acknowledge
-                                </button>
-                                <button
-                                    onClick={() => handleBulkAction('resolve')}
-                                    disabled={isPending}
-                                    aria-label={`Resolve ${selectedIds.size} selected incident${selectedIds.size !== 1 ? 's' : ''}`}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.9)',
-                                        border: 'none',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'var(--primary)',
-                                        fontWeight: '600',
-                                        cursor: isPending ? 'not-allowed' : 'pointer',
-                                        opacity: isPending ? 0.6 : 1
-                                    }}
-                                >
-                                    ✓ Resolve
-                                </button>
-                                <button
-                                    onClick={() => setBulkAction('reassign')}
-                                    aria-label="Reassign selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ↻ Reassign
-                                </button>
-                                <button
-                                    onClick={() => setBulkAction('priority')}
-                                    aria-label="Update priority for selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ⚡ Priority
-                                </button>
-                                <button
-                                    onClick={() => setBulkAction('snooze')}
-                                    aria-label="Snooze selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ⏰ Snooze
-                                </button>
-                                <button
-                                    onClick={() => setBulkAction('urgency')}
-                                    aria-label="Update urgency for selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    ⚠ Urgency
-                                </button>
-                                <button
-                                    onClick={() => setBulkAction('status')}
-                                    aria-label="Update status for selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    📊 Status
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const hasSnoozed = Array.from(selectedIds).some(id => {
-                                            const incident = incidents.find(i => i.id === id);
-                                            return incident?.status === 'SNOOZED';
-                                        });
-                                        handleBulkAction(hasSnoozed ? 'unsnooze' : 'suppress');
-                                    }}
-                                    aria-label="Suppress or unsnooze selected incidents"
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        color: 'white',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    🔕 Suppress
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Export Button */}
-            <div style={{ padding: '0.75rem 1.5rem', background: '#f9fafb', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                    onClick={handleExport}
-                    aria-label="Export incidents to CSV"
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: 'white',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}
-                >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Export CSV
-                </button>
-            </div>
-
-            <div style={{
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch'
-            }}>
-                <table style={{
-                    width: '100%',
-                    minWidth: '1200px',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.9rem'
-                }}>
-                    <thead style={{ background: '#f9fafb', borderBottom: '2px solid var(--border)' }}>
-                        <tr>
-                            {canManageIncidents && (
-                                <th style={{ width: '50px', padding: '1rem', textAlign: 'left' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedIds.size === incidents.length && incidents.length > 0}
-                                        onChange={toggleSelectAll}
-                                        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                                    />
-                                </th>
-                            )}
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Status
-                            </th>
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Priority
-                            </th>
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Incident
-                            </th>
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Service
-                            </th>
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Assignee
-                            </th>
-                            <th style={{ textAlign: 'left', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Created
-                            </th>
-                            <th style={{ textAlign: 'right', padding: '1rem', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {incidents.map((incident) => {
-                            const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-                            return (
-                                <tr
-                                    key={incident.id}
-                                    style={{
-                                        borderBottom: '1px solid var(--border)',
-                                        cursor: 'pointer',
-                                        transition: 'background 0.15s',
-                                        background: selectedIds.has(incident.id) ? '#fef3f3' : 'transparent'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!selectedIds.has(incident.id)) {
-                                            e.currentTarget.style.background = '#f9fafb';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (!selectedIds.has(incident.id)) {
-                                            e.currentTarget.style.background = 'transparent';
-                                        }
-                                    }}
-                                    onClick={(e) => {
-                                        // Don't navigate if clicking checkbox or action buttons
-                                        if ((e.target as HTMLElement).tagName !== 'INPUT' &&
-                                            (e.target as HTMLElement).tagName !== 'BUTTON' &&
-                                            (e.target as HTMLElement).tagName !== 'SELECT' &&
-                                            !(e.target as HTMLElement).closest('button') &&
-                                            !(e.target as HTMLElement).closest('select')) {
-                                            router.push(`/incidents/${incident.id}`);
-                                        }
-                                    }}
-                                >
-                                    {canManageIncidents && (
-                                        <td style={{ padding: '1rem' }} onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIds.has(incident.id)}
-                                                onChange={() => toggleSelect(incident.id)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                                            />
-                                        </td>
-                                    )}
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                            <StatusBadge status={incidentStatus} size="sm" showDot />
-                                            {incident.escalationStatus && (
-                                                <EscalationStatusBadge
-                                                    status={incident.escalationStatus}
-                                                    currentStep={incident.currentEscalationStep}
-                                                    nextEscalationAt={incident.nextEscalationAt}
-                                                    size="sm"
-                                                />
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <PriorityBadge priority={incident.priority} size="sm" />
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <Link
-                                            href={`/incidents/${incident.id}`}
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{
-                                                fontWeight: '700',
-                                                color: 'var(--primary)',
-                                                textDecoration: 'none',
-                                                fontSize: '0.95rem',
-                                                display: 'block',
-                                                marginBottom: '0.25rem'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                                            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                                        >
-                                            {incident.title}
-                                        </Link>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                            #{incident.id.slice(-5).toUpperCase()}
-                                        </div>
-                                        <div style={{ fontSize: '0.75rem', color: incident.urgency === 'HIGH' ? 'var(--danger)' : 'var(--warning)', fontWeight: 600, marginTop: '0.25rem' }}>
-                                            {incident.urgency}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <Link
-                                            href={`/services/${incident.service.id}`}
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
-                                            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                                            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                                        >
-                                            {incident.service.name}
-                                        </Link>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <AssigneeSection
-                                                assignee={incident.assignee}
-                                                assigneeId={incident.assigneeId}
-                                                team={null}
-                                                teamId={null}
-                                                users={users}
-                                                teams={[]}
-                                                incidentId={incident.id}
-                                                canManage={canManageIncidents}
-                                                variant="list"
-                                            />
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                        {formatDateTime(incident.createdAt, userTimeZone, { format: 'datetime' })}
-                                    </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        {canManageIncidents && (
-                                            <div
-                                                onClick={(e) => e.stopPropagation()}
-                                                style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}
-                                            >
-                                                {incident.status !== 'ACKNOWLEDGED' && incident.status !== 'RESOLVED' && incident.status !== 'SUPPRESSED' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(incident.id, 'ACKNOWLEDGED')}
-                                                        disabled={isPending}
-                                                        aria-label={`Acknowledge incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: 'linear-gradient(180deg, #fff4cc 0%, #ffe9a8 100%)',
-                                                            border: '1px solid #f6c453',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: '#b45309',
-                                                            cursor: isPending ? 'not-allowed' : 'pointer',
-                                                            opacity: isPending ? 0.6 : 1
-                                                        }}
-                                                        title="Acknowledge"
-                                                    >
-                                                        ✓ Ack
-                                                    </button>
-                                                )}
-                                                {incident.status !== 'SNOOZED' && incident.status !== 'RESOLVED' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(incident.id, 'SNOOZED')}
-                                                        disabled={isPending}
-                                                        aria-label={`Snooze incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: '#f3f4f6',
-                                                            border: '1px solid var(--border)',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: 'var(--text-secondary)',
-                                                            cursor: isPending ? 'not-allowed' : 'pointer',
-                                                            opacity: isPending ? 0.6 : 1
-                                                        }}
-                                                        title="Snooze"
-                                                    >
-                                                        ⏰ Snooze
-                                                    </button>
-                                                )}
-                                                {incident.status === 'SNOOZED' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(incident.id, 'OPEN')}
-                                                        disabled={isPending}
-                                                        aria-label={`Unsnooze incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: '#feecec',
-                                                            border: '1px solid rgba(211,47,47,0.25)',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: 'var(--danger)',
-                                                            cursor: isPending ? 'not-allowed' : 'pointer',
-                                                            opacity: isPending ? 0.6 : 1
-                                                        }}
-                                                        title="Unsnooze"
-                                                    >
-                                                        🔔 Unsnooze
-                                                    </button>
-                                                )}
-                                                {incident.status !== 'SUPPRESSED' && incident.status !== 'RESOLVED' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(incident.id, 'SUPPRESSED')}
-                                                        disabled={isPending}
-                                                        aria-label={`Suppress incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: '#f3f4f6',
-                                                            border: '1px solid var(--border)',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: 'var(--text-secondary)',
-                                                            cursor: isPending ? 'not-allowed' : 'pointer',
-                                                            opacity: isPending ? 0.6 : 1
-                                                        }}
-                                                        title="Suppress"
-                                                    >
-                                                        🔕 Suppress
-                                                    </button>
-                                                )}
-                                                {incident.status === 'SUPPRESSED' && (
-                                                    <button
-                                                        onClick={() => handleStatusChange(incident.id, 'OPEN')}
-                                                        disabled={isPending}
-                                                        aria-label={`Unsuppress incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: '#feecec',
-                                                            border: '1px solid rgba(211,47,47,0.25)',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: 'var(--danger)',
-                                                            cursor: isPending ? 'not-allowed' : 'pointer',
-                                                            opacity: isPending ? 0.6 : 1
-                                                        }}
-                                                        title="Unsuppress"
-                                                    >
-                                                        🔊 Unsuppress
-                                                    </button>
-                                                )}
-                                                {incident.status !== 'RESOLVED' && (
-                                                    <Link
-                                                        href={`/incidents/${incident.id}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        aria-label={`Resolve incident ${incident.title}`}
-                                                        style={{
-                                                            padding: '0.4rem 0.75rem',
-                                                            background: 'var(--primary)',
-                                                            border: 'none',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 600,
-                                                            color: 'white',
-                                                            textDecoration: 'none',
-                                                            display: 'inline-block'
-                                                        }}
-                                                    >
-                                                        Resolve
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        {incidents.length === 0 && (
-                            <tr>
-                                <td colSpan={canManageIncidents ? 8 : 7} style={{ padding: 0 }}>
-                                    <div style={{
-                                        padding: '4rem 2rem',
-                                        textAlign: 'center',
-                                        color: 'var(--text-muted)',
-                                        background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                                    }}>
-                                        <div style={{
-                                            fontSize: '3rem',
-                                            marginBottom: '1rem',
-                                            opacity: 0.3
-                                        }}>📋</div>
-                                        <p style={{
-                                            fontSize: '1.1rem',
-                                            marginBottom: '0.5rem',
-                                            fontWeight: '600',
-                                            color: 'var(--text-secondary)'
-                                        }}>
-                                            No incidents found
-                                        </p>
-                                        <p style={{
-                                            fontSize: '0.9rem',
-                                            color: 'var(--text-muted)'
-                                        }}>
-                                            Try adjusting your filters to see more results.
-                                        </p>
-                                    </div>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination */}
-            {pagination && (
-                <Pagination
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    totalItems={pagination.totalItems}
-                    itemsPerPage={pagination.itemsPerPage}
-                />
-            )}
-        </div>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '0.2rem 0.55rem',
+          borderRadius: '9999px',
+          background: config.bg,
+          border: `1px solid ${config.border}`,
+          color: config.color,
+          fontSize: '0.7rem',
+          fontWeight: 800,
+          letterSpacing: '0.04em',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+        title={`Urgency: ${u}`}
+      >
+        {u}
+      </span>
     );
+  };
+
+  const closeDetailsMenu = (el: HTMLElement) => {
+    const details = el.closest('details') as HTMLDetailsElement | null;
+    if (details) details.open = false;
+  };
+
+  const getStatusAccent = (status: string) => {
+    switch (status) {
+      case 'OPEN':
+        return { accent: 'rgba(239, 68, 68, 0.7)', glow: 'rgba(239, 68, 68, 0.12)' };
+      case 'ACKNOWLEDGED':
+        return { accent: 'rgba(245, 158, 11, 0.7)', glow: 'rgba(245, 158, 11, 0.12)' };
+      case 'RESOLVED':
+        return { accent: 'rgba(34, 197, 94, 0.7)', glow: 'rgba(34, 197, 94, 0.12)' };
+      case 'SNOOZED':
+      case 'SUPPRESSED':
+        return { accent: 'rgba(148, 163, 184, 0.9)', glow: 'rgba(148, 163, 184, 0.10)' };
+      default:
+        return { accent: 'rgba(148, 163, 184, 0.9)', glow: 'rgba(148, 163, 184, 0.10)' };
+    }
+  };
+
+  const totalItems = pagination?.totalItems ?? incidents.length;
+  const showingFrom =
+    pagination && totalItems > 0
+      ? (pagination.currentPage - 1) * pagination.itemsPerPage + 1
+      : totalItems > 0
+        ? 1
+        : 0;
+  const showingTo = pagination
+    ? Math.min(pagination.currentPage * pagination.itemsPerPage, totalItems)
+    : Math.min(incidents.length, totalItems);
+
+  return (
+    <div
+      className="glass-panel"
+      style={{
+        background: 'white',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <style>{`
+                details.incident-row-menu > summary::-webkit-details-marker { display: none; }
+                details.incident-row-menu > summary { list-style: none; }
+            `}</style>
+      {/* Bulk Actions Bar */}
+      {(selectedIds.size > 0 || bulkAction) && (
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            background: 'linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 100%)',
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontWeight: '650', fontSize: '0.9rem' }}>
+            {selectedIds.size} incident{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {bulkAction === 'reassign' ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  onChange={e => {
+                    if (e.target.value) {
+                      handleBulkAction('reassign', e.target.value);
+                    }
+                  }}
+                  aria-label="Select assignee for bulk reassignment"
+                  style={{
+                    padding: '0.5rem',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Select assignee...</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setBulkAction(null)}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '0px',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : bulkAction === 'priority' ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  onChange={e => {
+                    handleBulkAction('priority', e.target.value);
+                  }}
+                  aria-label="Select priority for bulk update"
+                  style={{
+                    padding: '0.5rem',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Select priority...</option>
+                  <option value="">Auto (Default)</option>
+                  <option value="P1">P1 - Critical</option>
+                  <option value="P2">P2 - High</option>
+                  <option value="P3">P3 - Medium</option>
+                  <option value="P4">P4 - Low</option>
+                  <option value="P5">P5 - Info</option>
+                </select>
+                <button
+                  onClick={() => setBulkAction(null)}
+                  aria-label="Cancel bulk priority update"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : bulkAction === 'snooze' ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  onChange={e => {
+                    const duration = parseInt(e.target.value);
+                    if (duration) {
+                      handleBulkAction('snooze', duration);
+                    }
+                  }}
+                  aria-label="Select snooze duration for bulk action"
+                  style={{
+                    padding: '0.5rem',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Select snooze duration...</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="240">4 hours</option>
+                  <option value="480">8 hours</option>
+                  <option value="1440">24 hours</option>
+                </select>
+                <button
+                  onClick={() => setBulkAction(null)}
+                  aria-label="Cancel bulk snooze action"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : bulkAction === 'urgency' ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  onChange={e => {
+                    if (e.target.value) {
+                      handleBulkAction('urgency', e.target.value as 'HIGH' | 'LOW');
+                    }
+                  }}
+                  aria-label="Select urgency for bulk update"
+                  style={{
+                    padding: '0.5rem',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Select urgency...</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="LOW">LOW</option>
+                </select>
+                <button
+                  onClick={() => setBulkAction(null)}
+                  aria-label="Cancel bulk urgency update"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : bulkAction === 'status' ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  onChange={e => {
+                    if (e.target.value) {
+                      handleBulkAction(
+                        'status',
+                        e.target.value as
+                          | 'OPEN'
+                          | 'ACKNOWLEDGED'
+                          | 'RESOLVED'
+                          | 'SNOOZED'
+                          | 'SUPPRESSED'
+                      );
+                    }
+                  }}
+                  aria-label="Select status for bulk update"
+                  style={{
+                    padding: '0.5rem',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'white',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Select status...</option>
+                  <option value="OPEN">OPEN</option>
+                  <option value="ACKNOWLEDGED">ACKNOWLEDGED</option>
+                  <option value="RESOLVED">RESOLVED</option>
+                  <option value="SNOOZED">SNOOZED</option>
+                  <option value="SUPPRESSED">SUPPRESSED</option>
+                </select>
+                <button
+                  onClick={() => setBulkAction(null)}
+                  aria-label="Cancel bulk status update"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleBulkAction('acknowledge')}
+                  disabled={isPending}
+                  aria-label={`Acknowledge ${selectedIds.size} selected incident${selectedIds.size !== 1 ? 's' : ''}`}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: isPending ? 'not-allowed' : 'pointer',
+                    opacity: isPending ? 0.6 : 1,
+                  }}
+                >
+                  ✓ Acknowledge
+                </button>
+                <button
+                  onClick={() => handleBulkAction('resolve')}
+                  disabled={isPending}
+                  aria-label={`Resolve ${selectedIds.size} selected incident${selectedIds.size !== 1 ? 's' : ''}`}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.9)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--primary)',
+                    fontWeight: '600',
+                    cursor: isPending ? 'not-allowed' : 'pointer',
+                    opacity: isPending ? 0.6 : 1,
+                  }}
+                >
+                  ✓ Resolve
+                </button>
+                <button
+                  onClick={() => setBulkAction('reassign')}
+                  aria-label="Reassign selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ↻ Reassign
+                </button>
+                <button
+                  onClick={() => setBulkAction('priority')}
+                  aria-label="Update priority for selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⚡ Priority
+                </button>
+                <button
+                  onClick={() => setBulkAction('snooze')}
+                  aria-label="Snooze selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⏰ Snooze
+                </button>
+                <button
+                  onClick={() => setBulkAction('urgency')}
+                  aria-label="Update urgency for selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⚠ Urgency
+                </button>
+                <button
+                  onClick={() => setBulkAction('status')}
+                  aria-label="Update status for selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📊 Status
+                </button>
+                <button
+                  onClick={() => {
+                    const hasSnoozed = Array.from(selectedIds).some(id => {
+                      const incident = incidents.find(i => i.id === id);
+                      return incident?.status === 'SNOOZED';
+                    });
+                    handleBulkAction(hasSnoozed ? 'unsnooze' : 'suppress');
+                  }}
+                  aria-label="Suppress or unsnooze selected incidents"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔕 Suppress
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Panel header */}
+      <div
+        style={{
+          padding: '0.9rem 1.25rem',
+          background: 'white',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: '0.75rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'var(--text-muted)',
+              fontWeight: 800,
+              marginBottom: '0.2rem',
+            }}
+          >
+            Incident list
+          </div>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            Showing{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>
+              {showingFrom}-{showingTo}
+            </strong>{' '}
+            of <strong style={{ color: 'var(--text-primary)' }}>{totalItems}</strong>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {canManageIncidents && (
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="glass-button"
+              style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}
+              aria-label="Select all incidents"
+            >
+              {selectedIds.size === incidents.length && incidents.length > 0
+                ? 'Clear selection'
+                : 'Select page'}
+            </button>
+          )}
+
+          <button
+            onClick={handleExport}
+            aria-label="Export incidents to CSV"
+            style={{
+              padding: '0.45rem 0.85rem',
+              background: 'white',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              color: 'var(--text-primary)',
+              fontSize: '0.82rem',
+              fontWeight: 650,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: 'var(--shadow-xs)',
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* List content */}
+      <div style={{ padding: '1rem 1.25rem', background: 'white' }}>
+        {incidents.length === 0 ? (
+          <div
+            style={{
+              padding: '3rem 1.5rem',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              border: '1px dashed var(--border)',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+            }}
+          >
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', opacity: 0.3 }}>📋</div>
+            <p
+              style={{
+                fontSize: '1.05rem',
+                marginBottom: '0.35rem',
+                fontWeight: 700,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              No incidents found
+            </p>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>
+              Try adjusting filters to see more results.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {incidents.map(incident => {
+              const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+              const isSelected = selectedIds.has(incident.id);
+              const urgencyChip = buildUrgencyChip(incident.urgency);
+              const statusAccent = getStatusAccent(incident.status);
+
+              return (
+                <div
+                  key={incident.id}
+                  style={{
+                    border: `1px solid ${isSelected ? 'rgba(211, 47, 47, 0.35)' : 'var(--border)'}`,
+                    borderRadius: '14px',
+                    background: isSelected ? 'rgba(211, 47, 47, 0.03)' : 'white',
+                    boxShadow: isSelected
+                      ? `0 12px 26px rgba(15, 23, 42, 0.10), 0 0 0 4px ${statusAccent.glow}`
+                      : 'var(--shadow-xs)',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    transition:
+                      'transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease',
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSelected) {
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSelected) {
+                      e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }
+                  }}
+                  onClick={e => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('[data-no-row-nav="true"]')) return;
+                    router.push(`/incidents/${incident.id}`);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/incidents/${incident.id}`);
+                    }
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.85rem',
+                      padding: '0.95rem 1rem',
+                      alignItems: 'flex-start',
+                      borderLeft: `4px solid ${statusAccent.accent}`,
+                    }}
+                  >
+                    {canManageIncidents && (
+                      <div data-no-row-nav="true" style={{ paddingTop: '0.2rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(incident.id)}
+                          style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                          aria-label={`Select incident ${incident.title}`}
+                        />
+                      </div>
+                    )}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <Link
+                            href={`/incidents/${incident.id}`}
+                            data-no-row-nav="true"
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              display: 'block',
+                              fontWeight: 850,
+                              color: 'var(--text-primary)',
+                              textDecoration: 'none',
+                              fontSize: '0.98rem',
+                              lineHeight: 1.25,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {incident.title}
+                          </Link>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '0.6rem',
+                              alignItems: 'center',
+                              marginTop: '0.35rem',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <Link
+                              href={`/services/${incident.service.id}`}
+                              data-no-row-nav="true"
+                              onClick={e => e.stopPropagation()}
+                              style={{
+                                color: 'var(--primary)',
+                                textDecoration: 'none',
+                                fontWeight: 650,
+                                fontSize: '0.85rem',
+                                maxWidth: '520px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-block',
+                              }}
+                            >
+                              {incident.service.name}
+                            </Link>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              •
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.8rem',
+                                color: 'var(--text-muted)',
+                                fontWeight: 650,
+                              }}
+                            >
+                              #{incident.id.slice(-5).toUpperCase()}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                              •
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {formatDateTime(incident.createdAt, userTimeZone, {
+                                format: 'short',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          data-no-row-nav="true"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
+                            justifyContent: 'flex-end',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <AssigneeSection
+                              assignee={incident.assignee}
+                              assigneeId={incident.assigneeId}
+                              team={null}
+                              teamId={null}
+                              users={users}
+                              teams={[]}
+                              incidentId={incident.id}
+                              canManage={canManageIncidents}
+                              variant="list"
+                            />
+                          </div>
+
+                          <Link
+                            href={`/incidents/${incident.id}`}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              padding: '0.45rem 0.8rem',
+                              background: 'var(--primary)',
+                              border: 'none',
+                              borderRadius: '10px',
+                              fontSize: '0.8rem',
+                              fontWeight: 800,
+                              color: 'white',
+                              textDecoration: 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: 'var(--shadow-xs)',
+                              whiteSpace: 'nowrap',
+                            }}
+                            aria-label={`Open incident ${incident.title}`}
+                          >
+                            Open
+                          </Link>
+
+                          {canManageIncidents && (
+                            <details
+                              className="incident-row-menu"
+                              style={{ position: 'relative' }}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <summary
+                                aria-label="More actions"
+                                style={{
+                                  cursor: 'pointer',
+                                  padding: '0.45rem 0.7rem',
+                                  borderRadius: '10px',
+                                  border: '1px solid var(--border)',
+                                  background: 'white',
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '0.9rem',
+                                  lineHeight: 1,
+                                  userSelect: 'none',
+                                  boxShadow: 'var(--shadow-xs)',
+                                }}
+                              >
+                                ⋯
+                              </summary>
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  right: 0,
+                                  top: 'calc(100% + 8px)',
+                                  minWidth: '220px',
+                                  background: 'white',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '12px',
+                                  boxShadow: 'var(--shadow-lg)',
+                                  padding: '0.35rem',
+                                  zIndex: 50,
+                                }}
+                              >
+                                <Link
+                                  href={`/incidents/${incident.id}`}
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    closeDetailsMenu(e.currentTarget as unknown as HTMLElement);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.55rem 0.6rem',
+                                    borderRadius: '10px',
+                                    textDecoration: 'none',
+                                    color: 'var(--text-primary)',
+                                    fontWeight: 650,
+                                    fontSize: '0.85rem',
+                                  }}
+                                  onMouseEnter={e => {
+                                    e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                  }}
+                                  onMouseLeave={e => {
+                                    e.currentTarget.style.background = 'transparent';
+                                  }}
+                                >
+                                  View details →
+                                </Link>
+
+                                <div
+                                  style={{
+                                    height: '1px',
+                                    background: 'var(--border)',
+                                    margin: '0.25rem 0.35rem',
+                                  }}
+                                />
+
+                                {incident.status !== 'RESOLVED' && (
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeDetailsMenu(e.currentTarget);
+                                      handleStatusChange(incident.id, 'RESOLVED');
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '0.55rem 0.6rem',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: isPending ? 'not-allowed' : 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 700,
+                                      color: 'var(--primary)',
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.background = 'var(--primary-light)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = 'transparent';
+                                    }}
+                                  >
+                                    ✓ Resolve
+                                  </button>
+                                )}
+
+                                {incident.status !== 'ACKNOWLEDGED' &&
+                                  incident.status !== 'RESOLVED' &&
+                                  incident.status !== 'SUPPRESSED' && (
+                                    <button
+                                      type="button"
+                                      disabled={isPending}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        closeDetailsMenu(e.currentTarget);
+                                        handleStatusChange(incident.id, 'ACKNOWLEDGED');
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        padding: '0.55rem 0.6rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        cursor: isPending ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: 'var(--text-primary)',
+                                      }}
+                                      onMouseEnter={e => {
+                                        e.currentTarget.style.background =
+                                          'var(--color-neutral-50)';
+                                      }}
+                                      onMouseLeave={e => {
+                                        e.currentTarget.style.background = 'transparent';
+                                      }}
+                                    >
+                                      ✓ Acknowledge
+                                    </button>
+                                  )}
+
+                                {incident.status === 'ACKNOWLEDGED' && (
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeDetailsMenu(e.currentTarget);
+                                      handleStatusChange(incident.id, 'OPEN');
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '0.55rem 0.6rem',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: isPending ? 'not-allowed' : 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 600,
+                                      color: 'var(--text-primary)',
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = 'transparent';
+                                    }}
+                                  >
+                                    ↩ Unacknowledge
+                                  </button>
+                                )}
+
+                                {incident.status !== 'SNOOZED' &&
+                                  incident.status !== 'RESOLVED' && (
+                                    <button
+                                      type="button"
+                                      disabled={isPending}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        closeDetailsMenu(e.currentTarget);
+                                        handleStatusChange(incident.id, 'SNOOZED');
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        padding: '0.55rem 0.6rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        cursor: isPending ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: 'var(--text-primary)',
+                                      }}
+                                      onMouseEnter={e => {
+                                        e.currentTarget.style.background =
+                                          'var(--color-neutral-50)';
+                                      }}
+                                      onMouseLeave={e => {
+                                        e.currentTarget.style.background = 'transparent';
+                                      }}
+                                    >
+                                      ⏰ Snooze
+                                    </button>
+                                  )}
+
+                                {incident.status === 'SNOOZED' && (
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeDetailsMenu(e.currentTarget);
+                                      handleStatusChange(incident.id, 'OPEN');
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '0.55rem 0.6rem',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: isPending ? 'not-allowed' : 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 600,
+                                      color: 'var(--text-primary)',
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = 'transparent';
+                                    }}
+                                  >
+                                    🔔 Unsnooze
+                                  </button>
+                                )}
+
+                                {incident.status !== 'SUPPRESSED' &&
+                                  incident.status !== 'RESOLVED' && (
+                                    <button
+                                      type="button"
+                                      disabled={isPending}
+                                      onClick={e => {
+                                        e.stopPropagation();
+                                        closeDetailsMenu(e.currentTarget);
+                                        handleStatusChange(incident.id, 'SUPPRESSED');
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        padding: '0.55rem 0.6rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: 'transparent',
+                                        cursor: isPending ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: 'var(--text-primary)',
+                                      }}
+                                      onMouseEnter={e => {
+                                        e.currentTarget.style.background =
+                                          'var(--color-neutral-50)';
+                                      }}
+                                      onMouseLeave={e => {
+                                        e.currentTarget.style.background = 'transparent';
+                                      }}
+                                    >
+                                      🔕 Suppress
+                                    </button>
+                                  )}
+
+                                {incident.status === 'SUPPRESSED' && (
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeDetailsMenu(e.currentTarget);
+                                      handleStatusChange(incident.id, 'OPEN');
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '0.55rem 0.6rem',
+                                      borderRadius: '10px',
+                                      border: 'none',
+                                      background: 'transparent',
+                                      cursor: isPending ? 'not-allowed' : 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 600,
+                                      color: 'var(--text-primary)',
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = 'transparent';
+                                    }}
+                                  >
+                                    🔊 Unsuppress
+                                  </button>
+                                )}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: '0.6rem',
+                          display: 'flex',
+                          gap: '0.4rem',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <StatusBadge status={incidentStatus} size="sm" showDot />
+                        <PriorityBadge priority={incident.priority} size="sm" />
+                        {urgencyChip}
+                        {incident.escalationStatus && (
+                          <EscalationStatusBadge
+                            status={incident.escalationStatus}
+                            currentStep={incident.currentEscalationStep}
+                            nextEscalationAt={incident.nextEscalationAt}
+                            size="sm"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {pagination && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          itemsPerPage={pagination.itemsPerPage}
+        />
+      )}
+    </div>
+  );
 }

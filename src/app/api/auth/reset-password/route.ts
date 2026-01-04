@@ -27,11 +27,12 @@ export async function POST(req: NextRequest) {
     const tokenHash = createHash('sha256').update(token).digest('hex');
 
     // Look up token
-    // Schema: VerificationToken { identifier, token (unique), expires }
-    // Note: the `token` column in DB is `tokenHash` in our logic.
-    const record = await prisma.verificationToken.findUnique({
-      where: { token: tokenHash }, // It has a unique constraint on 'token' in schema? no, @@unique([identifier, token]).
-      // Actually, `token` field is `@unique` on line 677: `token String @unique`. So we can search by it directly.
+    const record = await prisma.userToken.findFirst({
+      where: {
+        tokenHash,
+        type: { in: ['PASSWORD_RESET', 'ADMIN_RESET_LINK'] },
+        usedAt: null,
+      },
     });
 
     if (!record) {
@@ -39,9 +40,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check expiration
-    if (record.expires < new Date()) {
+    if (record.expiresAt < new Date()) {
       // Delete expired token to cleanup
-      await prisma.verificationToken.delete({ where: { token: tokenHash } });
+      await prisma.userToken.delete({ where: { tokenHash } });
       return NextResponse.json({ error: 'Token has expired' }, { status: 400 });
     }
 
@@ -51,23 +52,33 @@ export async function POST(req: NextRequest) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    await prisma.user.update({
-      where: { email },
-      data: {
-        passwordHash,
-        status: 'ACTIVE', // Reactivate if invited/disabled (optional, but safe for invited users)
-        invitedAt: null,
-      },
-    });
-    // Revoke any existing sessions after a password reset.
-    const updatedUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-    if (updatedUser) {
-      await revokeUserSessions(updatedUser.id);
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Token exists but user doesn't: mark token used so it can't be replayed
+      await prisma.userToken.update({
+        where: { tokenHash },
+        data: { usedAt: new Date() },
+      });
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
     }
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        status: 'ACTIVE',
+        invitedAt: null,
+        deactivatedAt: null,
+      },
+    });
+
+    // Revoke any existing sessions after a password reset.
+    await revokeUserSessions(user.id);
+
     // 3. Cleanup Token
-    await prisma.verificationToken.delete({
-      where: { token: tokenHash },
+    await prisma.userToken.update({
+      where: { tokenHash },
+      data: { usedAt: new Date() },
     });
 
     // 4. Audit Log
@@ -75,7 +86,8 @@ export async function POST(req: NextRequest) {
       data: {
         action: 'PASSWORD_RESET_COMPLETED',
         entityType: 'USER',
-        entityId: email, // or fetch user id. Let's assume email is sufficient ref here or generic.
+        entityId: user.id,
+        actorId: user.id,
         details: { email },
       },
     });

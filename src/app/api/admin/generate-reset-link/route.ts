@@ -28,25 +28,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Invalidate any existing reset tokens for this user
-    await prisma.verificationToken.deleteMany({
-      where: { identifier: user.email },
-    });
-
-    // Revoke existing sessions (admin initiated)
-    await revokeUserSessions(user.id);
-
     // 2. Generate Token
     const token = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(token).digest('hex');
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // 3. Save Token
-    await prisma.verificationToken.create({
+    const identifier = user.email.toLowerCase();
+
+    // 3. Save Token (invalidate any existing unused admin links)
+    await prisma.userToken.deleteMany({
+      where: {
+        identifier,
+        type: 'ADMIN_RESET_LINK',
+        usedAt: null,
+      },
+    });
+
+    await prisma.userToken.create({
       data: {
-        identifier: user.email,
-        token: tokenHash,
-        expires,
+        identifier,
+        type: 'ADMIN_RESET_LINK',
+        tokenHash,
+        expiresAt: expires,
+        metadata: { generatedBy: sessionUser.id },
       },
     });
 
