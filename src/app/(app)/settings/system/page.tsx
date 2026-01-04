@@ -5,6 +5,7 @@ import SettingsPage from '@/components/settings/SettingsPage';
 import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 import SsoSettingsForm from '@/components/settings/SsoSettingsForm';
 import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm';
+import RetentionPolicySettings from '@/components/settings/RetentionPolicySettings';
 
 // Force dynamic rendering to always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -212,6 +213,28 @@ export default async function SystemSettingsPage() {
                   hasEncryptionKey={encryptionKeySet}
                   configError={integrityCheck.ok ? undefined : integrityCheck.error}
                 />
+              </SettingsSectionCard>
+            </div>
+
+            <div id="system-settings-retention">
+              <SettingsSectionCard
+                title="Data Retention"
+                description="Configure how long to keep historical data."
+                className="system-settings-card"
+              >
+                <div className="system-settings-chips">
+                  <span className="system-settings-chip">Storage</span>
+                  <span className="system-settings-chip">Performance</span>
+                  <span className="system-settings-chip">Compliance</span>
+                </div>
+                <div className="system-settings-helper">
+                  <strong>Why this matters</strong>
+                  <p>
+                    Controls &ldquo;All Time&rdquo; queries in Command Center. Longer retention
+                    means more complete historical data but slower queries and more storage.
+                  </p>
+                </div>
+                <RetentionPolicySettings />
               </SettingsSectionCard>
             </div>
           </div>
