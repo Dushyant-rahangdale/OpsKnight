@@ -1034,6 +1034,25 @@ model SearchPresetUsage {
   @@index([usedAt])
 }
 
+// Telemetry Metrics Rollup
+model MetricRollup {
+  id        String   @id @default(cuid())
+  name      String   // e.g., 'http.request.duration', 'http.request.status'
+  bucket    DateTime // Time bucket start
+  serviceId String?  // Optional service association
+  count     Int      // Number of sample points
+  sum       Float    // Sum of values
+  min       Float?
+  max       Float?
+  tags      Json?    // Additional dimensions (status code, method, etc.)
+
+  createdAt DateTime @default(now())
+
+  @@index([name, bucket])
+  @@index([serviceId, bucket])
+  @@index([bucket])
+}
+
 // System-wide settings (singleton pattern)
 model SystemSettings {
   id        String   @id @default("default")
