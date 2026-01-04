@@ -83,7 +83,7 @@ export default function DashboardSavedFilters() {
     if (filter.filters.assignee !== undefined) params.set('assignee', filter.filters.assignee);
     if (filter.filters.urgency) params.set('urgency', filter.filters.urgency);
     if (filter.filters.range) params.set('range', filter.filters.range);
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const deleteFilter = (id: string) => {

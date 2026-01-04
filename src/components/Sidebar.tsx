@@ -188,6 +188,7 @@ export default function Sidebar(
   const [activeIncidentsCount, setActiveIncidentsCount] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useModalState('sidebarMobileMenu');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     // Fetch active incidents count
@@ -198,14 +199,41 @@ export default function Sidebar(
   }, []);
 
   useEffect(() => {
-    // Check if mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    // Check if mobile via media query (more robust than raw innerWidth; behaves well on zoom)
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
   }, []);
+
+  useEffect(() => {
+    // Load collapse preference (desktop only)
+    try {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      if (saved === '1') setIsCollapsed(true);
+      if (saved === '0') setIsCollapsed(false);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    // Persist collapse preference (desktop only)
+    if (isMobile) return;
+    try {
+      localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [isCollapsed, isMobile]);
+
+  // Never keep desktop-collapsed state on mobile overlay
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(false);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     // Close mobile menu on route change
@@ -250,6 +278,9 @@ export default function Sidebar(
         key={item.href}
         href={item.href}
         className={`nav-item ${active ? 'active' : ''}`}
+        aria-current={active ? 'page' : undefined}
+        aria-label={isCollapsed ? item.label : undefined}
+        title={isCollapsed ? item.label : undefined}
         style={{
           padding: 'clamp(0.5rem, 1vw, 0.625rem) clamp(0.6rem, 1.2vw, 0.75rem)',
           textDecoration: 'none',
@@ -263,19 +294,21 @@ export default function Sidebar(
           fontWeight: active ? '700' : '500',
           fontSize: 'clamp(0.82rem, 1.05vw, 0.9rem)',
           border: active ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+          minWidth: 0,
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
         }}
         onMouseEnter={e => {
           if (!active) {
             e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
             e.currentTarget.style.color = 'white';
-            e.currentTarget.style.transform = 'translateX(4px)';
+            e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
           }
         }}
         onMouseLeave={e => {
           if (!active) {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = 'rgba(255,255,255,0.75)';
-            e.currentTarget.style.transform = 'translateX(0)';
+            e.currentTarget.style.boxShadow = 'none';
           }
         }}
       >
@@ -293,25 +326,38 @@ export default function Sidebar(
         >
           {item.icon}
         </span>
-        <span style={{ whiteSpace: 'nowrap', flex: 1 }}>{item.label}</span>
+        {!isCollapsed && (
+          <span
+            style={{
+              whiteSpace: 'nowrap',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {item.label}
+          </span>
+        )}
         {showBadge && (
           <span
             aria-label={`${activeIncidentsCount} active incidents`}
             style={{
-              minWidth: '18px',
-              height: '18px',
-              padding: '0 5px',
+              minWidth: isCollapsed ? '10px' : '18px',
+              height: isCollapsed ? '10px' : '18px',
+              padding: isCollapsed ? 0 : '0 5px',
               background: '#ef4444',
               color: 'white',
               fontSize: 'clamp(0.6rem, 0.85vw, 0.7rem)',
               fontWeight: '700',
-              borderRadius: '9px',
+              borderRadius: isCollapsed ? '9999px' : '9px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            {activeIncidentsCount > 99 ? '99+' : activeIncidentsCount}
+            {isCollapsed ? '' : activeIncidentsCount > 99 ? '99+' : activeIncidentsCount}
           </span>
         )}
       </Link>
@@ -349,36 +395,38 @@ export default function Sidebar(
     return (
       <div key={sectionName} style={{ marginBottom: '1.25rem' }}>
         {/* Minimal section header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.625rem',
-            paddingLeft: '0.25rem',
-          }}
-        >
+        {!isCollapsed && (
           <div
             style={{
-              width: '4px',
-              height: '4px',
-              borderRadius: '50%',
-              background: colors.dot,
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontSize: 'clamp(0.6rem, 0.85vw, 0.7rem)',
-              fontWeight: '600',
-              color: colors.text,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.625rem',
+              paddingLeft: '0.25rem',
             }}
           >
-            {sectionName}
-          </span>
-        </div>
+            <div
+              style={{
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: colors.dot,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 'clamp(0.6rem, 0.85vw, 0.7rem)',
+                fontWeight: '600',
+                color: colors.text,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+              }}
+            >
+              {sectionName}
+            </span>
+          </div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
           {items.map(renderNavItem)}
         </div>
@@ -399,16 +447,16 @@ export default function Sidebar(
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
       <aside
-        className={`sidebar ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
+        className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
         style={{
-          width: isMobile ? '280px' : 'var(--sidebar-width)',
+          width: isMobile ? 'min(86vw, 320px)' : isCollapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width)',
           background: 'linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #172554)',
           backgroundSize: '400% 400%',
           animation: 'sidebar-ambient 15s ease infinite',
           borderRight: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
-          height: '100vh',
+          height: '100dvh',
           position: isMobile ? 'fixed' : 'sticky',
           top: 0,
           left: 0,
@@ -509,34 +557,74 @@ export default function Sidebar(
                 }}
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0 }}>
-              <h1
-                style={{
-                  fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
-                  fontWeight: '800',
-                  color: 'white',
-                  margin: 0,
-                  lineHeight: '1.2',
-                  letterSpacing: '-0.4px',
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                }}
-              >
-                OpsSentinal
-              </h1>
-              <div
-                className="sidebar-subtitle"
-                style={{
-                  fontSize: 'clamp(0.55rem, 0.9vw, 0.7rem)',
-                  color: 'rgba(255,255,255,0.65)',
-                  fontWeight: '600',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Enterprise
+            {!isCollapsed && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0 }}>
+                <h1
+                  style={{
+                    fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
+                    fontWeight: '800',
+                    color: 'white',
+                    margin: 0,
+                    lineHeight: '1.2',
+                    letterSpacing: '-0.4px',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  }}
+                >
+                  OpsSentinal
+                </h1>
+                <div
+                  className="sidebar-subtitle"
+                  style={{
+                    fontSize: 'clamp(0.55rem, 0.9vw, 0.7rem)',
+                    color: 'rgba(255,255,255,0.65)',
+                    fontWeight: '600',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Enterprise
+                </div>
               </div>
-            </div>
+            )}
           </Link>
+
+          {/* Desktop collapse toggle */}
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(v => !v)}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+              style={{
+                position: 'absolute',
+                top: '0.9rem',
+                right: '0.85rem',
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all var(--transition-base)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.16)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d={isCollapsed ? 'M9 18l6-6-6-6' : 'M15 18l-6-6 6-6'} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
         {/* Scrollable Navigation Area */}
         <nav
@@ -545,10 +633,13 @@ export default function Sidebar(
             display: 'flex',
             flexDirection: 'column',
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
             overflowX: 'hidden',
             padding: 'clamp(0.75rem, 1.6vw, 1rem) clamp(0.6rem, 1.4vw, 0.75rem)',
             gap: '0.5rem',
+            scrollbarGutter: 'stable',
+            overscrollBehavior: 'contain',
           }}
         >
           {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
@@ -609,6 +700,7 @@ export default function Sidebar(
               padding: '0.75rem',
               background: 'rgba(255,255,255,0.08)',
               borderRadius: '8px',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
             }}
           >
             <div
@@ -626,6 +718,7 @@ export default function Sidebar(
                 flexShrink: 0,
                 textTransform: 'uppercase',
               }}
+              title={userName || userEmail || 'User'}
             >
               {userName
                 ? userName
@@ -638,30 +731,32 @@ export default function Sidebar(
                   ? userEmail[0].toUpperCase()
                   : 'U'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 'clamp(0.82rem, 1.05vw, 0.9rem)',
-                  fontWeight: '600',
-                  color: 'white',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  marginBottom: '0.125rem',
-                }}
-              >
-                {userName || userEmail || 'User'}
+            {!isCollapsed && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 'clamp(0.82rem, 1.05vw, 0.9rem)',
+                    fontWeight: '600',
+                    color: 'white',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    marginBottom: '0.125rem',
+                  }}
+                >
+                  {userName || userEmail || 'User'}
+                </div>
+                <div
+                  style={{
+                    fontSize: 'clamp(0.62rem, 0.9vw, 0.72rem)',
+                    color: 'rgba(255,255,255,0.65)',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {userRole ? userRole.toLowerCase() : 'User'}
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: 'clamp(0.62rem, 0.9vw, 0.72rem)',
-                  color: 'rgba(255,255,255,0.65)',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {userRole ? userRole.toLowerCase() : 'User'}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Action Buttons Row */}

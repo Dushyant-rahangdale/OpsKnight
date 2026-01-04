@@ -18,6 +18,11 @@ export const revalidate = 30;
 
 const ITEMS_PER_PAGE = 50; // Number of incidents per page
 
+function buildIncidentsUrl(params: URLSearchParams): string {
+    const query = params.toString();
+    return query ? `/incidents?${query}` : '/incidents';
+}
+
 export default async function IncidentsPage({ searchParams }: { searchParams: Promise<{ filter?: string; search?: string; priority?: string; urgency?: string; sort?: string; page?: string }> }) {
     const params = await searchParams;
     const currentFilter = normalizeIncidentFilter(params.filter);
@@ -76,6 +81,23 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
 
     const orderBy = buildIncidentOrderBy(currentSort);
 
+    // Header stats (match users page: stat tiles + counts)
+    const statsBase = {
+        search: currentSearch,
+        priority: currentPriority,
+        urgency: currentUrgency,
+        // "Mine" relies on assigneeId; fall back to permissions.id defensively
+        assigneeId: currentUser?.id ?? permissions.id,
+    };
+
+    const [mineCount, openCount, resolvedCount, snoozedCount, suppressedCount] = await Promise.all([
+        prisma.incident.count({ where: buildIncidentWhere({ filter: 'mine', ...statsBase }) }),
+        prisma.incident.count({ where: buildIncidentWhere({ filter: 'all_open', ...statsBase }) }),
+        prisma.incident.count({ where: buildIncidentWhere({ filter: 'resolved', ...statsBase }) }),
+        prisma.incident.count({ where: buildIncidentWhere({ filter: 'snoozed', ...statsBase }) }),
+        prisma.incident.count({ where: buildIncidentWhere({ filter: 'suppressed', ...statsBase }) }),
+    ]);
+
     // Get total count for pagination
     const totalCount = await prisma.incident.count({ where });
     const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
@@ -112,70 +134,183 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
     });
 
     const tabs = [
-        { id: 'mine', label: 'Mine' },
-        { id: 'all_open', label: 'All Open' },
-        { id: 'resolved', label: 'Resolved' },
-        { id: 'snoozed', label: 'Snoozed' },
-        { id: 'suppressed', label: 'Suppressed' },
+        { id: 'mine', label: 'Mine', count: mineCount },
+        { id: 'all_open', label: 'All Open', count: openCount },
+        { id: 'resolved', label: 'Resolved', count: resolvedCount },
+        { id: 'snoozed', label: 'Snoozed', count: snoozedCount },
+        { id: 'suppressed', label: 'Suppressed', count: suppressedCount },
     ];
 
+    const baseParams = new URLSearchParams();
+    if (currentSearch) baseParams.set('search', currentSearch);
+    if (currentPriority !== 'all') baseParams.set('priority', currentPriority);
+    if (currentUrgency !== 'all') baseParams.set('urgency', currentUrgency);
+    if (currentSort !== 'newest') baseParams.set('sort', currentSort);
+
+    const showingFrom = totalCount === 0 ? 0 : skip + 1;
+    const showingTo = Math.min(skip + ITEMS_PER_PAGE, totalCount);
+
     return (
-        <main>
-            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
-                <div style={{ flex: 1 }}>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Incidents</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>Central command for all operative issues.</p>
+        <main style={{ padding: '0 1rem 2rem' }}>
+            {/* Hero Section (match Users page style) */}
+            <div
+                style={{
+                    background: 'var(--gradient-primary)',
+                    color: 'white',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    marginBottom: '1rem',
+                    boxShadow: 'var(--shadow-lg)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '1rem',
+                }}
+            >
+                <div style={{ minWidth: 240 }}>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.35rem' }}>Incidents</h1>
+                    <p style={{ opacity: 0.92, fontSize: '1rem', margin: 0 }}>
+                        Triage, assign, and resolve operational issues fast.
+                    </p>
+                    <p style={{ opacity: 0.8, fontSize: '0.85rem', marginTop: '0.55rem', marginBottom: 0 }}>
+                        Showing <strong>{showingFrom}-{showingTo}</strong> of <strong>{totalCount}</strong> in this view
+                    </p>
                 </div>
-                {/* Create Incident Button - Top */}
-                {canCreateIncident ? (
-                    <Link href="/incidents/create" className="glass-button primary" style={{ textDecoration: 'none', borderRadius: '0px', whiteSpace: 'nowrap' }}>
-                        + Create Incident
-                    </Link>
-                ) : (
-                    <button
-                        type="button"
-                        disabled
-                        className="glass-button primary"
+
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {canCreateIncident ? (
+                        <Link
+                            href="/incidents/create"
+                            className="glass-button primary"
+                            style={{ textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.5rem 0.9rem' }}
+                        >
+                            + Create Incident
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            className="glass-button primary"
+                            style={{
+                                textDecoration: 'none',
+                                opacity: 0.6,
+                                cursor: 'not-allowed',
+                                whiteSpace: 'nowrap',
+                                padding: '0.5rem 0.9rem',
+                            }}
+                            title="Responder role or above required to create incidents"
+                        >
+                            + Create Incident
+                        </button>
+                    )}
+                    <Link
+                        href="/"
+                        className="glass-button"
                         style={{
                             textDecoration: 'none',
-                            borderRadius: '0px',
-                            opacity: 0.6,
-                            cursor: 'not-allowed',
-                            whiteSpace: 'nowrap'
-                        }}
-                        title="Responder role or above required to create incidents"
-                    >
-                        + Create Incident
-                    </button>
-                )}
-            </header>
-
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
-                {tabs.map(tab => (
-                    <Link
-                        key={tab.id}
-                        href={`/incidents?filter=${tab.id}${currentSearch ? `&search=${encodeURIComponent(currentSearch)}` : ''}${currentPriority !== 'all' ? `&priority=${currentPriority}` : ''}${currentUrgency !== 'all' ? `&urgency=${currentUrgency}` : ''}${currentSort !== 'newest' ? `&sort=${currentSort}` : ''}`}
-                        style={{
-                            padding: '0.5rem 1rem',
-                            color: currentFilter === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
-                            borderBottom: currentFilter === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-                            fontWeight: currentFilter === tab.id ? 600 : 400,
-                            textDecoration: 'none'
+                            whiteSpace: 'nowrap',
+                            background: 'rgba(255,255,255,0.14)',
+                            color: 'white',
+                            padding: '0.5rem 0.9rem',
                         }}
                     >
-                        {tab.label}
+                        Dashboard →
                     </Link>
-                ))}
+                </div>
+
+                <div
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                        gap: '0.75rem',
+                        width: '100%',
+                    }}
+                >
+                    <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', padding: '0.8rem 0.9rem', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{mineCount}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '0.2rem', letterSpacing: '0.04em' }}>MINE</div>
+                    </div>
+                    <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', padding: '0.8rem 0.9rem', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{openCount}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '0.2rem', letterSpacing: '0.04em' }}>OPEN</div>
+                    </div>
+                    <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', padding: '0.8rem 0.9rem', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{resolvedCount}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '0.2rem', letterSpacing: '0.04em' }}>RESOLVED</div>
+                    </div>
+                    <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', padding: '0.8rem 0.9rem', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{snoozedCount}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '0.2rem', letterSpacing: '0.04em' }}>SNOOZED</div>
+                    </div>
+                    <div className="glass-panel" style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(10px)', padding: '0.8rem 0.9rem', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{suppressedCount}</div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.9, marginTop: '0.2rem', letterSpacing: '0.04em' }}>SUPPRESSED</div>
+                    </div>
+                </div>
             </div>
 
-            {/* Preset Selector & Filters */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-4)', flexWrap: 'wrap' }}>
-                <PresetSelector
-                    presets={presets}
-                    currentCriteria={currentCriteria}
-                />
-                <div style={{ flex: 1 }}>
+            {/* Tabs (pill-style, with counts) */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+                {tabs.map(tab => {
+                    const tabParams = new URLSearchParams(baseParams.toString());
+                    if (tab.id === 'all_open') {
+                        tabParams.delete('filter');
+                    } else {
+                        tabParams.set('filter', tab.id);
+                    }
+                    tabParams.delete('page');
+                    const isActive = currentFilter === tab.id;
+                    return (
+                        <Link
+                            key={tab.id}
+                            href={buildIncidentsUrl(tabParams)}
+                            style={{
+                                padding: '0.4rem 0.65rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.82rem',
+                                textDecoration: 'none',
+                                background: isActive ? 'var(--primary)' : 'rgba(211, 47, 47, 0.1)',
+                                color: isActive ? 'white' : 'var(--primary)',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                            }}
+                        >
+                            <span>{tab.label}</span>
+                            <span
+                                style={{
+                                    padding: '0.08rem 0.45rem',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.72rem',
+                                    background: isActive ? 'rgba(255,255,255,0.18)' : 'rgba(211, 47, 47, 0.12)',
+                                    color: isActive ? 'white' : 'var(--primary)',
+                                    fontWeight: 800,
+                                }}
+                            >
+                                {tab.count}
+                            </span>
+                        </Link>
+                    );
+                })}
+            </div>
+
+            {/* Filters Panel */}
+            <div className="glass-panel" style={{ background: 'white', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: 800, margin: 0 }}>
+                            Filters
+                        </p>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Refine the list and save presets.
+                        </p>
+                    </div>
+                    <PresetSelector presets={presets} currentCriteria={currentCriteria} />
+                </div>
+
+                <div style={{ marginTop: '0.75rem' }}>
                     <IncidentsFilters
                         currentFilter={currentFilter}
                         currentSort={currentSort}
@@ -195,7 +330,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Pr
                     currentPage: currentPage,
                     totalPages: totalPages,
                     totalItems: totalCount,
-                    itemsPerPage: ITEMS_PER_PAGE
+                    itemsPerPage: ITEMS_PER_PAGE,
                 }}
             />
         </main>

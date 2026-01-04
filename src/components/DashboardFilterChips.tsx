@@ -53,11 +53,11 @@ export default function DashboardFilterChips({ services, users }: FilterChipsPro
     const params = new URLSearchParams(searchParams.toString());
     params.delete(key);
     params.delete('page');
-    router.push(`${pathname}?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const clearAll = () => {
-    router.push(pathname);
+    router.push(pathname, { scroll: false });
   };
 
   if (activeFilters.length === 0) {

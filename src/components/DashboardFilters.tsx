@@ -30,7 +30,7 @@ export default function DashboardFilters({
     }
     // Reset to page 1 when filters change
     params.delete('page');
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   const selectStyles = {
