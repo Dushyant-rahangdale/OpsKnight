@@ -429,56 +429,57 @@ export default async function Dashboard({
               </div>
             </div>
 
-            {/* Incidents Table Panel - Use the defined glass-panel and add animation */}
+            {/* Incidents Table Panel - Matches Sidebar Theme */}
             <div
               className="glass-panel animate-slide-up"
               style={{ padding: '0', overflow: 'hidden' }}
             >
               <div
                 style={{
-                  padding: '1.5rem',
-                  borderBottom: '1px solid var(--border)',
+                  padding: 'var(--spacing-6)',
+                  borderBottom: '1px solid var(--glass-border)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: '1rem',
-                  background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
+                  background: 'var(--glass-bg)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
                   <div
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      background:
-                        'linear-gradient(135deg, rgba(30, 41, 59, 0.05) 0%, rgba(51, 65, 85, 0.05) 100%)',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: WIDGET_ICON_BG.slate,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      boxShadow: 'var(--shadow-xs)',
                     }}
                   >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--text-primary)"
-                      strokeWidth="2"
-                    >
-                      <path
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <span style={{ fontSize: '18px', color: 'white' }}>📋</span>
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.2rem 0' }}>
+                    <h2
+                      style={{
+                        fontSize: 'var(--font-size-lg)',
+                        fontWeight: 'var(--font-weight-bold)',
+                        margin: '0 0 0.15rem 0',
+                        color: 'var(--text-primary)',
+                        letterSpacing: '-0.3px',
+                      }}
+                    >
                       Incident Directory
                     </h2>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <p
+                      style={{
+                        fontSize: 'var(--font-size-sm)',
+                        color: 'var(--text-muted)',
+                        margin: 0,
+                      }}
+                    >
                       Showing {skip + 1}-{Math.min(skip + INCIDENTS_PER_PAGE, totalCount)} of{' '}
                       {totalCount} incidents
                     </p>
@@ -488,18 +489,19 @@ export default async function Dashboard({
                   href="/incidents"
                   className="dashboard-view-all-link"
                   style={{
-                    fontSize: '0.85rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--primary)',
                     textDecoration: 'none',
-                    fontWeight: '600',
+                    fontWeight: 'var(--font-weight-semibold)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
                     padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    background: 'white',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--color-neutral-100)',
                     border: '1px solid var(--border)',
                     transition: 'all 0.2s ease',
+                    boxShadow: 'var(--shadow-xs)',
                   }}
                 >
                   View All <span>→</span>
@@ -518,9 +520,9 @@ export default async function Dashboard({
                       padding: '4rem 2rem',
                       textAlign: 'center',
                       color: 'var(--text-muted)',
-                      background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-                      borderTop: '1px solid var(--border)',
-                      borderBottom: '1px solid var(--border)',
+                      background: 'var(--glass-bg)',
+                      borderTop: '1px solid var(--glass-border)',
+                      borderBottom: '1px solid var(--glass-border)',
                     }}
                   >
                     <svg
@@ -561,14 +563,14 @@ export default async function Dashboard({
               {totalPages > 1 && (
                 <div
                   style={{
-                    padding: '1.25rem 1.5rem',
-                    borderTop: '1px solid var(--border)',
+                    padding: 'var(--spacing-5) var(--spacing-6)',
+                    borderTop: '1px solid var(--glass-border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     gap: '1rem',
                     flexWrap: 'wrap',
-                    background: 'linear-gradient(135deg, #fafbfc 0%, #ffffff 100%)',
+                    background: 'var(--glass-bg)',
                   }}
                 >
                   <div
