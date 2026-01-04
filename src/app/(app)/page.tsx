@@ -28,6 +28,8 @@ import CompactOnCallStatus from '@/components/dashboard/compact/CompactOnCallSta
 import CompactPerformanceMetrics from '@/components/dashboard/compact/CompactPerformanceMetrics';
 import CompactStatsOverview from '@/components/dashboard/compact/CompactStatsOverview';
 import CompactServiceHealth from '@/components/dashboard/compact/CompactServiceHealth';
+import CompactRecentActivity from '@/components/dashboard/compact/CompactRecentActivity';
+import CompactTeamLoad from '@/components/dashboard/compact/CompactTeamLoad';
 import {
   buildDateFilter,
   buildIncidentWhere,
@@ -184,6 +186,8 @@ export default async function Dashboard({
       startDate: metricsStartDate,
       endDate: metricsEndDate,
       includeAllTime: range === 'all',
+      includeIncidents: true,
+      incidentLimit: 5,
     }),
   ]);
 
@@ -698,6 +702,24 @@ export default async function Dashboard({
               icon={<span style={{ fontSize: '20px', color: 'white' }}>🔧</span>}
             >
               <CompactServiceHealth services={servicesWithIncidents} />
+            </SidebarWidget>
+
+            {/* Recent Activity - Compact */}
+            <SidebarWidget
+              title="Activity"
+              iconBg={WIDGET_ICON_BG.purple}
+              icon={<span style={{ fontSize: '20px', color: 'white' }}>📋</span>}
+            >
+              <CompactRecentActivity incidents={slaMetrics.recentIncidents || []} />
+            </SidebarWidget>
+
+            {/* Team Load - Compact */}
+            <SidebarWidget
+              title="Team Load"
+              iconBg={WIDGET_ICON_BG.blue}
+              icon={<span style={{ fontSize: '20px', color: 'white' }}>👥</span>}
+            >
+              <CompactTeamLoad assigneeLoad={slaMetrics.assigneeLoad} />
             </SidebarWidget>
           </aside>
         </div>
