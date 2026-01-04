@@ -1,10 +1,10 @@
 /* Main Container */
 .container {
-    background: white;
+    background: var(--glass-bg);
     overflow: hidden;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Bulk Actions Bar */
@@ -66,15 +66,18 @@
 }
 
 .thead {
-    background: #f9f9f9;
-    border-bottom: 1px solid var(--border);
+    background: var(--color-neutral-50);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .th {
     text-align: left;
-    padding: 1rem;
-    font-weight: 600;
+    padding: 0.875rem 1rem;
+    font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .checkboxCell {
@@ -113,8 +116,8 @@
 }
 
 .row {
-    border-bottom: 1px solid #eee;
-    transition: background-color 0.1s ease;
+    border-bottom: 1px solid var(--glass-border);
+    transition: all 0.15s ease;
 }
 
 .row:last-child {
@@ -122,12 +125,13 @@
 }
 
 .row:hover {
-    background-color: var(--bg-primary);
+    background-color: var(--color-neutral-50);
 }
 
 .td {
-    padding: 1rem;
+    padding: 0.875rem 1rem;
     vertical-align: middle;
+    font-size: var(--font-size-sm);
 }
 
 /* Status Badges */
@@ -198,16 +202,17 @@
 }
 
 .assigneeAvatar {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #eee;
+    background: var(--color-neutral-200);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-weight-semibold);
+    flex-shrink: 0;
 }
 
 .unassigned {
