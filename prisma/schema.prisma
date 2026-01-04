@@ -95,6 +95,8 @@ model User {
   name                         String
   email                        String      @unique
   emailVerified               DateTime?
+  // Session revocation marker: increment to force-logout all JWT sessions
+  tokenVersion                 Int         @default(0)
   role                         Role        @default(USER)
   status                       UserStatus  @default(INVITED)
   passwordHash                 String?

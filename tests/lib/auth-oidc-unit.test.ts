@@ -18,7 +18,7 @@ vi.mock('@/lib/oidc-config', () => {
 });
 
 import prisma from '@/lib/prisma';
-import { getAuthOptions } from '@/lib/auth';
+import { getAuthOptions, revokeUserSessions } from '@/lib/auth';
 
 describe('Auth JWT + OIDC (unit)', () => {
   beforeEach(() => {
@@ -181,5 +181,70 @@ describe('Auth JWT + OIDC (unit)', () => {
     // Should not have refreshed from DB (keeps old role)
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(result.role).toBe('USER');
+  });
+
+  it('jwt callback revokes session when tokenVersion mismatches', async () => {
+    const authOptions = await getAuthOptions();
+    const jwt = authOptions.callbacks?.jwt as unknown as (args: any) => Promise<any>;
+
+    // First call: identity mapping, sets token.sub etc and tokenVersion=0 (defaulted)
+    (prisma.oidcIdentity.findUnique as any).mockResolvedValue({
+      issuer: 'https://login.example.com',
+      subject: 'oidc-sub',
+      userId: 'u1',
+    });
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 'u1',
+        email: 'real@example.com',
+        name: 'Real',
+        role: 'ADMIN',
+        tokenVersion: 0,
+      })
+      // Second call: refresh by id returns higher tokenVersion => revoke
+      .mockResolvedValueOnce({
+        name: 'Real',
+        email: 'real@example.com',
+        role: 'ADMIN',
+        tokenVersion: 1,
+        status: 'ACTIVE',
+      });
+
+    const token = await jwt({
+      token: {},
+      user: { id: 'oidc-sub', email: 'real@example.com', name: 'Real' },
+      account: { provider: 'oidc', providerAccountId: 'oidc-sub' },
+    });
+
+    expect(token.sub).toBeUndefined();
+    expect(token.error).toBe('SESSION_REVOKED');
+  });
+
+  it('jwt callback revokes session when user is disabled', async () => {
+    const authOptions = await getAuthOptions();
+    const jwt = authOptions.callbacks?.jwt as unknown as (args: any) => Promise<any>;
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      name: 'Disabled',
+      email: 'disabled@example.com',
+      role: 'USER',
+      tokenVersion: 0,
+      status: 'DISABLED',
+    });
+
+    const token = await jwt({
+      token: { sub: 'u1', tokenVersion: 0 },
+    });
+
+    expect(token.sub).toBeUndefined();
+    expect(token.error).toBe('USER_DISABLED');
+  });
+
+  it('revokeUserSessions increments tokenVersion', async () => {
+    await revokeUserSessions('u1');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { tokenVersion: { increment: 1 } },
+    });
   });
 });

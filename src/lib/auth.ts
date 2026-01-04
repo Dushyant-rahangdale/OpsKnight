@@ -47,6 +47,15 @@ function coerceBooleanClaim(value: unknown): boolean | undefined {
   return undefined;
 }
 
+function clearSessionToken(token: any, reason: string) {
+  token.error = reason;
+  delete token.sub;
+  delete token.role;
+  delete token.email;
+  delete token.name;
+  return token;
+}
+
 let authOptionsCache:
   | {
       value: NextAuthOptions;
@@ -183,6 +192,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                   token.role = dbUser.role;
                   token.name = dbUser.name;
                   token.email = dbUser.email;
+                  // Include tokenVersion so we can revoke sessions later
+                  (token as any).tokenVersion = (dbUser as any).tokenVersion ?? 0; // eslint-disable-line @typescript-eslint/no-explicit-any
                   logger.info('[Auth] JWT callback - Mapped OIDC user to DB user', {
                     component: 'auth:jwt',
                     oidcSub: user.id,
@@ -206,6 +217,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               token.sub = user.id;
               token.name = user.name;
               token.email = user.email;
+              (token as any).tokenVersion = (user as any).tokenVersion ?? 0; // eslint-disable-line @typescript-eslint/no-explicit-any
             }
           }
           // The user provided in the jwt callback is the one returned by the `authorize` function
@@ -229,6 +241,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           // Fetch latest user data from database on each request to ensure name is up-to-date
           // This ensures name changes reflect immediately without requiring re-login
           if (token.sub && typeof token.sub === 'string') {
+            // Session revocation: if the user increments tokenVersion, older JWTs are invalid.
+            const currentTokenVersion = (token as any).tokenVersion as number | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
             const lastFetchedAt = (token as any).userFetchedAt as number | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
             const ttlMs = getJwtUserRefreshTtlMs();
             if (lastFetchedAt && Date.now() - lastFetchedAt < ttlMs) {
@@ -246,13 +260,38 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
                 const dbUser = await prisma.user.findUnique({
                   where: { id: token.sub },
-                  select: { name: true, email: true, role: true },
+                  select: { name: true, email: true, role: true, tokenVersion: true, status: true },
                 });
 
                 if (dbUser) {
+                  const dbTokenVersion =
+                    typeof dbUser.tokenVersion === 'number' ? dbUser.tokenVersion : 0;
+                  // If disabled, force logout.
+                  if (dbUser.status === 'DISABLED') {
+                    logger.info('[Auth] Session revoked: user disabled', {
+                      component: 'auth:jwt',
+                      userId: token.sub,
+                    });
+                    return clearSessionToken(token as any, 'USER_DISABLED');
+                  }
+
+                  if (
+                    typeof currentTokenVersion === 'number' &&
+                    dbTokenVersion !== currentTokenVersion
+                  ) {
+                    logger.info('[Auth] Session revoked: token version mismatch', {
+                      component: 'auth:jwt',
+                      userId: token.sub,
+                      tokenVersion: currentTokenVersion,
+                      dbTokenVersion,
+                    });
+                    return clearSessionToken(token as any, 'SESSION_REVOKED');
+                  }
+
                   token.name = dbUser.name;
                   token.email = dbUser.email;
                   token.role = dbUser.role;
+                  (token as any).tokenVersion = dbTokenVersion; // eslint-disable-line @typescript-eslint/no-explicit-any
 
                   logger.debug('[Auth] JWT callback - user data updated', {
                     component: 'auth:jwt',
@@ -291,6 +330,13 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             hasUser: !!session.user,
             hasToken: !!token,
           });
+
+          if ((token as any)?.error || !token.sub) {
+            // eslint-disable-line @typescript-eslint/no-explicit-any
+            // Force unauthenticated session shape.
+            (session as any).user = undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+            return session;
+          }
 
           if (session.user) {
             (session.user as any).role = token.role; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -672,4 +718,12 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   } finally {
     authOptionsInFlight = undefined;
   }
+}
+
+export async function revokeUserSessions(userId: string) {
+  // Increment tokenVersion to invalidate all JWT sessions for this user.
+  await prisma.user.update({
+    where: { id: userId },
+    data: { tokenVersion: { increment: 1 } },
+  });
 }
