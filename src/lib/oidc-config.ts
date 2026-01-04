@@ -69,14 +69,35 @@ function normalizeDomains(domains: string[]) {
 }
 
 async function getOidcConfigRecord(): Promise<OidcConfigRecord | null> {
+  logger.debug('[OIDC] Fetching OIDC config from database', {
+    component: 'oidc-config',
+  });
+
   try {
     const config = await prisma.oidcConfig.findFirst({
       orderBy: { updatedAt: 'desc' },
     });
 
     if (!config) {
+      logger.info('[OIDC] No OIDC config found in database', {
+        component: 'oidc-config',
+      });
       return null;
     }
+
+    logger.debug('[OIDC] Found OIDC config in database', {
+      component: 'oidc-config',
+      enabled: config.enabled,
+      issuer: config.issuer,
+      clientId: config.clientId,
+      autoProvision: config.autoProvision,
+      hasCustomScopes: !!config.customScopes,
+      hasRoleMapping: !!config.roleMapping,
+      hasProfileMapping: !!config.profileMapping,
+      providerType: config.providerType,
+      providerLabel: config.providerLabel,
+      allowedDomainCount: config.allowedDomains?.length ?? 0,
+    });
 
     return {
       enabled: config.enabled,
@@ -94,24 +115,56 @@ async function getOidcConfigRecord(): Promise<OidcConfigRecord | null> {
   } catch (error) {
     // Database connection error or other Prisma errors
     // Return null to allow app to function without OIDC when DB is unavailable
-    logger.error('[OIDC] Failed to fetch OIDC config from database', { error });
+    logger.error('[OIDC] Failed to fetch OIDC config from database', {
+      component: 'oidc-config',
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
     return null;
   }
 }
 
 export async function getOidcConfig(): Promise<OidcConfig | null> {
+  logger.debug('[OIDC] Loading OIDC config', {
+    component: 'oidc-config',
+  });
+
   const config = await getOidcConfigRecord();
-  if (!config || !config.enabled) {
+  if (!config) {
+    logger.info('[OIDC] OIDC config not available (no record in database)', {
+      component: 'oidc-config',
+    });
     return null;
   }
 
-  if (!config.issuer || !config.clientId || !config.clientSecret) {
+  if (!config.enabled) {
+    logger.info('[OIDC] OIDC config is disabled', {
+      component: 'oidc-config',
+    });
+    return null;
+  }
+
+  const missingFields: string[] = [];
+  if (!config.issuer) missingFields.push('issuer');
+  if (!config.clientId) missingFields.push('clientId');
+  if (!config.clientSecret) missingFields.push('clientSecret');
+
+  if (missingFields.length > 0) {
+    logger.warn('[OIDC] OIDC config missing required fields', {
+      component: 'oidc-config',
+      missingFields,
+    });
     return null;
   }
 
   try {
+    logger.debug('[OIDC] Decrypting client secret', {
+      component: 'oidc-config',
+    });
+
     const clientSecret = await decrypt(config.clientSecret);
-    return {
+
+    const normalizedConfig = {
       enabled: config.enabled,
       issuer: config.issuer,
       clientId: config.clientId,
@@ -122,8 +175,26 @@ export async function getOidcConfig(): Promise<OidcConfig | null> {
       customScopes: config.customScopes,
       profileMapping: config.profileMapping as Record<string, string> | null,
     };
+
+    logger.info('[OIDC] Successfully loaded OIDC config', {
+      component: 'oidc-config',
+      issuer: normalizedConfig.issuer,
+      clientId: normalizedConfig.clientId,
+      autoProvision: normalizedConfig.autoProvision,
+      allowedDomainCount: normalizedConfig.allowedDomains.length,
+      hasRoleMapping: !!normalizedConfig.roleMapping,
+      hasCustomScopes: !!normalizedConfig.customScopes,
+      hasProfileMapping: !!normalizedConfig.profileMapping,
+    });
+
+    return normalizedConfig;
   } catch (error) {
-    logger.error('[OIDC] Failed to decrypt client secret', { error });
+    logger.error('[OIDC] Failed to decrypt client secret', {
+      component: 'oidc-config',
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      hint: 'The ENCRYPTION_KEY environment variable may have changed or be invalid',
+    });
     return null;
   }
 }

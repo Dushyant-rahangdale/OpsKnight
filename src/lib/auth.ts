@@ -15,6 +15,18 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   const oidcConfig = await getOidcConfig();
   const sessionMaxAgeSeconds = 60 * 60 * 24 * 7;
 
+  if (oidcConfig) {
+    logger.info('[Auth] OIDC provider will be enabled', {
+      component: 'auth',
+      issuer: oidcConfig.issuer,
+      clientId: oidcConfig.clientId,
+    });
+  } else {
+    logger.debug('[Auth] OIDC provider not available, using credentials only', {
+      component: 'auth',
+    });
+  }
+
   return {
     adapter: PrismaAdapter(prisma as any), // eslint-disable-line @typescript-eslint/no-explicit-any
     session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
@@ -126,7 +138,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       },
       async signIn({ user, account, profile }) {
         if (!user?.email) {
-          logger.warn('Sign-in rejected: missing email', {
+          logger.warn('[Auth] Sign-in rejected: missing email', {
+            component: 'auth:signIn',
             provider: account?.provider ?? 'unknown',
           });
           return false;
@@ -139,36 +152,73 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
         // Final check - prevent disabled users from signing in
         if (existing?.status === 'DISABLED') {
-          logger.warn('Sign-in rejected: user disabled', { provider: account?.provider, email });
+          logger.warn('[Auth] Sign-in rejected: user disabled', {
+            component: 'auth:signIn',
+            provider: account?.provider,
+            email,
+          });
           return false;
         }
 
         if (account?.provider === 'oidc') {
+          logger.info('[Auth] OIDC sign-in attempt', {
+            component: 'auth:signIn',
+            email,
+            userExists: !!existing,
+            userId: user.id,
+          });
+
           const activeConfig = await getOidcConfig();
           if (!activeConfig) {
-            logger.warn('OIDC sign-in rejected: configuration missing or invalid', { email });
+            logger.warn('[Auth] OIDC sign-in rejected: configuration missing or invalid', {
+              component: 'auth:signIn',
+              email,
+            });
             return false;
           }
 
           if (activeConfig.allowedDomains.length > 0) {
             const domain = email.split('@')[1] || '';
             if (!domain) {
-              logger.warn('OIDC sign-in rejected: invalid email domain', { email });
+              logger.warn('[Auth] OIDC sign-in rejected: invalid email domain', {
+                component: 'auth:signIn',
+                email,
+              });
               return false;
             }
             if (!activeConfig.allowedDomains.includes(domain)) {
-              logger.warn('OIDC sign-in rejected: domain not allowed', { email, domain });
+              logger.warn('[Auth] OIDC sign-in rejected: domain not allowed', {
+                component: 'auth:signIn',
+                email,
+                domain,
+                allowedDomains: activeConfig.allowedDomains,
+              });
               return false;
             }
+            logger.debug('[Auth] OIDC domain validation passed', {
+              component: 'auth:signIn',
+              email,
+              domain,
+            });
           }
 
           if (!activeConfig.autoProvision && !existing) {
-            logger.warn('OIDC sign-in rejected: auto-provision disabled', { email });
+            logger.warn('[Auth] OIDC sign-in rejected: auto-provision disabled', {
+              component: 'auth:signIn',
+              email,
+            });
             if (user?.id) {
               try {
                 await prisma.user.delete({ where: { id: user.id } });
+                logger.debug('[Auth] Cleaned up auto-created user record', {
+                  component: 'auth:signIn',
+                  userId: user.id,
+                });
               } catch (error) {
-                logger.error('Failed to rollback OIDC user creation', { error });
+                logger.error('[Auth] Failed to rollback OIDC user creation', {
+                  component: 'auth:signIn',
+                  error,
+                });
               }
             }
             return false;
@@ -186,6 +236,11 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               updateData.status = 'ACTIVE';
               updateData.invitedAt = null;
               updateData.deactivatedAt = null;
+              logger.info('[Auth] Reactivating user via OIDC', {
+                component: 'auth:signIn',
+                userId: targetUser.id,
+                previousStatus: targetUser.status,
+              });
             }
 
             // Role Evaluation
@@ -194,6 +249,12 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               Array.isArray(activeConfig.roleMapping) &&
               (profile as any)
             ) {
+              logger.debug('[Auth] Evaluating OIDC role mapping', {
+                component: 'auth:signIn',
+                ruleCount: activeConfig.roleMapping.length,
+                currentRole: targetUser.role,
+              });
+
               const mapping = activeConfig.roleMapping as Array<{
                 claim: string;
                 value: string;
@@ -202,7 +263,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               const allowedRoles = new Set(['ADMIN', 'RESPONDER', 'USER']);
               for (const rule of mapping) {
                 if (!allowedRoles.has(rule.role)) {
-                  logger.warn('OIDC role mapping ignored: invalid role', {
+                  logger.warn('[Auth] OIDC role mapping ignored: invalid role', {
+                    component: 'auth:signIn',
                     role: rule.role,
                     claim: rule.claim,
                   });
@@ -213,16 +275,45 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
                 if (Array.isArray(claimValue)) {
                   match = claimValue.includes(rule.value);
+                  logger.debug('[Auth] Checking array claim for role mapping', {
+                    component: 'auth:signIn',
+                    claim: rule.claim,
+                    expectedValue: rule.value,
+                    actualValues: claimValue,
+                    matched: match,
+                  });
                 } else if (claimValue === rule.value) {
                   match = true;
+                  logger.debug('[Auth] Checking scalar claim for role mapping', {
+                    component: 'auth:signIn',
+                    claim: rule.claim,
+                    expectedValue: rule.value,
+                    actualValue: claimValue,
+                    matched: match,
+                  });
                 }
 
                 if (match) {
                   if (targetUser.role !== rule.role) {
                     updateData.role = rule.role;
+                    logger.info('[Auth] OIDC role mapping applied', {
+                      component: 'auth:signIn',
+                      userId: targetUser.id,
+                      oldRole: targetUser.role,
+                      newRole: rule.role,
+                      matchedClaim: rule.claim,
+                      matchedValue: rule.value,
+                    });
                   }
                   break; // Stop at first match
                 }
+              }
+
+              if (!updateData.role) {
+                logger.debug('[Auth] No role mapping matched', {
+                  component: 'auth:signIn',
+                  availableClaims: Object.keys(profile as any),
+                });
               }
             }
 
@@ -232,6 +323,11 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               typeof activeConfig.profileMapping === 'object' &&
               profile
             ) {
+              logger.debug('[Auth] Evaluating OIDC profile sync', {
+                component: 'auth:signIn',
+                mappingKeys: Object.keys(activeConfig.profileMapping),
+              });
+
               const mapping = activeConfig.profileMapping as Record<string, string>;
               const oidcProfile = profile as Record<string, unknown>;
 
@@ -240,6 +336,12 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 const dept = String(oidcProfile[mapping.department]);
                 if (dept && dept !== targetUser.department) {
                   updateData.department = dept;
+                  logger.debug('[Auth] Syncing department from OIDC', {
+                    component: 'auth:signIn',
+                    claimName: mapping.department,
+                    newValue: dept,
+                    oldValue: targetUser.department,
+                  });
                 }
               }
 
@@ -248,6 +350,12 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 const title = String(oidcProfile[mapping.jobTitle]);
                 if (title && title !== targetUser.jobTitle) {
                   updateData.jobTitle = title;
+                  logger.debug('[Auth] Syncing job title from OIDC', {
+                    component: 'auth:signIn',
+                    claimName: mapping.jobTitle,
+                    newValue: title,
+                    oldValue: targetUser.jobTitle,
+                  });
                 }
               }
 
@@ -256,12 +364,24 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 const avatar = String(oidcProfile[mapping.avatarUrl]);
                 if (avatar && avatar !== targetUser.avatarUrl) {
                   updateData.avatarUrl = avatar;
+                  logger.debug('[Auth] Syncing avatar URL from OIDC', {
+                    component: 'auth:signIn',
+                    claimName: mapping.avatarUrl,
+                    hasNewValue: !!avatar,
+                  });
                 }
               }
 
               // Update lastOidcSync timestamp if any profile data was synced
               if (updateData.department || updateData.jobTitle || updateData.avatarUrl) {
                 updateData.lastOidcSync = new Date();
+                logger.info('[Auth] OIDC profile sync completed', {
+                  component: 'auth:signIn',
+                  userId: targetUser.id,
+                  syncedFields: Object.keys(updateData).filter(k =>
+                    ['department', 'jobTitle', 'avatarUrl'].includes(k)
+                  ),
+                });
               }
             }
 
@@ -270,8 +390,19 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 where: { id: targetUser.id },
                 data: updateData,
               });
+              logger.info('[Auth] Updated user from OIDC data', {
+                component: 'auth:signIn',
+                userId: targetUser.id,
+                updatedFields: Object.keys(updateData),
+              });
             }
           }
+
+          logger.info('[Auth] OIDC sign-in successful', {
+            component: 'auth:signIn',
+            email,
+            userId: targetUser?.id,
+          });
         }
 
         return true;
