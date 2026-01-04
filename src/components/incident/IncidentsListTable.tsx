@@ -133,10 +133,10 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
         const u = urgency.toUpperCase();
         const config =
             u === 'HIGH'
-                ? { bg: 'rgba(239, 68, 68, 0.10)', border: 'rgba(239, 68, 68, 0.25)', color: '#b91c1c' }
+                ? { bg: 'rgba(239, 68, 68, 0.10)', border: 'rgba(239, 68, 68, 0.28)', color: '#b91c1c' }
                 : u === 'MEDIUM'
-                    ? { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.25)', color: '#b45309' }
-                    : { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.25)', color: '#15803d' };
+                    ? { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.28)', color: '#b45309' }
+                    : { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.28)', color: '#15803d' };
 
         return (
             <span
@@ -166,6 +166,22 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
         if (details) details.open = false;
     };
 
+    const getStatusAccent = (status: string) => {
+        switch (status) {
+            case 'OPEN':
+                return { accent: 'rgba(239, 68, 68, 0.7)', glow: 'rgba(239, 68, 68, 0.12)' };
+            case 'ACKNOWLEDGED':
+                return { accent: 'rgba(245, 158, 11, 0.7)', glow: 'rgba(245, 158, 11, 0.12)' };
+            case 'RESOLVED':
+                return { accent: 'rgba(34, 197, 94, 0.7)', glow: 'rgba(34, 197, 94, 0.12)' };
+            case 'SNOOZED':
+            case 'SUPPRESSED':
+                return { accent: 'rgba(148, 163, 184, 0.9)', glow: 'rgba(148, 163, 184, 0.10)' };
+            default:
+                return { accent: 'rgba(148, 163, 184, 0.9)', glow: 'rgba(148, 163, 184, 0.10)' };
+        }
+    };
+
     const totalItems = pagination?.totalItems ?? incidents.length;
     const showingFrom =
         pagination && totalItems > 0 ? (pagination.currentPage - 1) * pagination.itemsPerPage + 1 : totalItems > 0 ? 1 : 0;
@@ -176,6 +192,10 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
 
     return (
         <div className="glass-panel" style={{ background: 'white', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <style>{`
+                details.incident-row-menu > summary::-webkit-details-marker { display: none; }
+                details.incident-row-menu > summary { list-style: none; }
+            `}</style>
             {/* Bulk Actions Bar */}
             {(selectedIds.size > 0 || bulkAction) && (
                 <div style={{
@@ -557,7 +577,7 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                             style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}
                             aria-label="Select all incidents"
                         >
-                            {selectedIds.size === incidents.length && incidents.length > 0 ? 'Clear selection' : 'Select all'}
+                            {selectedIds.size === incidents.length && incidents.length > 0 ? 'Clear selection' : 'Select page'}
                         </button>
                     )}
 
@@ -616,6 +636,7 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                             const incidentStatus = incident.status as any; // eslint-disable-line @typescript-eslint/no-explicit-any
                             const isSelected = selectedIds.has(incident.id);
                             const urgencyChip = buildUrgencyChip(incident.urgency);
+                            const statusAccent = getStatusAccent(incident.status);
 
                             return (
                                 <div
@@ -624,7 +645,9 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                         border: `1px solid ${isSelected ? 'rgba(211, 47, 47, 0.35)' : 'var(--border)'}`,
                                         borderRadius: '14px',
                                         background: isSelected ? 'rgba(211, 47, 47, 0.03)' : 'white',
-                                        boxShadow: isSelected ? '0 10px 22px rgba(15, 23, 42, 0.10)' : 'var(--shadow-xs)',
+                                        boxShadow: isSelected
+                                            ? `0 12px 26px rgba(15, 23, 42, 0.10), 0 0 0 4px ${statusAccent.glow}`
+                                            : 'var(--shadow-xs)',
                                         overflow: 'hidden',
                                         cursor: 'pointer',
                                         transition: 'transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease',
@@ -646,8 +669,24 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                         if (target.closest('[data-no-row-nav="true"]')) return;
                                         router.push(`/incidents/${incident.id}`);
                                     }}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            router.push(`/incidents/${incident.id}`);
+                                        }
+                                    }}
                                 >
-                                    <div style={{ display: 'flex', gap: '0.85rem', padding: '0.95rem 1rem', alignItems: 'flex-start' }}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            gap: '0.85rem',
+                                            padding: '0.95rem 1rem',
+                                            alignItems: 'flex-start',
+                                            borderLeft: `4px solid ${statusAccent.accent}`,
+                                        }}
+                                    >
                                         {canManageIncidents && (
                                             <div data-no-row-nav="true" style={{ paddingTop: '0.2rem' }}>
                                                 <input
@@ -730,36 +769,34 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                         />
                                                     </div>
 
-                                                    {incident.status !== 'RESOLVED' && (
-                                                        <Link
-                                                            href={`/incidents/${incident.id}`}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            style={{
-                                                                padding: '0.45rem 0.8rem',
-                                                                background: 'var(--primary)',
-                                                                border: 'none',
-                                                                borderRadius: '10px',
-                                                                fontSize: '0.8rem',
-                                                                fontWeight: 800,
-                                                                color: 'white',
-                                                                textDecoration: 'none',
-                                                                display: 'inline-flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                boxShadow: 'var(--shadow-xs)',
-                                                                whiteSpace: 'nowrap',
-                                                            }}
-                                                        >
-                                                            Resolve
-                                                        </Link>
-                                                    )}
+                                                    <Link
+                                                        href={`/incidents/${incident.id}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{
+                                                            padding: '0.45rem 0.8rem',
+                                                            background: 'var(--primary)',
+                                                            border: 'none',
+                                                            borderRadius: '10px',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 800,
+                                                            color: 'white',
+                                                            textDecoration: 'none',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            boxShadow: 'var(--shadow-xs)',
+                                                            whiteSpace: 'nowrap',
+                                                        }}
+                                                        aria-label={`Open incident ${incident.title}`}
+                                                    >
+                                                        Open
+                                                    </Link>
 
                                                     {canManageIncidents && (
-                                                        <details style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                                                        <details className="incident-row-menu" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
                                                             <summary
                                                                 aria-label="More actions"
                                                                 style={{
-                                                                    listStyle: 'none',
                                                                     cursor: 'pointer',
                                                                     padding: '0.45rem 0.7rem',
                                                                     borderRadius: '10px',
@@ -805,11 +842,49 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                         fontWeight: 650,
                                                                         fontSize: '0.85rem',
                                                                     }}
+                                                                    onMouseEnter={(e) => {
+                                                                        e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                        e.currentTarget.style.background = 'transparent';
+                                                                    }}
                                                                 >
                                                                     View details →
                                                                 </Link>
 
                                                                 <div style={{ height: '1px', background: 'var(--border)', margin: '0.25rem 0.35rem' }} />
+
+                                                                {incident.status !== 'RESOLVED' && (
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={isPending}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            closeDetailsMenu(e.currentTarget);
+                                                                            handleStatusChange(incident.id, 'RESOLVED');
+                                                                        }}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            textAlign: 'left',
+                                                                            padding: '0.55rem 0.6rem',
+                                                                            borderRadius: '10px',
+                                                                            border: 'none',
+                                                                            background: 'transparent',
+                                                                            cursor: isPending ? 'not-allowed' : 'pointer',
+                                                                            fontSize: '0.85rem',
+                                                                            fontWeight: 700,
+                                                                            color: 'var(--primary)',
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--primary-light)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
+                                                                        }}
+                                                                    >
+                                                                        ✓ Resolve
+                                                                    </button>
+                                                                )}
 
                                                                 {incident.status !== 'ACKNOWLEDGED' && incident.status !== 'RESOLVED' && incident.status !== 'SUPPRESSED' && (
                                                                     <button
@@ -831,6 +906,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontSize: '0.85rem',
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
                                                                         }}
                                                                     >
                                                                         ✓ Acknowledge
@@ -858,6 +939,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
                                                                         }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
+                                                                        }}
                                                                     >
                                                                         ↩ Unacknowledge
                                                                     </button>
@@ -883,6 +970,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontSize: '0.85rem',
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
                                                                         }}
                                                                     >
                                                                         ⏰ Snooze
@@ -910,6 +1003,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
                                                                         }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
+                                                                        }}
                                                                     >
                                                                         🔔 Unsnooze
                                                                     </button>
@@ -936,6 +1035,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
                                                                         }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
+                                                                        }}
                                                                     >
                                                                         🔕 Suppress
                                                                     </button>
@@ -961,6 +1066,12 @@ export default function IncidentsListTable({ incidents, users, canManageIncident
                                                                             fontSize: '0.85rem',
                                                                             fontWeight: 600,
                                                                             color: 'var(--text-primary)',
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = 'var(--color-neutral-50)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'transparent';
                                                                         }}
                                                                     >
                                                                         🔊 Unsuppress
