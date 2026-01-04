@@ -6,6 +6,11 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getOidcConfig } from '@/lib/oidc-config';
 
+const JWT_USER_REFRESH_TTL_MS = Number.parseInt(process.env.JWT_USER_REFRESH_TTL_MS ?? '60000', 10);
+
+const OIDC_REQUIRE_EMAIL_VERIFIED_STRICT =
+  (process.env.OIDC_REQUIRE_EMAIL_VERIFIED_STRICT ?? 'false').toLowerCase() === 'true';
+
 const AUTH_OPTIONS_CACHE_TTL_MS = Number.parseInt(
   process.env.AUTH_OPTIONS_CACHE_TTL_MS ?? '5000',
   10
@@ -17,6 +22,25 @@ function safeTtlMs(value: number, fallback: number) {
 }
 
 const AUTH_TTL_MS = safeTtlMs(AUTH_OPTIONS_CACHE_TTL_MS, 5000);
+
+function normalizeIssuer(issuer: string) {
+  return issuer.replace(/\/$/, '');
+}
+
+function coerceBooleanClaim(value: unknown): boolean | undefined {
+  if (value === true) return true;
+  if (value === false) return false;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  return undefined;
+}
 
 let authOptionsCache:
   | {
@@ -131,9 +155,23 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             // The 'user' object from OIDC is just the profile, so 'user.id' is the OIDC 'sub' (not our DB ID)
             if (account.provider === 'oidc' && user.email) {
               try {
-                const dbUser = await prisma.user.findUnique({
-                  where: { email: user.email.toLowerCase() },
-                });
+                const activeConfig = await getOidcConfig();
+                const issuer = activeConfig?.issuer ? normalizeIssuer(activeConfig.issuer) : null;
+                const subject = account.providerAccountId || (user as any).id || null; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+                // Prefer stable identity link (issuer + subject) over email-only lookup.
+                const identity =
+                  issuer && subject
+                    ? await prisma.oidcIdentity.findUnique({
+                        where: { issuer_subject: { issuer, subject } },
+                      })
+                    : null;
+
+                const dbUser = identity
+                  ? await prisma.user.findUnique({ where: { id: identity.userId } })
+                  : await prisma.user.findUnique({
+                      where: { email: user.email.toLowerCase() },
+                    });
 
                 if (dbUser) {
                   token.sub = dbUser.id; // Use internal CUID
@@ -145,6 +183,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                     oidcSub: user.id,
                     dbUserId: dbUser.id,
                     email: user.email,
+                    hasIdentityLink: !!identity,
                   });
                 } else {
                   // This should technically not happen if signIn passed, but just in case
@@ -185,40 +224,53 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           // Fetch latest user data from database on each request to ensure name is up-to-date
           // This ensures name changes reflect immediately without requiring re-login
           if (token.sub && typeof token.sub === 'string') {
-            try {
-              logger.debug('[Auth] JWT callback - fetching user data', {
+            const lastFetchedAt = (token as any).userFetchedAt as number | undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+            const ttlMs = Number.isFinite(JWT_USER_REFRESH_TTL_MS)
+              ? JWT_USER_REFRESH_TTL_MS
+              : 60000;
+            if (lastFetchedAt && Date.now() - lastFetchedAt < ttlMs) {
+              logger.debug('[Auth] JWT callback - skipping user refresh (cached)', {
                 component: 'auth:jwt',
                 userId: token.sub,
+                ageMs: Date.now() - lastFetchedAt,
               });
-
-              const dbUser = await prisma.user.findUnique({
-                where: { id: token.sub },
-                select: { name: true, email: true, role: true },
-              });
-
-              if (dbUser) {
-                token.name = dbUser.name;
-                token.email = dbUser.email;
-                token.role = dbUser.role;
-
-                logger.debug('[Auth] JWT callback - user data updated', {
+            } else {
+              try {
+                logger.debug('[Auth] JWT callback - fetching user data', {
                   component: 'auth:jwt',
                   userId: token.sub,
-                  role: dbUser.role,
                 });
-              } else {
-                logger.warn('[Auth] JWT callback - user not found in database', {
+
+                const dbUser = await prisma.user.findUnique({
+                  where: { id: token.sub },
+                  select: { name: true, email: true, role: true },
+                });
+
+                if (dbUser) {
+                  token.name = dbUser.name;
+                  token.email = dbUser.email;
+                  token.role = dbUser.role;
+
+                  logger.debug('[Auth] JWT callback - user data updated', {
+                    component: 'auth:jwt',
+                    userId: token.sub,
+                    role: dbUser.role,
+                  });
+                } else {
+                  logger.warn('[Auth] JWT callback - user not found in database', {
+                    component: 'auth:jwt',
+                    userId: token.sub,
+                  });
+                }
+              } catch (error) {
+                // If database fetch fails, keep existing token data
+                logger.error('[Auth] Error fetching user data in JWT callback', {
                   component: 'auth:jwt',
-                  userId: token.sub,
+                  error,
+                  errorMessage: error instanceof Error ? error.message : 'Unknown error',
                 });
               }
-            } catch (error) {
-              // If database fetch fails, keep existing token data
-              logger.error('[Auth] Error fetching user data in JWT callback', {
-                component: 'auth:jwt',
-                error,
-                errorMessage: error instanceof Error ? error.message : 'Unknown error',
-              });
+              (token as any).userFetchedAt = Date.now(); // eslint-disable-line @typescript-eslint/no-explicit-any
             }
           }
 
@@ -299,6 +351,30 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               return false;
             }
 
+            // Enforce email verification when available (recommended).
+            // If strict mode is enabled, require an explicit true value.
+            const emailVerifiedClaim = coerceBooleanClaim((profile as any)?.email_verified); // eslint-disable-line @typescript-eslint/no-explicit-any
+            if (emailVerifiedClaim === false) {
+              logger.warn('[Auth] OIDC sign-in rejected: email not verified by IdP', {
+                component: 'auth:signIn',
+                email,
+              });
+              return false;
+            }
+            if (OIDC_REQUIRE_EMAIL_VERIFIED_STRICT && emailVerifiedClaim !== true) {
+              logger.warn('[Auth] OIDC sign-in rejected: email_verified missing (strict mode)', {
+                component: 'auth:signIn',
+                email,
+              });
+              return false;
+            }
+            if (emailVerifiedClaim === undefined) {
+              logger.warn('[Auth] OIDC sign-in: email_verified claim missing; proceeding', {
+                component: 'auth:signIn',
+                email,
+              });
+            }
+
             if (activeConfig.allowedDomains.length > 0) {
               const domain = email.split('@')[1] || '';
               if (!domain) {
@@ -373,6 +449,42 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               return false;
             }
 
+            // Create/validate stable issuer+subject identity link to avoid unsafe email-only linking.
+            const issuer = normalizeIssuer(activeConfig.issuer);
+            const subject =
+              account?.providerAccountId ||
+              (profile as any)?.sub || // eslint-disable-line @typescript-eslint/no-explicit-any
+              user.id;
+
+            const existingIdentity = await prisma.oidcIdentity.findUnique({
+              where: { issuer_subject: { issuer, subject } },
+            });
+            if (existingIdentity && existingIdentity.userId !== targetUser.id) {
+              logger.warn('[Auth] OIDC sign-in rejected: identity already linked to another user', {
+                component: 'auth:signIn',
+                issuer,
+                subject,
+                email,
+              });
+              return false;
+            }
+            if (!existingIdentity) {
+              await prisma.oidcIdentity.create({
+                data: {
+                  issuer,
+                  subject,
+                  email,
+                  userId: targetUser.id,
+                },
+              });
+              logger.info('[Auth] Linked OIDC identity to user', {
+                component: 'auth:signIn',
+                issuer,
+                subject,
+                userId: targetUser.id,
+              });
+            }
+
             const updateData: any = {};
 
             // Ensure user object has correct ID for JWT
@@ -405,18 +517,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               const mapping = activeConfig.roleMapping as Array<{
                 claim: string;
                 value: string;
-                role: string;
+                role: 'ADMIN' | 'RESPONDER' | 'USER';
               }>;
-              const allowedRoles = new Set(['ADMIN', 'RESPONDER', 'USER']);
               for (const rule of mapping) {
-                if (!allowedRoles.has(rule.role)) {
-                  logger.warn('[Auth] OIDC role mapping ignored: invalid role', {
-                    component: 'auth:signIn',
-                    role: rule.role,
-                    claim: rule.claim,
-                  });
-                  continue;
-                }
                 const claimValue = (profile as any)[rule.claim];
                 let match = false;
 

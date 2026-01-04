@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 
 const OIDC_CONFIG_RECORD_CACHE_TTL_MS = Number.parseInt(
   process.env.OIDC_CONFIG_RECORD_CACHE_TTL_MS ?? '5000',
@@ -27,11 +28,11 @@ type OidcConfigRecord = {
   clientSecret: string;
   autoProvision: boolean;
   allowedDomains: string[];
-  roleMapping?: any;
+  roleMapping?: unknown;
   customScopes?: string | null;
   providerType?: string | null;
   providerLabel?: string | null;
-  profileMapping?: Record<string, string> | null;
+  profileMapping?: unknown;
 };
 
 export type OidcConfig = {
@@ -41,7 +42,7 @@ export type OidcConfig = {
   clientSecret: string;
   autoProvision: boolean;
   allowedDomains: string[];
-  roleMapping?: any;
+  roleMapping?: Array<{ claim: string; value: string; role: 'ADMIN' | 'RESPONDER' | 'USER' }>;
   customScopes?: string | null;
   providerType?: string | null;
   providerLabel?: string | null;
@@ -84,6 +85,54 @@ function detectProviderType(issuer: string | null): string | null {
 
 function normalizeDomains(domains: string[]) {
   return domains.map(domain => domain.trim().toLowerCase()).filter(Boolean);
+}
+
+const RoleMappingRuleSchema = z.object({
+  claim: z.string().min(1),
+  value: z.string(),
+  role: z.enum(['ADMIN', 'RESPONDER', 'USER']),
+});
+
+const RoleMappingSchema = z.array(RoleMappingRuleSchema);
+
+const ProfileMappingSchema = z
+  .object({
+    department: z.string().min(1).optional(),
+    jobTitle: z.string().min(1).optional(),
+    avatarUrl: z.string().min(1).optional(),
+  })
+  .passthrough();
+
+function parseRoleMapping(roleMapping: unknown) {
+  if (roleMapping == null) return undefined;
+  const result = RoleMappingSchema.safeParse(roleMapping);
+  if (!result.success) {
+    logger.warn('[OIDC] Invalid role mapping config; ignoring roleMapping', {
+      component: 'oidc-config',
+      issues: result.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+    });
+    return undefined;
+  }
+  return result.data;
+}
+
+function parseProfileMapping(profileMapping: unknown): Record<string, string> | null {
+  if (profileMapping == null) return null;
+  const result = ProfileMappingSchema.safeParse(profileMapping);
+  if (!result.success) {
+    logger.warn('[OIDC] Invalid profile mapping config; ignoring profileMapping', {
+      component: 'oidc-config',
+      issues: result.error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
+    });
+    return null;
+  }
+  const { department, jobTitle, avatarUrl } = result.data;
+  // Only keep supported keys; ignore unknown keys in stored JSON.
+  return {
+    ...(department ? { department } : {}),
+    ...(jobTitle ? { jobTitle } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
 }
 
 let oidcConfigRecordCache:
@@ -134,7 +183,7 @@ async function fetchOidcConfigRecordUncached(): Promise<OidcConfigRecord | null>
       allowedDomains: config.allowedDomains ?? [],
       roleMapping: config.roleMapping,
       customScopes: config.customScopes,
-      profileMapping: config.profileMapping as Record<string, string> | null,
+      profileMapping: config.profileMapping,
       providerType: config.providerType,
       providerLabel: config.providerLabel,
     };
@@ -241,9 +290,9 @@ export async function getOidcConfig(): Promise<OidcConfig | null> {
         clientSecret,
         autoProvision: config.autoProvision,
         allowedDomains: normalizeDomains(config.allowedDomains),
-        roleMapping: config.roleMapping,
+        roleMapping: parseRoleMapping(config.roleMapping),
         customScopes: config.customScopes,
-        profileMapping: config.profileMapping as Record<string, string> | null,
+        profileMapping: parseProfileMapping(config.profileMapping),
       };
 
       logger.info('[OIDC] Successfully loaded OIDC config', {
