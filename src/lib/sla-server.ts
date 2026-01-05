@@ -44,6 +44,7 @@ type SLAMetricsFilter = {
   useOrScope?: boolean;
   includeIncidents?: boolean;
   incidentLimit?: number;
+  includeActiveIncidents?: boolean;
   // Pagination support for large datasets
   page?: number;
   pageSize?: number;
@@ -186,11 +187,13 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       requestedStart.setDate(now.getDate() - windowDays);
     }
   }
+  const requestedStartDate = requestedStart ?? now;
+  const requestedEndDate = requestedEnd;
 
   // Apply retention policy bounds - this ensures we never query beyond retained data
   const { start, end, isClipped } = await getQueryDateBounds(
-    requestedStart,
-    requestedEnd,
+    requestedStartDate,
+    requestedEndDate,
     'incident'
   );
 
@@ -209,6 +212,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     logger.warn('[SLA] Start date is after end date, swapping');
     [finalStart, finalEnd] = [finalEnd, finalStart];
   }
+
+  const { start: alertStart, end: alertEnd } = await getQueryDateBounds(
+    requestedStartDate,
+    requestedEndDate,
+    'alert'
+  );
 
   // Calculate actual window duration for previous period comparison
   const actualWindowMs = finalEnd.getTime() - finalStart.getTime();
@@ -294,9 +303,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     });
   }
 
-  // Heatmap query (always last 365 days regardless of window)
-  const heatmapStart = new Date(now);
-  heatmapStart.setDate(now.getDate() - 365);
+  // Heatmap query (last 365 days, clipped to retention policy)
+  const heatmapStartRequested = new Date(now);
+  heatmapStartRequested.setDate(now.getDate() - 365);
+  const { start: heatmapStart } = await getQueryDateBounds(heatmapStartRequested, now, 'incident');
   const heatmapWhere: Prisma.IncidentWhereInput = {
     ...recentIncidentWhere,
     createdAt: { gte: heatmapStart, lte: now },
@@ -336,6 +346,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       where: activeWhere,
       select: {
         id: true,
+        title: true,
         status: true,
         urgency: true,
         assigneeId: true,
@@ -347,7 +358,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     // FIX: alertsCount now uses both start AND end date
     prisma.alert.count({
       where: {
-        createdAt: { gte: finalStart, lte: finalEnd },
+        createdAt: { gte: alertStart, lte: alertEnd },
         ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}),
       },
     }),
@@ -1140,7 +1151,37 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT
   );
 
+  const activeIncidentSummaries = filters.includeActiveIncidents
+    ? activeIncidentsData.map(incident => {
+        const targets = serviceTargetMap.get(incident.serviceId) || {
+          ackMinutes: DEFAULT_ACK_TARGET_MINUTES,
+          resolveMinutes: DEFAULT_RESOLVE_TARGET_MINUTES,
+        };
+        return {
+          id: incident.id,
+          title: incident.title,
+          status: incident.status,
+          urgency: incident.urgency,
+          createdAt: incident.createdAt,
+          acknowledgedAt: incident.acknowledgedAt ?? null,
+          serviceId: incident.serviceId,
+          serviceName: serviceNameMap.get(incident.serviceId) || 'Unknown service',
+          assigneeId: incident.assigneeId ?? null,
+          targetAckMinutes: targets.ackMinutes,
+          targetResolveMinutes: targets.resolveMinutes,
+        };
+      })
+    : undefined;
+
   return {
+    // Retention metadata
+    effectiveStart: finalStart,
+    effectiveEnd: finalEnd,
+    requestedStart: requestedStartDate,
+    requestedEnd: requestedEndDate,
+    isClipped,
+    retentionDays: retentionPolicy.incidentRetentionDays,
+
     // Lifecycle - NOTE: mttd is actually MTTA (Mean Time To Acknowledge)
     mttr: currentStats.mttr ? currentStats.mttr / 60000 : null,
     mttd: currentStats.mtta ? currentStats.mtta / 60000 : null, // This is MTTA, kept as mttd for backward compat
@@ -1153,8 +1194,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     mtbfMs,
 
     // Compliance - FIX: Returns null instead of 100% when no data
-    ackCompliance: ackCompliance !== null ? Math.round(ackCompliance * 100) / 100 : 0,
-    resolveCompliance: resolveCompliance !== null ? Math.round(resolveCompliance * 100) / 100 : 0,
+    ackCompliance: ackCompliance !== null ? Math.round(ackCompliance * 100) / 100 : null,
+    resolveCompliance:
+      resolveCompliance !== null ? Math.round(resolveCompliance * 100) / 100 : null,
     ackBreaches: ackSlaBreached,
     resolveBreaches: resolveSlaBreached,
 
@@ -1249,6 +1291,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       user: { name: s.user.name },
       schedule: { name: s.schedule.name },
     })),
+    activeIncidentSummaries,
     recentIncidents: filters.includeIncidents
       ? displayIncidents.map(inc => ({
           id: inc.id,
@@ -1307,7 +1350,7 @@ export async function generateDailySnapshot(definitionId: string, date: Date): P
   let totalAckEvaluated = 0;
   let totalResolveEvaluated = 0;
 
-  const now = new Date();
+  const evaluationTime = end;
   const targetAckTime = (definition as { targetAckTime?: number }).targetAckTime;
   const targetResolveTime = (definition as { targetResolveTime?: number }).targetResolveTime;
 
@@ -1321,7 +1364,7 @@ export async function generateDailySnapshot(definitionId: string, date: Date): P
         if (ackMinutes <= targetAckTime) metAck++;
       } else if (incident.status !== 'RESOLVED') {
         // Check if overdue
-        const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
+        const elapsedMin = (evaluationTime.getTime() - incident.createdAt.getTime()) / 60000;
         if (elapsedMin > targetAckTime) {
           totalAckEvaluated++; // Count as breach
         }
@@ -1337,7 +1380,7 @@ export async function generateDailySnapshot(definitionId: string, date: Date): P
         if (resolveMinutes <= targetResolveTime) metResolve++;
       } else if (incident.status !== 'RESOLVED') {
         // Check if overdue
-        const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
+        const elapsedMin = (evaluationTime.getTime() - incident.createdAt.getTime()) / 60000;
         if (elapsedMin > targetResolveTime) {
           totalResolveEvaluated++; // Count as breach
         }
@@ -1478,13 +1521,22 @@ export async function calculateMultiServiceUptime(
 ): Promise<Record<string, number>> {
   const { default: prisma } = await import('./prisma');
 
+  const { start: effectiveStart, end: effectiveEnd } = await getQueryDateBounds(
+    startDate,
+    endDate,
+    'incident'
+  );
+
   const incidents = await prisma.incident.findMany({
     where: {
       serviceId: { in: serviceIds },
       AND: [
-        { createdAt: { lt: endDate } },
+        { createdAt: { lt: effectiveEnd } },
         {
-          OR: [{ resolvedAt: { gte: startDate } }, { status: { in: ['OPEN', 'ACKNOWLEDGED'] } }],
+          OR: [
+            { resolvedAt: { gte: effectiveStart } },
+            { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
+          ],
         },
       ],
     },
@@ -1497,7 +1549,7 @@ export async function calculateMultiServiceUptime(
   });
 
   const uptimeByService: Record<string, number> = {};
-  const totalMs = endDate.getTime() - startDate.getTime();
+  const totalMs = effectiveEnd.getTime() - effectiveStart.getTime();
 
   for (const serviceId of serviceIds) {
     if (totalMs <= 0) {
@@ -1511,8 +1563,11 @@ export async function calculateMultiServiceUptime(
 
     const intervals = serviceIncidents
       .map(incident => ({
-        start: incident.createdAt > startDate ? incident.createdAt : startDate,
-        end: incident.resolvedAt && incident.resolvedAt < endDate ? incident.resolvedAt : endDate,
+        start: incident.createdAt > effectiveStart ? incident.createdAt : effectiveStart,
+        end:
+          incident.resolvedAt && incident.resolvedAt < effectiveEnd
+            ? incident.resolvedAt
+            : effectiveEnd,
       }))
       .filter(interval => interval.start < interval.end);
 

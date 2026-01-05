@@ -4,6 +4,14 @@
  */
 
 export type SLAMetrics = {
+  // Retention metadata
+  effectiveStart: Date;
+  effectiveEnd: Date;
+  requestedStart: Date;
+  requestedEnd: Date;
+  isClipped: boolean;
+  retentionDays: number;
+
   // Incident Lifecycle (minutes)
   mttr: number | null;
   mttd: number | null;
@@ -16,8 +24,8 @@ export type SLAMetrics = {
   mtbfMs: number | null;
 
   // SLA Compliance
-  ackCompliance: number;
-  resolveCompliance: number;
+  ackCompliance: number | null;
+  resolveCompliance: number | null;
   ackBreaches: number;
   resolveBreaches: number;
 
@@ -104,6 +112,20 @@ export type SLAMetrics = {
   recurringTitles: Array<{ title: string; count: number }>;
   eventsPerIncident: number;
   heatmapData: Array<{ date: string; count: number }>;
+
+  activeIncidentSummaries?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    urgency: string;
+    createdAt: Date;
+    acknowledgedAt: Date | null;
+    serviceId: string;
+    serviceName: string;
+    assigneeId: string | null;
+    targetAckMinutes: number;
+    targetResolveMinutes: number;
+  }>;
 
   // New Enhanced Features
   serviceMetrics: Array<{
