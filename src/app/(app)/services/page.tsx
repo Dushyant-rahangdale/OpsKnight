@@ -91,11 +91,11 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     AND: [
       searchQuery
         ? {
-            OR: [
-              { name: { contains: searchQuery, mode: 'insensitive' as const } },
-              { description: { contains: searchQuery, mode: 'insensitive' as const } },
-            ],
-          }
+          OR: [
+            { name: { contains: searchQuery, mode: 'insensitive' as const } },
+            { description: { contains: searchQuery, mode: 'insensitive' as const } },
+          ],
+        }
         : {},
       teamFilter ? { teamId: teamFilter } : {},
     ].filter(Boolean),
@@ -192,6 +192,11 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
           <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
             Manage your services and monitor their health status
           </p>
+          {slaMetrics.isClipped && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+              (Note: Data retention limited to {slaMetrics.retentionDays} days)
+            </p>
+          )}
         </div>
         <div
           style={{

@@ -6,6 +6,7 @@ import { memo } from 'react';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
 import SLAIndicator from './SLAIndicator';
+import SLABreachWarningBadge from './SLABreachWarningBadge';
 import EscalationStatusBadge from './EscalationStatusBadge';
 import { Incident, Service } from '@prisma/client';
 import { useTimezone } from '@/contexts/TimezoneContext';
@@ -71,6 +72,7 @@ function IncidentCard({
                                     size="sm"
                                 />
                             )}
+                            <SLABreachWarningBadge incident={incident} service={incident.service} />
                         </div>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                             {incident.title}
@@ -126,6 +128,7 @@ function IncidentCard({
                                 nextEscalationAt={incident.nextEscalationAt}
                             />
                         )}
+                        <SLABreachWarningBadge incident={incident} service={incident.service} />
                     </div>
                     <h3 style={{
                         fontWeight: 700,

@@ -14,6 +14,13 @@ vi.mock('@/lib/prisma', () => ({
         incidentEvent: {
             create: vi.fn(),
         },
+        auditLog: {
+            create: vi.fn(),
+        },
+        systemSettings: {
+            findUnique: vi.fn(),
+            upsert: vi.fn(),
+        },
     },
 }));
 

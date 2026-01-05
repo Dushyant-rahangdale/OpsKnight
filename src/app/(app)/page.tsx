@@ -92,9 +92,9 @@ export default async function Dashboard({
   const email = session?.user?.email ?? null;
   const user = email
     ? await prisma.user.findUnique({
-        where: { email },
-        select: { name: true, timeZone: true },
-      })
+      where: { email },
+      select: { name: true, timeZone: true },
+    })
     : null;
   const userName = user?.name || 'there';
   const userTimeZone = user?.timeZone || 'UTC';
@@ -309,6 +309,8 @@ export default async function Dashboard({
           }}
           currentPeriodAcknowledged={currentPeriodAcknowledged}
           userTimeZone={userTimeZone}
+          isClipped={slaMetrics.isClipped}
+          retentionDays={slaMetrics.retentionDays}
         />
 
         {/* Main Content Grid - Two Column Layout (matching users page) */}

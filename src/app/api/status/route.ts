@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeStatusApiRequest } from '@/lib/status-api-auth';
+import { serializeRecentIncidents } from '@/lib/sla';
 
 /**
  * Status Page API
@@ -148,29 +149,34 @@ export async function GET(req: NextRequest) {
     const headers: Record<string, string> =
       statusPage.requireAuth || statusPage.statusApiRequireToken
         ? {
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            Pragma: 'no-cache',
-            Expires: '0',
-          }
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        }
         : {
-            'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-          };
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        };
 
     return jsonOk(
       {
         status: overallStatus,
         services: servicesData,
-        incidents: recentIncidents.map(inc => ({
+        incidents: serializeRecentIncidents(recentIncidents).map(inc => ({
           id: inc.id,
           title: inc.title,
           status: inc.status,
           service: inc.service.name,
           serviceRegion: inc.service.region ?? null,
-          createdAt: inc.createdAt.toISOString(),
-          resolvedAt: inc.resolvedAt?.toISOString() || null,
+          createdAt: inc.createdAt,
+          resolvedAt: inc.resolvedAt,
         })),
         metrics: {
           uptime: uptimeMetrics,
+        },
+        retention: {
+          effectiveStart: metrics.effectiveStart.toISOString(),
+          effectiveEnd: metrics.effectiveEnd.toISOString(),
+          isClipped: metrics.isClipped,
         },
         updatedAt: new Date().toISOString(),
       },

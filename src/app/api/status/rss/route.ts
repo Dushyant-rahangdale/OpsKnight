@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
         ? serviceIds
         : (await prisma.service.findMany({ select: { id: true } })).map(s => s.id);
 
+    const baseUrl = getBaseUrl();
+
     const { calculateSLAMetrics } = await import('@/lib/sla-server');
     const metrics = await calculateSLAMetrics({
       serviceId: effectiveServiceIds,
@@ -70,28 +72,31 @@ export async function GET(req: NextRequest) {
 
     const incidents = metrics.recentIncidents || [];
 
-    const baseUrl = getBaseUrl();
+    const description = metrics.isClipped
+      ? `Current status and incidents (limited to ${metrics.retentionDays} days retention)`
+      : 'Current status and incidents';
+
     // Generate RSS XML
     const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
         <title>${statusPage.name} - Status Updates</title>
         <link>${baseUrl}/status</link>
-        <description>Current status and incidents</description>
+        <description>${description}</description>
         <language>en</language>
         <atom:link href="${baseUrl}/api/status/rss" rel="self" type="application/rss+xml" />
         ${incidents
-          .map(incident => {
-            const status =
-              incident.status === 'RESOLVED'
-                ? 'Resolved'
-                : incident.status === 'ACKNOWLEDGED'
-                  ? 'Acknowledged'
-                  : 'Investigating';
-            const pubDate = new Date(incident.createdAt).toUTCString();
-            const guid = `${baseUrl}/status#incident-${incident.id}`;
+        .map(incident => {
+          const status =
+            incident.status === 'RESOLVED'
+              ? 'Resolved'
+              : incident.status === 'ACKNOWLEDGED'
+                ? 'Acknowledged'
+                : 'Investigating';
+          const pubDate = new Date(incident.createdAt).toUTCString();
+          const guid = `${baseUrl}/status#incident-${incident.id}`;
 
-            return `
+          return `
         <item>
             <title>${escapeXml(incident.title)} - ${status}</title>
             <link>${guid}</link>
@@ -100,8 +105,8 @@ export async function GET(req: NextRequest) {
             <description>${escapeXml(incident.description || incident.title)} - Service: ${escapeXml(incident.service.name)}</description>
             <category>${escapeXml(incident.service.name)}</category>
         </item>`;
-          })
-          .join('')}
+        })
+        .join('')}
     </channel>
 </rss>`;
 

@@ -1,4 +1,4 @@
-import 'server-only';
+// import 'server-only';
 import { logger } from './logger';
 import { getRetentionPolicy } from './retention-policy';
 
@@ -192,31 +192,31 @@ export async function generateDailyRollup(
     const incidentIds = incidents.map(i => i.id);
     const [escalationCount, reopenCount, autoResolveCount, alertCount] = incidentIds.length
       ? await Promise.all([
-          prisma.incidentEvent.count({
-            where: {
-              incidentId: { in: incidentIds },
-              message: { contains: 'escalated to', mode: 'insensitive' },
-            },
-          }),
-          prisma.incidentEvent.count({
-            where: {
-              incidentId: { in: incidentIds },
-              message: { contains: 'reopen', mode: 'insensitive' },
-            },
-          }),
-          prisma.incidentEvent.count({
-            where: {
-              incidentId: { in: incidentIds },
-              message: { contains: 'auto-resolved', mode: 'insensitive' },
-            },
-          }),
-          prisma.alert.count({
-            where: {
-              createdAt: { gte: dayStart, lte: dayEnd },
-              ...(serviceId ? { serviceId } : {}),
-            },
-          }),
-        ])
+        prisma.incidentEvent.count({
+          where: {
+            incidentId: { in: incidentIds },
+            message: { contains: 'escalated to', mode: 'insensitive' },
+          },
+        }),
+        prisma.incidentEvent.count({
+          where: {
+            incidentId: { in: incidentIds },
+            message: { contains: 'reopen', mode: 'insensitive' },
+          },
+        }),
+        prisma.incidentEvent.count({
+          where: {
+            incidentId: { in: incidentIds },
+            message: { contains: 'auto-resolved', mode: 'insensitive' },
+          },
+        }),
+        prisma.alert.count({
+          where: {
+            createdAt: { gte: dayStart, lte: dayEnd },
+            ...(serviceId ? { serviceId } : {}),
+          },
+        }),
+      ])
       : [0, 0, 0, 0];
 
     // Upsert the rollup - use a unique approach since composite key has nullable fields

@@ -165,6 +165,9 @@ export async function GET(req: NextRequest) {
                 acknowledged: slaMetrics.acknowledgedCount,
                 resolved: slaMetrics.resolved24h, // Aligned with realtime stream
                 critical: slaMetrics.criticalCount,
+                // Retention info
+                isClipped: slaMetrics.isClipped,
+                retentionDays: slaMetrics.retentionDays,
               },
             });
           }

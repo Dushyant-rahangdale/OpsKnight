@@ -39,8 +39,13 @@ export async function GET() {
 
     const slaMetrics = await calculateSLAMetrics(slaFilters);
     const activeIncidentsCount = slaMetrics.activeCount;
+    // Retention info
+    const retentionInfo = {
+      isClipped: slaMetrics.isClipped,
+      retentionDays: slaMetrics.retentionDays,
+    };
 
-    return jsonOk({ activeIncidentsCount }, 200);
+    return jsonOk({ activeIncidentsCount, ...retentionInfo }, 200);
   } catch (error) {
     logger.error('api.sidebar_stats.error', {
       error: error instanceof Error ? error.message : String(error),

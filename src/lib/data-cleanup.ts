@@ -20,6 +20,7 @@ export interface CleanupResult {
   metrics: number;
   events: number;
   executionTimeMs: number;
+  dryRun: boolean;
 }
 
 /**
@@ -91,6 +92,7 @@ export async function performDataCleanup(dryRun: boolean = false): Promise<Clean
         metrics: 0,
         events: 0,
         executionTimeMs: Date.now() - startTime,
+        dryRun: true,
       };
     }
 
@@ -172,6 +174,7 @@ export async function performDataCleanup(dryRun: boolean = false): Promise<Clean
       metrics: metricsCount,
       events: eventCount,
       executionTimeMs,
+      dryRun: false,
     };
   } catch (error) {
     logger.error('[DataCleanup] Cleanup failed', { error });

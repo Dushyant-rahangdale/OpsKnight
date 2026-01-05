@@ -24,6 +24,7 @@ type ServiceNotificationSettingsProps = {
   serviceNotifyOnTriggered: boolean;
   serviceNotifyOnAck: boolean;
   serviceNotifyOnResolved: boolean;
+  serviceNotifyOnSlaBreach: boolean;
 };
 
 export default function ServiceNotificationSettings({
@@ -36,11 +37,13 @@ export default function ServiceNotificationSettings({
   serviceNotifyOnTriggered,
   serviceNotifyOnAck,
   serviceNotifyOnResolved,
+  serviceNotifyOnSlaBreach,
 }: ServiceNotificationSettingsProps) {
   const [channels, setChannels] = useState<string[]>(serviceNotificationChannels || []);
   const [notifyOnTriggered, setNotifyOnTriggered] = useState(serviceNotifyOnTriggered ?? true);
   const [notifyOnAck, setNotifyOnAck] = useState(serviceNotifyOnAck ?? true);
   const [notifyOnResolved, setNotifyOnResolved] = useState(serviceNotifyOnResolved ?? true);
+  const [notifyOnSlaBreach, setNotifyOnSlaBreach] = useState(serviceNotifyOnSlaBreach ?? false);
   const [selectedSlackChannel, setSelectedSlackChannel] = useState(slackChannel || '');
   const [slackChannels, setSlackChannels] = useState<
     Array<{ id: string; name: string; isMember: boolean; isPrivate: boolean }>
@@ -396,12 +399,29 @@ export default function ServiceNotificationSettings({
               />
               Notify when incident is <strong>RESOLVED</strong>
             </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={notifyOnSlaBreach}
+                onChange={e => setNotifyOnSlaBreach(e.target.checked)}
+              />
+              Notify on <strong>SLA BREACH</strong> (Warning)
+            </label>
           </div>
 
           {/* Hidden inputs for form submission */}
           <input type="hidden" name="serviceNotifyOnTriggered" value={String(notifyOnTriggered)} />
           <input type="hidden" name="serviceNotifyOnAck" value={String(notifyOnAck)} />
           <input type="hidden" name="serviceNotifyOnResolved" value={String(notifyOnResolved)} />
+          <input type="hidden" name="serviceNotifyOnSlaBreach" value={String(notifyOnSlaBreach)} />
         </div>
       </div>
 

@@ -115,12 +115,12 @@ export default async function AnalyticsV2Page({
     typeof params?.assignee === 'string' && params.assignee !== 'ALL' ? params.assignee : undefined;
   const statusFilter =
     typeof params?.status === 'string' &&
-    allowedStatus.includes(params.status as (typeof allowedStatus)[number])
+      allowedStatus.includes(params.status as (typeof allowedStatus)[number])
       ? (params.status as (typeof allowedStatus)[number])
       : undefined;
   const urgencyFilter =
     typeof params?.urgency === 'string' &&
-    allowedUrgency.includes(params.urgency as (typeof allowedUrgency)[number])
+      allowedUrgency.includes(params.urgency as (typeof allowedUrgency)[number])
       ? (params.urgency as (typeof allowedUrgency)[number])
       : undefined;
   const windowCandidate = Number(params?.window ?? 7);
@@ -312,6 +312,30 @@ export default async function AnalyticsV2Page({
           </a>
         </div>
       </div>
+
+      {metrics.isClipped && (
+        <div
+          className="analytics-retention-banner"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.75rem 1rem',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '8px',
+            color: 'var(--color-danger)',
+            fontSize: 'var(--font-size-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <AlertCircle className="w-4 h-4" />
+          <span>
+            <strong>Retention Notice:</strong> Analysis limited to the last{' '}
+            {metrics.retentionDays} days by data retention policy.
+          </span>
+        </div>
+      )}
 
       <AnalyticsFilters
         teams={teams}

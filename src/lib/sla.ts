@@ -162,6 +162,66 @@ export type SLAMetrics = {
 };
 
 /**
+ * Serialized version of recent incident for API responses.
+ * Converts Date fields to ISO strings for JSON serialization.
+ */
+export type SerializedRecentIncident = Omit<
+  NonNullable<SLAMetrics['recentIncidents']>[number],
+  'createdAt' | 'resolvedAt'
+> & {
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+/**
+ * Serialized version of SLAMetrics for API responses.
+ * All Date fields are converted to ISO strings for JSON serialization.
+ */
+export type SerializedSLAMetrics = Omit<
+  SLAMetrics,
+  'effectiveStart' | 'effectiveEnd' | 'requestedStart' | 'requestedEnd' | 'recentIncidents'
+> & {
+  effectiveStart: string;
+  effectiveEnd: string;
+  requestedStart: string;
+  requestedEnd: string;
+  recentIncidents?: SerializedRecentIncident[];
+};
+
+/**
+ * Convert SLAMetrics to SerializedSLAMetrics for API responses.
+ * Maps all Date fields to ISO string format.
+ */
+export function serializeSlaMetrics(metrics: SLAMetrics): SerializedSLAMetrics {
+  return {
+    ...metrics,
+    effectiveStart: metrics.effectiveStart.toISOString(),
+    effectiveEnd: metrics.effectiveEnd.toISOString(),
+    requestedStart: metrics.requestedStart.toISOString(),
+    requestedEnd: metrics.requestedEnd.toISOString(),
+    recentIncidents: metrics.recentIncidents?.map(inc => ({
+      ...inc,
+      createdAt: inc.createdAt.toISOString(),
+      resolvedAt: inc.resolvedAt?.toISOString() ?? null,
+    })),
+  };
+}
+
+/**
+ * Serialize only the recentIncidents array from SLAMetrics.
+ * Useful when only the incidents need to be serialized.
+ */
+export function serializeRecentIncidents(
+  incidents: SLAMetrics['recentIncidents']
+): SerializedRecentIncident[] {
+  return (incidents || []).map(inc => ({
+    ...inc,
+    createdAt: inc.createdAt.toISOString(),
+    resolvedAt: inc.resolvedAt?.toISOString() ?? null,
+  }));
+}
+
+/**
  * Format time in minutes to human-readable string
  */
 // Re-export for backward compatibility

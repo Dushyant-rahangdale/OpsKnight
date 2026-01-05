@@ -93,6 +93,9 @@ export async function GET(req: NextRequest) {
                   resolved24h: slaMetrics.resolved24h,
                   highUrgency: slaMetrics.criticalCount,
                   active: slaMetrics.activeCount,
+                  // Retention info
+                  isClipped: slaMetrics.isClipped,
+                  retentionDays: slaMetrics.retentionDays,
                 },
                 timestamp: new Date().toISOString(),
               })

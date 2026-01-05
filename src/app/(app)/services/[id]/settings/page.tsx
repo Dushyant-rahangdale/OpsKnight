@@ -489,6 +489,7 @@ export default async function ServiceSettingsPage({
               serviceNotifyOnTriggered={service.serviceNotifyOnTriggered}
               serviceNotifyOnAck={service.serviceNotifyOnAck}
               serviceNotifyOnResolved={service.serviceNotifyOnResolved}
+              serviceNotifyOnSlaBreach={service.serviceNotifyOnSlaBreach}
             />
           </div>
 

@@ -223,6 +223,7 @@ model Service {
   serviceNotifyOnTriggered    Boolean               @default(true)
   serviceNotifyOnAck          Boolean               @default(true)
   serviceNotifyOnResolved     Boolean               @default(true)
+  serviceNotifyOnSlaBreach    Boolean               @default(false)
   slaDefinitions              SLADefinition[]
   createdAt                   DateTime              @default(now())
   updatedAt                   DateTime              @updatedAt
@@ -383,6 +384,10 @@ model Alert {
   @@index([incidentId]) // For querying alerts by incident
   @@index([dedupKey, status]) // For deduplication queries
   @@index([createdAt]) // For time-based queries
+
+  // SLA Performance Optimization: Retention-based query indexes
+  @@index([createdAt, incidentId], name: "idx_alert_retention") // For retention cleanup with incident lookup
+  @@index([serviceId, createdAt], name: "idx_alert_by_service") // For service-scoped time-range queries
 }
 
 model Incident {
@@ -438,6 +443,13 @@ model Incident {
   @@index([status]) // For simple count queries (e.g. "Open Incidents")
   @@index([acknowledgedAt]) // For MTTA calculations
   @@index([resolvedAt]) // For MTTR calculations
+
+  // SLA Performance Optimization: World-Class Query Indexes
+  @@index([createdAt, status], name: "idx_incident_retention") // For retention-based status queries
+  @@index([serviceId, createdAt, status], name: "idx_incident_sla_by_service") // For service-scoped SLA queries
+  @@index([createdAt, acknowledgedAt], name: "idx_incident_mtta_calc") // For MTTA range calculations
+  @@index([createdAt, resolvedAt, status], name: "idx_incident_mttr_calc") // For MTTR with status filter
+  @@index([assigneeId, createdAt, status], name: "idx_incident_assignee_load") // For assignee workload queries
 }
 
 model Tag {
@@ -507,6 +519,7 @@ model IncidentEvent {
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId, createdAt]) // For querying events by incident chronologically
+  @@index([incidentId, message, createdAt], name: "idx_event_ack_search") // For ack event searches with message filtering
 }
 
 model IncidentNote {

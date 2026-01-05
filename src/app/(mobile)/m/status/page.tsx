@@ -112,45 +112,45 @@ export default async function MobileStatusPage() {
   const activeIncidents: ActiveIncident[] =
     serviceIds.length > 0
       ? await prisma.incident
-          .findMany({
-            where: {
-              serviceId: { in: serviceIds },
-              status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-            },
-            include: {
-              service: { select: { name: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 10,
-          })
-          .then(incidents =>
-            incidents.map(inc => ({
-              id: inc.id,
-              title: inc.title,
-              status: inc.status,
-              urgency: inc.urgency,
-              serviceName: inc.service.name,
-              createdAt: inc.createdAt,
-              updatedAt: inc.updatedAt,
-            }))
-          )
+        .findMany({
+          where: {
+            serviceId: { in: serviceIds },
+            status: { in: ['OPEN', 'ACKNOWLEDGED'] },
+          },
+          include: {
+            service: { select: { name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+        .then(incidents =>
+          incidents.map(inc => ({
+            id: inc.id,
+            title: inc.title,
+            status: inc.status,
+            urgency: inc.urgency,
+            serviceName: inc.service.name,
+            createdAt: inc.createdAt,
+            updatedAt: inc.updatedAt,
+          }))
+        )
       : [];
 
   // Get recent resolved incidents (history)
   const recentHistory =
     serviceIds.length > 0
       ? await prisma.incident.findMany({
-          where: {
-            serviceId: { in: serviceIds },
-            status: 'RESOLVED',
-            resolvedAt: { gte: thirtyDaysAgo },
-          },
-          include: {
-            service: { select: { name: true } },
-          },
-          orderBy: { resolvedAt: 'desc' },
-          take: 10,
-        })
+        where: {
+          serviceId: { in: serviceIds },
+          status: 'RESOLVED',
+          resolvedAt: { gte: thirtyDaysAgo },
+        },
+        include: {
+          service: { select: { name: true } },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: 10,
+      })
       : [];
 
   // Announcements
@@ -538,7 +538,7 @@ export default async function MobileStatusPage() {
               letterSpacing: '0.05em',
             }}
           >
-            📜 Recent History (30 days)
+            📜 Recent History ({metrics.isClipped ? `${metrics.retentionDays} days - retention limit` : '30 days'})
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {recentHistory.map(incident => (

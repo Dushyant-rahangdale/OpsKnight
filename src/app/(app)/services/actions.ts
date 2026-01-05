@@ -92,6 +92,7 @@ export async function updateService(serviceId: string, formData: FormData) {
   const serviceNotifyOnTriggered = formData.get('serviceNotifyOnTriggered') === 'true';
   const serviceNotifyOnAck = formData.get('serviceNotifyOnAck') === 'true';
   const serviceNotifyOnResolved = formData.get('serviceNotifyOnResolved') === 'true';
+  const serviceNotifyOnSlaBreach = formData.get('serviceNotifyOnSlaBreach') === 'true';
 
   // Get service notification channels (isolated from escalation)
   // Filter to only valid NotificationChannel enum values
@@ -122,6 +123,7 @@ export async function updateService(serviceId: string, formData: FormData) {
         serviceNotifyOnTriggered,
         serviceNotifyOnAck,
         serviceNotifyOnResolved,
+        serviceNotifyOnSlaBreach,
       },
     });
 
