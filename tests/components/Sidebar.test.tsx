@@ -31,26 +31,30 @@ describe('Sidebar', () => {
     localStorage.clear();
   });
 
-  it('renders expanded by default', () => {
+  it('renders expanded by default', async () => {
     render(<Sidebar userName="Alex Doe" userEmail="alex@example.com" userRole="ADMIN" />);
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /collapse sidebar/i })).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /collapse sidebar/i })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+    });
   });
 
-  it('honors collapsed state from localStorage', () => {
+  it('honors collapsed state from localStorage', async () => {
     localStorage.setItem('sidebarCollapsed', '1');
 
     render(<Sidebar userName="Alex Doe" userEmail="alex@example.com" userRole="ADMIN" />);
 
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /expand sidebar/i })).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
+    await waitFor(() => {
+      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /expand sidebar/i })).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+    });
   });
 
   it('toggles collapse state and persists it', async () => {

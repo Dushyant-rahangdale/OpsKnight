@@ -11,7 +11,7 @@ import {
 } from './analytics-metrics';
 import { getServiceDynamicStatus } from './service-status';
 import { logger } from './logger';
-import { getRetentionPolicy, getQueryDateBounds, type RetentionPolicy } from './retention-policy';
+import { getRetentionPolicy, getQueryDateBounds, shouldUseRollups, type RetentionPolicy } from './retention-policy';
 
 /**
  * SLA Server - World-Class SLA Metrics Calculation
@@ -161,6 +161,9 @@ function isAfterHoursInTimeZone(date: Date, timeZone: string): boolean {
  * 12. Uses rollup data for historical periods beyond realTimeWindowDays
  */
 export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promise<SLAMetrics> {
+  // Performance monitoring: Start timing
+  const queryStartTime = Date.now();
+
   const { default: prisma } = await import('./prisma');
 
   // 1. Fetch retention policy - NO HARDCODED LIMITS
@@ -210,6 +213,45 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     [finalStart, finalEnd] = [finalEnd, finalStart];
   }
 
+  // Check if we should use rollup data for this historical query
+  // This dramatically improves performance for queries beyond the real-time window
+  const useRollups = await shouldUseRollups(finalStart);
+  if (useRollups) {
+    // For historical queries, use pre-aggregated rollups
+    logger.info('[SLA] Using rollup data for historical query', {
+      start: finalStart.toISOString(),
+      end: finalEnd.toISOString(),
+    });
+
+    const serviceIdFilter = Array.isArray(filters.serviceId)
+      ? filters.serviceId[0]
+      : filters.serviceId;
+
+    const teamIdFilter = Array.isArray(filters.teamId)
+      ? filters.teamId[0]
+      : filters.teamId;
+
+    const rollupMetrics = await calculateSLAMetricsFromRollups(finalStart, finalEnd, {
+      serviceId: serviceIdFilter,
+      teamId: teamIdFilter,
+    });
+
+    // Return metrics from rollups
+    const totalQueryDuration = Date.now() - queryStartTime;
+    logger.info('[SLA] Query performance (rollups)', {
+      duration: totalQueryDuration,
+      incidentCount: rollupMetrics.totalIncidents,
+      dataSource: 'rollup',
+    });
+
+    return {
+      ...rollupMetrics,
+      requestedStart: requestedStart || start,
+      requestedEnd: requestedEnd,
+      isClipped: isClipped,
+    };
+  }
+
   // Calculate actual window duration for previous period comparison
   const actualWindowMs = finalEnd.getTime() - finalStart.getTime();
   const actualWindowDays = Math.ceil(actualWindowMs / (24 * 60 * 60 * 1000));
@@ -224,22 +266,22 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // 2. Build Where Clauses
   const serviceWhere = filters.serviceId
     ? {
-        serviceId: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId,
-      }
+      serviceId: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId,
+    }
     : {};
 
   const teamWhere = filters.teamId
     ? filters.useOrScope
       ? {
-          OR: [
-            { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId },
-            {
-              service: {
-                teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId,
-              },
+        OR: [
+          { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId },
+          {
+            service: {
+              teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId,
             },
-          ],
-        }
+          },
+        ],
+      }
       : { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId }
     : {};
 
@@ -457,8 +499,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     prisma.incident.count({ where: recentIncidentWhere }),
   ]);
 
-  // Log query info for monitoring
-  logger.debug('[SLA] Query completed', {
+  // Performance monitoring: Log query completion with timing
+  const dbQueryDuration = Date.now() - queryStartTime;
+  logger.debug('[SLA] Database queries completed', {
+    duration: dbQueryDuration,
     incidentCount: allRecentIncidents.length,
     totalIncidentCount,
     dateRange: { start: finalStart.toISOString(), end: finalEnd.toISOString() },
@@ -529,53 +573,53 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const recentIncidentIds = recentIncidents.map(i => i.id);
   const [ackEvents, escalationEvents, reopenEvents, autoResolveEvents] = recentIncidentIds.length
     ? await Promise.all([
-        // FIX: Add ordering to get EARLIEST ack event, not random
-        prisma.incidentEvent.findMany({
-          where: {
-            incidentId: { in: recentIncidentIds },
-            message: { contains: 'acknowledged', mode: 'insensitive' },
-          },
-          select: { incidentId: true, createdAt: true },
-          orderBy: { createdAt: 'asc' }, // CRITICAL: Get earliest event first
-        }),
-        prisma.incidentEvent.findMany({
-          where: {
-            incidentId: { in: recentIncidentIds },
-            message: { contains: 'escalated to', mode: 'insensitive' },
-          },
-          select: { incidentId: true, createdAt: true },
-          orderBy: { createdAt: 'asc' },
-        }),
-        prisma.incidentEvent.findMany({
-          where: {
-            incidentId: { in: recentIncidentIds },
-            message: { contains: 'reopen', mode: 'insensitive' },
-          },
-          select: { incidentId: true },
-        }),
-        prisma.incidentEvent.findMany({
-          where: {
-            incidentId: { in: recentIncidentIds },
-            message: { contains: 'auto-resolved', mode: 'insensitive' },
-          },
-          select: { incidentId: true },
-        }),
-      ])
+      // FIX: Add ordering to get EARLIEST ack event, not random
+      prisma.incidentEvent.findMany({
+        where: {
+          incidentId: { in: recentIncidentIds },
+          message: { contains: 'acknowledged', mode: 'insensitive' },
+        },
+        select: { incidentId: true, createdAt: true },
+        orderBy: { createdAt: 'asc' }, // CRITICAL: Get earliest event first
+      }),
+      prisma.incidentEvent.findMany({
+        where: {
+          incidentId: { in: recentIncidentIds },
+          message: { contains: 'escalated to', mode: 'insensitive' },
+        },
+        select: { incidentId: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.incidentEvent.findMany({
+        where: {
+          incidentId: { in: recentIncidentIds },
+          message: { contains: 'reopen', mode: 'insensitive' },
+        },
+        select: { incidentId: true },
+      }),
+      prisma.incidentEvent.findMany({
+        where: {
+          incidentId: { in: recentIncidentIds },
+          message: { contains: 'auto-resolved', mode: 'insensitive' },
+        },
+        select: { incidentId: true },
+      }),
+    ])
     : [[], [], [], []];
 
   const [firstNotes, firstAlerts] = recentIncidentIds.length
     ? await Promise.all([
-        prisma.incidentNote.groupBy({
-          by: ['incidentId'],
-          where: { incidentId: { in: recentIncidentIds } },
-          _min: { createdAt: true },
-        }),
-        prisma.alert.groupBy({
-          by: ['incidentId'],
-          where: { incidentId: { in: recentIncidentIds } },
-          _min: { createdAt: true },
-        }),
-      ])
+      prisma.incidentNote.groupBy({
+        by: ['incidentId'],
+        where: { incidentId: { in: recentIncidentIds } },
+        _min: { createdAt: true },
+      }),
+      prisma.alert.groupBy({
+        by: ['incidentId'],
+        where: { incidentId: { in: recentIncidentIds } },
+        _min: { createdAt: true },
+      }),
+    ])
     : [[], []];
 
   // Build Global Ack Map - FIX: Use earliest ack event due to ordering above
@@ -1109,9 +1153,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const userIds = Array.from(new Set([...assigneeIds, ...onCallUserIds]));
   const usersById = userIds.length
     ? await prisma.user.findMany({
-        where: { id: { in: userIds } },
-        select: { id: true, name: true, email: true },
-      })
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, email: true },
+    })
     : [];
   const userNameMap = new Map(usersById.map(u => [u.id, u.name || u.email || 'Unknown']));
   const assigneeLoad = assigneeCounts.map(e => ({
@@ -1140,7 +1184,63 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT
   );
 
+  // Performance monitoring: Final timing and metrics
+  const totalQueryDuration = Date.now() - queryStartTime;
+  const incidentsPerSecond = totalIncidentCount > 0 && totalQueryDuration > 0
+    ? Math.round(totalIncidentCount / (totalQueryDuration / 1000))
+    : 0;
+
+  logger.info('[SLA] Query performance', {
+    duration: totalQueryDuration,
+    incidentCount: totalIncidentCount,
+    dateRange: {
+      start: finalStart.toISOString(),
+      end: finalEnd.toISOString(),
+      days: actualWindowDays
+    },
+    filters: {
+      hasServiceFilter: !!filters.serviceId,
+      hasTeamFilter: !!filters.teamId,
+      hasAssigneeFilter: !!filters.assigneeId,
+    },
+    performanceMetric: {
+      incidentsPerSecond,
+      msPerIncident: totalIncidentCount > 0 ? Math.round(totalQueryDuration / totalIncidentCount * 100) / 100 : null,
+    }
+  });
+
+  // Slow query alert (>10s threshold)
+  if (totalQueryDuration > 10000) {
+    logger.error('[SLA] Slow query detected', {
+      duration: totalQueryDuration,
+      threshold: 10000,
+      incidentCount: totalIncidentCount,
+      filters: {
+        serviceId: filters.serviceId,
+        teamId: filters.teamId,
+        windowDays: actualWindowDays,
+      }
+    });
+  }
+
+  // Large dataset warning (>50k incidents)
+  if (totalIncidentCount > 50000) {
+    logger.warn('[SLA] Large dataset detected, consider using streaming API or rollups', {
+      count: totalIncidentCount,
+      threshold: 50000,
+      filters
+    });
+  }
+
   return {
+    // Retention metadata (newly added)
+    effectiveStart: finalStart,
+    effectiveEnd: finalEnd,
+    requestedStart: requestedStart || start, // Fallback if undefined
+    requestedEnd: requestedEnd || end,
+    isClipped,
+    retentionDays: retentionPolicy.incidentRetentionDays,
+
     // Lifecycle - NOTE: mttd is actually MTTA (Mean Time To Acknowledge)
     mttr: currentStats.mttr ? currentStats.mttr / 60000 : null,
     mttd: currentStats.mtta ? currentStats.mtta / 60000 : null, // This is MTTA, kept as mttd for backward compat
@@ -1238,10 +1338,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     eventsPerIncident:
       totalRecent > 0
         ? (ackEvents.length +
-            escalationEvents.length +
-            reopenEvents.length +
-            autoResolveEvents.length) /
-          totalRecent
+          escalationEvents.length +
+          reopenEvents.length +
+          autoResolveEvents.length) /
+        totalRecent
         : 0,
     heatmapData,
     currentShifts: currentShiftsData.map(s => ({
@@ -1251,15 +1351,15 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     })),
     recentIncidents: filters.includeIncidents
       ? displayIncidents.map(inc => ({
-          id: inc.id,
-          title: inc.title,
-          description: inc.description,
-          status: inc.status,
-          urgency: inc.urgency,
-          createdAt: inc.createdAt,
-          resolvedAt: inc.resolvedAt,
-          service: { id: inc.serviceId, name: inc.service.name, region: inc.service.region },
-        }))
+        id: inc.id,
+        title: inc.title,
+        description: inc.description,
+        status: inc.status,
+        urgency: inc.urgency,
+        createdAt: inc.createdAt,
+        resolvedAt: inc.resolvedAt,
+        service: { id: inc.serviceId, name: inc.service.name, region: inc.service.region },
+      }))
       : undefined,
   };
 }
@@ -1538,4 +1638,212 @@ export function getExternalStatusLabel(dynamicStatus: string): string {
     default:
       return 'OPERATIONAL';
   }
+}
+
+/**
+ * Calculate SLA metrics from pre-aggregated rollup data
+ *
+ * Use this for historical queries (beyond realTimeWindowDays) to avoid
+ * expensive real-time calculations on large datasets.
+ *
+ * @param start - Start date for the query range
+ * @param end - End date for the query range
+ * @param filters - Optional filters for service, team
+ * @returns Partial SLA metrics derived from rollups
+ */
+/**
+ * Calculate SLA metrics from pre-aggregated rollup data
+ *
+ * Use this for historical queries (beyond realTimeWindowDays) to avoid
+ * expensive real-time calculations on large datasets.
+ *
+ * @param start - Start date for the query range
+ * @param end - End date for the query range
+ * @param filters - Optional filters for service, team
+ * @returns Full SLA metrics derived from rollups (with some fields estimated/defaulted)
+ */
+export async function calculateSLAMetricsFromRollups(
+  start: Date,
+  end: Date,
+  filters: { serviceId?: string | null; teamId?: string | null } = {}
+): Promise<SLAMetrics & { dataSource: 'rollup' }> {
+  const { default: prisma } = await import('./prisma');
+
+  // Need retention policy for metadata
+  const retentionPolicy = await getRetentionPolicy();
+  const requestedStart = start; // Simplified
+  const requestedEnd = end;
+
+  const rollups = await prisma.incidentMetricRollup.findMany({
+    where: {
+      date: { gte: start, lte: end },
+      granularity: 'daily',
+      ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
+      ...(filters.teamId ? { teamId: filters.teamId } : {}),
+    },
+  });
+
+  // Aggregate all rollups
+  let totalIncidents = 0;
+  let openIncidents = 0;
+  let acknowledgedIncidents = 0;
+  let resolvedIncidents = 0;
+  let mttaSum = BigInt(0);
+  let mttaCount = 0;
+  let mttrSum = BigInt(0);
+  let mttrCount = 0;
+  let ackSlaMet = 0;
+  let ackSlaBreached = 0;
+  let resolveSlaMet = 0;
+  let resolveSlaBreached = 0;
+  let escalationCount = 0;
+  let reopenCount = 0;
+  let autoResolveCount = 0;
+  let afterHoursCount = 0;
+
+  for (const rollup of rollups) {
+    totalIncidents += rollup.totalIncidents;
+    openIncidents += rollup.openIncidents;
+    acknowledgedIncidents += rollup.acknowledgedIncidents;
+    resolvedIncidents += rollup.resolvedIncidents;
+    mttaSum += rollup.mttaSum;
+    mttaCount += rollup.mttaCount;
+    mttrSum += rollup.mttrSum;
+    mttrCount += rollup.mttrCount;
+    ackSlaMet += rollup.ackSlaMet;
+    ackSlaBreached += rollup.ackSlaBreached;
+    resolveSlaMet += rollup.resolveSlaMet;
+    resolveSlaBreached += rollup.resolveSlaBreached;
+    escalationCount += rollup.escalationCount;
+    reopenCount += rollup.reopenCount;
+    autoResolveCount += rollup.autoResolveCount;
+    afterHoursCount += rollup.afterHoursCount;
+  }
+
+  // Calculate averages (convert from ms to minutes)
+  const avgMtta = mttaCount > 0 ? Number(mttaSum / BigInt(mttaCount)) / 60000 : null;
+  const avgMttr = mttrCount > 0 ? Number(mttrSum / BigInt(mttrCount)) / 60000 : null;
+
+  // Calculate compliance rates
+  const totalAckEvaluated = ackSlaMet + ackSlaBreached;
+  const ackCompliance = totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : 0;
+
+  const totalResolveEvaluated = resolveSlaMet + resolveSlaBreached;
+  const resolveCompliance = totalResolveEvaluated > 0 ? (resolveSlaMet / totalResolveEvaluated) * 100 : 0;
+
+  // Calculate rates
+  const afterHoursRate = totalIncidents > 0 ? (afterHoursCount / totalIncidents) * 100 : 0;
+  const escalationRate = totalIncidents > 0 ? (escalationCount / totalIncidents) * 100 : 0;
+  const reopenRate = totalIncidents > 0 ? (reopenCount / totalIncidents) * 100 : 0;
+  const autoResolveRate = totalIncidents > 0 ? (autoResolveCount / totalIncidents) * 100 : 0;
+
+  const actualWindowMs = end.getTime() - start.getTime();
+  const actualWindowDays = Math.max(1, Math.ceil(actualWindowMs / (24 * 60 * 60 * 1000)));
+
+  logger.info('[SLA] Calculated metrics from rollups', {
+    dateRange: { start: start.toISOString(), end: end.toISOString() },
+    rollupCount: rollups.length,
+    totalIncidents,
+  });
+
+  // Construct full SLAMetrics object with defaults for missing granular data
+  return {
+    dataSource: 'rollup',
+
+    // Retention Metadata
+    effectiveStart: start,
+    effectiveEnd: end,
+    requestedStart: start,
+    requestedEnd: end,
+    isClipped: false,
+    retentionDays: retentionPolicy.incidentRetentionDays,
+
+    // Core Metrics
+    totalIncidents,
+    activeIncidents: openIncidents + acknowledgedIncidents,
+    openCount: openIncidents,
+    acknowledgedCount: acknowledgedIncidents,
+    resolved24h: 0, // Not available in rollups
+    unassignedActive: 0, // Not available
+    highUrgencyCount: 0, // Not available
+    alertsCount: 0, // Not available
+    snoozedCount: 0, // Not available
+    suppressedCount: 0, // Not available
+    activeCount: openIncidents + acknowledgedIncidents,
+    criticalCount: 0,
+
+    // Lifecycle
+    mttr: avgMttr,
+    mttd: null, // Not tracked in rollups
+    mtti: null, // Not tracked
+    mttk: null, // Not tracked
+    mttaP50: avgMtta, // Approximation using avg
+    mttaP95: avgMtta, // Approximation
+    mttrP50: avgMttr, // Approximation
+    mttrP95: avgMttr, // Approximation
+    mtbfMs: null,
+
+    // Compliance
+    ackCompliance,
+    resolveCompliance,
+    ackBreaches: ackSlaBreached,
+    resolveBreaches: resolveSlaBreached,
+
+    // Rates
+    ackRate: 0, // Not explicitly tracked
+    resolveRate: 0, // Not explicitly tracked
+    highUrgencyRate: 0,
+    afterHoursRate,
+    alertsPerIncident: 0,
+    escalationRate,
+    reopenRate,
+    autoResolveRate,
+
+    dynamicStatus: 'OPERATIONAL', // Default
+
+    // Coverage
+    coveragePercent: 100,
+    coverageGapDays: 0,
+    onCallHoursMs: 0,
+    onCallUsersCount: 0,
+    activeOverrides: 0,
+
+    // Events
+    autoResolvedCount: autoResolveCount,
+    manualResolvedCount: resolvedIncidents - autoResolveCount,
+    eventsCount: 0,
+
+    // Golden Signals
+    avgLatencyP99: null,
+    errorRate: null,
+    totalRequests: 0,
+    saturation: null,
+
+    // Complex Objects (Defaults/Empty)
+    previousPeriod: {
+      totalIncidents: 0,
+      highUrgencyCount: 0,
+      mtta: null,
+      mttr: null,
+      ackRate: 0,
+      resolveRate: 0,
+    },
+
+    trendSeries: [],
+    statusMix: [],
+    urgencyMix: [],
+    topServices: [],
+    assigneeLoad: [],
+    statusAges: [],
+    onCallLoad: [],
+    serviceSlaTable: [],
+
+    recurringTitles: [],
+    eventsPerIncident: 0,
+    heatmapData: [],
+    serviceMetrics: [],
+    insights: [],
+    currentShifts: [],
+    recentIncidents: [], // Do not return incidents for historical rollup queries
+  };
 }

@@ -27,6 +27,8 @@ type DashboardCommandCenterProps = {
   filters: Record<string, string | undefined>;
   currentPeriodAcknowledged: number;
   userTimeZone?: string;
+  isClipped?: boolean;
+  retentionDays?: number;
 };
 
 export default function DashboardCommandCenter({
@@ -41,6 +43,8 @@ export default function DashboardCommandCenter({
   filters,
   currentPeriodAcknowledged,
   userTimeZone = 'UTC',
+  isClipped,
+  retentionDays,
 }: DashboardCommandCenterProps) {
   // Determine pulse color RGB based on status label
   const getPulseRgb = () => {
@@ -135,6 +139,28 @@ export default function DashboardCommandCenter({
                 ({allOpenIncidentsCount} active)
               </span>
             )}
+            {/* Retention Warning */}
+            {isClipped && (
+              <div
+                title={`Data limited to ${retentionDays} days by retention policy`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.2rem 0.5rem',
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '12px',
+                  color: '#fca5a5',
+                  fontSize: '0.7rem',
+                  fontWeight: '600',
+                  cursor: 'help',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem' }}>!</span>
+                <span>Retention Limit: {retentionDays}d</span>
+              </div>
+            )}
           </div>
 
           {/* Time Range */}
@@ -214,7 +240,12 @@ export default function DashboardCommandCenter({
         <MetricCard label="TOTAL" value={totalInRange} rangeLabel={rangeLabel} isDark />
         <MetricCard label="OPEN" value={metricsOpenCount} rangeLabel={rangeLabel} isDark />
         <MetricCard label="RESOLVED" value={metricsResolvedCount} rangeLabel={rangeLabel} isDark />
-        <MetricCard label="UNASSIGNED" value={unassignedCount} rangeLabel="(ALL TIME)" isDark />
+        <MetricCard
+          label="UNASSIGNED"
+          value={unassignedCount}
+          rangeLabel={isClipped ? `(Max ${retentionDays}d)` : '(ALL TIME)'}
+          isDark
+        />
       </div>
     </div>
   );

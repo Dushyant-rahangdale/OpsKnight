@@ -77,7 +77,10 @@ export async function GET(req: NextRequest) {
       incidentLimit: 100,
     });
 
-    const incidents = metrics.recentIncidents || [];
+    const { serializeRecentIncidents } = await import('@/lib/sla');
+
+    // Serialize incidents to convert Date fields to ISO strings for proper JSON response
+    const incidents = serializeRecentIncidents(metrics.recentIncidents);
     const services = metrics.serviceMetrics.map(s => ({ id: s.id, name: s.name }));
 
     return jsonOk(
@@ -88,6 +91,10 @@ export async function GET(req: NextRequest) {
           days,
           startDate: startDate.toISOString(),
           endDate: new Date().toISOString(),
+          // Retention info
+          effectiveStart: metrics.effectiveStart.toISOString(),
+          effectiveEnd: metrics.effectiveEnd.toISOString(),
+          isClipped: metrics.isClipped,
         },
       },
       200

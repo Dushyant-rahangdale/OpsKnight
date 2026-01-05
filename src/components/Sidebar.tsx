@@ -185,7 +185,7 @@ export default function Sidebar(
   }
 ) {
   const pathname = usePathname();
-  const [activeIncidentsCount, setActiveIncidentsCount] = useState<number | null>(null);
+  const [stats, setStats] = useState<{ count: number; isClipped?: boolean; retentionDays?: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useModalState('sidebarMobileMenu');
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -197,8 +197,14 @@ export default function Sidebar(
     // Fetch active incidents count
     fetch('/api/sidebar-stats')
       .then(res => res.json())
-      .then(data => setActiveIncidentsCount(data.activeIncidentsCount || 0))
-      .catch(() => setActiveIncidentsCount(0));
+      .then(data =>
+        setStats({
+          count: data.activeIncidentsCount || 0,
+          isClipped: data.isClipped,
+          retentionDays: data.retentionDays,
+        })
+      )
+      .catch(() => setStats({ count: 0 }));
   }, []);
 
   useEffect(() => {
@@ -282,7 +288,7 @@ export default function Sidebar(
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
     const showBadge =
-      item.href === '/incidents' && activeIncidentsCount !== null && activeIncidentsCount > 0;
+      item.href === '/incidents' && stats !== null && stats.count > 0;
 
     return (
       <Link
@@ -297,10 +303,10 @@ export default function Sidebar(
         {!isDesktopCollapsed && <span className="sidebar-label">{item.label}</span>}
         {showBadge && (
           <span
-            aria-label={`${activeIncidentsCount} active incidents`}
+            aria-label={`${stats.count} active incidents`}
             className={`sidebar-badge ${isDesktopCollapsed ? 'sidebar-badge--dot' : ''}`}
           >
-            {isDesktopCollapsed ? '' : activeIncidentsCount > 99 ? '99+' : activeIncidentsCount}
+            {isDesktopCollapsed ? '' : stats.count > 99 ? '99+' : stats.count}
           </span>
         )}
       </Link>
@@ -600,8 +606,32 @@ export default function Sidebar(
               background: 'rgba(255,255,255,0.08)',
               borderRadius: '8px',
               justifyContent: isDesktopCollapsed ? 'center' : 'flex-start',
+              position: 'relative',
             }}
           >
+            {stats && stats.isClipped && (
+              <div
+                title={`Data retention limit: ${stats.retentionDays} days`}
+                style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  background: '#f59e0b',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '12px',
+                  height: '12px',
+                  fontSize: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'help',
+                  zIndex: 10,
+                }}
+              >
+                !
+              </div>
+            )}
             <div
               style={{
                 width: '36px',
@@ -621,11 +651,11 @@ export default function Sidebar(
             >
               {userName
                 ? userName
-                    .split(' ')
-                    .map(n => n[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase()
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
                 : userEmail
                   ? userEmail[0].toUpperCase()
                   : 'U'}
