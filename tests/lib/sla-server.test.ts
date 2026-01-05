@@ -27,13 +27,21 @@ type PrismaMock = {
   incidentEvent: {
     findMany: ReturnType<typeof vi.fn>;
   };
+  $executeRaw: ReturnType<typeof vi.fn>;
+  $queryRaw: ReturnType<typeof vi.fn>;
 };
 
 const prismaMock = prisma as unknown as PrismaMock & {
   alert?: PrismaMock['alert'];
   incident?: PrismaMock['incident'] & { groupBy?: ReturnType<typeof vi.fn> };
   incidentNote?: PrismaMock['incidentNote'];
+  $executeRaw: ReturnType<typeof vi.fn>;
+  $queryRaw: ReturnType<typeof vi.fn>;
 };
+
+// Initialize the new mock functions
+(prismaMock as any).$executeRaw = vi.fn();
+(prismaMock as any).$queryRaw = vi.fn();
 
 const setupBaseMocks = ({
   activeIncidents,
@@ -111,6 +119,8 @@ const setupBaseMocks = ({
     .mockResolvedValueOnce(escalationEvents)
     .mockResolvedValueOnce([])
     .mockResolvedValueOnce([]);
+  prismaMock.$executeRaw.mockResolvedValue(0);
+  prismaMock.$queryRaw.mockResolvedValue([]);
 };
 
 const toHourKey = (date: Date) => {
