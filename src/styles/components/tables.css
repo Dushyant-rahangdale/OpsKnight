@@ -1,0 +1,37 @@
+/* ========================================
+   Table Component Styles
+   Extracted from globals.css
+   ======================================== */
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.table-panel {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+}
+
+.table-wrapper-compact {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.table-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.table-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}

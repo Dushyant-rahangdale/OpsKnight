@@ -1,0 +1,67 @@
+/* ========================================
+   Button Component Styles
+   Extracted from globals.css lines 3780-3841
+   ======================================== */
+
+.btn {
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    background: #111827;
+    color: #ffffff;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-danger {
+    background: #b91c1c;
+    color: #fff;
+}
+
+.btn-outline {
+    background: transparent;
+    border-color: rgba(17, 24, 39, 0.12);
+    color: var(--text-primary);
+}
+
+.btn-ghost {
+    background: #fff;
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    color: var(--text-primary);
+}
+
+.btn-sm {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.9rem;
+}
+
+.btn-md {
+    font-size: 0.9rem;
+}
+
+.btn-disabled {
+    background: #9ca3af;
+    border-color: #9ca3af;
+    color: #fff;
+}

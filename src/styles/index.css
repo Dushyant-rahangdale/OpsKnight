@@ -32,3 +32,12 @@
 @import './layouts/topbar.css';
 @import './layouts/main-layout.css';
 @import './layouts/responsive.css';
+
+/* Components Layer - Overrides globals.css duplicates */
+@import './components/buttons.css';
+@import './components/forms.css';
+@import './components/tables.css';
+@import './components/badges.css';
+@import './components/cards.css';
+@import './components/modals.css';
+@import './components/dropdowns.css';

@@ -1,0 +1,55 @@
+/* ========================================
+   Form Component Styles
+   Extracted from globals.css
+   ======================================== */
+
+.filter-input,
+.filter-select,
+.role-select,
+.assign-select,
+.form-input,
+.form-select,
+.bulk-actions-select {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.625rem;
+    font-size: 0.875rem;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus,
+.role-select:focus,
+.assign-select:focus,
+.form-input:focus,
+.form-select:focus,
+.bulk-actions-select:focus {
+    outline: none;
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.form-error {
+    font-size: 0.75rem;
+    color: var(--color-error);
+}
+
+.filters-form-actions {
+    display: flex;
+    gap: 0.45rem;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
