@@ -1,0 +1,9 @@
+/* ========================================
+   CSS Reset
+   Extracted from globals.css
+   ======================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}

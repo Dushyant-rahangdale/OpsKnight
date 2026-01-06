@@ -1,0 +1,36 @@
+/* ========================================
+   Visual Effects Utilities
+   Extracted from globals.css
+   ======================================== */
+
+/* Glass Panel Utility */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    transition: all var(--transition-base) var(--ease-out);
+}
+
+.glass-panel-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: rgba(30, 41, 59, 0.2);
+}
+
+/* Premium Hover Effects */
+.hover-lift {
+    transition: transform var(--transition-base) var(--ease-out), box-shadow var(--transition-base) var(--ease-out);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.hover-lift-lg:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}

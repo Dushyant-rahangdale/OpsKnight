@@ -1,0 +1,28 @@
+/* ========================================
+   OpsSentinal CSS Entry Point
+   Single import for all core styles
+   
+   MIGRATION NOTE: 
+   globals.css is imported first to load all existing styles.
+   Modular files are imported after to override duplicates.
+   As content is extracted from globals.css, the duplication
+   will be removed incrementally.
+   ======================================== */
+
+/* Legacy - Import globals.css first (contains all styles) */
+@import '../app/globals.css';
+
+/* Foundation Layer - Overrides globals.css duplicates */
+@import './foundation/fonts.css';
+@import './foundation/variables.css';
+@import './foundation/variables-dark.css';
+@import './foundation/reset.css';
+@import './foundation/base.css';
+
+/* Utilities Layer - Overrides globals.css duplicates */
+@import './utilities/animations.css';
+@import './utilities/effects.css';
+@import './utilities/typography.css';
+@import './utilities/layout.css';
+@import './utilities/spacing.css';
+@import './utilities/colors.css';

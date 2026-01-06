@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import './globals.css';
+import '@/styles/index.css';
 import VersionCheck from '@/components/VersionCheck';
 
 export const metadata: Metadata = {

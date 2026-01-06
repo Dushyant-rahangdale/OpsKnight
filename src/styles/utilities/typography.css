@@ -1,0 +1,32 @@
+/* ========================================
+   Typography & Focus Utilities
+   Extracted from globals.css
+   ======================================== */
+
+.focus-border:focus,
+.focus-border:focus-visible {
+    border-color: var(--border-focus);
+}
+
+/* Enhanced Focus Styles for Accessibility */
+*:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+    transition: outline-color 0.2s ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    transition: outline-color 0.2s ease;
+}
+
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
