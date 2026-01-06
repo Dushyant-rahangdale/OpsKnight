@@ -100,6 +100,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       // No adapter - using pure JWT sessions (industry standard for OIDC)
       session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
       jwt: { maxAge: sessionMaxAgeSeconds },
+      // Trust host headers if explicit env var is set OR if NEXTAUTH_URL is configured (which locks the origin)
+      trustHost: !!(process.env.AUTH_TRUST_HOST || process.env.NEXTAUTH_URL),
       providers: [
         ...(oidcConfig
           ? [
