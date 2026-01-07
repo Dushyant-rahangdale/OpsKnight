@@ -1,29 +1,45 @@
-import { getUserPermissions } from '@/lib/rbac'
-import { logger } from '@/lib/logger'
-import Link from 'next/link'
-import AppUrlSettings from '@/components/settings/AppUrlSettings'
-import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader'
-import { SettingsSection } from '@/components/settings/layout/SettingsSection'
-import SsoSettingsForm from '@/components/settings/SsoSettingsForm'
-import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm'
-import RetentionPolicySettings from '@/components/settings/RetentionPolicySettings'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert'
-import { Badge } from '@/components/ui/shadcn/badge'
-import { Button } from '@/components/ui/shadcn/button'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/shadcn/card'
-import { Shield, AlertTriangle, Globe, Key, UserCheck, Database, Activity, Info, ArrowRight } from 'lucide-react'
+import { getUserPermissions } from '@/lib/rbac';
+import { logger } from '@/lib/logger';
+import Link from 'next/link';
+import AppUrlSettings from '@/components/settings/AppUrlSettings';
+import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader';
+import { SettingsSection } from '@/components/settings/layout/SettingsSection';
+import SsoSettingsForm from '@/components/settings/SsoSettingsForm';
+import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm';
+import RetentionPolicySettings from '@/components/settings/RetentionPolicySettings';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/shadcn/card';
+import {
+  Shield,
+  AlertTriangle,
+  Globe,
+  Key,
+  UserCheck,
+  Database,
+  Activity,
+  Info,
+  ArrowRight,
+} from 'lucide-react';
 
 // Force dynamic rendering to always fetch fresh data
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function SystemSettingsPage() {
-  const permissions = await getUserPermissions()
+  const permissions = await getUserPermissions();
 
   // Show access denied message for non-admins instead of redirecting
   if (!permissions.isAdmin) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 system-settings-empty">
         <SettingsPageHeader
           title="System Settings"
           description="Application-wide configuration and defaults."
@@ -35,38 +51,38 @@ export default async function SystemSettingsPage() {
           <Shield className="h-4 w-4" />
           <AlertTitle>Admin Role Required</AlertTitle>
           <AlertDescription>
-            Your current role is <strong>{permissions.role}</strong>. Contact an administrator
-            for access to system settings.
+            Your current role is <strong>{permissions.role}</strong>. Contact an administrator for
+            access to system settings.
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   // Fetch system settings for app URL
   const appUrlData = {
     appUrl: null as string | null,
     fallback: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  }
+  };
 
   // Declare systemSettings outside the try block to be accessible later
-  let systemSettings: { appUrl: string | null; encryptionKey: string | null } | null = null
-  let oidcConfig: any = null // Declare oidcConfig here
+  let systemSettings: { appUrl: string | null; encryptionKey: string | null } | null = null;
+  let oidcConfig: any = null; // Declare oidcConfig here
 
   try {
     // Fetch encryption key (sensitive, only check existence or masked)
-    systemSettings = await import('@/lib/prisma').then((m) =>
+    systemSettings = await import('@/lib/prisma').then(m =>
       m.default.systemSettings.findUnique({
         where: { id: 'default' },
         select: { appUrl: true, encryptionKey: true },
       })
-    )
+    );
 
-    const rawOidcConfig = await import('@/lib/prisma').then((m) =>
+    const rawOidcConfig = await import('@/lib/prisma').then(m =>
       m.default.oidcConfig.findFirst({
         orderBy: { updatedAt: 'desc' },
       })
-    )
+    );
 
     if (rawOidcConfig) {
       oidcConfig = {
@@ -76,48 +92,50 @@ export default async function SystemSettingsPage() {
         autoProvision: rawOidcConfig.autoProvision,
         allowedDomains: rawOidcConfig.allowedDomains,
         hasClientSecret: !!rawOidcConfig.clientSecret,
-      }
+      };
     }
 
     if (systemSettings) {
-      appUrlData.appUrl = systemSettings.appUrl
+      appUrlData.appUrl = systemSettings.appUrl;
     }
   } catch (error) {
     logger.warn('Failed to fetch app URL settings from DB', {
       error: error instanceof Error ? error.message : 'Unknown error',
-    })
+    });
   }
 
-  const encryptionKeySet = Boolean(systemSettings?.encryptionKey)
+  const encryptionKeySet = Boolean(systemSettings?.encryptionKey);
 
   // Check for System Lockout (Safe Mode)
-  let isSystemLocked = false
+  let isSystemLocked = false;
   if (systemSettings?.encryptionKey) {
-    const { validateCanary } = await import('@/lib/encryption')
-    const isSafe = await validateCanary(systemSettings.encryptionKey)
-    isSystemLocked = !isSafe
+    const { validateCanary } = await import('@/lib/encryption');
+    const isSafe = await validateCanary(systemSettings.encryptionKey);
+    isSystemLocked = !isSafe;
   }
 
-  const integrityCheck = await import('@/lib/oidc-config').then((m) => m.checkOidcIntegrity())
+  const integrityCheck = await import('@/lib/oidc-config').then(m => m.checkOidcIntegrity());
   const encryptionStatus = isSystemLocked
     ? 'Needs attention'
     : encryptionKeySet
       ? 'Configured'
-      : 'Missing'
-  const ssoStatus = oidcConfig?.enabled ? 'Enabled' : 'Disabled'
-  const appUrlStatus = appUrlData.appUrl ? 'Custom' : 'Fallback'
+      : 'Missing';
+  const ssoStatus = oidcConfig?.enabled ? 'Enabled' : 'Disabled';
+  const appUrlStatus = appUrlData.appUrl ? 'Custom' : 'Fallback';
 
   return (
-    <div className="space-y-6">
-      <SettingsPageHeader
-        title="System Settings"
-        description="Configure core application settings that affect system-wide behavior."
-        backHref="/settings"
-        backLabel="Back to Settings"
-      />
+    <div className="space-y-6 system-settings-shell">
+      <div className="system-settings-hero">
+        <SettingsPageHeader
+          title="System Settings"
+          description="Configure core application settings that affect system-wide behavior."
+          backHref="/settings"
+          backLabel="Back to Settings"
+        />
+      </div>
 
       {/* System Overview Card */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border-primary/20 bg-primary/5 system-settings-card">
         <CardHeader>
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-primary/10">
@@ -133,10 +151,10 @@ export default async function SystemSettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 system-settings-grid">
             {/* Scope Card */}
-            <div className="p-4 rounded-lg border border-border bg-background">
-              <div className="space-y-2">
+            <div className="p-4 rounded-lg border border-border bg-background system-settings-meta-card">
+              <div className="space-y-2 system-settings-helper">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Scope</span>
@@ -158,7 +176,10 @@ export default async function SystemSettingsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">App URL</span>
-                    <Badge variant={appUrlData.appUrl ? 'default' : 'secondary'}>
+                    <Badge
+                      variant={appUrlData.appUrl ? 'default' : 'secondary'}
+                      className="system-settings-pill"
+                    >
                       {appUrlStatus}
                     </Badge>
                   </div>
@@ -280,8 +301,8 @@ export default async function SystemSettingsPage() {
             <div>
               <p className="text-sm font-medium">Why this matters</p>
               <p className="text-sm text-muted-foreground">
-                Controls "All Time" queries in Command Center. Longer retention means more
-                complete historical data but slower queries and more storage.
+                Controls "All Time" queries in Command Center. Longer retention means more complete
+                historical data but slower queries and more storage.
               </p>
             </div>
           </div>
@@ -308,5 +329,5 @@ export default async function SystemSettingsPage() {
         </p>
       </SettingsSection>
     </div>
-  )
+  );
 }
