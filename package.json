@@ -1,7 +1,29 @@
 {
   "name": "opssentinal",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Professional Open-Source Incident Management Platform for SREs and DevOps teams.",
+  "keywords": [
+    "incident-management",
+    "on-call",
+    "schedules",
+    "escalation-policies",
+    "status-page",
+    "sre",
+    "devops",
+    "monitoring",
+    "alerts"
+  ],
+  "author": "Dushyant Rahangdale",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dushyant-rahangdale/opssentinal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dushyant-rahangdale/opssentinal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dushyant-rahangdale/opssentinal/issues"
+  },
+  "private": false,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",

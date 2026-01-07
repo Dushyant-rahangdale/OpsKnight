@@ -43,16 +43,6 @@ export async function updateProfile(
   try {
     const user = await getCurrentUser();
 
-    // Debug logging
-    console.log('[updateProfile] Received formData:', {
-      name: formData.get('name'),
-      gender: formData.get('gender'),
-      department: formData.get('department'),
-      jobTitle: formData.get('jobTitle'),
-      hasGender: formData.has('gender'),
-      file: formData.get('avatar'),
-    });
-
     const avatarFile = formData.get('avatar') as File | null;
 
     let avatarUrl = undefined;
@@ -239,10 +229,18 @@ export async function updateNotificationPreferences(
   try {
     const user = await getCurrentUser();
 
-    const emailEnabled = formData.get('emailNotificationsEnabled') === 'on';
-    const smsEnabled = formData.get('smsNotificationsEnabled') === 'on';
-    const pushEnabled = formData.get('pushNotificationsEnabled') === 'on';
-    const whatsappEnabled = formData.get('whatsappNotificationsEnabled') === 'on';
+    const emailEnabled =
+      formData.get('emailNotificationsEnabled') === 'on' ||
+      formData.get('emailNotificationsEnabled') === 'true';
+    const smsEnabled =
+      formData.get('smsNotificationsEnabled') === 'on' ||
+      formData.get('smsNotificationsEnabled') === 'true';
+    const pushEnabled =
+      formData.get('pushNotificationsEnabled') === 'on' ||
+      formData.get('pushNotificationsEnabled') === 'true';
+    const whatsappEnabled =
+      formData.get('whatsappNotificationsEnabled') === 'on' ||
+      formData.get('whatsappNotificationsEnabled') === 'true';
     // Phone number can come from SMS or WhatsApp field (they share the same number)
     const phoneNumber =
       (formData.get('phoneNumber') as string | null)?.trim() ||
