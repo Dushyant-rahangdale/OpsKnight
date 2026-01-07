@@ -120,7 +120,6 @@ vi.mock('twilio', () => {
   return {
     default: mockFunc,
     __esModule: true,
-    __esModule: true,
   };
 });
 
