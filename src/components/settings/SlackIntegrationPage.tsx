@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 import DangerZoneCard from '@/components/settings/DangerZoneCard';
 import GuidedSlackSetup from '@/components/settings/GuidedSlackSetup';
+import { Badge } from '@/components/ui';
 
 interface SlackIntegration {
   id: string;
@@ -286,6 +287,12 @@ export default function SlackIntegrationPage({
       <SettingsSectionCard
         title="Slack integration"
         description="Connect your Slack workspace to receive incident notifications. Once connected, configure channels per service."
+        action={
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Badge size="sm">Notifications</Badge>
+            <Badge size="sm">Real-time</Badge>
+          </div>
+        }
       >
         {/* Guided Setup Wizard (Admin Only) */}
         {!isOAuthConfigured && isAdmin && <GuidedSlackSetup />}
