@@ -120,6 +120,7 @@ vi.mock('twilio', () => {
   return {
     default: mockFunc,
     __esModule: true,
+    __esModule: true,
   };
 });
 
@@ -139,3 +140,10 @@ if (process.env.VITEST_USE_REAL_DB) {
     }
   });
 }
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
