@@ -286,22 +286,22 @@ export default function SystemNotificationSettings({ providers }: SystemNotifica
   // Create a virtual WhatsApp provider entry
   const whatsappProvider: ProviderRecord | undefined = whatsappConfig?.whatsappNumber
     ? {
-      id: twilioProvider?.id || '',
-      provider: 'whatsapp',
-      enabled: whatsappEnabled,
-      config: {
-        whatsappNumber: whatsappConfig.whatsappNumber,
-        whatsappEnabled: whatsappConfig.whatsappEnabled,
-        whatsappContentSid: whatsappConfig.whatsappContentSid,
-        whatsappAccountSid: whatsappConfig.whatsappAccountSid,
-        whatsappAuthToken: whatsappConfig.whatsappAuthToken,
-      },
-      updatedAt: twilioProvider?.updatedAt || new Date(),
-    }
+        id: twilioProvider?.id || '',
+        provider: 'whatsapp',
+        enabled: whatsappEnabled,
+        config: {
+          whatsappNumber: whatsappConfig.whatsappNumber,
+          whatsappEnabled: whatsappConfig.whatsappEnabled,
+          whatsappContentSid: whatsappConfig.whatsappContentSid,
+          whatsappAccountSid: whatsappConfig.whatsappAccountSid,
+          whatsappAuthToken: whatsappConfig.whatsappAuthToken,
+        },
+        updatedAt: twilioProvider?.updatedAt || new Date(),
+      }
     : undefined;
 
   return (
-    <div className="settings-form-stack">
+    <div className="space-y-6">
       {providerConfigs.map(providerConfig => {
         const existing =
           providerConfig.key === 'whatsapp'

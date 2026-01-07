@@ -9,11 +9,25 @@ import { toast } from 'sonner';
 import { SettingsSection } from '@/components/settings/layout/SettingsSection';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
 import { Button } from '@/components/ui/shadcn/button';
-import { Card, CardContent } from '@/components/ui/shadcn/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/shadcn/card';
 import { Skeleton } from '@/components/ui/shadcn/skeleton';
 
 // Lucide Icons
-import { AlertTriangle, Slack, Info, ExternalLink } from 'lucide-react';
+import {
+  AlertTriangle,
+  Slack,
+  Info,
+  ExternalLink,
+  Activity,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
 
 // New Slack Components
 import {
@@ -26,7 +40,7 @@ import {
   type ChannelFilter,
 } from '@/components/settings/slack';
 import GuidedSlackSetup from '@/components/settings/GuidedSlackSetup';
-import { Badge } from '@/components/ui';
+import { Badge } from '@/components/ui/shadcn/badge';
 
 interface SlackIntegration {
   id: string;
@@ -342,15 +356,114 @@ export default function SlackIntegrationPage({
     return filteredChannels.slice(0, visibleCount);
   }, [filteredChannels, searchQuery, visibleCount]);
 
+  // Compute integration status
+  const integrationStatus = integration
+    ? integration.enabled
+      ? 'Connected'
+      : 'Disabled'
+    : 'Not Connected';
+  const oauthStatus = isOAuthConfigured ? 'Configured' : 'Not Configured';
+  const scopeStatus = integration && missingRequiredScopes.length === 0 ? 'Complete' : 'Incomplete';
+
   return (
     <div className="space-y-6">
+      {/* Overview Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <Slack className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-2xl">Slack Integration</CardTitle>
+              <CardDescription className="mt-2 text-base">
+                Connect your Slack workspace to receive real-time incident notifications. Configure
+                channels per service for targeted alerts and updates.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Scope Card */}
+            <div className="p-4 rounded-lg border border-border bg-background">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Configuration</span>
+                </div>
+                <p className="font-semibold">
+                  {integration ? integration.workspaceName || 'Connected' : 'Setup Required'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {integration
+                    ? `Connected by ${integration.installer.name}`
+                    : 'Connect your Slack workspace to enable notifications'}
+                </p>
+              </div>
+            </div>
+
+            {/* Status Card */}
+            <div className="p-4 rounded-lg border border-border bg-background">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Status</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">OAuth Config</span>
+                    <Badge variant={isOAuthConfigured ? 'default' : 'secondary'}>
+                      {oauthStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Workspace</span>
+                    <Badge
+                      variant={
+                        integration ? (integration.enabled ? 'default' : 'secondary') : 'secondary'
+                      }
+                    >
+                      {integrationStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Scopes</span>
+                    <Badge
+                      variant={
+                        integration && missingRequiredScopes.length === 0 ? 'default' : 'secondary'
+                      }
+                    >
+                      {scopeStatus}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* OAuth Configuration Section */}
       <SettingsSection
-        title="Slack Integration"
-        description="Connect your Slack workspace to receive incident notifications. Once connected, configure channels per service."
+        title="OAuth Configuration"
+        description="Configure Slack App credentials to enable workspace connection"
         action={
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Badge size="sm">Notifications</Badge>
-            <Badge size="sm">Real-time</Badge>
+          <div className="flex gap-2">
+            <Badge variant="outline">Admin Only</Badge>
+            <Badge variant="outline">Required</Badge>
+          </div>
+        }
+        footer={
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Setup Instructions</p>
+              <p className="text-sm text-muted-foreground">
+                Create a Slack App, add OAuth scopes, and enter credentials to enable workspace
+                connections.
+              </p>
+            </div>
           </div>
         }
       >
@@ -394,7 +507,7 @@ export default function SlackIntegrationPage({
         )}
 
         {!isOAuthConfigured && isAdmin && (
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end">
             <Button asChild>
               <a href="https://api.slack.com/apps?new_app=1" target="_blank" rel="noreferrer">
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -403,8 +516,32 @@ export default function SlackIntegrationPage({
             </Button>
           </div>
         )}
+      </SettingsSection>
 
-        {/* Integration Status */}
+      {/* Workspace Connection Section */}
+      <SettingsSection
+        title="Workspace Connection"
+        description="Connect and manage your Slack workspace integration"
+        action={
+          <div className="flex gap-2">
+            <Badge variant="outline">Notifications</Badge>
+            <Badge variant="outline">Real-time</Badge>
+          </div>
+        }
+        footer={
+          integration && (
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Channel Management</p>
+                <p className="text-sm text-muted-foreground">
+                  Configure which channels receive notifications in the service-specific settings.
+                </p>
+              </div>
+            </div>
+          )
+        }
+      >
         <div className="space-y-6">
           {integration ? (
             <>
@@ -562,8 +699,8 @@ export default function SlackIntegrationPage({
             <Card className="border-dashed">
               <CardContent className="p-12 text-center space-y-4">
                 <div className="flex justify-center">
-                  <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <Slack className="h-8 w-8 text-slate-500" />
+                  <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+                    <Slack className="h-8 w-8 text-muted-foreground" />
                   </div>
                 </div>
                 <div>
@@ -595,19 +732,24 @@ export default function SlackIntegrationPage({
       {integration && (
         <SettingsSection
           title="Danger Zone"
-          description="Disconnecting prevents OpsSentinal from sending notifications to any channels"
+          description="Disconnect Slack workspace and remove all notification configurations"
+          action={<Badge variant="destructive">Destructive</Badge>}
+          footer={
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Warning</AlertTitle>
+              <AlertDescription>
+                Disconnecting will remove OpsSentinal&apos;s access to your Slack workspace and
+                disable all incident notifications across all services.
+              </AlertDescription>
+            </Alert>
+          }
         >
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Disconnect Slack Integration</AlertTitle>
-            <AlertDescription>
-              This action will remove OpsSentinal&apos;s access to your Slack workspace and disable
-              all incident notifications.
-            </AlertDescription>
-          </Alert>
-          <Button variant="destructive" onClick={handleDisconnect}>
-            Disconnect Integration
-          </Button>
+          <div className="py-4">
+            <Button variant="destructive" onClick={handleDisconnect}>
+              Disconnect Integration
+            </Button>
+          </div>
         </SettingsSection>
       )}
     </div>

@@ -2,6 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/shadcn/button';
+import { Input } from '@/components/ui/shadcn/input';
+import { Label } from '@/components/ui/shadcn/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/shadcn/card';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
+import { Slack, ExternalLink, Copy, CheckCircle2, ArrowRight, ArrowLeft, Info } from 'lucide-react';
+import { toast } from 'sonner';
 
 type SetupStep = 1 | 2 | 3;
 
@@ -23,8 +37,9 @@ export default function GuidedSlackSetup() {
 
   const handleSave = async () => {
     if (!clientId || !clientSecret) {
-      // eslint-disable-next-line no-alert
-      alert('Please enter both Client ID and Client Secret');
+      toast.error('Missing credentials', {
+        description: 'Please enter both Client ID and Client Secret',
+      });
       return;
     }
 
@@ -42,16 +57,19 @@ export default function GuidedSlackSetup() {
       });
 
       if (response.ok) {
+        toast.success('OAuth configuration saved!');
         router.refresh();
         setStep(3);
       } else {
         const error = await response.json();
-        // eslint-disable-next-line no-alert
-        alert(error.error || 'Failed to save configuration');
+        toast.error('Failed to save configuration', {
+          description: error.error || 'Please check your credentials and try again',
+        });
       }
     } catch (error) {
-      // eslint-disable-next-line no-alert
-      alert(error instanceof Error ? error.message : 'Failed to save configuration');
+      toast.error('Failed to save configuration', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -59,214 +77,270 @@ export default function GuidedSlackSetup() {
 
   const handleCopyRedirectUri = () => {
     navigator.clipboard.writeText(redirectUri);
-    // eslint-disable-next-line no-alert
-    alert('Redirect URI copied to clipboard!');
+    toast.success('Copied to clipboard!', {
+      description: 'Redirect URI has been copied',
+    });
   };
 
   return (
-    <div className="settings-slack-setup">
-      <div className="settings-slack-setup-header">
-        <div className="settings-slack-icon info" aria-hidden="true">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165V11.91h5.042v3.255zm1.271 0a2.527 2.527 0 0 1 2.521-2.523 2.527 2.527 0 0 1 2.52 2.523v6.745H6.313v-6.745zm2.521-5.306V5.841a2.528 2.528 0 0 1 2.52-2.523h2.522a2.528 2.528 0 0 1 2.521 2.523v4.018H10.355zm5.208 0V5.841a2.528 2.528 0 0 0-2.521-2.523h-2.522a2.528 2.528 0 0 0-2.52 2.523v4.018h7.563zm2.522 5.306V11.91H24v3.255a2.528 2.528 0 0 1-2.521 2.523 2.528 2.528 0 0 1-2.52-2.523zm-2.522-5.306V5.841A2.528 2.528 0 0 0 15.624 3.318h-2.522a2.528 2.528 0 0 0-2.521 2.523v4.018h7.563z" />
-          </svg>
-        </div>
-        <h2>Connect Slack Workspace</h2>
-        <p>Follow these simple steps to connect Slack. Takes less than 2 minutes!</p>
-      </div>
-
-      {/* Step Indicator */}
-      <div className="settings-slack-stepper">
-        {[1, 2, 3].map(s => (
-          <div key={s} className="settings-slack-step">
-            <div className={`settings-slack-step-number ${step >= s ? 'active' : ''}`}>
-              {step > s ? 'OK' : s}
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <Slack className="h-6 w-6 text-primary" />
             </div>
-            {s < 3 && <div className={`settings-slack-step-line ${step > s ? 'active' : ''}`} />}
-          </div>
-        ))}
-      </div>
-
-      {/* Step 1: Create Slack App */}
-      {step === 1 && (
-        <div className="settings-slack-step-card">
-          <h3>Step 1: Create a Slack App</h3>
-          <div className="settings-form-grid">
-            <div className="settings-slack-step-section">
-              <p>
-                <strong>1.</strong> Click the button below to open Slack API in a new tab
-              </p>
-              <div className="settings-slack-cta">
-                <a
-                  href="https://api.slack.com/apps?new_app=1"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="settings-slack-connect settings-slack-connect-primary"
-                >
-                  Create New Slack App
-                </a>
-              </div>
-            </div>
-
-            <div className="settings-slack-step-section">
-              <p>
-                <strong>2.</strong> Fill in the app details:
-              </p>
-              <ul>
-                <li>
-                  App Name: <strong>OpsSentinal</strong> (or any name you prefer)
-                </li>
-                <li>Pick Workspace: Select your Slack workspace</li>
-                <li>
-                  Click <strong>&quot;Create App&quot;</strong>
-                </li>
-              </ul>
-            </div>
-
-            <div className="settings-slack-step-note">
-              <strong>Tip:</strong> Keep the Slack API tab open - you&apos;ll need it in the next
-              step!
+            <div>
+              <CardTitle className="text-xl">Setup Wizard</CardTitle>
+              <CardDescription className="mt-1.5">
+                Follow these steps to connect your Slack workspace. Takes less than 2 minutes!
+              </CardDescription>
             </div>
           </div>
-
-          <button
-            onClick={() => setStep(2)}
-            className="settings-primary-button settings-slack-full"
-          >
-            I&apos;ve Created the App &rarr; Next Step
-          </button>
+          <Badge variant="secondary">3 Steps</Badge>
         </div>
-      )}
+      </CardHeader>
 
-      {/* Step 2: Configure OAuth */}
-      {step === 2 && (
-        <div className="settings-slack-step-card">
-          <h3>Step 2: Configure OAuth &amp; Get Credentials</h3>
-
-          <div className="settings-form-grid">
-            <div className="settings-slack-step-section">
-              <h4>2a. Configure OAuth &amp; Permissions</h4>
-              <ol>
-                <li>
-                  In your Slack app, click <strong>&quot;OAuth &amp; Permissions&quot;</strong> in
-                  the left sidebar
-                </li>
-                <li>
-                  Scroll to <strong>&quot;Redirect URLs&quot;</strong> section
-                </li>
-                <li>
-                  Click <strong>&quot;Add New Redirect URL&quot;</strong>
-                </li>
-                <li>
-                  Paste this URL and click <strong>&quot;Add&quot;</strong>:
-                </li>
-              </ol>
-              <div className="settings-slack-code">
-                {redirectUri}
-                <button
-                  onClick={handleCopyRedirectUri}
-                  className="settings-slack-copy"
-                  type="button"
-                >
-                  Copy
-                </button>
+      <CardContent className="space-y-6">
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-2">
+          {[1, 2, 3].map((s, index) => (
+            <div key={s} className="flex items-center">
+              <div
+                className={`flex items-center justify-center h-8 w-8 rounded-full text-sm font-medium transition-all ${
+                  step === s
+                    ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
+                    : step > s
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
               </div>
+              {index < 2 && (
+                <div
+                  className={`h-0.5 w-12 mx-2 transition-all ${
+                    step > s ? 'bg-primary' : 'bg-muted'
+                  }`}
+                />
+              )}
             </div>
+          ))}
+        </div>
 
-            <div className="settings-slack-step-section">
-              <h4>2b. Add Bot Token Scopes</h4>
-              <p>
-                Scroll to <strong>&quot;Scopes&quot;</strong> &rarr;{' '}
-                <strong>&quot;Bot Token Scopes&quot;</strong> and add these:
-              </p>
-              <div className="settings-slack-scopes">
-                {['chat:write', 'channels:read', 'channels:join', 'groups:read'].map(scope => (
-                  <code key={scope} className="settings-slack-scope">
-                    {scope}
-                  </code>
-                ))}
-              </div>
-              <p className="settings-muted">
-                Add all scopes above. <strong>groups:read</strong> is required for private channels.
-              </p>
-            </div>
-
-            <div className="settings-slack-credential">
-              <h4>2c. Copy Your Credentials</h4>
-              <p>
-                Still on the <strong>&quot;OAuth &amp; Permissions&quot;</strong> page, find these
-                at the top:
-              </p>
-
-              <div className="settings-form-grid">
-                <div>
-                  <label>Client ID</label>
-                  <input
-                    type="text"
-                    value={clientId}
-                    onChange={e => setClientId(e.target.value)}
-                    placeholder="Paste Client ID here"
-                  />
-                  <p>Found at the top of OAuth &amp; Permissions page</p>
+        {/* Step 1: Create Slack App */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                  1
                 </div>
+                <h3 className="text-lg font-semibold">Create a Slack App</h3>
+              </div>
 
-                <div>
-                  <label>Client Secret</label>
-                  <input
-                    type="password"
-                    value={clientSecret}
-                    onChange={e => setClientSecret(e.target.value)}
-                    placeholder="Paste Client Secret here"
-                  />
-                  <p>
-                    In your Slack app settings, click &quot;Show&quot; next to Client Secret, then
-                    copy and paste it here.
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  You&apos;ll create a new Slack App in your workspace. This gives OpsSentinal
+                  permission to send notifications to your channels.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-4 pl-8">
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    <strong>Step 1:</strong> Click the button below to open Slack API Console
                   </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <a
+                      href="https://api.slack.com/apps?new_app=1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Create New Slack App
+                    </a>
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm">
+                    <strong>Step 2:</strong> Fill in the app details
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>
+                      App Name: <code className="bg-muted px-1 py-0.5 rounded">OpsSentinal</code>{' '}
+                      (or any name you prefer)
+                    </li>
+                    <li>Pick Workspace: Select your Slack workspace</li>
+                    <li>Click &quot;Create App&quot;</li>
+                  </ul>
+                </div>
+
+                <Alert variant="default" className="bg-muted/50">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Tip:</strong> Keep the Slack API tab open - you&apos;ll need it in the
+                    next step!
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={() => setStep(2)}>
+                I&apos;ve Created the App
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Configure OAuth */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                  2
+                </div>
+                <h3 className="text-lg font-semibold">Configure OAuth & Get Credentials</h3>
+              </div>
+
+              {/* 2a: Configure Redirect URL */}
+              <div className="space-y-3 pl-8">
+                <h4 className="text-sm font-semibold">2a. Configure OAuth Redirect URL</h4>
+                <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                  <li>
+                    In your Slack app, click &quot;OAuth & Permissions&quot; in the left sidebar
+                  </li>
+                  <li>Scroll to &quot;Redirect URLs&quot; section</li>
+                  <li>Click &quot;Add New Redirect URL&quot;</li>
+                  <li>Paste this URL and click &quot;Add&quot;:</li>
+                </ol>
+                <div className="flex gap-2">
+                  <Input value={redirectUri} readOnly className="font-mono text-sm" />
+                  <Button variant="outline" size="icon" onClick={handleCopyRedirectUri}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* 2b: Add Bot Scopes */}
+              <div className="space-y-3 pl-8">
+                <h4 className="text-sm font-semibold">2b. Add Bot Token Scopes</h4>
+                <p className="text-sm text-muted-foreground">
+                  Scroll to &quot;Scopes&quot; → &quot;Bot Token Scopes&quot; and add these:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {['chat:write', 'channels:read', 'channels:join', 'groups:read'].map(scope => (
+                    <Badge key={scope} variant="secondary" className="font-mono">
+                      {scope}
+                    </Badge>
+                  ))}
+                </div>
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>groups:read</strong> is optional but required for private channel
+                    support.
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              {/* 2c: Copy Credentials */}
+              <div className="space-y-3 pl-8">
+                <h4 className="text-sm font-semibold">2c. Copy Your Credentials</h4>
+                <p className="text-sm text-muted-foreground">
+                  Still on &quot;OAuth & Permissions&quot; page, find these at the top:
+                </p>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientId">
+                      Client ID <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="clientId"
+                      type="text"
+                      value={clientId}
+                      onChange={e => setClientId(e.target.value)}
+                      placeholder="Paste Client ID here"
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Found at the top of OAuth & Permissions page
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="clientSecret">
+                      Client Secret <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="clientSecret"
+                      type="password"
+                      value={clientSecret}
+                      onChange={e => setClientSecret(e.target.value)}
+                      placeholder="Paste Client Secret here"
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Click &quot;Show&quot; next to Client Secret in Slack, then copy it here
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="settings-slack-step-actions">
-            <button onClick={() => setStep(1)} className="settings-link-button" type="button">
-              Back
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!clientId || !clientSecret || isSaving}
-              className="settings-primary-button"
-              type="button"
-            >
-              {isSaving ? 'Saving...' : 'Save & Continue ->'}
-            </button>
+            <div className="flex items-center justify-between pt-4">
+              <Button variant="ghost" onClick={() => setStep(1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+              <Button onClick={handleSave} disabled={!clientId || !clientSecret || isSaving}>
+                {isSaving ? 'Saving...' : 'Save & Continue'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Step 3: Connect */}
-      {step === 3 && (
-        <div className="settings-slack-step-card settings-slack-success">
-          <div className="settings-slack-icon success" aria-hidden="true">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+        {/* Step 3: Connect */}
+        {step === 3 && (
+          <div className="space-y-6 text-center py-8">
+            <div className="flex justify-center">
+              <div className="p-4 rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-12 w-12 text-green-500" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold">Configuration Saved!</h3>
+              <p className="text-muted-foreground">
+                Your OAuth credentials have been saved. Now connect your Slack workspace to start
+                receiving notifications.
+              </p>
+            </div>
+
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                You&apos;ll be redirected to Slack to authorize OpsSentinal to access your
+                workspace.
+              </AlertDescription>
+            </Alert>
+
+            <Button size="lg" asChild>
+              <a href="/api/slack/oauth">
+                <Slack className="h-4 w-4 mr-2" />
+                Connect to Slack
+              </a>
+            </Button>
           </div>
-          <h3>Configuration Saved!</h3>
-          <p className="settings-muted">
-            Now connect your Slack workspace to start receiving notifications
-          </p>
-          <a href="/api/slack/oauth" className="settings-slack-connect">
-            Connect to Slack
-          </a>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
