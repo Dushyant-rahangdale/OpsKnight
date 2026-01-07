@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   /* Primary & Modern Palette: Muted Executive Slate */
@@ -112,6 +112,28 @@
   /* 80px */
   --spacing-24: 6rem;
   /* 96px */
+
+  /* Shadcn UI Theme Tokens - Match App Theme */
+  --background: 248 250 252; /* --bg-primary: #f8fafc */
+  --foreground: 17 24 39; /* --text-primary: #111827 */
+  --card: 255 255 255; /* --bg-secondary: #ffffff */
+  --card-foreground: 17 24 39; /* --text-primary: #111827 */
+  --popover: 255 255 255;
+  --popover-foreground: 17 24 39;
+  --primary: 30 41 59; /* --primary: #1e293b */
+  --primary-foreground: 255 255 255;
+  --secondary: 243 244 246; /* --color-neutral-100 */
+  --secondary-foreground: 30 41 59;
+  --muted: 243 244 246; /* --color-neutral-100 */
+  --muted-foreground: 107 114 128; /* --color-neutral-500 */
+  --accent: 243 244 246; /* --color-neutral-100 */
+  --accent-foreground: 30 41 59;
+  --destructive: 190 18 60; /* --color-error */
+  --destructive-foreground: 255 255 255;
+  --border: 229 231 235; /* --border: #e5e7eb */
+  --input: 229 231 235;
+  --ring: 30 41 59; /* --primary */
+  --radius: 0.875rem; /* 14px */
 
   /* Typography Scale */
   --font-size-xs: 0.75rem;
@@ -568,7 +590,7 @@ textarea:focus-visible {
 }
 
 body {
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -577,6 +599,13 @@ body {
   background-image:
     radial-gradient(circle at 10% 10%, rgba(148, 163, 184, 0.1) 0%, transparent 40%),
     radial-gradient(circle at 80% 0%, rgba(148, 163, 184, 0.05) 0%, transparent 35%);
+}
+
+/* Headings use Montserrat for modern, geometric look */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 /* Fix dropdown text cutoff issue - ensure text is fully visible */
@@ -3403,7 +3432,7 @@ select option {
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  background: #111827;
+  background: var(--primary);
   color: #ffffff;
 }
 

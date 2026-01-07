@@ -10,12 +10,16 @@ import { KeyboardShortcutsProvider } from '@/components/KeyboardShortcutsProvide
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="light"
+        enableSystem={false}
+        disableTransitionOnChange
+        forcedTheme="light"
+      >
         <TimezoneProvider>
           <ToastProvider>
-            <KeyboardShortcutsProvider>
-              {children}
-            </KeyboardShortcutsProvider>
+            <KeyboardShortcutsProvider>{children}</KeyboardShortcutsProvider>
             <Toaster position="top-right" richColors closeButton />
           </ToastProvider>
         </TimezoneProvider>
@@ -23,4 +27,3 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </SessionProvider>
   );
 }
-
