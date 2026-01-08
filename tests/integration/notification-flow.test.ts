@@ -19,6 +19,9 @@ vi.mock('../../src/lib/slack', () => ({
 vi.mock('../../src/lib/email', () => ({
   sendIncidentEmail: vi.fn().mockResolvedValue({ success: true }),
 }));
+vi.mock('@/lib/email', () => ({
+  sendIncidentEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 vi.mock('../../src/lib/sms', () => ({
   sendIncidentSMS: vi.fn().mockResolvedValue({ success: true }),
@@ -35,7 +38,8 @@ import {
   createTestEscalationPolicy,
 } from '../helpers/test-db';
 
-const describeIfRealDB = (process.env.VITEST_USE_REAL_DB === '1' || process.env.CI) ? describe : describe.skip;
+const describeIfRealDB =
+  process.env.VITEST_USE_REAL_DB === '1' || process.env.CI ? describe : describe.skip;
 
 describeIfRealDB('Notification Flow Integration Tests (Real DB)', () => {
   let sendServiceNotifications: typeof import('../../src/lib/service-notifications').sendServiceNotifications;

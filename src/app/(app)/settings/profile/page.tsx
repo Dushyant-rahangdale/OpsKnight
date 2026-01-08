@@ -2,8 +2,7 @@ import prisma from '@/lib/prisma';
 import { getAuthOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import ProfileForm from '@/components/settings/ProfileForm';
-import SettingsPage from '@/components/settings/SettingsPage';
-import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 
 export default async function ProfileSettingsPage() {
@@ -22,6 +21,7 @@ export default async function ProfileSettingsPage() {
           department: true,
           jobTitle: true,
           avatarUrl: true,
+          gender: true,
           lastOidcSync: true,
         },
       })
@@ -38,30 +38,25 @@ export default async function ProfileSettingsPage() {
     : null;
 
   return (
-    <SettingsPage
-      currentPageId="profile"
-      backHref="/settings"
-      title="Profile"
-      description="Identity details tied to your OpsSentinal account."
-    >
-      <SettingsSectionCard
-        title="Account details"
-        description="Keep your profile up to date across the workspace."
-      >
-        <ProfileForm
-          name={name}
-          email={email}
-          role={role}
-          memberSince={memberSince}
-          department={user?.department}
-          jobTitle={user?.jobTitle}
-          avatarUrl={user?.avatarUrl}
-          lastOidcSync={lastOidcSync}
-        />
-        <div className="settings-inline-note">
-          Updates are managed by your identity provider or an OpsSentinal administrator.
-        </div>
-      </SettingsSectionCard>
-    </SettingsPage>
+    <div className="space-y-6">
+      <SettingsPageHeader
+        title="Profile"
+        description="Identity details tied to your OpsSentinal account."
+        backHref="/settings"
+        backLabel="Back to Settings"
+      />
+
+      <ProfileForm
+        name={name}
+        email={email}
+        role={role}
+        memberSince={memberSince}
+        department={user?.department}
+        jobTitle={user?.jobTitle}
+        avatarUrl={user?.avatarUrl}
+        lastOidcSync={lastOidcSync}
+        gender={user?.gender}
+      />
+    </div>
   );
 }

@@ -1,15 +1,7 @@
 module.exports = {
-    plugins: [
-        'autoprefixer',
-        [
-            'cssnano',
-            {
-                preset: ['default', {
-                    discardComments: {
-                        removeAll: true,
-                    },
-                }],
-            },
-        ],
-    ],
+    plugins: {
+        'tailwindcss/nesting': {},
+        tailwindcss: {},
+        autoprefixer: {},
+    },
 }

@@ -3,6 +3,22 @@
 import { useState } from 'react';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/shadcn/card';
+import { Button } from '@/components/ui/shadcn/button';
+import { Input } from '@/components/ui/shadcn/input';
+import { Label } from '@/components/ui/shadcn/label';
+import { Textarea } from '@/components/ui/shadcn/textarea';
+import { Switch } from '@/components/ui/shadcn/switch';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
+import { Checkbox } from '@/components/ui/shadcn/checkbox';
+import { ChevronDown, ChevronUp, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import type { ProviderRecord, ProviderConfigSchema, SaveStatus } from '@/types/notification-types';
 
 interface ProviderCardProps {
@@ -128,12 +144,11 @@ export default function ProviderCard({
     }
   };
 
-  const handleToggleEnabled = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEnabled = e.target.checked;
+  const handleToggleEnabled = async (checked: boolean) => {
+    const newEnabled = checked;
 
     // Check if provider is configured before enabling
     if (newEnabled && !hasRequiredConfig) {
-      // eslint-disable-next-line no-alert
       alert(
         'Please configure this provider first before enabling it. Click "Configure" to add required settings.'
       );
@@ -182,7 +197,6 @@ export default function ProviderCard({
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       setEnabled(!newEnabled);
-      // eslint-disable-next-line no-alert
       alert(
         `Failed to ${newEnabled ? 'enable' : 'disable'} provider: ${err instanceof Error ? err.message : 'Unknown error'}`
       );
@@ -190,105 +204,144 @@ export default function ProviderCard({
   };
 
   return (
-    <div className="settings-provider-card">
-      <div className="settings-provider-header">
-        <div className="settings-provider-meta">
-          <div className="settings-provider-title">
-            <h3>{providerConfig.name}</h3>
-            <span className={`settings-provider-status ${enabled ? 'enabled' : 'disabled'}`}>
-              {enabled ? 'Enabled' : 'Disabled'}
-            </span>
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg">{providerConfig.name}</CardTitle>
+              <Badge
+                variant={enabled ? 'default' : 'secondary'}
+                className={enabled ? 'bg-green-600' : ''}
+              >
+                {enabled ? 'Enabled' : 'Disabled'}
+              </Badge>
+            </div>
+            <CardDescription>{providerConfig.description}</CardDescription>
           </div>
-          <p className="settings-provider-description">{providerConfig.description}</p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={enabled}
+                onCheckedChange={handleToggleEnabled}
+                disabled={isSaving || (!enabled && !hasRequiredConfig)}
+              />
+              <span className="text-sm text-muted-foreground">{enabled ? 'On' : 'Off'}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={onToggle}>
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-1" />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Configure
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <div className="settings-provider-actions">
-          <label
-            className={`settings-provider-toggle ${!hasRequiredConfig && !enabled ? 'is-disabled' : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={handleToggleEnabled}
-              disabled={isSaving || (!enabled && !hasRequiredConfig)}
-              title={!hasRequiredConfig && !enabled ? 'Configure this provider first' : ''}
-              className="settings-switch-input"
-            />
-            <span className="settings-provider-toggle-text">{enabled ? 'On' : 'Off'}</span>
-          </label>
-
-          <button type="button" onClick={onToggle} className="settings-link-button">
-            {isExpanded ? 'Collapse' : 'Configure'}
-          </button>
-        </div>
-      </div>
+      </CardHeader>
 
       {isExpanded && (
-        <form onSubmit={handleSave} className="settings-provider-form">
-          <label className="settings-checkbox-row">
-            <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
-            Enable {providerConfig.name}
-          </label>
-
-          {enabled && (
-            <div className="settings-provider-fields">
-              {providerConfig.fields.map(field => (
-                <div key={field.name}>
-                  <label className="settings-field-label">
-                    {field.label}{' '}
-                    {field.required && <span style={{ color: 'var(--danger)' }}>*</span>}
-                  </label>
-                  {field.type === 'textarea' ? (
-                    <textarea
-                      value={(config[field.name] as string) || ''}
-                      onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
-                      placeholder={field.placeholder}
-                      required={field.required && enabled}
-                      rows={4}
-                      className="settings-textarea settings-input mono"
-                    />
-                  ) : field.type === 'checkbox' ? (
-                    <label className="settings-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={(config[field.name] as boolean) || false}
-                        onChange={e => setConfig({ ...config, [field.name]: e.target.checked })}
-                      />
-                      {field.label}
-                    </label>
-                  ) : (
-                    <input
-                      type={field.type}
-                      value={(config[field.name] as string) || ''}
-                      onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
-                      placeholder={field.placeholder}
-                      required={field.required && enabled}
-                      className={`settings-input ${field.type === 'password' ? 'mono' : ''}`}
-                    />
-                  )}
-                </div>
-              ))}
+        <CardContent>
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={enabled}
+                onCheckedChange={checked => setEnabled(!!checked)}
+                id={`enable-${providerConfig.key}`}
+              />
+              <Label
+                htmlFor={`enable-${providerConfig.key}`}
+                className="text-sm font-medium cursor-pointer"
+              >
+                Enable {providerConfig.name}
+              </Label>
             </div>
-          )}
 
-          <div className="settings-provider-footer">
-            <button type="submit" disabled={isSaving} className="settings-primary-button">
-              {isSaving ? 'Saving...' : 'Save Configuration'}
-            </button>
-            {saveStatus === 'success' && (
-              <div className="settings-alert success">OK Saved successfully</div>
+            {enabled && (
+              <div className="space-y-4 border-t pt-4">
+                {providerConfig.fields.map(field => (
+                  <div key={field.name} className="space-y-2">
+                    <Label htmlFor={field.name}>
+                      {field.label}
+                      {field.required && <span className="text-destructive ml-1">*</span>}
+                    </Label>
+                    {field.type === 'textarea' ? (
+                      <Textarea
+                        id={field.name}
+                        value={(config[field.name] as string) || ''}
+                        onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
+                        placeholder={field.placeholder}
+                        required={field.required && enabled}
+                        rows={4}
+                        className="font-mono text-sm"
+                      />
+                    ) : field.type === 'checkbox' ? (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={field.name}
+                          checked={(config[field.name] as boolean) || false}
+                          onCheckedChange={checked =>
+                            setConfig({ ...config, [field.name]: !!checked })
+                          }
+                        />
+                        <Label htmlFor={field.name} className="font-normal cursor-pointer">
+                          {field.label}
+                        </Label>
+                      </div>
+                    ) : (
+                      <Input
+                        id={field.name}
+                        type={field.type}
+                        value={(config[field.name] as string) || ''}
+                        onChange={e => setConfig({ ...config, [field.name]: e.target.value })}
+                        placeholder={field.placeholder}
+                        required={field.required && enabled}
+                        className={field.type === 'password' ? 'font-mono' : ''}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
-            {saveStatus === 'error' && error && (
-              <div className="settings-alert error">Error: {error}</div>
-            )}
-          </div>
-        </form>
+
+            <div className="flex items-center justify-between border-t pt-4">
+              <div className="flex-1">
+                {saveStatus === 'success' && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-700">
+                      Saved successfully
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {saveStatus === 'error' && error && (
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <Button type="submit" disabled={isSaving} className="ml-4">
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSaving ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
       )}
 
       {existing && !isExpanded && (
-        <p className="settings-provider-updated">
-          Last updated: {formatDateTime(existing.updatedAt, userTimeZone, { format: 'datetime' })}
-        </p>
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground">
+            Last updated: {formatDateTime(existing.updatedAt, userTimeZone, { format: 'datetime' })}
+          </p>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 }

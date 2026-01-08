@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
   checks: write
-  pull-requests: write
+  pull-requests: write # Required for sticky comments
 
 concurrency:
   group: tests-${{ github.ref }}

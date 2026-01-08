@@ -33,7 +33,12 @@ export default async function MobileLayout({ children }: { children: React.React
 
   return (
     <ToastProvider>
-      <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
+      <ThemeProvider
+        attribute="data-theme"
+        defaultTheme="light"
+        enableSystem={false}
+        forcedTheme="light"
+      >
         <div className="mobile-shell" data-status={systemStatus}>
           <MobileHeader systemStatus={systemStatus} />
           <main className="mobile-content">

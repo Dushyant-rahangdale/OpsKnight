@@ -1,5 +1,7 @@
 'use server';
 
+import fs from 'fs';
+import path from 'path';
 import prisma from '@/lib/prisma';
 import { getAuthOptions, revokeUserSessions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
@@ -40,20 +42,152 @@ export async function updateProfile(
 ): Promise<ActionState> {
   try {
     const user = await getCurrentUser();
-    const name = (formData.get('name') as string | null)?.trim() ?? '';
 
-    if (name.length < 2) {
-      return { error: 'Name must be at least 2 characters.' };
+    const avatarFile = formData.get('avatar') as File | null;
+
+    let avatarUrl = undefined;
+    if (avatarFile && avatarFile.size > 0) {
+      // Validate file type
+      if (!avatarFile.type.startsWith('image/')) {
+        return { error: 'Invalid file type. Please upload an image.' };
+      }
+      if (avatarFile.size > 5 * 1024 * 1024) {
+        // 5MB limit
+        return { error: 'File size too large. Max 5MB.' };
+      }
+
+      try {
+        const bytes = await avatarFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        // Ensure uploads directory exists
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        // Generate unique filename
+        const ext = path.extname(avatarFile.name) || '.jpg';
+        const filename = `${user.id}-${Date.now()}${ext}`;
+        const filepath = path.join(uploadDir, filename);
+
+        // Save file
+        fs.writeFileSync(filepath, buffer);
+        avatarUrl = `/uploads/avatars/${filename}`;
+      } catch (err) {
+        logger.error('Failed to save avatar', { error: err });
+        return { error: 'Failed to upload profile photo.' };
+      }
     }
 
-    // Don't update if name hasn't changed
-    if (user.name === name) {
+    // Helper for default avatars based on gender - professional cartoon style
+    const getDefaultAvatar = (g: string | null, userId: string): string | null => {
+      // Using DiceBear big-smile for professional, friendly cartoon avatars
+      // Similar to the screenshot with colorful backgrounds and business-appropriate style
+
+      switch (g?.toLowerCase()) {
+        case 'male':
+          // Professional male avatar with red background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-male&backgroundColor=b91c1c&radius=50`;
+        case 'female':
+          // Professional female avatar with green background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-female&backgroundColor=65a30d&radius=50`;
+        case 'non-binary':
+          // Professional non-binary avatar with purple background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-nb&backgroundColor=7c3aed&radius=50`;
+        case 'other':
+          // Professional avatar with teal background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-other&backgroundColor=0891b2&radius=50`;
+        case 'prefer-not-to-say':
+          // Neutral professional avatar with blue background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-neutral&backgroundColor=6366f1&radius=50`;
+        default:
+          // Default avatar with green background
+          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}&backgroundColor=84cc16&radius=50`;
+      }
+    };
+
+    const removeAvatar = formData.get('removeAvatar') === 'true';
+
+    // Prepare update data
+    const data: Partial<{
+      name: string;
+      gender: string | null;
+      department: string | null;
+      jobTitle: string | null;
+      avatarUrl: string | null;
+    }> = {};
+
+    // Handle Name
+    if (formData.has('name')) {
+      const n = (formData.get('name') as string | null)?.trim();
+      if (n && n.length >= 2) data.name = n;
+    }
+
+    // Handle Department & Job Title
+    if (formData.has('department')) {
+      data.department = (formData.get('department') as string | null)?.trim() || null;
+    }
+    if (formData.has('jobTitle')) {
+      data.jobTitle = (formData.get('jobTitle') as string | null)?.trim() || null;
+    }
+
+    // Handle Gender & Smart Avatar Logic
+    let newGender = user.gender;
+    if (formData.has('gender')) {
+      const g = (formData.get('gender') as string | null)?.trim() || null;
+      data.gender = g;
+      newGender = g;
+    }
+
+    // Handle direct avatarUrl (from avatar picker)
+    const directAvatarUrl = formData.get('avatarUrl') as string | null;
+
+    // Avatar Logic
+    if (removeAvatar) {
+      // User explicitly requested removal - set to default based on gender
+      data.avatarUrl = getDefaultAvatar(newGender, user.id);
+    } else if (directAvatarUrl) {
+      // User selected an avatar from the picker
+      data.avatarUrl = directAvatarUrl;
+    } else if (avatarUrl !== undefined) {
+      // User uploaded a NEW file
+      data.avatarUrl = avatarUrl;
+    } else if (data.gender !== undefined) {
+      // Gender changed, but no new file uploaded.
+      // Check if we should update the avatar to match the new gender.
+      // We only do this if the current avatar is:
+      // 1. null (no avatar)
+      // 2. OR one of our default DiceBear avatars (meaning user hasn't uploaded a custom one)
+
+      const isCurrentDefault =
+        !user.avatarUrl ||
+        (() => {
+          try {
+            const url = new URL(user.avatarUrl!);
+            return url.hostname === 'api.dicebear.com';
+          } catch {
+            // If the URL is invalid, treat it as non-default/custom.
+            return false;
+          }
+        })();
+
+      if (isCurrentDefault) {
+        const newDefault = getDefaultAvatar(newGender, user.id);
+        if (newDefault !== user.avatarUrl) {
+          data.avatarUrl = newDefault;
+        }
+      }
+    }
+
+    // If no data to update, return early
+    if (Object.keys(data).length === 0) {
       return { success: true };
     }
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { name },
+      data,
     });
 
     // Revalidate multiple paths to ensure UI updates everywhere
@@ -112,10 +246,18 @@ export async function updateNotificationPreferences(
   try {
     const user = await getCurrentUser();
 
-    const emailEnabled = formData.get('emailNotificationsEnabled') === 'on';
-    const smsEnabled = formData.get('smsNotificationsEnabled') === 'on';
-    const pushEnabled = formData.get('pushNotificationsEnabled') === 'on';
-    const whatsappEnabled = formData.get('whatsappNotificationsEnabled') === 'on';
+    const emailEnabled =
+      formData.get('emailNotificationsEnabled') === 'on' ||
+      formData.get('emailNotificationsEnabled') === 'true';
+    const smsEnabled =
+      formData.get('smsNotificationsEnabled') === 'on' ||
+      formData.get('smsNotificationsEnabled') === 'true';
+    const pushEnabled =
+      formData.get('pushNotificationsEnabled') === 'on' ||
+      formData.get('pushNotificationsEnabled') === 'true';
+    const whatsappEnabled =
+      formData.get('whatsappNotificationsEnabled') === 'on' ||
+      formData.get('whatsappNotificationsEnabled') === 'true';
     // Phone number can come from SMS or WhatsApp field (they share the same number)
     const phoneNumber =
       (formData.get('phoneNumber') as string | null)?.trim() ||

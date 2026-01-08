@@ -2,8 +2,20 @@
 
 import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
-import SettingRow from '@/components/settings/SettingRow';
-import StickyActionBar from '@/components/settings/StickyActionBar';
+import { Button } from '@/components/ui/shadcn/button';
+import { Input } from '@/components/ui/shadcn/input';
+import { Label } from '@/components/ui/shadcn/label';
+import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  Loader2,
+} from 'lucide-react';
 import { manageEncryptionKey } from '@/app/(app)/settings/system/actions';
 
 type Props = {
@@ -19,9 +31,10 @@ type State = {
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button className="settings-primary-button" type="submit" disabled={pending || disabled}>
+    <Button type="submit" disabled={pending || disabled}>
+      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
       {pending ? 'Saving...' : 'Save Encryption Key'}
-    </button>
+    </Button>
   );
 }
 
@@ -69,100 +82,76 @@ export default function EncryptionKeyForm({ hasKey, isSystemLocked }: Props) {
   };
 
   return (
-    <form action={formAction} className="settings-form-stack">
+    <form action={formAction} className="space-y-6">
       {isSystemLocked && (
-        <div
-          className="settings-alert"
-          style={{
-            border: '1px solid #fee2e2',
-            background: '#fef2f2',
-            color: '#991b1b',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            gap: '1rem',
-          }}
-        >
-          <div style={{ fontSize: '1.5em' }}>⚠️</div>
-          <div>
-            <strong style={{ display: 'block', marginBottom: '0.5rem', fontSize: '1.1em' }}>
-              Emergency Recovery Mode
-            </strong>
-            <p style={{ fontSize: '0.95em', lineHeight: '1.5' }}>
+        <Alert variant="destructive" className="flex gap-3">
+          <AlertTriangle className="h-5 w-5 mt-0.5" />
+          <div className="flex-1 space-y-2">
+            <div className="font-semibold text-base">Emergency Recovery Mode</div>
+            <AlertDescription className="text-sm leading-relaxed">
               The system has detected a <strong>Critical Key Mismatch</strong>. The stored
               encryption key does not match the verification canary.
-            </p>
-            <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>
+            </AlertDescription>
+            <p className="text-sm font-semibold mt-2">
               To restore access, you MUST enter the correct Master Key below.
             </p>
           </div>
-        </div>
+        </Alert>
       )}
 
       {/* Bootstrap Warning (No Key Yet) */}
       {!hasKey && (
-        <div
-          className="settings-alert"
-          style={{
-            background: '#fff7ed',
-            borderColor: '#fdba74',
-            color: '#9a3412',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <strong style={{ display: 'block', marginBottom: '0.5rem' }}>⚠️ First Time Setup</strong>
-          <p style={{ fontSize: '0.95em' }}>
-            You are about to generate the <strong>Master Encryption Key</strong>. This key is
-            required to decrypt your data. If you lose it, your data is lost forever.
-          </p>
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              id="bootstrapConfirm"
-              checked={bootstrapConfirmed}
-              onChange={e => setBootstrapConfirmed(e.target.checked)}
-            />
-            <label
-              htmlFor="bootstrapConfirm"
-              style={{ fontSize: '0.9em', cursor: 'pointer', fontWeight: 600 }}
-            >
-              I have copied and saved this key in a secure location.
-            </label>
-          </div>
-        </div>
+        <Alert className="bg-orange-50 border-orange-200 text-orange-900">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="space-y-3">
+            <div className="font-semibold">First Time Setup</div>
+            <p className="text-sm leading-relaxed">
+              You are about to generate the <strong>Master Encryption Key</strong>. This key is
+              required to decrypt your data. If you lose it, your data is lost forever.
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <input
+                type="checkbox"
+                id="bootstrapConfirm"
+                checked={bootstrapConfirmed}
+                onChange={e => setBootstrapConfirmed(e.target.checked)}
+                className="h-4 w-4 rounded border-orange-300"
+              />
+              <label htmlFor="bootstrapConfirm" className="text-sm font-semibold cursor-pointer">
+                I have copied and saved this key in a secure location.
+              </label>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {!isEditing && hasKey && (
-        <div
-          className="settings-alert"
-          style={{
-            border: '1px solid var(--border)',
-            background: 'var(--bg-secondary)',
-            padding: '1rem',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <strong>✅ Encryption Key is configured.</strong>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.9em', color: 'var(--text-secondary)' }}>
-            Your system is securing secrets. Changing this key will invalidate all currently
-            encrypted data (APIs, SSO secrets, etc).
-          </p>
-        </div>
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="space-y-2">
+            <div className="font-semibold text-green-900">Encryption Key is configured.</div>
+            <p className="text-sm text-green-700">
+              Your system is securing secrets. Changing this key will invalidate all currently
+              encrypted data (APIs, SSO secrets, etc).
+            </p>
+          </AlertDescription>
+        </Alert>
       )}
 
       {isEditing && hasKey && !isSystemLocked && (
-        <details className="settings-advanced-disclosure">
-          <summary>
-            <div>
-              <strong>Safe Key Rotation</strong>
-              <p>Review the rotation workflow before continuing.</p>
+        <details className="rounded-lg border bg-card p-4 space-y-3">
+          <summary className="cursor-pointer list-none">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="font-semibold text-sm">Safe Key Rotation</div>
+                <p className="text-sm text-muted-foreground">
+                  Review the rotation workflow before continuing.
+                </p>
+              </div>
             </div>
           </summary>
-          <div className="settings-advanced-body">
+          <div className="mt-4 space-y-3 pl-6 text-sm text-muted-foreground">
             <p>
               The system will attempt to <strong>decrypt all existing secrets</strong> (SSO, Slack,
               etc.) with the old key and re-encrypt them with this new key.
@@ -171,263 +160,192 @@ export default function EncryptionKeyForm({ hasKey, isSystemLocked }: Props) {
               This process is atomic. If decryption fails for any reason, the rotation will be
               aborted and your data will remain safe with the old key.
             </p>
-            <label className="settings-advanced-confirm">
+            <div className="flex items-center gap-2 pt-2">
               <input
                 type="checkbox"
                 name="confirm"
+                id="rotation-confirm"
                 checked={confirmed}
                 onChange={e => setConfirmed(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
               />
-              I allow the system to re-encrypt my data.
-            </label>
+              <label
+                htmlFor="rotation-confirm"
+                className="text-sm font-medium cursor-pointer text-foreground"
+              >
+                I allow the system to re-encrypt my data.
+              </label>
+            </div>
           </div>
         </details>
       )}
 
-      {(isSystemLocked || !hasKey || isEditing) && <div className="settings-divider" />}
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="encryption-key" className="text-sm font-medium">
+            System Encryption Key
+          </Label>
+          <p className="text-sm text-muted-foreground mt-1">
+            32-byte hex key used to encrypt sensitive database fields. Must be exactly 64
+            hexadecimal characters.
+          </p>
+        </div>
 
-      <SettingRow
-        label="System Encryption Key"
-        description="32-byte hex key used to encrypt sensitive database fields."
-        helpText="Must be exactly 64 hexadecimal characters."
-      >
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="flex flex-col gap-3">
           {!isEditing ? (
             // View Mode (Masked)
-            <>
-              <div style={{ position: 'relative', flex: 1 }}>
-                <input
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
                   type="password"
                   value="********************************"
                   disabled
                   readOnly
-                  style={{
-                    paddingRight: '2.5rem',
-                    fontFamily: 'monospace',
-                    background: 'var(--bg-secondary)',
-                    cursor: 'not-allowed',
-                    opacity: 0.7,
-                  }}
+                  className="font-mono bg-muted cursor-not-allowed opacity-70 pr-20"
                 />
-                <span
-                  style={{
-                    position: 'absolute',
-                    right: '0.75rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '0.85em',
-                    color: 'var(--text-secondary)',
-                    fontWeight: 500,
-                    userSelect: 'none',
-                  }}
-                >
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium select-none">
                   LOCKED
                 </span>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setIsEditing(true)}
-                className="settings-secondary-button"
-                style={{ whiteSpace: 'nowrap' }}
+                className="whitespace-nowrap"
               >
-                {hasKey ? '🔄 Replace Key' : '🔑 Generate Key'}
-              </button>
-            </>
+                {hasKey ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Replace Key
+                  </>
+                ) : (
+                  <>
+                    <Key className="mr-2 h-4 w-4" />
+                    Generate Key
+                  </>
+                )}
+              </Button>
+            </div>
           ) : (
             // Edit Mode
-            <>
-              <div
-                style={{
-                  position: 'relative',
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  background: 'var(--bg-primary)',
-                  overflow: 'hidden',
-                }}
-              >
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  name="encryptionKey"
-                  placeholder="Click Generate or paste your key"
-                  value={keyInput}
-                  onChange={e => setKeyInput(e.target.value)}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    background: 'transparent',
-                    fontFamily: 'monospace',
-                    fontSize: '0.9rem',
-                    padding: '0.75rem 1rem',
-                    outline: 'none',
-                  }}
-                  autoFocus
-                />
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    paddingRight: '0.5rem',
-                    borderLeft: '1px solid var(--border)',
-                    height: '100%',
-                    paddingLeft: '0.5rem',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-secondary)',
-                      borderRadius: '4px',
-                      transition: 'background 0.15s, color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'var(--bg-secondary)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                    }}
-                    aria-label={showKey ? 'Hide key' : 'Show key'}
-                    title={showKey ? 'Hide key' : 'Show key'}
-                  >
-                    {showKey ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                        <line x1="1" y1="1" x2="23" y2="23"></line>
-                      </svg>
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copyToClipboard}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-secondary)',
-                      borderRadius: '4px',
-                      transition: 'background 0.15s, color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'var(--bg-secondary)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                    }}
-                    title="Copy to Clipboard"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 flex items-center border rounded-lg bg-background overflow-hidden">
+                  <Input
+                    type={showKey ? 'text' : 'password'}
+                    name="encryptionKey"
+                    id="encryption-key"
+                    placeholder="Click Generate or paste your key"
+                    value={keyInput}
+                    onChange={e => setKeyInput(e.target.value)}
+                    className="flex-1 border-0 font-mono text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                    autoFocus
+                  />
+                  <div className="flex items-center gap-1 pr-2 border-l pl-2 h-full">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowKey(!showKey)}
+                      className="h-8 w-8 p-0"
+                      aria-label={showKey ? 'Hide key' : 'Show key'}
+                      title={showKey ? 'Hide key' : 'Show key'}
                     >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                  </button>
+                      {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={copyToClipboard}
+                      className="h-8 w-8 p-0"
+                      title="Copy to Clipboard"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              {keyStatus && (
-                <div className={`settings-field-status ${keyStatus}`}>
-                  {keyStatus === 'ok' ? 'Valid 32-byte key' : 'Key must be 64 hex characters'}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={generateKey}
-                className="settings-secondary-button"
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                Generate
-              </button>
-              {hasKey && !isSystemLocked && (
-                <button
+
+                <Button
                   type="button"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setKeyInput('');
-                    setShowKey(false);
-                    setConfirmed(false);
-                  }}
-                  className="settings-secondary-button"
-                  aria-label="Cancel"
-                  title="Cancel editing"
-                  style={{ padding: '0 0.75rem' }}
+                  variant="outline"
+                  onClick={generateKey}
+                  className="whitespace-nowrap"
                 >
-                  ✕
-                </button>
+                  Generate
+                </Button>
+
+                {hasKey && !isSystemLocked && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setKeyInput('');
+                      setShowKey(false);
+                      setConfirmed(false);
+                    }}
+                    className="px-3"
+                    aria-label="Cancel"
+                    title="Cancel editing"
+                  >
+                    ✕
+                  </Button>
+                )}
+              </div>
+
+              {keyStatus && (
+                <div
+                  className={`flex items-center gap-2 text-sm ${keyStatus === 'ok' ? 'text-green-600' : 'text-destructive'}`}
+                >
+                  {keyStatus === 'ok' ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Valid 32-byte key</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Key must be 64 hex characters</span>
+                    </>
+                  )}
+                </div>
               )}
-            </>
+            </div>
           )}
         </div>
-      </SettingRow>
-
-      {(state?.error || state?.success) && (
-        <div className={`settings-alert ${state?.error ? 'error' : 'success'}`}>
-          {state?.error ? state.error : 'Encryption key saved successfully.'}
-        </div>
-      )}
-
-      <div className="settings-meta-row">
-        <span>Last updated</span>
-        <span>{lastSaved || 'Not saved yet'}</span>
       </div>
 
-      <StickyActionBar>
-        {hasPendingChanges && <div className="settings-action-note">Unsaved changes</div>}
+      {state?.error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+      )}
+
+      {state?.success && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">
+            Encryption key saved successfully.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center justify-between text-sm border-t pt-4">
+        <span className="text-muted-foreground">Last updated</span>
+        <span className="font-medium">{lastSaved || 'Not saved yet'}</span>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 border-t pt-4">
         {hasPendingChanges && (
-          <button
+          <span className="text-sm text-muted-foreground">Unsaved changes</span>
+        )}
+        {hasPendingChanges && (
+          <Button
             type="button"
-            className="settings-link-button"
+            variant="ghost"
             onClick={() => {
               setKeyInput('');
               setShowKey(false);
@@ -436,16 +354,16 @@ export default function EncryptionKeyForm({ hasKey, isSystemLocked }: Props) {
             }}
           >
             Reset
-          </button>
+          </Button>
         )}
-        {/* Disable if: 
+        {/* Disable if:
             1. Bootstrap mode (!hasKey) AND Not confirmed
             2. Rotation mode (hasKey & !Locked) AND Not confirmed
         */}
         <SubmitButton
           disabled={(!hasKey && !bootstrapConfirmed) || (hasKey && !isSystemLocked && !confirmed)}
         />
-      </StickyActionBar>
+      </div>
     </form>
   );
 }

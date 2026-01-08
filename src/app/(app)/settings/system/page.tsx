@@ -2,11 +2,32 @@ import { getUserPermissions } from '@/lib/rbac';
 import { logger } from '@/lib/logger';
 import Link from 'next/link';
 import AppUrlSettings from '@/components/settings/AppUrlSettings';
-import SettingsPage from '@/components/settings/SettingsPage';
-import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader';
+import { SettingsSection } from '@/components/settings/layout/SettingsSection';
 import SsoSettingsForm from '@/components/settings/SsoSettingsForm';
 import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm';
 import RetentionPolicySettings from '@/components/settings/RetentionPolicySettings';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/shadcn/card';
+import {
+  Shield,
+  AlertTriangle,
+  Globe,
+  Key,
+  UserCheck,
+  Database,
+  Activity,
+  Info,
+  ArrowRight,
+} from 'lucide-react';
 
 // Force dynamic rendering to always fetch fresh data
 export const dynamic = 'force-dynamic';
@@ -18,26 +39,23 @@ export default async function SystemSettingsPage() {
   // Show access denied message for non-admins instead of redirecting
   if (!permissions.isAdmin) {
     return (
-      <SettingsPage
-        currentPageId="system"
-        backHref="/settings"
-        title="System Settings"
-        description="Application-wide configuration and defaults."
-      >
-        <div className="system-settings-shell">
-          <section className="system-settings-empty">
-            <div className="system-settings-empty-card">
-              <div className="system-settings-empty-icon">!</div>
-              <h2>Admin role required</h2>
-              <p>Your current role is {permissions.role}. Contact an administrator for access.</p>
-              <div className="system-settings-empty-meta">
-                <span className="system-settings-pill is-off">Access restricted</span>
-                <span className="system-settings-empty-role">Current role: {permissions.role}</span>
-              </div>
-            </div>
-          </section>
-        </div>
-      </SettingsPage>
+      <div className="space-y-6 system-settings-empty">
+        <SettingsPageHeader
+          title="System Settings"
+          description="Application-wide configuration and defaults."
+          backHref="/settings"
+          backLabel="Back to Settings"
+        />
+
+        <Alert variant="destructive">
+          <Shield className="h-4 w-4" />
+          <AlertTitle>Admin Role Required</AlertTitle>
+          <AlertDescription>
+            Your current role is <strong>{permissions.role}</strong>. Contact an administrator for
+            access to system settings.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
@@ -53,9 +71,6 @@ export default async function SystemSettingsPage() {
 
   try {
     // Fetch encryption key (sensitive, only check existence or masked)
-    // But for the form, we want to allow setting it.
-    // We need to fetch the actual value? Or just pass it?
-    // The form typically handles "masked" values.
     systemSettings = await import('@/lib/prisma').then(m =>
       m.default.systemSettings.findUnique({
         where: { id: 'default' },
@@ -105,160 +120,214 @@ export default async function SystemSettingsPage() {
     : encryptionKeySet
       ? 'Configured'
       : 'Missing';
-  const encryptionTone = isSystemLocked ? 'warn' : encryptionKeySet ? 'ok' : 'off';
   const ssoStatus = oidcConfig?.enabled ? 'Enabled' : 'Disabled';
-  const ssoTone = oidcConfig?.enabled ? 'ok' : 'off';
   const appUrlStatus = appUrlData.appUrl ? 'Custom' : 'Fallback';
-  const appUrlTone = appUrlData.appUrl ? 'ok' : 'off';
 
   return (
-    <SettingsPage
-      currentPageId="system"
-      backHref="/settings"
-      title="System Settings"
-      description="Configure core application settings that affect system-wide behavior."
-    >
-      <div className="system-settings-shell">
-        <section className="system-settings-hero">
-          <div className="system-settings-hero-copy">
-            <span className="system-settings-eyebrow">System controls</span>
-            <h2>High impact configuration</h2>
-            <p>
-              Set the global foundation for URLs, encryption, and identity so every workspace stays
-              consistent and secure.
-            </p>
+    <div className="space-y-6 system-settings-shell">
+      <div className="system-settings-hero">
+        <SettingsPageHeader
+          title="System Settings"
+          description="Configure core application settings that affect system-wide behavior."
+          backHref="/settings"
+          backLabel="Back to Settings"
+        />
+      </div>
+
+      {/* System Overview Card */}
+      <Card className="border-primary/20 bg-primary/5 system-settings-card">
+        <CardHeader>
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <Shield className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <CardTitle className="text-2xl">High Impact Configuration</CardTitle>
+              <CardDescription className="mt-2 text-base">
+                Set the global foundation for URLs, encryption, and identity so every workspace
+                stays consistent and secure. These settings apply to the entire system.
+              </CardDescription>
+            </div>
           </div>
-          <div className="system-settings-hero-meta">
-            <div className="system-settings-meta-card">
-              <span className="system-settings-meta-label">Scope</span>
-              <strong>Admin only</strong>
-              <p className="system-settings-meta-note">
-                Changes apply to every project, user, and integration in this workspace.
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 system-settings-grid">
+            {/* Scope Card */}
+            <div className="p-4 rounded-lg border border-border bg-background system-settings-meta-card">
+              <div className="space-y-2 system-settings-helper">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Scope</span>
+                </div>
+                <p className="font-semibold">Admin Only</p>
+                <p className="text-sm text-muted-foreground">
+                  Changes apply to every project, user, and integration in this workspace.
+                </p>
+              </div>
+            </div>
+
+            {/* Status Card */}
+            <div className="p-4 rounded-lg border border-border bg-background">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Status</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">App URL</span>
+                    <Badge
+                      variant={appUrlData.appUrl ? 'default' : 'secondary'}
+                      className="system-settings-pill"
+                    >
+                      {appUrlStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Encryption</span>
+                    <Badge
+                      variant={
+                        isSystemLocked ? 'destructive' : encryptionKeySet ? 'default' : 'secondary'
+                      }
+                    >
+                      {encryptionStatus}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">SSO</span>
+                    <Badge variant={oidcConfig?.enabled ? 'default' : 'secondary'}>
+                      {ssoStatus}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Application URL */}
+      <SettingsSection
+        title="Application URL"
+        description="Used in emails, webhooks, and RSS feeds"
+        action={
+          <div className="flex gap-2">
+            <Badge variant="outline">System-wide</Badge>
+            <Badge variant="outline">Notifications</Badge>
+          </div>
+        }
+        footer={
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Why this matters</p>
+              <p className="text-sm text-muted-foreground">
+                Used for links in notifications, public status pages, and webhook payloads.
               </p>
             </div>
-            <div className="system-settings-meta-card">
-              <span className="system-settings-meta-label">Status</span>
-              <div className="system-settings-meta-row">
-                <span>App URL</span>
-                <span className={`system-settings-pill is-${appUrlTone}`}>{appUrlStatus}</span>
-              </div>
-              <div className="system-settings-meta-row">
-                <span>Encryption</span>
-                <span className={`system-settings-pill is-${encryptionTone}`}>
-                  {encryptionStatus}
-                </span>
-              </div>
-              <div className="system-settings-meta-row">
-                <span>SSO</span>
-                <span className={`system-settings-pill is-${ssoTone}`}>{ssoStatus}</span>
-              </div>
+          </div>
+        }
+      >
+        <AppUrlSettings appUrl={appUrlData.appUrl} fallback={appUrlData.fallback} />
+      </SettingsSection>
+
+      {/* Encryption Key */}
+      <SettingsSection
+        title="Encryption Key"
+        description="Required for securing sensitive credentials like SSO secrets"
+        action={
+          <div className="flex gap-2">
+            <Badge variant="destructive">Sensitive</Badge>
+            <Badge variant="outline">Backups</Badge>
+          </div>
+        }
+        footer={
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Handle with care</AlertTitle>
+            <AlertDescription>
+              Rotate only when you have the current key and a backup plan.
+            </AlertDescription>
+          </Alert>
+        }
+      >
+        <EncryptionKeyForm hasKey={encryptionKeySet} isSystemLocked={isSystemLocked} />
+      </SettingsSection>
+
+      {/* Single Sign-On */}
+      <SettingsSection
+        title="Single Sign-On (OIDC)"
+        description="Allow users to log in with your identity provider"
+        action={
+          <div className="flex gap-2">
+            <Badge variant="outline">Authentication</Badge>
+            <Badge variant="outline">OIDC</Badge>
+          </div>
+        }
+        footer={
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Common pitfall</p>
+              <p className="text-sm text-muted-foreground">
+                Double-check redirect URLs before enabling SSO for all users.
+              </p>
             </div>
           </div>
-        </section>
+        }
+      >
+        <SsoSettingsForm
+          initialConfig={oidcConfig}
+          callbackUrl={`${appUrlData.appUrl || appUrlData.fallback}/api/auth/callback/oidc`}
+          hasEncryptionKey={encryptionKeySet}
+          configError={integrityCheck.ok ? undefined : integrityCheck.error}
+        />
+      </SettingsSection>
 
-        <div className="system-settings-grid">
-          <div className="system-settings-stack">
-            <div id="system-settings-app-url">
-              <SettingsSectionCard
-                title="Application URL"
-                description="Used in emails, webhooks, and RSS feeds."
-                className="system-settings-card"
-              >
-                <div className="system-settings-chips">
-                  <span className="system-settings-chip">System-wide</span>
-                  <span className="system-settings-chip">Notifications</span>
-                </div>
-                <div className="system-settings-helper">
-                  <strong>Why this matters</strong>
-                  <p>Used for links in notifications, public status pages, and webhook payloads.</p>
-                </div>
-                <AppUrlSettings appUrl={appUrlData.appUrl} fallback={appUrlData.fallback} />
-              </SettingsSectionCard>
-            </div>
-
-            <div id="system-settings-encryption">
-              <SettingsSectionCard
-                title="Encryption Key"
-                description="Required for securing sensitive credentials like SSO secrets."
-                className="system-settings-card"
-              >
-                <div className="system-settings-chips">
-                  <span className="system-settings-chip">Sensitive</span>
-                  <span className="system-settings-chip">Backups</span>
-                </div>
-                <div className="system-settings-helper">
-                  <strong>Handle with care</strong>
-                  <p>Rotate only when you have the current key and a backup plan.</p>
-                </div>
-                <EncryptionKeyForm hasKey={encryptionKeySet} isSystemLocked={isSystemLocked} />
-              </SettingsSectionCard>
-            </div>
-
-            <div id="system-settings-sso">
-              <SettingsSectionCard
-                title="Single Sign-On (OIDC)"
-                description="Allow users to log in with your identity provider."
-                className="system-settings-card"
-              >
-                <div className="system-settings-chips">
-                  <span className="system-settings-chip">Authentication</span>
-                  <span className="system-settings-chip">OIDC</span>
-                </div>
-                <div className="system-settings-helper">
-                  <strong>Common pitfall</strong>
-                  <p>Double-check redirect URLs before enabling SSO for all users.</p>
-                </div>
-                <SsoSettingsForm
-                  initialConfig={oidcConfig}
-                  callbackUrl={`${appUrlData.appUrl || appUrlData.fallback}/api/auth/callback/oidc`}
-                  hasEncryptionKey={encryptionKeySet}
-                  configError={integrityCheck.ok ? undefined : integrityCheck.error}
-                />
-              </SettingsSectionCard>
-            </div>
-
-            <div id="system-settings-retention">
-              <SettingsSectionCard
-                title="Data Retention"
-                description="Configure how long to keep historical data."
-                className="system-settings-card"
-              >
-                <div className="system-settings-chips">
-                  <span className="system-settings-chip">Storage</span>
-                  <span className="system-settings-chip">Performance</span>
-                  <span className="system-settings-chip">Compliance</span>
-                </div>
-                <div className="system-settings-helper">
-                  <strong>Why this matters</strong>
-                  <p>
-                    Controls &ldquo;All Time&rdquo; queries in Command Center. Longer retention
-                    means more complete historical data but slower queries and more storage.
-                  </p>
-                </div>
-                <RetentionPolicySettings />
-              </SettingsSectionCard>
-            </div>
-
-            {/* Performance Monitoring */}
-            <div id="system-settings-performance">
-              <SettingsSectionCard
-                title="Performance Monitoring"
-                description="Monitor SLA query performance and system metrics"
-                action={
-                  <Link href="/settings/system/performance" className="btn btn-secondary">
-                    View Metrics →
-                  </Link>
-                }
-                className="system-settings-card"
-              >
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  Track query durations, slow queries, and optimization opportunities.
-                </p>
-              </SettingsSectionCard>
+      {/* Data Retention */}
+      <SettingsSection
+        title="Data Retention"
+        description="Configure how long to keep historical data"
+        action={
+          <div className="flex gap-2">
+            <Badge variant="outline">Storage</Badge>
+            <Badge variant="outline">Performance</Badge>
+            <Badge variant="outline">Compliance</Badge>
+          </div>
+        }
+        footer={
+          <div className="flex items-start gap-2">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Why this matters</p>
+              <p className="text-sm text-muted-foreground">
+                Controls "All Time" queries in Command Center. Longer retention means more complete
+                historical data but slower queries and more storage.
+              </p>
             </div>
           </div>
-        </div>
-      </div>
-    </SettingsPage>
+        }
+      >
+        <RetentionPolicySettings />
+      </SettingsSection>
+
+      {/* Performance Monitoring */}
+      <SettingsSection
+        title="Performance Monitoring"
+        description="Monitor SLA query performance and system metrics"
+        action={
+          <Link href="/settings/system/performance">
+            <Button variant="outline">
+              View Metrics
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Track query durations, slow queries, and optimization opportunities.
+        </p>
+      </SettingsSection>
+    </div>
   );
 }

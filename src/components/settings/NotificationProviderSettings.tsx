@@ -4,8 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { logger } from '@/lib/logger';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
-import Button from '@/components/ui/Button';
-import StickyActionBar from '@/components/settings/StickyActionBar';
+import { Button } from '@/components/ui/shadcn/button';
+import { Loader2 } from 'lucide-react';
 import SmsProviderSettings, { buildSmsSettings } from '@/components/settings/SmsProviderSettings';
 import PushProviderSettings, {
   buildPushSettings,
@@ -172,16 +172,20 @@ export default function NotificationProviderSettings() {
 
   if (isLoading) {
     return (
-      <div className="settings-empty-state-v2">
-        <div className="settings-empty-icon">o</div>
-        <h3>Loading settings</h3>
-        <p>Fetching your notification provider configuration.</p>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <h3 className="text-lg font-semibold">Loading settings</h3>
+          <p className="text-sm text-muted-foreground">
+            Fetching your notification provider configuration.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="settings-form-stack">
+    <div className="space-y-6">
       <SmsProviderSettings
         enabled={smsEnabled}
         provider={smsProvider}
@@ -235,11 +239,12 @@ export default function NotificationProviderSettings() {
         smsProvider={smsProvider}
       />
 
-      <StickyActionBar>
-        <Button variant="primary" onClick={handleSave} isLoading={isPending}>
+      <div className="flex items-center justify-end gap-3 border-t pt-4">
+        <Button onClick={handleSave} disabled={isPending}>
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Settings
         </Button>
-      </StickyActionBar>
+      </div>
     </div>
   );
 }

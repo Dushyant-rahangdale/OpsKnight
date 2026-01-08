@@ -1,7 +1,29 @@
 {
   "name": "opssentinal",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Professional Open-Source Incident Management Platform for SREs and DevOps teams.",
+  "keywords": [
+    "incident-management",
+    "on-call",
+    "schedules",
+    "escalation-policies",
+    "status-page",
+    "sre",
+    "devops",
+    "monitoring",
+    "alerts"
+  ],
+  "author": "Dushyant Rahangdale",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/dushyant-rahangdale/opssentinal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dushyant-rahangdale/opssentinal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dushyant-rahangdale/opssentinal/issues"
+  },
+  "private": false,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -33,10 +55,25 @@
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@hookform/resolvers": "^5.2.2",
     "@opentelemetry/api": "^1.9.0",
     "@prisma/client": "^5.22.0",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@types/web-push": "^3.6.4",
     "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "lucide-react": "^0.562.0",
     "next": "^16.1.0",
     "next-auth": "^4.24.11",
@@ -44,10 +81,15 @@
     "node-cron": "^4.2.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-hook-form": "^7.70.0",
     "recharts": "^3.6.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
     "web-vitals": "^5.1.0",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "optionalDependencies": {
     "@aws-sdk/client-sns": "^3.0.0",
@@ -84,6 +126,8 @@
     "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
     "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.1",
     "typescript": "^5",
     "vitest": "^4.0.16"
