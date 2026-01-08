@@ -13,73 +13,32 @@ import {
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Professional cartoon avatars matching the screenshot style
-const AVATAR_STYLES = [
-  // Row 1 - Business Professionals (like screenshot top row)
-  { id: 'biz-male-1', style: 'big-smile', seed: 'john-doe', bg: 'b91c1c', label: 'Professional 1' },
-  {
-    id: 'biz-female-1',
-    style: 'big-smile',
-    seed: 'jane-smith',
-    bg: '65a30d',
-    label: 'Professional 2',
-  },
-  {
-    id: 'biz-male-2',
-    style: 'big-smile',
-    seed: 'robert-jones',
-    bg: '7c3aed',
-    label: 'Professional 3',
-  },
+// Static custom avatars (call-center style with headsets)
+const STATIC_AVATARS = [
+  { id: 'custom-1', src: '/avatars/avatar-1.png', label: 'Agent Blue' },
+  { id: 'custom-2', src: '/avatars/avatar-2.png', label: 'Agent Pink' },
+  { id: 'custom-3', src: '/avatars/avatar-3.png', label: 'Agent Green' },
+  { id: 'custom-4', src: '/avatars/avatar-4.png', label: 'Agent Purple' },
+  { id: 'custom-5', src: '/avatars/avatar-5.png', label: 'Agent Orange' },
+  { id: 'custom-6', src: '/avatars/avatar-6.png', label: 'Agent Teal' },
+  { id: 'custom-7', src: '/avatars/avatar-7.png', label: 'Agent Violet' },
+  { id: 'custom-8', src: '/avatars/avatar-8.png', label: 'Agent Red' },
+  { id: 'custom-9', src: '/avatars/avatar-9.png', label: 'Agent Cyan' },
+];
 
-  // Row 2 - Business Team (like screenshot middle row)
-  {
-    id: 'biz-female-2',
-    style: 'big-smile',
-    seed: 'sarah-williams',
-    bg: 'ea580c',
-    label: 'Professional 4',
-  },
-  {
-    id: 'biz-creative',
-    style: 'big-smile',
-    seed: 'alex-creative',
-    bg: '0d9488',
-    label: 'Professional 5',
-  },
-  {
-    id: 'biz-female-3',
-    style: 'big-smile',
-    seed: 'emily-brown',
-    bg: 'be123c',
-    label: 'Professional 6',
-  },
-
-  // Row 3 - Support Team (like screenshot bottom row with headsets)
-  { id: 'support-1', style: 'big-smile', seed: 'support-alice', bg: '0891b2', label: 'Support 1' },
-  { id: 'support-2', style: 'big-smile', seed: 'support-david', bg: '6366f1', label: 'Support 2' },
-  { id: 'support-3', style: 'big-smile', seed: 'support-mike', bg: '84cc16', label: 'Support 3' },
-
-  // Additional Professional Styles
-  { id: 'eng-1', style: 'big-smile', seed: 'engineer-sam', bg: 'dc2626', label: 'Engineer 1' },
-  { id: 'eng-2', style: 'big-smile', seed: 'engineer-kate', bg: '059669', label: 'Engineer 2' },
-  { id: 'eng-3', style: 'big-smile', seed: 'engineer-tom', bg: 'db2777', label: 'Engineer 3' },
-
-  { id: 'mgr-1', style: 'big-smile', seed: 'manager-lisa', bg: '2563eb', label: 'Manager 1' },
-  { id: 'mgr-2', style: 'big-smile', seed: 'manager-chris', bg: 'c026d3', label: 'Manager 2' },
-  { id: 'mgr-3', style: 'big-smile', seed: 'manager-anna', bg: '16a34a', label: 'Manager 3' },
-
-  { id: 'dev-1', style: 'big-smile', seed: 'developer-mark', bg: '7c2d12', label: 'Developer 1' },
-  { id: 'dev-2', style: 'big-smile', seed: 'developer-nina', bg: '0284c7', label: 'Developer 2' },
-  { id: 'dev-3', style: 'big-smile', seed: 'developer-paul', bg: '9333ea', label: 'Developer 3' },
-
-  { id: 'ops-1', style: 'big-smile', seed: 'ops-james', bg: 'ca8a04', label: 'Ops Team 1' },
-  { id: 'ops-2', style: 'big-smile', seed: 'ops-rachel', bg: 'd946ef', label: 'Ops Team 2' },
-  { id: 'ops-3', style: 'big-smile', seed: 'ops-kevin', bg: '0f766e', label: 'Ops Team 3' },
-
-  { id: 'exec-1', style: 'big-smile', seed: 'exec-michael', bg: '4338ca', label: 'Executive 1' },
-  { id: 'exec-2', style: 'big-smile', seed: 'exec-sophia', bg: 'be185d', label: 'Executive 2' },
-  { id: 'exec-3', style: 'big-smile', seed: 'exec-daniel', bg: '15803d', label: 'Executive 3' },
+// DiceBear avataaars style avatars (via proxy)
+const DICEBEAR_AVATARS = [
+  { id: 'db-1', seed: 'professional-1', bg: 'b91c1c', label: 'Pro 1' },
+  { id: 'db-2', seed: 'professional-2', bg: '65a30d', label: 'Pro 2' },
+  { id: 'db-3', seed: 'professional-3', bg: '7c3aed', label: 'Pro 3' },
+  { id: 'db-4', seed: 'creative-lead', bg: 'ea580c', label: 'Creative' },
+  { id: 'db-5', seed: 'tech-support', bg: '0891b2', label: 'Support' },
+  { id: 'db-6', seed: 'manager-1', bg: '2563eb', label: 'Manager' },
+  { id: 'db-7', seed: 'developer-1', bg: '9333ea', label: 'Developer' },
+  { id: 'db-8', seed: 'ops-team-1', bg: 'ca8a04', label: 'Ops' },
+  { id: 'db-9', seed: 'executive-1', bg: 'be185d', label: 'Executive' },
+  { id: 'db-10', seed: 'analyst-1', bg: '059669', label: 'Analyst' },
+  { id: 'db-11', seed: 'designer-1', bg: 'dc2626', label: 'Designer' },
 ];
 
 interface AvatarPickerProps {
@@ -92,20 +51,22 @@ export function AvatarPicker({ currentAvatarUrl, onSelect, userName }: AvatarPic
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const generateAvatarUrl = (style: string, seed: string, bg: string) => {
-    // Remove # from hex color
-    const bgColor = bg.replace('#', '');
-    return `/api/avatar?style=${style}&seed=${seed}&backgroundColor=${bgColor}&radius=50`;
+  // Generate DiceBear URL via our proxy
+  const getDiceBearUrl = (seed: string, bg: string) => {
+    return `/api/avatar?style=avataaars&seed=${seed}&backgroundColor=${bg}&radius=50`;
   };
 
-  const handleSelect = (avatarId: string) => {
-    const avatar = AVATAR_STYLES.find(a => a.id === avatarId);
-    if (avatar) {
-      const url = generateAvatarUrl(avatar.style, avatar.seed, avatar.bg);
-      setSelectedId(avatarId);
-      onSelect(url);
-      setOpen(false);
-    }
+  const handleStaticSelect = (avatar: (typeof STATIC_AVATARS)[0]) => {
+    setSelectedId(avatar.id);
+    onSelect(avatar.src);
+    setOpen(false);
+  };
+
+  const handleDiceBearSelect = (avatar: (typeof DICEBEAR_AVATARS)[0]) => {
+    const url = getDiceBearUrl(avatar.seed, avatar.bg);
+    setSelectedId(avatar.id);
+    onSelect(url);
+    setOpen(false);
   };
 
   const getInitials = (name: string) => {
@@ -117,6 +78,12 @@ export function AvatarPicker({ currentAvatarUrl, onSelect, userName }: AvatarPic
       .slice(0, 2);
   };
 
+  // Check if current avatar is selected
+  const isStaticSelected = (id: string) =>
+    selectedId === id || STATIC_AVATARS.find(a => a.id === id && a.src === currentAvatarUrl);
+  const isDiceBearSelected = (avatar: (typeof DICEBEAR_AVATARS)[0]) =>
+    selectedId === avatar.id || currentAvatarUrl === getDiceBearUrl(avatar.seed, avatar.bg);
+
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
@@ -124,7 +91,7 @@ export function AvatarPicker({ currentAvatarUrl, onSelect, userName }: AvatarPic
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Choose Your Avatar</DialogTitle>
             <DialogDescription>
@@ -133,49 +100,92 @@ export function AvatarPicker({ currentAvatarUrl, onSelect, userName }: AvatarPic
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-6 gap-3 py-4">
-            {AVATAR_STYLES.map(avatar => {
-              const avatarUrl = generateAvatarUrl(avatar.style, avatar.seed, avatar.bg);
-              const isSelected = currentAvatarUrl === avatarUrl;
-
-              return (
-                <button
-                  key={avatar.id}
-                  onClick={() => handleSelect(avatar.id)}
-                  className={cn(
-                    'relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all hover:shadow-md hover:scale-105',
-                    isSelected
-                      ? 'border-primary bg-primary/5 shadow-md'
-                      : 'border-transparent hover:border-muted-foreground/20'
-                  )}
-                >
-                  <div className="relative">
-                    <Avatar className="h-16 w-16 ring-2 ring-background shadow-lg">
-                      <AvatarImage src={avatarUrl} alt={avatar.label} />
-                      <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-                    </Avatar>
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-1">
-                        <Check className="h-3 w-3" />
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {avatar.label}
-                  </span>
-                </button>
-              );
-            })}
+          {/* Custom Call-Center Avatars */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground">Support Team Avatars</h4>
+            <div className="grid grid-cols-5 gap-3">
+              {STATIC_AVATARS.map(avatar => {
+                const isSelected = isStaticSelected(avatar.id);
+                return (
+                  <button
+                    key={avatar.id}
+                    onClick={() => handleStaticSelect(avatar)}
+                    className="group relative flex flex-col items-center gap-1.5"
+                  >
+                    <div
+                      className={cn(
+                        'relative rounded-full p-0.5 transition-all duration-200',
+                        isSelected
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                          : 'hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background'
+                      )}
+                    >
+                      <Avatar className="h-14 w-14">
+                        <AvatarImage src={avatar.src} alt={avatar.label} className="object-cover" />
+                        <AvatarFallback className="text-xs font-semibold bg-muted">
+                          {getInitials(userName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isSelected && (
+                        <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground truncate max-w-full">
+                      {avatar.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex justify-between items-center pt-4 border-t">
-            <p className="text-xs text-muted-foreground">
-              Or upload your own photo from the main profile section
-            </p>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Close
-            </Button>
+          {/* DiceBear Avataaars */}
+          <div className="space-y-3 pt-2">
+            <h4 className="text-sm font-medium text-muted-foreground">Professional Avatars</h4>
+            <div className="grid grid-cols-5 gap-3">
+              {DICEBEAR_AVATARS.map(avatar => {
+                const isSelected = isDiceBearSelected(avatar);
+                const url = getDiceBearUrl(avatar.seed, avatar.bg);
+                return (
+                  <button
+                    key={avatar.id}
+                    onClick={() => handleDiceBearSelect(avatar)}
+                    className="group relative flex flex-col items-center gap-1.5"
+                  >
+                    <div
+                      className={cn(
+                        'relative rounded-full p-0.5 transition-all duration-200',
+                        isSelected
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                          : 'hover:ring-2 hover:ring-primary/50 hover:ring-offset-2 hover:ring-offset-background'
+                      )}
+                    >
+                      <Avatar className="h-14 w-14">
+                        <AvatarImage src={url} alt={avatar.label} className="object-cover" />
+                        <AvatarFallback className="text-xs font-semibold bg-muted">
+                          {getInitials(userName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isSelected && (
+                        <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground truncate max-w-full">
+                      {avatar.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            Or upload your own photo from the main profile section
+          </p>
         </DialogContent>
       </Dialog>
     </>
