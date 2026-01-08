@@ -5,6 +5,17 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avat
 import { Badge } from '@/components/ui/shadcn/badge';
 import { Button } from '@/components/ui/shadcn/button';
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from '@/components/ui/shadcn/dropdown-menu';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,17 +26,39 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/shadcn/alert-dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/shadcn/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/shadcn/dialog';
+import {
   Mail,
   Building2,
   Briefcase,
-  Key,
   AlertTriangle,
   Trash2,
   UserX,
   UserCheck,
+  MoreHorizontal,
+  Users,
+  Shield,
+  UserPlus,
+  Key,
+  Link as LinkIcon,
+  Copy,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import GenerateResetLinkButton from '@/components/GenerateResetLinkButton';
 
 type Team = {
   id: string;
@@ -102,7 +135,6 @@ const isDefaultAvatar = (url: string | null | undefined): boolean => {
   }
 };
 
-// Role-based accent colors for the left border
 const roleAccentColors = {
   ADMIN: 'border-l-purple-500',
   RESPONDER: 'border-l-blue-500',
@@ -125,6 +157,46 @@ export function UserCard({
 }: UserCardProps) {
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [isLoadingLink, setIsLoadingLink] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleGenerateLink = async () => {
+    setIsLoadingLink(true);
+    setLinkError(null);
+    setInviteLink(null);
+    setShowInviteDialog(true);
+
+    try {
+      const res = await fetch('/api/admin/generate-reset-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.link) {
+        setInviteLink(data.link);
+      } else {
+        setLinkError(data.error || 'Failed to generate link');
+      }
+    } catch (_err) {
+      setLinkError('An error occurred');
+    } finally {
+      setIsLoadingLink(false);
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
 
   const avatarUrl =
     user.avatarUrl && !isDefaultAvatar(user.avatarUrl)
@@ -153,15 +225,17 @@ export function UserCard({
     onDelete?.();
   };
 
+  const availableTeams = teams.filter(
+    team => !user.teamMemberships?.some(m => m.teamId === team.id)
+  );
+
   return (
     <>
       <div
         className={cn(
           'group relative flex items-center gap-4 p-4 rounded-lg border-2 border-l-4',
           'transition-all duration-300 ease-out',
-          // Hover animations
           'hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.01]',
-          // Role-based left border accent
           roleAccentColors[user.role as keyof typeof roleAccentColors] || 'border-l-gray-400',
           selected
             ? 'border-primary bg-primary/5 shadow-md'
@@ -179,7 +253,7 @@ export function UserCard({
           className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
         />
 
-        {/* Avatar with subtle animation */}
+        {/* Avatar */}
         <Avatar className="h-12 w-12 ring-2 ring-background shadow-md transition-transform duration-300 group-hover:scale-105">
           <AvatarImage src={avatarUrl} alt={user.name} className="object-cover" />
           <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/10 via-primary/5 to-background">
@@ -204,7 +278,7 @@ export function UserCard({
           </div>
 
           {(user.jobTitle || user.department) && (
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
               {user.jobTitle && (
                 <div className="flex items-center gap-1">
                   <Briefcase className="h-3 w-3 shrink-0" />
@@ -219,22 +293,67 @@ export function UserCard({
               )}
             </div>
           )}
+
+          {/* Team Badges - moved from right side */}
+          {user.teamMemberships && user.teamMemberships.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              {user.teamMemberships.map(member => (
+                <Badge
+                  key={member.id}
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-5 font-normal text-muted-foreground bg-secondary/50 hover:bg-secondary"
+                  title={`${member.team.name} (${member.role})`}
+                >
+                  {member.team.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Badges and Controls */}
-        <div className="flex flex-col items-end gap-2 min-w-[200px]">
+        {/* Right Side: Badges and Actions */}
+        <div className="flex items-center gap-4">
+          {/* Status & Role Badges */}
+
           <div className="flex items-center gap-2">
-            {/* Role Badge/Select */}
             {!isCurrentUser && isAdmin && onUpdateRole ? (
-              <select
-                value={user.role}
-                onChange={e => onUpdateRole(e.target.value)}
-                className="h-6 text-[10px] font-semibold px-2 rounded border border-purple-200 bg-purple-100 text-purple-800 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                <option value="ADMIN">ADMIN</option>
-                <option value="RESPONDER">RESPONDER</option>
-                <option value="USER">USER</option>
-              </select>
+              <Select value={user.role} onValueChange={value => onUpdateRole(value)}>
+                <SelectTrigger
+                  className={cn(
+                    'h-6 w-auto gap-1 text-[10px] font-semibold px-2 rounded-full border border-transparent focus:ring-0 focus:ring-offset-0',
+                    roleColors[user.role as keyof typeof roleColors]
+                  )}
+                >
+                  {/* Manually render value to keep trigger simple while items vary */}
+                  <span className="truncate">
+                    {user.role === 'ADMIN'
+                      ? 'Admin'
+                      : user.role === 'RESPONDER'
+                        ? 'Responder'
+                        : 'User'}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADMIN" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                      <span>Admin</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="RESPONDER" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span>Responder</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="USER" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+                      <span>User</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             ) : (
               <Badge
                 variant="outline"
@@ -246,6 +365,7 @@ export function UserCard({
                 {user.role}
               </Badge>
             )}
+
             <Badge
               variant="outline"
               className={cn(
@@ -257,97 +377,93 @@ export function UserCard({
             </Badge>
           </div>
 
-          {/* Team Assignment */}
-          {!isCurrentUser && isAdmin && onAddToTeam && teams.length > 0 && (
-            <select
-              onChange={e => {
-                if (e.target.value) {
-                  onAddToTeam(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-              className="h-6 text-[10px] px-2 rounded border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer w-full"
-            >
-              <option value="">+ Add to team</option>
-              {teams
-                .filter(team => !user.teamMemberships?.some(m => m.teamId === team.id))
-                .map(team => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-            </select>
-          )}
+          {/* More Actions Dropdown */}
+          {!isCurrentUser && isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-          {/* Teams */}
-          {user.teamMemberships && user.teamMemberships.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 justify-end">
-              {user.teamMemberships.slice(0, 2).map(member => (
-                <Badge
-                  key={member.id}
-                  variant="secondary"
-                  className="text-[10px] px-1.5 py-0"
-                  title={`${member.team.name} (${member.role})`}
-                >
-                  {member.team.name}
-                </Badge>
-              ))}
-              {user.teamMemberships.length > 2 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{user.teamMemberships.length - 2}
-                </Badge>
-              )}
-            </div>
+                {/* Generate Invite/Reset Link */}
+                {!isCurrentUser && (user.status === 'ACTIVE' || user.status === 'INVITED') && (
+                  <DropdownMenuItem
+                    onClick={handleGenerateLink}
+                    className={cn(
+                      user.status === 'INVITED'
+                        ? 'text-blue-600 focus:text-blue-700'
+                        : 'text-green-600 focus:text-green-700'
+                    )}
+                  >
+                    {user.status === 'INVITED' ? (
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Key className="mr-2 h-4 w-4" />
+                    )}
+                    <span>{user.status === 'INVITED' ? 'Get Invite Link' : 'Reset Password'}</span>
+                  </DropdownMenuItem>
+                )}
+
+                {/* Add to Team Submenu */}
+                {onAddToTeam && availableTeams.length > 0 && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Add to Team</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+                      {availableTeams.map(team => (
+                        <DropdownMenuItem key={team.id} onClick={() => onAddToTeam(team.id)}>
+                          {team.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+
+                {/* Activate Action */}
+                {user.status === 'DISABLED' && onActivate && (
+                  <DropdownMenuItem
+                    onClick={onActivate}
+                    className="text-green-600 focus:text-green-700"
+                  >
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    <span>Activate User</span>
+                  </DropdownMenuItem>
+                )}
+
+                {/* Deactivate Action */}
+                {user.status === 'ACTIVE' && onDeactivate && (
+                  <DropdownMenuItem
+                    onClick={() => setShowDeactivateDialog(true)}
+                    className="text-orange-600 focus:text-orange-700"
+                  >
+                    <UserX className="mr-2 h-4 w-4" />
+                    <span>Deactivate User</span>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
+
+                {/* Delete Action */}
+                {onDelete && (
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Delete User</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
-
-        {/* Actions */}
-        {!isCurrentUser && isAdmin && (
-          <div className="flex flex-col gap-1.5">
-            {/* Password Reset Button */}
-            {(user.status === 'ACTIVE' || user.status === 'INVITED') && (
-              <GenerateResetLinkButton
-                userId={user.id}
-                userName={user.name}
-                userStatus={user.status}
-              />
-            )}
-
-            {user.status === 'ACTIVE' && onDeactivate && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeactivateDialog(true)}
-                className="h-7 text-xs text-orange-600 bg-orange-50 border border-orange-200 hover:text-orange-700 hover:bg-orange-100 gap-1"
-              >
-                <UserX className="h-3 w-3" />
-                Deactivate
-              </Button>
-            )}
-            {user.status === 'DISABLED' && onActivate && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onActivate}
-                className="h-7 text-xs text-green-600 bg-green-50 border border-green-200 hover:text-green-700 hover:bg-green-100 gap-1"
-              >
-                <UserCheck className="h-3 w-3" />
-                Activate
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                className="h-7 text-xs text-red-600 bg-red-50 border border-red-200 hover:text-red-700 hover:bg-red-100 gap-1"
-              >
-                <Trash2 className="h-3 w-3" />
-                Delete
-              </Button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Deactivate Confirmation Dialog */}
@@ -399,6 +515,55 @@ export function UserCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Invite/Reset Link Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {user.status === 'INVITED' ? (
+                <LinkIcon className="h-5 w-5 text-blue-600" />
+              ) : (
+                <Key className="h-5 w-5 text-green-600" />
+              )}
+              {user.status === 'INVITED' ? 'Get Invite Link' : 'Reset Password'}
+            </DialogTitle>
+            <DialogDescription>
+              Generating a secure link for <strong>{user.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-4">
+            {isLoadingLink && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+
+            {linkError && (
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                {linkError}
+              </div>
+            )}
+
+            {inviteLink && (
+              <div className="space-y-2">
+                <div className="p-3 bg-muted rounded-md border text-sm break-all font-mono">
+                  {inviteLink}
+                </div>
+                <Button
+                  onClick={copyLinkToClipboard}
+                  className="w-full gap-2"
+                  variant={linkCopied ? 'outline' : 'default'}
+                >
+                  {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {linkCopied ? 'Copied!' : 'Copy Link'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
