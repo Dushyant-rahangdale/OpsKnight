@@ -3,6 +3,19 @@
 import { useMemo, useState } from 'react';
 import { formatDateTime } from '@/lib/timezone';
 import { getDefaultAvatar } from '@/lib/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/shadcn/select';
+import { Calendar, Clock, Layers, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type TimelineShift = {
   id: string;
@@ -117,11 +130,41 @@ export default function ScheduleTimeline({ shifts, timeZone, layers }: ScheduleT
 
   const layerColors = useMemo(() => {
     const colors = [
-      { bg: '#e0f2fe', border: '#bae6fd', text: '#0c4a6e' },
-      { bg: '#fef3c7', border: '#fde68a', text: '#78350f' },
-      { bg: '#e9d5ff', border: '#d8b4fe', text: '#6b21a8' },
-      { bg: '#d1fae5', border: '#a7f3d0', text: '#065f46' },
-      { bg: '#fee2e2', border: '#fecaca', text: '#991b1b' },
+      {
+        bg: 'bg-sky-50',
+        border: 'border-sky-200',
+        text: 'text-sky-900',
+        badge: 'bg-sky-100',
+        bar: 'bg-sky-300',
+      },
+      {
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        text: 'text-amber-900',
+        badge: 'bg-amber-100',
+        bar: 'bg-amber-300',
+      },
+      {
+        bg: 'bg-purple-50',
+        border: 'border-purple-200',
+        text: 'text-purple-900',
+        badge: 'bg-purple-100',
+        bar: 'bg-purple-300',
+      },
+      {
+        bg: 'bg-emerald-50',
+        border: 'border-emerald-200',
+        text: 'text-emerald-900',
+        badge: 'bg-emerald-100',
+        bar: 'bg-emerald-300',
+      },
+      {
+        bg: 'bg-rose-50',
+        border: 'border-rose-200',
+        text: 'text-rose-900',
+        badge: 'bg-rose-100',
+        bar: 'bg-rose-300',
+      },
     ];
 
     const map = new Map<string, (typeof colors)[0]>();
@@ -130,7 +173,14 @@ export default function ScheduleTimeline({ shifts, timeZone, layers }: ScheduleT
     });
     return map;
   }, [layers]);
-  const defaultLayerColor = { bg: '#e0f2fe', border: '#bae6fd', text: '#0c4a6e' };
+
+  const defaultLayerColor = {
+    bg: 'bg-sky-50',
+    border: 'border-sky-200',
+    text: 'text-sky-900',
+    badge: 'bg-sky-100',
+    bar: 'bg-sky-300',
+  };
 
   const formatTime = (date: Date) => {
     return formatDateTime(date, timeZone, { format: 'time', hour12: true });
@@ -144,316 +194,206 @@ export default function ScheduleTimeline({ shifts, timeZone, layers }: ScheduleT
   };
 
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: '1.5rem',
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        marginBottom: '2rem',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid #e2e8f0',
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: 0,
-              marginBottom: '0.25rem',
-            }}
-          >
-            Timeline View
-          </h3>
-          <p
-            style={{
-              fontSize: '0.85rem',
-              color: 'var(--text-muted)',
-              margin: 0,
-            }}
-          >
-            Visual schedule showing all shifts over time
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <select
-            value={selectedLayer || ''}
-            onChange={e => setSelectedLayer(e.target.value || null)}
-            style={{
-              padding: '0.4rem 0.75rem',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
-              fontSize: '0.85rem',
-              background: 'white',
-            }}
-          >
-            <option value="">All Layers</option>
-            {layers.map(layer => (
-              <option key={layer.id} value={layer.name}>
-                {layer.name}
-              </option>
-            ))}
-          </select>
-          <div style={{ display: 'flex', gap: '0.25rem' }}>
-            <button
-              type="button"
-              onClick={() => setDateRange({ start: 0, end: 6 })}
-              className="glass-button"
-              style={{
-                padding: '0.4rem 0.75rem',
-                fontSize: '0.85rem',
-                background: dateRange.end === 6 ? '#e0f2fe' : 'white',
-              }}
-            >
-              7 Days
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateRange({ start: 0, end: 13 })}
-              className="glass-button"
-              style={{
-                padding: '0.4rem 0.75rem',
-                fontSize: '0.85rem',
-                background: dateRange.end === 13 ? '#e0f2fe' : 'white',
-              }}
-            >
-              14 Days
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateRange({ start: 0, end: 29 })}
-              className="glass-button"
-              style={{
-                padding: '0.4rem 0.75rem',
-                fontSize: '0.85rem',
-                background: dateRange.end === 29 ? '#e0f2fe' : 'white',
-              }}
-            >
-              30 Days
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {filteredShifts.length === 0 ? (
-        <div
-          style={{
-            padding: '2rem 1rem',
-            textAlign: 'center',
-            background: '#f8fafc',
-            borderRadius: '8px',
-          }}
-        >
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
-          <p
-            style={{
-              fontSize: '0.9rem',
-              color: 'var(--text-muted)',
-              margin: 0,
-            }}
-          >
-            No shifts found for the selected period.
-          </p>
-        </div>
-      ) : (
-        <div style={{ position: 'relative' }}>
-          {/* Timeline Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '1rem',
-              padding: '0.5rem',
-              background: '#f8fafc',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <span>{formatDate(timelineStart)}</span>
-            <span>{formatDate(timelineEnd)}</span>
+    <Card className="mb-8 shadow-lg border-slate-200">
+      <CardHeader className="pb-4 border-b">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold text-foreground">Timeline View</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Visual schedule showing all shifts over time
+              </p>
+            </div>
           </div>
 
-          {/* Timeline Ruler */}
-          <div
-            style={{
-              position: 'relative',
-              height: '2px',
-              background: '#e2e8f0',
-              marginBottom: '2rem',
-            }}
-          >
-            {Array.from({ length: 8 }).map((_, i) => {
-              const date = new Date(timelineStart);
-              date.setDate(timelineStart.getDate() + (i * (dateRange.end - dateRange.start)) / 7);
-              return (
-                <div
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    left: `${(i / 7) * 100}%`,
-                    top: '-6px',
-                    width: '2px',
-                    height: '14px',
-                    background: '#94a3b8',
-                  }}
-                />
-              );
-            })}
-          </div>
-
-          {/* Shifts */}
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            {filteredShifts.map(shift => {
-              const position = getShiftPosition(shift);
-              const colors =
-                layerColors.get(shift.layerName) ||
-                layerColors.values().next().value ||
-                defaultLayerColor;
-              const isMultiDay = shift.startDate.toDateString() !== shift.endDate.toDateString();
-
-              return (
-                <div
-                  key={shift.id}
-                  style={{
-                    position: 'relative',
-                    padding: '0.75rem',
-                    background: colors.bg,
-                    border: `2px solid ${colors.border}`,
-                    borderRadius: '8px',
-                    minHeight: '60px',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '0.5rem',
-                      gap: '0.75rem',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <span
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          background: colors.border,
-                          color: colors.text,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {shift.layerName}
-                      </span>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <div
-                          style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            flexShrink: 0,
-                            border: '1px solid rgba(255,255,255,0.5)',
-                          }}
-                        >
-                          <img
-                            src={
-                              shift.userAvatar || getDefaultAvatar(shift.userGender, shift.userName)
-                            }
-                            alt={shift.userName}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        </div>
-                        <span
-                          style={{
-                            fontWeight: '600',
-                            fontSize: '0.9rem',
-                            color: colors.text,
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {shift.userName}
-                        </span>
-                      </div>
-                      {shift.source === 'override' && (
-                        <span
-                          style={{
-                            fontSize: '0.7rem',
-                            padding: '0.15rem 0.4rem',
-                            borderRadius: '4px',
-                            background: '#fef3c7',
-                            color: '#78350f',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          Override
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        color: colors.text,
-                        opacity: 0.8,
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {formatTime(shift.startDate)} - {formatTime(shift.endDate)}
-                      {isMultiDay && (
-                        <div
-                          style={{
-                            fontSize: '0.75rem',
-                            marginTop: '0.25rem',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          ({formatDate(shift.startDate)} - {formatDate(shift.endDate)})
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Visual bar */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '0',
-                      left: position.left,
-                      width: position.width,
-                      height: '4px',
-                      background: colors.border,
-                      borderRadius: '2px',
-                    }}
-                  />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Layer Filter */}
+            <Select
+              value={selectedLayer || 'all'}
+              onValueChange={value => setSelectedLayer(value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="w-[160px] h-9">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="All Layers" />
                 </div>
-              );
-            })}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Layers</SelectItem>
+                {layers.map(layer => (
+                  <SelectItem key={layer.id} value={layer.name}>
+                    {layer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Date Range Buttons */}
+            <div className="flex gap-1">
+              <Button
+                type="button"
+                variant={dateRange.end === 6 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDateRange({ start: 0, end: 6 })}
+                className="h-9"
+              >
+                7 Days
+              </Button>
+              <Button
+                type="button"
+                variant={dateRange.end === 13 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDateRange({ start: 0, end: 13 })}
+                className="h-9"
+              >
+                14 Days
+              </Button>
+              <Button
+                type="button"
+                variant={dateRange.end === 29 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setDateRange({ start: 0, end: 29 })}
+                className="h-9"
+              >
+                30 Days
+              </Button>
+            </div>
           </div>
         </div>
-      )}
-    </div>
+      </CardHeader>
+
+      <CardContent className="pt-6">
+        {filteredShifts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 bg-muted/30 rounded-lg border-2 border-dashed">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground text-center">
+              No shifts found for the selected period.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Timeline Header */}
+            <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>{formatDate(timelineStart)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <span>{formatDate(timelineEnd)}</span>
+                <Clock className="h-4 w-4" />
+              </div>
+            </div>
+
+            {/* Timeline Ruler */}
+            <div className="relative h-0.5 bg-slate-200 mb-8">
+              {Array.from({ length: 8 }).map((_, i) => {
+                const date = new Date(timelineStart);
+                date.setDate(timelineStart.getDate() + (i * (dateRange.end - dateRange.start)) / 7);
+                return (
+                  <div
+                    key={i}
+                    className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3.5 bg-slate-400"
+                    style={{ left: `${(i / 7) * 100}%` }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Shifts */}
+            <div className="space-y-3">
+              {filteredShifts.map(shift => {
+                const position = getShiftPosition(shift);
+                const colors =
+                  layerColors.get(shift.layerName) ||
+                  layerColors.values().next().value ||
+                  defaultLayerColor;
+                const isMultiDay = shift.startDate.toDateString() !== shift.endDate.toDateString();
+
+                return (
+                  <div
+                    key={shift.id}
+                    className={cn(
+                      'relative p-4 rounded-lg border-2 min-h-[76px] transition-all hover:shadow-md',
+                      colors.bg,
+                      colors.border
+                    )}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      {/* Left side: Layer, User, Override */}
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-xs font-semibold shrink-0',
+                            colors.badge,
+                            colors.text
+                          )}
+                        >
+                          {shift.layerName}
+                        </Badge>
+
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5 border border-white/50">
+                            <AvatarImage
+                              src={
+                                shift.userAvatar ||
+                                getDefaultAvatar(shift.userGender, shift.userName)
+                              }
+                              alt={shift.userName}
+                            />
+                            <AvatarFallback className="text-xs">
+                              {shift.userName.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={cn('font-semibold text-sm truncate', colors.text)}>
+                            {shift.userName}
+                          </span>
+                        </div>
+
+                        {shift.source === 'override' && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-amber-50 text-amber-800 border-amber-200"
+                          >
+                            Override
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Right side: Time */}
+                      <div className={cn('text-xs shrink-0', colors.text)}>
+                        <div className="font-medium flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {formatTime(shift.startDate)} - {formatTime(shift.endDate)}
+                          </span>
+                        </div>
+                        {isMultiDay && (
+                          <div className="text-[0.7rem] opacity-75 mt-1 text-right">
+                            {formatDate(shift.startDate)} - {formatDate(shift.endDate)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Visual Progress Bar */}
+                    <div
+                      className={cn('absolute bottom-0 left-0 h-1 rounded-b-md', colors.bar)}
+                      style={{
+                        left: position.left,
+                        width: position.width,
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

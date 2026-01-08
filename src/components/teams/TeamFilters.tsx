@@ -51,7 +51,7 @@ export default function TeamFilters() {
             <div className="space-y-2">
               <Label htmlFor="minMembers">Minimum Members</Label>
               <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="minMembers"
                   name="minMembers"
@@ -59,7 +59,7 @@ export default function TeamFilters() {
                   min="0"
                   placeholder="e.g., 5"
                   defaultValue={minMembers}
-                  className="pl-9"
+                  className="pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>
@@ -67,7 +67,7 @@ export default function TeamFilters() {
             <div className="space-y-2">
               <Label htmlFor="minServices">Minimum Services</Label>
               <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="minServices"
                   name="minServices"
@@ -75,7 +75,7 @@ export default function TeamFilters() {
                   min="0"
                   placeholder="e.g., 3"
                   defaultValue={minServices}
-                  className="pl-9"
+                  className="pl-9 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>

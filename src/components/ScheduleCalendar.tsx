@@ -3,6 +3,11 @@
 import { useMemo, useState } from 'react';
 import { formatDateTime } from '@/lib/timezone';
 import { getDefaultAvatar } from '@/lib/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
+import { Button } from '@/components/ui/shadcn/button';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { ChevronLeft, ChevronRight, Calendar, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type CalendarShift = {
   id: string;
@@ -166,241 +171,173 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
   };
 
   return (
-    <section
-      className="glass-panel"
-      style={{
-        padding: '1.5rem',
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid #e2e8f0',
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: 0,
-              marginBottom: '0.25rem',
-            }}
-          >
-            On-call Calendar
-          </h3>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-            Shows all active layers. Multiple layers can be active simultaneously.
-          </p>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3 border-b">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              On-call Calendar
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Shows all active layers. Multiple layers can be active simultaneously.
+            </p>
+          </div>
+          <Badge variant="secondary" className="gap-1.5 text-xs font-semibold shrink-0">
+            <Clock className="h-3 w-3" />
+            {monthLabel}
+          </Badge>
         </div>
-        <span
-          style={{
-            padding: '0.3rem 0.6rem',
-            borderRadius: '8px',
-            fontSize: '0.75rem',
-            fontWeight: '600',
-            background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
-            color: '#0c4a6e',
-            border: '1px solid #bae6fd',
-          }}
-        >
-          {monthLabel}
-        </span>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '0.5rem',
-          marginBottom: '1rem',
-        }}
-      >
-        <button
-          type="button"
-          className="glass-button"
-          onClick={handlePrev}
-          style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-        >
-          Prev
-        </button>
-        <button
-          type="button"
-          className="glass-button"
-          onClick={handleToday}
-          style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          className="glass-button"
-          onClick={handleNext}
-          style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-        >
-          Next
-        </button>
-      </div>
-      <div className="calendar-weekdays">
-        {weekdayLabels.map(day => (
-          <span key={day}>{day}</span>
-        ))}
-      </div>
-      <div className="calendar-grid">
-        {calendarCells.map(cell => {
-          const isToday = cell.date.toDateString() === todayKey;
-          const dateKey = cell.date.toISOString();
-          const isExpanded = expandedDates.has(dateKey);
-          const preview = cell.shifts.slice(0, 2);
-          const remaining = cell.shifts.length - preview.length;
-          const showAll = isExpanded || cell.shifts.length <= 2;
+      </CardHeader>
 
-          return (
-            <div
-              key={dateKey}
-              className={`calendar-day ${cell.inMonth ? '' : 'inactive'} ${isToday ? 'today' : ''}`}
-            >
-              <span className="calendar-date">{cell.date.getDate()}</span>
-              {cell.shifts.length > 0 && (
-                <div className="calendar-shifts">
-                  {(showAll ? cell.shifts : preview).map(shift => {
-                    const start = new Date(shift.start);
-                    const end = new Date(shift.end);
-                    const startTime = formatDateTime(start, timeZone, { format: 'time' });
-                    const endTime = formatDateTime(end, timeZone, { format: 'time' });
-                    const isMultiDay = start.toDateString() !== end.toDateString();
-                    return (
-                      <div
-                        key={shift.id}
-                        className="calendar-shift"
-                        title={`${startTime} - ${endTime}${isMultiDay ? ' (spans multiple days)' : ''}`}
-                      >
-                        {shift.user ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.4rem',
-                              width: '100%',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '18px',
-                                height: '18px',
-                                borderRadius: '50%',
-                                overflow: 'hidden',
-                                flexShrink: 0,
-                                border: '1px solid rgba(255,255,255,0.5)',
-                              }}
-                            >
-                              <img
-                                src={
-                                  shift.user.avatarUrl ||
-                                  getDefaultAvatar(shift.user.gender, shift.user.name)
-                                } // using name as seed if id not avail
-                                alt={shift.user.name}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            </div>
-                            <span className="calendar-shift-name" style={{ flex: 1, minWidth: 0 }}>
-                              {shift.user.name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="calendar-shift-name">{shift.label}</span>
-                        )}
-                        {isMultiDay && (
-                          <span
-                            style={{
-                              fontSize: '0.65rem',
-                              opacity: 0.7,
-                              marginLeft: '0.25rem',
-                            }}
-                          >
-                            (multi-day)
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {remaining > 0 && !isExpanded && (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        toggleExpand(dateKey);
-                      }}
-                      className="calendar-shift-more"
-                      style={{
-                        cursor: 'pointer',
-                        background: 'rgba(99, 102, 241, 0.1)',
-                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                        borderRadius: '4px',
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6366f1',
-                        transition: 'all 0.2s',
-                        width: '100%',
-                        textAlign: 'center',
-                        marginTop: '0.25rem',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                      }}
-                    >
-                      +{remaining} more
-                    </button>
+      <CardContent className="p-6">
+        {/* Navigation Controls */}
+        <div className="flex justify-end gap-2 mb-4">
+          <Button variant="outline" size="sm" onClick={handlePrev} className="h-8 px-3">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Prev
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleToday} className="h-8 px-3">
+            Today
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleNext} className="h-8 px-3">
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="space-y-2">
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {weekdayLabels.map(day => (
+              <div
+                key={day}
+                className="text-center text-sm font-semibold text-muted-foreground py-2"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarCells.map(cell => {
+              const isToday = cell.date.toDateString() === todayKey;
+              const dateKey = cell.date.toISOString();
+              const isExpanded = expandedDates.has(dateKey);
+              const preview = cell.shifts.slice(0, 2);
+              const remaining = cell.shifts.length - preview.length;
+              const showAll = isExpanded || cell.shifts.length <= 2;
+
+              return (
+                <div
+                  key={dateKey}
+                  className={cn(
+                    'min-h-24 p-2 rounded-lg border transition-all',
+                    cell.inMonth
+                      ? 'bg-card border-border hover:border-primary/30'
+                      : 'bg-muted/30 border-transparent',
+                    isToday && 'ring-2 ring-primary bg-primary/5'
                   )}
-                  {isExpanded && remaining > 0 && (
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        toggleExpand(dateKey);
-                      }}
-                      className="calendar-shift-more"
-                      style={{
-                        cursor: 'pointer',
-                        background: 'rgba(99, 102, 241, 0.1)',
-                        border: '1px solid rgba(99, 102, 241, 0.2)',
-                        borderRadius: '4px',
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        color: '#6366f1',
-                        transition: 'all 0.2s',
-                        width: '100%',
-                        textAlign: 'center',
-                        marginTop: '0.25rem',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                      }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span
+                      className={cn(
+                        'text-sm font-medium',
+                        !cell.inMonth && 'text-muted-foreground',
+                        isToday && 'text-primary font-bold'
+                      )}
                     >
-                      Show less
-                    </button>
+                      {cell.date.getDate()}
+                    </span>
+                    {isToday && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </div>
+
+                  {cell.shifts.length > 0 && (
+                    <div className="space-y-1.5">
+                      {(showAll ? cell.shifts : preview).map(shift => {
+                        const start = new Date(shift.start);
+                        const end = new Date(shift.end);
+                        const startTime = formatDateTime(start, timeZone, { format: 'time' });
+                        const endTime = formatDateTime(end, timeZone, { format: 'time' });
+                        const isMultiDay = start.toDateString() !== end.toDateString();
+
+                        return (
+                          <div
+                            key={shift.id}
+                            className="group relative rounded-md bg-primary/10 border border-primary/20 p-1.5 text-xs hover:bg-primary/15 transition-colors cursor-default"
+                            title={`${startTime} - ${endTime}${isMultiDay ? ' (spans multiple days)' : ''}`}
+                          >
+                            {shift.user ? (
+                              <div className="flex items-center gap-1.5">
+                                <img
+                                  src={
+                                    shift.user.avatarUrl ||
+                                    getDefaultAvatar(shift.user.gender, shift.user.name)
+                                  }
+                                  alt={shift.user.name}
+                                  className="h-4 w-4 rounded-full object-cover flex-shrink-0 ring-1 ring-white/50"
+                                />
+                                <span className="font-medium text-foreground truncate flex-1 min-w-0">
+                                  {shift.user.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-medium text-foreground truncate block">
+                                {shift.label}
+                              </span>
+                            )}
+                            {isMultiDay && (
+                              <Badge
+                                variant="outline"
+                                className="mt-1 h-4 text-[10px] px-1 py-0 border-primary/30"
+                              >
+                                multi-day
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Show More/Less Button */}
+                      {remaining > 0 && !isExpanded && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={e => {
+                            e.stopPropagation();
+                            toggleExpand(dateKey);
+                          }}
+                          className="w-full h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
+                        >
+                          <ChevronDown className="h-3 w-3" />+{remaining} more
+                        </Button>
+                      )}
+                      {isExpanded && cell.shifts.length > 2 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={e => {
+                            e.stopPropagation();
+                            toggleExpand(dateKey);
+                          }}
+                          className="w-full h-6 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10 gap-1"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                          Show less
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
