@@ -153,7 +153,15 @@ export async function updateProfile(
       // We only do this if the current avatar is:
       // 1. null (no avatar)
       // 2. OR one of our default DiceBear avatars (meaning user hasn't uploaded a custom one)
-      const isCurrentDefault = !user.avatarUrl || user.avatarUrl.includes('api.dicebear.com');
+      const isCurrentDefault = !user.avatarUrl || (() => {
+        try {
+          const url = new URL(user.avatarUrl!);
+          return url.hostname === 'api.dicebear.com';
+        } catch {
+          // If the URL is invalid, treat it as non-default/custom.
+          return false;
+        }
+      })();
 
       if (isCurrentDefault) {
         const newDefault = getDefaultAvatar(newGender, user.id);
