@@ -70,32 +70,11 @@ const LiveClock = memo(function LiveClock({ timeZone = 'UTC' }: LiveClockProps) 
   if (!isMounted || time === null) {
     return (
       <div
-        style={{
-          fontFamily: 'monospace',
-          fontSize: '0.875rem',
-          color: 'rgba(255, 255, 255, 0.6)',
-          background: 'rgba(0, 0, 0, 0.2)',
-          padding: '0.25rem 0.5rem',
-          borderRadius: '4px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          letterSpacing: '0.05em',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          minWidth: '100px',
-        }}
+        className="font-mono text-sm text-white/60 bg-black/20 px-2 py-1 rounded border border-white/5 tracking-wide flex items-center gap-2 min-w-[100px]"
         aria-label="Loading clock"
       >
-        <span
-          style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.3)',
-          }}
-          aria-hidden="true"
-        />
-        <span style={{ opacity: 0.5 }}>--:--:--</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-white/30 shrink-0" aria-hidden="true" />
+        <span className="opacity-50">--:--:--</span>
       </div>
     );
   }
@@ -104,33 +83,13 @@ const LiveClock = memo(function LiveClock({ timeZone = 'UTC' }: LiveClockProps) 
 
   return (
     <div
-      style={{
-        fontFamily: 'monospace',
-        fontSize: '0.875rem',
-        color: 'rgba(255, 255, 255, 0.6)',
-        background: 'rgba(0, 0, 0, 0.2)',
-        padding: '0.25rem 0.5rem',
-        borderRadius: '4px',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
-        letterSpacing: '0.05em',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        minWidth: '100px',
-      }}
+      className="font-mono text-sm text-white/60 bg-black/20 px-2 py-1 rounded border border-white/5 tracking-wide flex items-center gap-2 min-w-[100px]"
       role="timer"
       aria-label={`Current time: ${time} ${displayTimeZone}`.trim()}
       aria-live="off"
     >
       <span
-        style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: '#22c55e',
-          boxShadow: '0 0 8px #22c55e',
-          flexShrink: 0,
-        }}
+        className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] shrink-0"
         aria-hidden="true"
       />
       <span>

@@ -91,46 +91,20 @@ const CompactPerformanceMetrics = memo(function CompactPerformanceMetrics({
   );
 
   return (
-    <div
-      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}
-      role="list"
-      aria-label="Performance metrics"
-    >
+    <div className="grid grid-cols-2 gap-2.5" role="list" aria-label="Performance metrics">
       {metrics.map((metric, idx) => (
         <div
           key={idx}
-          style={{
-            padding: '0.625rem 0.75rem',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--color-neutral-50)',
-            border: '1px solid var(--border)',
-            overflow: 'hidden',
-          }}
+          className="p-2.5 px-3 rounded-sm bg-neutral-50 border border-border overflow-hidden"
           role="listitem"
           aria-label={`${metric.description}: ${metric.value}`}
         >
-          <div
-            style={{
-              fontSize: 'var(--font-size-xs)',
-              color: 'var(--text-muted)',
-              fontWeight: 'var(--font-weight-medium)',
-              marginBottom: '0.375rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.03em',
-            }}
-          >
+          <div className="text-xs text-muted-foreground font-medium mb-1.5 uppercase tracking-wide">
             {metric.label}
           </div>
           <div
-            style={{
-              fontSize: '1.1rem',
-              fontWeight: 'var(--font-weight-bold)',
-              color: metric.color,
-              lineHeight: '1.3',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              fontVariantNumeric: 'tabular-nums',
-            }}
+            className="text-lg font-bold leading-tight overflow-hidden overflow-ellipsis tabular-nums"
+            style={{ color: metric.color }}
           >
             {metric.value}
           </div>

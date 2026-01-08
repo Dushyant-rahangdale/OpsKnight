@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Label } from '@/components/ui/shadcn/label';
+import { Button } from '@/components/ui/shadcn/button';
 
 type Props = {
   initialStatus?: string;
@@ -33,46 +35,20 @@ export default function DashboardFilters({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const selectStyles = {
-    width: '100%',
-    padding: '0.5rem 0.75rem',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-sm)',
-    fontSize: 'var(--font-size-sm)',
-    background: 'var(--color-neutral-50)',
-    color: 'var(--text-primary)',
-    fontWeight: 'var(--font-weight-medium)',
-    transition: 'all 0.15s ease',
-  };
-
-  const labelStyles = {
-    display: 'block',
-    marginBottom: '0.375rem',
-    fontSize: 'var(--font-size-xs)',
-    fontWeight: 'var(--font-weight-medium)',
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.03em',
-  };
-
   return (
     <form
       method="get"
-      className="filter-grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '0.75rem',
-        alignItems: 'end',
-      }}
+      className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3 items-end"
     >
       <div>
-        <label style={labelStyles}>Status</label>
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+          Status
+        </Label>
         <select
           name="status"
           value={initialStatus || 'ALL'}
           onChange={e => handleFilterChange('status', e.target.value)}
-          style={selectStyles}
+          className="w-full px-3 py-2 border border-border rounded-sm text-sm bg-neutral-50 text-foreground font-medium transition-all"
         >
           <option value="ALL">All Statuses</option>
           <option value="OPEN">Open</option>
@@ -84,12 +60,14 @@ export default function DashboardFilters({
       </div>
 
       <div>
-        <label style={labelStyles}>Service</label>
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+          Service
+        </Label>
         <select
           name="service"
           value={initialService || ''}
           onChange={e => handleFilterChange('service', e.target.value)}
-          style={selectStyles}
+          className="w-full px-3 py-2 border border-border rounded-sm text-sm bg-neutral-50 text-foreground font-medium transition-all"
         >
           <option value="">All Services</option>
           {services.map(s => (
@@ -101,12 +79,14 @@ export default function DashboardFilters({
       </div>
 
       <div>
-        <label style={labelStyles}>Assignee</label>
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+          Assignee
+        </Label>
         <select
           name="assignee"
           value={initialAssignee || ''}
           onChange={e => handleFilterChange('assignee', e.target.value)}
-          style={selectStyles}
+          className="w-full px-3 py-2 border border-border rounded-sm text-sm bg-neutral-50 text-foreground font-medium transition-all"
         >
           <option value="">All Assignees</option>
           {users.map(u => (
@@ -117,20 +97,10 @@ export default function DashboardFilters({
         </select>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <a
-          href="/"
-          className="glass-button"
-          style={{
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-            padding: '0.5rem 0.875rem',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 'var(--font-weight-medium)',
-          }}
-        >
-          Clear
-        </a>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" asChild className="whitespace-nowrap">
+          <a href="/">Clear</a>
+        </Button>
       </div>
     </form>
   );

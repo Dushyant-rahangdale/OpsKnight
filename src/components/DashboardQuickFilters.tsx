@@ -83,17 +83,8 @@ export default function DashboardQuickFilters() {
   const _pathname = usePathname();
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.875rem' }}>
-      <span
-        style={{
-          fontSize: 'var(--font-size-xs)',
-          color: 'var(--text-muted)',
-          fontWeight: 'var(--font-weight-medium)',
-          alignSelf: 'center',
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}
-      >
+    <div className="flex gap-2 flex-wrap mb-3.5">
+      <span className="text-xs text-muted-foreground font-medium self-center uppercase tracking-wide">
         Quick Filters:
       </span>
       {quickFilters.map(filter => {
@@ -105,36 +96,13 @@ export default function DashboardQuickFilters() {
             key={filter.label}
             href={href}
             scroll={false}
-            style={{
-              padding: '0.375rem 0.75rem',
-              borderRadius: '999px',
-              fontSize: 'var(--font-size-xs)',
-              textDecoration: 'none',
-              background: isActive ? 'var(--primary-color)' : 'var(--color-neutral-50)',
-              color: isActive ? 'white' : 'var(--text-secondary)',
-              fontWeight: 'var(--font-weight-medium)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              border: isActive ? '1px solid var(--primary-color)' : '1px solid var(--border)',
-              boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
-              transition: 'all 0.15s ease',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => {
-              if (!isActive) {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.background = 'var(--color-neutral-100)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!isActive) {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.background = 'var(--color-neutral-50)';
-              }
-            }}
+            className={`px-3 py-1.5 rounded-full text-xs no-underline font-medium flex items-center gap-1.5 border transition-all cursor-pointer ${
+              isActive
+                ? 'bg-primary text-white border-primary shadow-sm'
+                : 'bg-neutral-50 text-secondary-foreground border-border hover:-translate-y-px hover:bg-neutral-100'
+            }`}
           >
-            <span style={{ fontSize: '12px' }}>{filter.icon}</span>
+            <span className="text-xs">{filter.icon}</span>
             {filter.label}
           </Link>
         );

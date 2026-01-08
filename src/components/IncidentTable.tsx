@@ -10,6 +10,11 @@ import { formatDateTime } from '@/lib/timezone';
 import StatusBadge from '@/components/incident/StatusBadge';
 import { useToast } from '@/components/ToastProvider';
 import { getDefaultAvatar } from '@/lib/avatar';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import { Check, MoreHorizontal, ArrowUp, ArrowDown, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type Incident = {
   id: string;
@@ -71,34 +76,24 @@ export default memo(function IncidentTable({
   const buildUrgencyChip = (urgency: string | null | undefined) => {
     if (!urgency) return null;
     const u = urgency.toUpperCase();
-    const config =
+    const variant =
       u === 'HIGH'
-        ? { bg: 'rgba(239, 68, 68, 0.10)', border: 'rgba(239, 68, 68, 0.28)', color: '#b91c1c' }
+        ? 'bg-red-100 border-red-200 text-red-800'
         : u === 'MEDIUM'
-          ? { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.28)', color: '#b45309' }
-          : { bg: 'rgba(34, 197, 94, 0.12)', border: 'rgba(34, 197, 94, 0.28)', color: '#15803d' };
+          ? 'bg-amber-100 border-amber-200 text-amber-800'
+          : 'bg-green-100 border-green-200 text-green-800';
 
     return (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '0.2rem 0.55rem',
-          borderRadius: '9999px',
-          background: config.bg,
-          border: `1px solid ${config.border}`,
-          color: config.color,
-          fontSize: '0.7rem',
-          fontWeight: 800,
-          letterSpacing: '0.04em',
-          lineHeight: 1,
-          whiteSpace: 'nowrap',
-          textTransform: 'uppercase',
-        }}
+      <Badge
+        variant="outline"
+        className={cn(
+          'px-2 py-0.5 text-[0.7rem] font-extrabold tracking-wide leading-none rounded-full',
+          variant
+        )}
         title={`Urgency: ${u}`}
       >
         {u}
-      </span>
+      </Badge>
     );
   };
 
@@ -189,83 +184,43 @@ export default memo(function IncidentTable({
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <style>{`
         details.dashboard-incident-menu > summary::-webkit-details-marker { display: none; }
         details.dashboard-incident-menu > summary { list-style: none; }
       `}</style>
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            background: 'linear-gradient(90deg, var(--primary-dark) 0%, var(--primary-color) 100%)',
-            color: 'white',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-            borderBottom: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{selectedIds.size} selected</span>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
+        <div className="px-4 py-3 bg-gradient-to-r from-primary/90 to-primary text-white flex justify-between items-center gap-3 flex-wrap border-b border-white/10">
+          <span className="font-bold text-sm">{selectedIds.size} selected</span>
+          <div className="flex gap-2 flex-wrap">
+            <Button
               onClick={handleBulkAcknowledge}
               disabled={isPending}
-              style={{
-                padding: '0.45rem 0.8rem',
-                background: 'rgba(255,255,255,0.18)',
-                border: '1px solid rgba(255,255,255,0.28)',
-                borderRadius: '10px',
-                color: 'white',
-                fontWeight: 650,
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                opacity: isPending ? 0.6 : 1,
-                fontSize: '0.82rem',
-              }}
+              variant="outline"
+              size="sm"
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30 disabled:opacity-60"
             >
-              ✓ Acknowledge
-            </button>
-            <button
+              <Check className="h-3.5 w-3.5 mr-1.5" />
+              Acknowledge
+            </Button>
+            <Button
               onClick={handleBulkResolve}
               disabled={isPending}
-              style={{
-                padding: '0.45rem 0.8rem',
-                background: 'rgba(255,255,255,0.92)',
-                border: 'none',
-                borderRadius: '10px',
-                color: 'var(--primary-color)',
-                fontWeight: 750,
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                opacity: isPending ? 0.6 : 1,
-                fontSize: '0.82rem',
-              }}
+              size="sm"
+              className="bg-white text-primary hover:bg-white/90 disabled:opacity-60"
             >
-              ✓ Resolve
-            </button>
+              <Check className="h-3.5 w-3.5 mr-1.5" />
+              Resolve
+            </Button>
           </div>
         </div>
       )}
 
       {/* Sort toolbar */}
-      <div
-        style={{
-          padding: '0.75rem 1rem',
-          borderBottom: '1px solid var(--glass-border)',
-          background: 'var(--glass-bg)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-            Sort:
-          </span>
+      <div className="px-4 py-3 border-b bg-card flex justify-between items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground font-bold">Sort:</span>
           {[
             { key: 'createdAt', label: 'Created' },
             { key: 'status', label: 'Status' },
@@ -274,77 +229,57 @@ export default memo(function IncidentTable({
           ].map(opt => {
             const active = sortBy === opt.key;
             return (
-              <button
+              <Button
                 key={opt.key}
                 onClick={() => handleSortClick(opt.key)}
-                style={{
-                  padding: '0.3rem 0.55rem',
-                  borderRadius: '9999px',
-                  border: `1px solid ${active ? 'rgba(211, 47, 47, 0.25)' : 'var(--border)'}`,
-                  background: active ? 'rgba(211, 47, 47, 0.08)' : 'white',
-                  color: active ? 'var(--primary-color)' : 'var(--text-secondary)',
-                  fontSize: '0.75rem',
-                  fontWeight: 750,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  gap: '0.35rem',
-                  alignItems: 'center',
-                }}
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  'h-7 px-2.5 text-xs font-bold rounded-full gap-1.5',
+                  active && 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                )}
               >
                 {opt.label}
-                {active && (
-                  <span style={{ color: 'var(--primary-color)' }}>{renderSortArrow()}</span>
-                )}
-              </button>
+                {active &&
+                  (sortOrder === 'asc' ? (
+                    <ArrowUp className="h-3 w-3" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3" />
+                  ))}
+              </Button>
             );
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button
+        <div className="flex gap-2 items-center">
+          <Button
             type="button"
             onClick={toggleAll}
-            className="glass-button"
-            style={{ padding: '0.45rem 0.75rem' }}
+            variant="outline"
+            size="sm"
             disabled={incidents.length === 0}
           >
             {selectedIds.size === incidents.length && incidents.length > 0
               ? 'Clear selection'
               : 'Select page'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Card list */}
-      <div style={{ padding: '0.9rem 1rem', background: 'var(--glass-bg)' }}>
+      <div className="p-3.5 px-4 bg-card">
         {incidents.length === 0 ? (
-          <div
-            style={{
-              padding: '2.25rem 1.5rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              border: '1px dashed var(--border)',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)',
-            }}
-          >
-            <div style={{ fontSize: '2.25rem', marginBottom: '0.75rem', opacity: 0.3 }}>📊</div>
-            <div
-              style={{
-                fontSize: '1rem',
-                fontWeight: 750,
-                color: 'var(--text-secondary)',
-                marginBottom: '0.25rem',
-              }}
-            >
+          <div className="py-9 px-6 text-center text-muted-foreground border border-dashed border-border rounded-lg bg-gradient-to-br from-neutral-50 to-white">
+            <FileText className="h-9 w-9 mx-auto mb-3 opacity-30" />
+            <div className="text-base font-bold text-secondary-foreground mb-1">
               No incidents found
             </div>
-            <div style={{ fontSize: '0.85rem' }}>
+            <div className="text-sm">
               No incidents match your current filters. Try adjusting your search criteria.
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div className="flex flex-col gap-2.5">
             {incidents.map(incident => {
               const isSelected = selectedIds.has(incident.id);
               const accent = getStatusAccent(incident.status);
@@ -353,30 +288,19 @@ export default memo(function IncidentTable({
               return (
                 <div
                   key={incident.id}
-                  style={{
-                    border: `1px solid ${isSelected ? 'rgba(211, 47, 47, 0.35)' : 'var(--border)'}`,
-                    borderRadius: '14px',
-                    background: isSelected ? 'rgba(211, 47, 47, 0.03)' : 'white',
-                    boxShadow: isSelected
-                      ? `0 12px 26px rgba(15, 23, 42, 0.10), 0 0 0 4px ${accent.glow}`
-                      : 'var(--shadow-xs)',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition:
-                      'transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isSelected) {
-                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isSelected) {
-                      e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }
-                  }}
+                  className={cn(
+                    'border rounded-xl overflow-hidden cursor-pointer transition-all duration-150',
+                    isSelected
+                      ? 'border-primary/35 bg-primary/5 shadow-[0_12px_26px_rgba(15,23,42,0.10)]'
+                      : 'border-border bg-white shadow-xs hover:shadow-sm hover:-translate-y-px'
+                  )}
+                  style={
+                    isSelected
+                      ? {
+                          boxShadow: `0 12px 26px rgba(15, 23, 42, 0.10), 0 0 0 4px ${accent.glow}`,
+                        }
+                      : undefined
+                  }
                   onClick={e => {
                     const target = e.target as HTMLElement;
                     if (target.closest('[data-no-row-nav="true"]')) return;
@@ -392,93 +316,44 @@ export default memo(function IncidentTable({
                   }}
                 >
                   <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.85rem',
-                      padding: '0.9rem 1rem',
-                      alignItems: 'flex-start',
-                      borderLeft: `4px solid ${accent.accent}`,
-                    }}
+                    className="flex gap-3.5 p-3.5 px-4 items-start"
+                    style={{ borderLeft: `4px solid ${accent.accent}` }}
                   >
-                    <div data-no-row-nav="true" style={{ paddingTop: '0.15rem' }}>
+                    <div data-no-row-nav="true" className="pt-0.5">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleIncident(incident.id)}
-                        style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                        className="cursor-pointer w-[18px] h-[18px]"
                         aria-label={`Select incident ${incident.title}`}
                       />
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          gap: '0.75rem',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-3 flex-wrap">
+                        <div className="min-w-0">
                           <Link
                             href={`/incidents/${incident.id}`}
                             data-no-row-nav="true"
                             onClick={e => e.stopPropagation()}
-                            style={{
-                              display: 'block',
-                              fontWeight: 850,
-                              color: 'var(--text-primary)',
-                              textDecoration: 'none',
-                              fontSize: '0.95rem',
-                              lineHeight: 1.25,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
+                            className="block font-extrabold text-foreground no-underline text-[0.95rem] leading-tight overflow-hidden overflow-ellipsis whitespace-nowrap"
                           >
                             {incident.title}
                           </Link>
 
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '0.6rem',
-                              alignItems: 'center',
-                              marginTop: '0.35rem',
-                              flexWrap: 'wrap',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: '0.8rem',
-                                color: 'var(--text-muted)',
-                                fontWeight: 650,
-                              }}
-                            >
+                          <div className="flex gap-2.5 items-center mt-1.5 flex-wrap">
+                            <span className="text-xs text-muted-foreground font-semibold">
                               #{incident.id.slice(-5).toUpperCase()}
                             </span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                              •
-                            </span>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            <span className="text-muted-foreground text-xs">•</span>
+                            <span className="text-xs text-muted-foreground">
                               {formatDateTime(incident.createdAt, userTimeZone, {
                                 format: 'short',
                               })}
                             </span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                              •
-                            </span>
+                            <span className="text-muted-foreground text-xs">•</span>
                             <span
-                              style={{
-                                fontSize: '0.8rem',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 650,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '360px',
-                              }}
+                              className="text-xs text-secondary-foreground font-semibold overflow-hidden overflow-ellipsis whitespace-nowrap max-w-[360px]"
                               title={incident.service.name}
                             >
                               {incident.service.name}
@@ -488,282 +363,146 @@ export default memo(function IncidentTable({
 
                         <div
                           data-no-row-nav="true"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            flexWrap: 'wrap',
-                            justifyContent: 'flex-end',
-                          }}
+                          className="flex items-center gap-2 flex-wrap justify-end"
                         >
-                          <Link
-                            href={`/incidents/${incident.id}`}
-                            onClick={e => e.stopPropagation()}
-                            style={{
-                              padding: '0.45rem 0.8rem',
-                              background: 'var(--primary-color)',
-                              border: 'none',
-                              borderRadius: '10px',
-                              fontSize: '0.8rem',
-                              fontWeight: 800,
-                              color: 'white',
-                              textDecoration: 'none',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: 'var(--shadow-xs)',
-                              whiteSpace: 'nowrap',
-                            }}
+                          <Button
+                            size="sm"
+                            asChild
+                            className="h-8 px-3 text-xs font-extrabold shadow-xs whitespace-nowrap"
                           >
-                            Open
-                          </Link>
+                            <Link
+                              href={`/incidents/${incident.id}`}
+                              onClick={e => e.stopPropagation()}
+                            >
+                              Open
+                            </Link>
+                          </Button>
 
                           <details
-                            className="dashboard-incident-menu"
-                            style={{ position: 'relative' }}
+                            className="dashboard-incident-menu relative"
                             onClick={e => e.stopPropagation()}
                           >
                             <summary
                               aria-label="More actions"
-                              style={{
-                                cursor: 'pointer',
-                                padding: '0.45rem 0.7rem',
-                                borderRadius: '10px',
-                                border: '1px solid var(--border)',
-                                background: 'white',
-                                color: 'var(--text-secondary)',
-                                fontSize: '0.9rem',
-                                lineHeight: 1,
-                                userSelect: 'none',
-                                boxShadow: 'var(--shadow-xs)',
-                              }}
+                              className="cursor-pointer py-1.5 px-2.5 rounded-lg border border-border bg-white text-secondary-foreground text-sm leading-none select-none shadow-xs"
                             >
-                              ⋯
+                              <MoreHorizontal className="h-4 w-4" />
                             </summary>
-                            <div
-                              style={{
-                                position: 'absolute',
-                                right: 0,
-                                top: 'calc(100% + 8px)',
-                                minWidth: '220px',
-                                background: 'white',
-                                border: '1px solid var(--border)',
-                                borderRadius: '12px',
-                                boxShadow: 'var(--shadow-lg)',
-                                padding: '0.35rem',
-                                zIndex: 50,
-                              }}
-                            >
+                            <div className="absolute right-0 top-[calc(100%+8px)] min-w-[220px] bg-white border border-border rounded-lg shadow-lg p-1.5 z-50">
                               <Link
                                 href={`/incidents/${incident.id}`}
                                 onClick={e => {
                                   e.stopPropagation();
                                   closeDetailsMenu(e.currentTarget as unknown as HTMLElement);
                                 }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  padding: '0.55rem 0.6rem',
-                                  borderRadius: '10px',
-                                  textDecoration: 'none',
-                                  color: 'var(--text-primary)',
-                                  fontWeight: 650,
-                                  fontSize: '0.85rem',
-                                }}
-                                onMouseEnter={e => {
-                                  e.currentTarget.style.background = 'var(--color-neutral-50)';
-                                }}
-                                onMouseLeave={e => {
-                                  e.currentTarget.style.background = 'transparent';
-                                }}
+                                className="flex items-center gap-2 py-2 px-2.5 rounded-lg no-underline text-foreground font-semibold text-sm hover:bg-neutral-50 transition-colors"
                               >
                                 View details →
                               </Link>
 
-                              <div
-                                style={{
-                                  height: '1px',
-                                  background: 'var(--border)',
-                                  margin: '0.25rem 0.35rem',
-                                }}
-                              />
+                              <div className="h-px bg-border my-1 mx-1.5" />
 
                               {incident.status !== 'RESOLVED' && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  size="sm"
                                   disabled={isPending}
                                   onClick={e => {
                                     e.stopPropagation();
                                     closeDetailsMenu(e.currentTarget);
                                     handleStatusChange(incident.id, 'RESOLVED');
                                   }}
-                                  style={{
-                                    width: '100%',
-                                    textAlign: 'left',
-                                    padding: '0.55rem 0.6rem',
-                                    borderRadius: '10px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: isPending ? 'not-allowed' : 'pointer',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 700,
-                                    color: 'var(--primary-color)',
-                                  }}
-                                  onMouseEnter={e => {
-                                    e.currentTarget.style.background = 'var(--primary-light)';
-                                  }}
-                                  onMouseLeave={e => {
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
+                                  className="w-full justify-start text-sm font-bold text-primary hover:bg-primary/10"
                                 >
-                                  ✓ Resolve
-                                </button>
+                                  <Check className="h-3.5 w-3.5 mr-2" />
+                                  Resolve
+                                </Button>
                               )}
 
                               {incident.status !== 'ACKNOWLEDGED' &&
                                 incident.status !== 'RESOLVED' && (
-                                  <button
+                                  <Button
                                     type="button"
+                                    variant="ghost"
+                                    size="sm"
                                     disabled={isPending}
                                     onClick={e => {
                                       e.stopPropagation();
                                       closeDetailsMenu(e.currentTarget);
                                       handleStatusChange(incident.id, 'ACKNOWLEDGED');
                                     }}
-                                    style={{
-                                      width: '100%',
-                                      textAlign: 'left',
-                                      padding: '0.55rem 0.6rem',
-                                      borderRadius: '10px',
-                                      border: 'none',
-                                      background: 'transparent',
-                                      cursor: isPending ? 'not-allowed' : 'pointer',
-                                      fontSize: '0.85rem',
-                                      fontWeight: 600,
-                                      color: 'var(--text-primary)',
-                                    }}
-                                    onMouseEnter={e => {
-                                      e.currentTarget.style.background = 'var(--color-neutral-50)';
-                                    }}
-                                    onMouseLeave={e => {
-                                      e.currentTarget.style.background = 'transparent';
-                                    }}
+                                    className="w-full justify-start text-sm font-semibold hover:bg-neutral-50"
                                   >
-                                    ✓ Acknowledge
-                                  </button>
+                                    <Check className="h-3.5 w-3.5 mr-2" />
+                                    Acknowledge
+                                  </Button>
                                 )}
 
                               {incident.status === 'ACKNOWLEDGED' && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="ghost"
+                                  size="sm"
                                   disabled={isPending}
                                   onClick={e => {
                                     e.stopPropagation();
                                     closeDetailsMenu(e.currentTarget);
                                     handleStatusChange(incident.id, 'OPEN');
                                   }}
-                                  style={{
-                                    width: '100%',
-                                    textAlign: 'left',
-                                    padding: '0.55rem 0.6rem',
-                                    borderRadius: '10px',
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: isPending ? 'not-allowed' : 'pointer',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 600,
-                                    color: 'var(--text-primary)',
-                                  }}
-                                  onMouseEnter={e => {
-                                    e.currentTarget.style.background = 'var(--color-neutral-50)';
-                                  }}
-                                  onMouseLeave={e => {
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
+                                  className="w-full justify-start text-sm font-semibold hover:bg-neutral-50"
                                 >
                                   ↩ Unacknowledge
-                                </button>
+                                </Button>
                               )}
 
                               {incident.status === 'RESOLVED' && (
-                                <Link
-                                  href={`/postmortems/${incident.id}`}
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    closeDetailsMenu(e.currentTarget as unknown as HTMLElement);
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.55rem 0.6rem',
-                                    borderRadius: '10px',
-                                    textDecoration: 'none',
-                                    color: 'var(--primary-color)',
-                                    fontWeight: 700,
-                                    fontSize: '0.85rem',
-                                  }}
-                                  onMouseEnter={e => {
-                                    e.currentTarget.style.background = 'var(--primary-light)';
-                                  }}
-                                  onMouseLeave={e => {
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                  className="w-full justify-start text-sm font-bold text-primary hover:bg-primary/10"
                                 >
-                                  View postmortem →
-                                </Link>
+                                  <Link
+                                    href={`/postmortems/${incident.id}`}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      closeDetailsMenu(e.currentTarget as unknown as HTMLElement);
+                                    }}
+                                  >
+                                    View postmortem →
+                                  </Link>
+                                </Button>
                               )}
                             </div>
                           </details>
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          marginTop: '0.6rem',
-                          display: 'flex',
-                          gap: '0.4rem',
-                          flexWrap: 'wrap',
-                          alignItems: 'center',
-                        }}
-                      >
+                      <div className="mt-2.5 flex gap-1.5 flex-wrap items-center">
                         <StatusBadge status={incident.status as any} size="sm" showDot />
                         {urgencyChip}
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>•</span>
+                        <span className="text-muted-foreground text-xs">•</span>
                         {incident.assignee ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <img
-                              src={
-                                incident.assignee.avatarUrl ||
-                                getDefaultAvatar(incident.assignee.gender, incident.assignee.name)
-                              }
-                              alt={incident.assignee.name}
-                              style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                              }}
-                            />
-                            <span
-                              style={{
-                                color: 'var(--text-secondary)',
-                                fontSize: '0.85rem',
-                                fontWeight: 650,
-                              }}
-                            >
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage
+                                src={
+                                  incident.assignee.avatarUrl ||
+                                  getDefaultAvatar(incident.assignee.gender, incident.assignee.name)
+                                }
+                                alt={incident.assignee.name}
+                              />
+                              <AvatarFallback className="text-[0.6rem]">
+                                {incident.assignee.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-secondary-foreground text-sm font-semibold">
                               {incident.assignee.name}
                             </span>
                           </div>
                         ) : (
-                          <span
-                            style={{
-                              color: 'var(--text-secondary)',
-                              fontSize: '0.85rem',
-                              fontWeight: 650,
-                            }}
-                          >
+                          <span className="text-secondary-foreground text-sm font-semibold">
                             Unassigned
                           </span>
                         )}

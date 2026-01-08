@@ -23,7 +23,9 @@ import SidebarWidget, {
   WIDGET_ICON_BG,
   WIDGET_ICON_COLOR,
 } from '@/components/dashboard/SidebarWidget';
-import styles from '@/components/dashboard/Dashboard.module.css';
+import { Card, CardContent, CardHeader } from '@/components/ui/shadcn/card';
+import { Button } from '@/components/ui/shadcn/button';
+import { FileText, ArrowRight } from 'lucide-react';
 import CompactOnCallStatus from '@/components/dashboard/compact/CompactOnCallStatus';
 import CompactPerformanceMetrics from '@/components/dashboard/compact/CompactPerformanceMetrics';
 import CompactStatsOverview from '@/components/dashboard/compact/CompactStatsOverview';
@@ -298,7 +300,7 @@ export default async function Dashboard({
 
   return (
     <DashboardRealtimeWrapper>
-      <main style={{ paddingBottom: '2rem' }}>
+      <main className="w-full p-4 md:p-6 pb-8">
         <DashboardCommandCenter
           systemStatus={systemStatus}
           allOpenIncidentsCount={allOpenIncidentsCount}
@@ -320,69 +322,41 @@ export default async function Dashboard({
           retentionDays={slaMetrics.retentionDays}
         />
 
-        {/* Main Content Grid - Two Column Layout (matching users page) */}
-        <div className={styles.mainGrid}>
+        {/* Main Content Grid - Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 md:gap-6">
           {/* Left Column - Filters and Table */}
-          <div className={styles.leftColumn}>
-            {/* Filters Panel - Matches Sidebar Theme */}
-            <div className={`glass-panel ${styles.filtersPanel}`}>
-              <div className={styles.filtersHeader}>
-                <div className={styles.filtersIcon}>
-                  <span style={{ fontSize: '18px' }}>🔍</span>
+          <div className="flex flex-col gap-4 md:gap-6">
+            {/* Filters Panel */}
+            <Card className="shadow-lg border-border/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-sm bg-slate-600 flex items-center justify-center shadow-sm">
+                    <span className="text-lg">🔍</span>
+                  </div>
+                  <h2 className="text-lg font-bold text-foreground tracking-tight">
+                    Filter Incidents
+                  </h2>
                 </div>
-                <h2
-                  style={{
-                    fontSize: 'var(--font-size-lg)',
-                    fontWeight: 'var(--font-weight-bold)',
-                    margin: 0,
-                    color: 'var(--text-primary)',
-                    letterSpacing: '-0.3px',
-                  }}
-                >
-                  Filter Incidents
-                </h2>
-              </div>
+              </CardHeader>
 
-              {/* Saved Filters */}
-              <div style={{ marginBottom: '1rem' }}>
+              <CardContent className="space-y-4">
+                {/* Saved Filters */}
                 <Suspense
                   fallback={
-                    <div
-                      style={{
-                        height: '32px',
-                        background: 'var(--color-neutral-200)',
-                        borderRadius: 'var(--radius-md)',
-                        animation: 'skeleton-pulse 1.5s ease-in-out infinite',
-                        width: '200px',
-                      }}
-                    />
+                    <div className="h-8 w-[200px] bg-neutral-200 rounded-md animate-pulse" />
                   }
                 >
                   <DashboardSavedFilters />
                 </Suspense>
-              </div>
 
-              {/* Quick Filters */}
-              <div style={{ marginBottom: '1rem' }}>
+                {/* Quick Filters */}
                 <Suspense
                   fallback={
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 'var(--spacing-2)',
-                        height: '40px',
-                      }}
-                    >
+                    <div className="flex gap-2 h-10">
                       {[1, 2, 3, 4].map(i => (
                         <div
                           key={i}
-                          style={{
-                            flex: 1,
-                            height: '40px',
-                            background: 'var(--color-neutral-200)',
-                            borderRadius: 'var(--radius-md)',
-                            animation: 'skeleton-pulse 1.5s ease-in-out infinite',
-                          }}
+                          className="flex-1 h-10 bg-neutral-200 rounded-md animate-pulse"
                         />
                       ))}
                     </div>
@@ -390,39 +364,24 @@ export default async function Dashboard({
                 >
                   <DashboardQuickFilters />
                 </Suspense>
-              </div>
 
-              {/* Filter Chips */}
-              <Suspense
-                fallback={
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 'var(--spacing-2)',
-                      flexWrap: 'wrap',
-                      minHeight: '40px',
-                    }}
-                  >
-                    {[1, 2, 3].map(i => (
-                      <div
-                        key={i}
-                        style={{
-                          width: '80px',
-                          height: '28px',
-                          background: 'var(--color-neutral-200)',
-                          borderRadius: 'var(--radius-full)',
-                          animation: 'skeleton-pulse 1.5s ease-in-out infinite',
-                        }}
-                      />
-                    ))}
-                  </div>
-                }
-              >
-                <DashboardFilterChips services={services} users={users} />
-              </Suspense>
+                {/* Filter Chips */}
+                <Suspense
+                  fallback={
+                    <div className="flex gap-2 flex-wrap min-h-[40px]">
+                      {[1, 2, 3].map(i => (
+                        <div
+                          key={i}
+                          className="w-20 h-7 bg-neutral-200 rounded-full animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  }
+                >
+                  <DashboardFilterChips services={services} users={users} />
+                </Suspense>
 
-              {/* Dashboard Filters */}
-              <div style={{ marginTop: '1rem' }}>
+                {/* Dashboard Filters */}
                 <DashboardFilters
                   initialStatus={status}
                   initialService={service}
@@ -430,126 +389,43 @@ export default async function Dashboard({
                   services={services}
                   users={users}
                 />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Incidents Table Panel - Matches Sidebar Theme */}
-            <div
-              className="glass-panel animate-slide-up"
-              style={{ padding: '0', overflow: 'hidden' }}
-            >
-              <div
-                style={{
-                  padding: 'var(--spacing-6)',
-                  borderBottom: '1px solid var(--glass-border)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                  background: 'var(--glass-bg)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: WIDGET_ICON_BG.slate,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: 'var(--shadow-xs)',
-                    }}
-                  >
-                    <span style={{ fontSize: '18px', color: 'white' }}>📋</span>
+            {/* Incidents Table Panel */}
+            <Card className="shadow-lg border-border/50 p-0 overflow-hidden animate-slide-up">
+              <CardHeader className="pb-4 border-b">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-sm bg-slate-600 flex items-center justify-center shadow-sm">
+                      <FileText className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground tracking-tight mb-0.5">
+                        Incident Directory
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Showing {skip + 1}-{Math.min(skip + INCIDENTS_PER_PAGE, totalCount)} of{' '}
+                        {totalCount} incidents
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2
-                      style={{
-                        fontSize: 'var(--font-size-lg)',
-                        fontWeight: 'var(--font-weight-bold)',
-                        margin: '0 0 0.15rem 0',
-                        color: 'var(--text-primary)',
-                        letterSpacing: '-0.3px',
-                      }}
-                    >
-                      Incident Directory
-                    </h2>
-                    <p
-                      style={{
-                        fontSize: 'var(--font-size-sm)',
-                        color: 'var(--text-muted)',
-                        margin: 0,
-                      }}
-                    >
-                      Showing {skip + 1}-{Math.min(skip + INCIDENTS_PER_PAGE, totalCount)} of{' '}
-                      {totalCount} incidents
-                    </p>
-                  </div>
+                  <Link href="/incidents">
+                    <Button variant="outline" size="sm" className="gap-2 shadow-xs">
+                      View All <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
                 </div>
-                <Link
-                  href="/incidents"
-                  className="dashboard-view-all-link"
-                  style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--primary-color)',
-                    textDecoration: 'none',
-                    fontWeight: 'var(--font-weight-semibold)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    padding: '0.5rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--color-neutral-100)',
-                    border: '1px solid var(--border)',
-                    transition: 'all 0.2s ease',
-                    boxShadow: 'var(--shadow-xs)',
-                  }}
-                >
-                  View All <span>→</span>
-                </Link>
-              </div>
+              </CardHeader>
 
-              <div className="incident-table-scroll" style={{ overflow: 'hidden' }}>
+              <div className="overflow-hidden">
                 {incidents.length === 0 ? (
-                  <div
-                    style={{
-                      padding: '4rem 2rem',
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
-                      background: 'var(--glass-bg)',
-                      borderTop: '1px solid var(--glass-border)',
-                      borderBottom: '1px solid var(--glass-border)',
-                    }}
-                  >
-                    <svg
-                      width="64"
-                      height="64"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      style={{ opacity: 0.3, margin: '0 auto 1rem' }}
-                    >
-                      <path
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <p
-                      style={{
-                        fontSize: '1rem',
-                        fontWeight: '600',
-                        marginBottom: '0.5rem',
-                        color: 'var(--text-secondary)',
-                      }}
-                    >
+                  <div className="py-16 px-8 text-center bg-card border-t border-b">
+                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-30 text-muted-foreground" />
+                    <p className="text-base font-semibold mb-2 text-secondary-foreground">
                       No incidents found
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    <p className="text-sm text-muted-foreground">
                       Try adjusting your filters to see more results.
                     </p>
                   </div>
@@ -558,102 +434,62 @@ export default async function Dashboard({
                 )}
               </div>
 
-              {/* Pagination - Enhanced style */}
+              {/* Pagination */}
               {totalPages > 1 && (
-                <div
-                  style={{
-                    padding: 'var(--spacing-5) var(--spacing-6)',
-                    borderTop: '1px solid var(--glass-border)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    flexWrap: 'wrap',
-                    background: 'var(--glass-bg)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '0.85rem',
-                      color: 'var(--text-secondary)',
-                      fontWeight: '500',
-                    }}
-                  >
-                    Page <strong style={{ color: 'var(--text-primary)' }}>{page}</strong> of{' '}
-                    <strong style={{ color: 'var(--text-primary)' }}>{totalPages}</strong>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <Link
-                      href={buildPaginationUrl(baseParams, 1)}
-                      className={`glass-button ${page === 1 ? 'disabled' : ''}`}
-                      style={{
-                        padding: '0.5rem 0.9rem',
-                        fontSize: '0.8rem',
-                        textDecoration: 'none',
-                        opacity: page === 1 ? 0.4 : 1,
-                        pointerEvents: page === 1 ? 'none' : 'auto',
-                        borderRadius: '8px',
-                        fontWeight: '600',
-                      }}
-                    >
-                      First
+                <div className="px-6 py-5 border-t bg-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <p className="text-sm text-secondary-foreground font-medium">
+                    Page <strong className="text-foreground">{page}</strong> of{' '}
+                    <strong className="text-foreground">{totalPages}</strong>
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    <Link href={buildPaginationUrl(baseParams, 1)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        className="text-xs font-semibold"
+                      >
+                        First
+                      </Button>
                     </Link>
-                    <Link
-                      href={buildPaginationUrl(baseParams, Math.max(1, page - 1))}
-                      className={`glass-button ${page === 1 ? 'disabled' : ''}`}
-                      style={{
-                        padding: '0.5rem 0.9rem',
-                        fontSize: '0.8rem',
-                        textDecoration: 'none',
-                        opacity: page === 1 ? 0.4 : 1,
-                        pointerEvents: page === 1 ? 'none' : 'auto',
-                        borderRadius: '8px',
-                        fontWeight: '600',
-                      }}
-                    >
-                      Previous
+                    <Link href={buildPaginationUrl(baseParams, Math.max(1, page - 1))}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === 1}
+                        className="text-xs font-semibold"
+                      >
+                        Previous
+                      </Button>
                     </Link>
-                    <Link
-                      href={buildPaginationUrl(baseParams, Math.min(totalPages, page + 1))}
-                      className={`glass-button ${page === totalPages ? 'disabled' : ''}`}
-                      style={{
-                        padding: '0.5rem 0.9rem',
-                        fontSize: '0.8rem',
-                        textDecoration: 'none',
-                        opacity: page === totalPages ? 0.4 : 1,
-                        pointerEvents: page === totalPages ? 'none' : 'auto',
-                        borderRadius: '8px',
-                        fontWeight: '600',
-                      }}
-                    >
-                      Next
+                    <Link href={buildPaginationUrl(baseParams, Math.min(totalPages, page + 1))}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === totalPages}
+                        className="text-xs font-semibold"
+                      >
+                        Next
+                      </Button>
                     </Link>
-                    <Link
-                      href={buildPaginationUrl(baseParams, totalPages)}
-                      className={`glass-button ${page === totalPages ? 'disabled' : ''}`}
-                      style={{
-                        padding: '0.5rem 0.9rem',
-                        fontSize: '0.8rem',
-                        textDecoration: 'none',
-                        opacity: page === totalPages ? 0.4 : 1,
-                        pointerEvents: page === totalPages ? 'none' : 'auto',
-                        borderRadius: '8px',
-                        fontWeight: '600',
-                      }}
-                    >
-                      Last
+                    <Link href={buildPaginationUrl(baseParams, totalPages)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={page === totalPages}
+                        className="text-xs font-semibold"
+                      >
+                        Last
+                      </Button>
                     </Link>
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
 
           {/* Right Sidebar - Compact Modern Design */}
-          <aside
-            className="dashboard-sidebar animate-slide-in-right"
-            style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-          >
+          <aside className="flex flex-col gap-5 animate-slide-in-right">
             {/* Quick Actions Panel */}
             <QuickActionsPanel greeting={greeting} userName={userName} />
 

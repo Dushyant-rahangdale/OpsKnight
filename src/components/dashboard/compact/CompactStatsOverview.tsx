@@ -62,43 +62,16 @@ const CompactStatsOverview = memo(function CompactStatsOverview({
   );
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
-      role="list"
-      aria-label="Stats overview"
-    >
+    <div className="flex flex-col gap-2" role="list" aria-label="Stats overview">
       {stats.map((stat, idx) => (
         <div
           key={idx}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.5rem 0.75rem',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--color-neutral-50)',
-            border: '1px solid var(--border)',
-          }}
+          className="flex items-center justify-between p-2 px-3 rounded-sm bg-neutral-50 border border-border"
           role="listitem"
           aria-label={`${stat.description}: ${stat.value}`}
         >
-          <span
-            style={{
-              fontSize: 'var(--font-size-sm)',
-              fontWeight: 'var(--font-weight-medium)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {stat.label}
-          </span>
-          <span
-            style={{
-              fontSize: '1rem',
-              fontWeight: 'var(--font-weight-bold)',
-              color: stat.color,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <span className="text-sm font-medium text-secondary-foreground">{stat.label}</span>
+          <span className="text-base font-bold tabular-nums" style={{ color: stat.color }}>
             {stat.value}
           </span>
         </div>

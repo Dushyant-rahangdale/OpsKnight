@@ -34,49 +34,20 @@ export default function QuickActionsPanel({ greeting, userName }: QuickActionsPa
     <SidebarWidget
       title={`${greeting}, ${userName}`}
       iconBg={WIDGET_ICON_BG.slate}
-      icon={<span style={{ fontSize: '18px', color: 'white' }}>⚡</span>}
+      icon={<span className="text-lg text-white">⚡</span>}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div className="flex flex-col gap-2">
         {actions.map((action, idx) => (
           <Link
             key={idx}
             href={action.href}
-            style={{
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              padding: '0.625rem 0.875rem',
-              borderRadius: 'var(--radius-sm)',
-              background:
-                action.variant === 'primary' ? 'var(--primary-color)' : 'var(--color-neutral-50)',
-              color: action.variant === 'primary' ? 'white' : 'var(--text-secondary)',
-              border: '1px solid',
-              borderColor: action.variant === 'primary' ? 'var(--primary-color)' : 'var(--border)',
-              fontWeight: 'var(--font-weight-medium)',
-              fontSize: 'var(--font-size-sm)',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={e => {
-              if (action.variant === 'primary') {
-                e.currentTarget.style.background = 'var(--primary-hover)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-              } else {
-                e.currentTarget.style.background = 'var(--color-neutral-100)';
-              }
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={e => {
-              if (action.variant === 'primary') {
-                e.currentTarget.style.background = 'var(--primary-color)';
-                e.currentTarget.style.boxShadow = 'none';
-              } else {
-                e.currentTarget.style.background = 'var(--color-neutral-50)';
-              }
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            className={
+              action.variant === 'primary'
+                ? 'flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm bg-primary text-white border border-primary font-medium text-sm transition-all hover:bg-primary/90 hover:shadow-sm hover:-translate-y-px no-underline'
+                : 'flex items-center gap-2.5 px-3.5 py-2.5 rounded-sm bg-neutral-50 text-secondary-foreground border border-border font-medium text-sm transition-all hover:bg-neutral-100 hover:-translate-y-px no-underline'
+            }
           >
-            <span style={{ fontSize: '14px', opacity: 0.9 }}>{action.icon}</span>
+            <span className="text-sm opacity-90">{action.icon}</span>
             {action.label}
           </Link>
         ))}

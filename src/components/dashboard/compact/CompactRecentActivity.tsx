@@ -97,39 +97,17 @@ const CompactRecentActivity = memo(function CompactRecentActivity({
   if (validIncidents.length === 0) {
     return (
       <div
-        style={{
-          padding: '0.875rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--color-neutral-50)',
-          border: '1px solid var(--border)',
-          textAlign: 'center',
-        }}
+        className="p-3.5 rounded-sm bg-neutral-50 border border-border text-center"
         role="status"
         aria-label="No recent activity"
       >
-        <div
-          style={{
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--text-muted)',
-            fontWeight: 'var(--font-weight-medium)',
-          }}
-        >
-          No recent activity
-        </div>
+        <div className="text-sm text-muted-foreground font-medium">No recent activity</div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}
-      role="list"
-      aria-label="Recent activity"
-    >
+    <div className="flex flex-col gap-2" role="list" aria-label="Recent activity">
       {validIncidents.slice(0, 5).map(incident => {
         const serviceName = incident.service?.name || 'Unknown';
         const relativeTime = getRelativeTime(incident.createdAt);
@@ -138,63 +116,28 @@ const CompactRecentActivity = memo(function CompactRecentActivity({
         return (
           <div
             key={incident.id}
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.5rem',
-              padding: '0.5rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--color-neutral-50)',
-              border: '1px solid var(--border)',
-            }}
+            className="flex items-start gap-2 p-2 rounded-sm bg-neutral-50 border border-border"
             role="listitem"
             aria-label={`${incident.title} - ${serviceName} - ${relativeTime}`}
           >
             {/* Status indicator */}
             <div
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: statusColor,
-                marginTop: '4px',
-                flexShrink: 0,
-              }}
+              className="w-2 h-2 rounded-full mt-1 shrink-0"
+              style={{ background: statusColor }}
               aria-hidden="true"
               title={incident.status}
             />
             {/* Content */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               <div
-                style={{
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 'var(--font-weight-medium)',
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
+                className="text-sm font-medium text-foreground whitespace-nowrap overflow-hidden overflow-ellipsis"
                 title={incident.title}
               >
                 {incident.title}
               </div>
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--text-muted)',
-                  display: 'flex',
-                  gap: '0.5rem',
-                  marginTop: '2px',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div className="text-xs text-muted-foreground flex gap-2 mt-0.5 flex-wrap">
                 <span
-                  style={{
-                    maxWidth: '120px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="max-w-[120px] overflow-hidden overflow-ellipsis whitespace-nowrap"
                   title={serviceName}
                 >
                   {serviceName}
