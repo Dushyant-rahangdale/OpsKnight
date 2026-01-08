@@ -90,9 +90,11 @@ export default function ProfileForm({
     }
   };
 
-  // Check if current avatar is a default DiceBear avatar (either via proxy or direct URL)
+  // Check if current avatar is a default DiceBear avatar (either via proxy, static, or direct URL)
   const isDefaultAvatar = (url: string | null | undefined): boolean => {
     if (!url) return true;
+    // Check if it's a static avatar
+    if (url.startsWith('/avatars/')) return true;
     // Check if it's our proxy URL
     if (url.startsWith('/api/avatar')) return true;
     // Check if it's a direct DiceBear URL (legacy)

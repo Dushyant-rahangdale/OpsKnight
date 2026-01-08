@@ -162,6 +162,7 @@ export async function updateProfile(
 
       const isCurrentDefault =
         !user.avatarUrl ||
+        user.avatarUrl.startsWith('/avatars/') ||
         user.avatarUrl.startsWith('/api/avatar') ||
         (() => {
           try {
