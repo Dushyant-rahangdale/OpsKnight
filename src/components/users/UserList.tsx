@@ -117,9 +117,7 @@ export default function UserList({
           };
 
           const handleDelete = async () => {
-            if (confirm(`Are you sure you want to delete ${user.name}?`)) {
-              await deleteUser(user.id);
-            }
+            await deleteUser(user.id);
           };
 
           const handleGenerateInvite = async () => {
