@@ -58,9 +58,41 @@ export default function ProfileForm({
 }: Props) {
   const router = useRouter();
   const [isUploading, startTransition] = useTransition();
-  // Use local state for preview
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarUrl ?? null);
+  const [currentGender, setCurrentGender] = useState<string | null | undefined>(gender);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to generate default avatar based on gender (matches backend logic)
+  const getDefaultAvatar = (g: string | null | undefined, userId: string = 'user'): string => {
+    switch (g?.toLowerCase()) {
+      case 'male':
+        return `https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${userId}-male&backgroundColor=c0aede`;
+      case 'female':
+        return `https://api.dicebear.com/9.x/lorelei-neutral/svg?seed=${userId}-female&backgroundColor=ffd5dc`;
+      case 'non-binary':
+      case 'other':
+        return `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${userId}`;
+      case 'prefer-not-to-say':
+        return `https://api.dicebear.com/9.x/notionists/svg?seed=${userId}`;
+      default:
+        return `https://api.dicebear.com/9.x/thumbs/svg?seed=${userId}&backgroundColor=transparent`;
+    }
+  };
+
+  // Check if current avatar is a default DiceBear avatar
+  const isDefaultAvatar = (url: string | null | undefined): boolean => {
+    if (!url) return true;
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'api.dicebear.com';
+    } catch {
+      return false;
+    }
+  };
+
+  // Use local state for preview - show default avatar if no custom avatar
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    avatarUrl && !isDefaultAvatar(avatarUrl) ? avatarUrl : getDefaultAvatar(gender, email || 'user')
+  );
 
   const defaultValues: ProfileFormData = {
     name,
@@ -98,8 +130,12 @@ export default function ProfileForm({
           router.refresh();
         } else {
           toast.error(result.error || 'Failed to upload photo');
-          // Revert preview on failure
-          setAvatarPreview(avatarUrl ?? null);
+          // Revert preview on failure - show original or default
+          setAvatarPreview(
+            avatarUrl && !isDefaultAvatar(avatarUrl)
+              ? avatarUrl
+              : getDefaultAvatar(currentGender, email || 'user')
+          );
         }
       });
     }
@@ -108,7 +144,8 @@ export default function ProfileForm({
   const handleAutosave = async (data: ProfileFormData) => {
     const formData = new FormData();
     formData.append('name', data.name);
-    if (data.gender) formData.append('gender', data.gender);
+    // Always send gender field (even if empty) to allow clearing it
+    formData.append('gender', data.gender || '');
     if (data.department) formData.append('department', data.department);
     if (data.jobTitle) formData.append('jobTitle', data.jobTitle);
 
@@ -151,9 +188,11 @@ export default function ProfileForm({
               isUploading && 'opacity-70'
             )}
           >
-            {avatarPreview ? (
-              <AvatarImage src={avatarPreview} alt={name} className="object-cover" />
-            ) : null}
+            <AvatarImage
+              src={avatarPreview || getDefaultAvatar(currentGender, email || 'user')}
+              alt={name}
+              className="object-cover"
+            />
             <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/10 via-primary/5 to-background text-primary">
               {getInitials(name)}
             </AvatarFallback>
@@ -189,7 +228,7 @@ export default function ProfileForm({
               <Upload className="h-3.5 w-3.5" />
               Change Photo
             </Button>
-            {avatarPreview && (
+            {avatarPreview && !isDefaultAvatar(avatarPreview) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -200,7 +239,8 @@ export default function ProfileForm({
                     const result = await updateProfile({ error: null, success: false }, formData);
                     if (result.success) {
                       toast.success('Profile photo removed');
-                      setAvatarPreview(null);
+                      // Set preview to gender-based default avatar
+                      setAvatarPreview(getDefaultAvatar(currentGender, email || 'user'));
                       router.refresh();
                     } else {
                       toast.error(result.error || 'Failed to remove photo');
@@ -259,7 +299,14 @@ export default function ProfileForm({
                   render={({ field }) => (
                     <FormItem className="w-full">
                       <Select
-                        onValueChange={field.onChange}
+                        onValueChange={value => {
+                          field.onChange(value);
+                          setCurrentGender(value);
+                          // Update avatar preview if currently showing a default avatar
+                          if (isDefaultAvatar(avatarPreview)) {
+                            setAvatarPreview(getDefaultAvatar(value, email || 'user'));
+                          }
+                        }}
                         defaultValue={field.value || undefined}
                         value={field.value || undefined}
                       >
@@ -282,11 +329,7 @@ export default function ProfileForm({
                 />
               </SettingsRow>
 
-              <SettingsRow
-                label="Job Title"
-                description="Your professional role"
-                htmlFor="jobTitle"
-              >
+              <SettingsRow label="Job Title" description="Your professional role" htmlFor="jobTitle">
                 <div className="w-full space-y-1">
                   <Input
                     id="jobTitle"
@@ -302,11 +345,7 @@ export default function ProfileForm({
                 </div>
               </SettingsRow>
 
-              <SettingsRow
-                label="Department"
-                description="Your team or division"
-                htmlFor="department"
-              >
+              <SettingsRow label="Department" description="Your team or division" htmlFor="department">
                 <Input
                   id="department"
                   {...form.register('department')}

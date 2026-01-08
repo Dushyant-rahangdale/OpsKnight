@@ -153,6 +153,7 @@ export async function updateProfile(
       // We only do this if the current avatar is:
       // 1. null (no avatar)
       // 2. OR one of our default DiceBear avatars (meaning user hasn't uploaded a custom one)
+
       const isCurrentDefault = !user.avatarUrl || (() => {
         try {
           const url = new URL(user.avatarUrl!);
