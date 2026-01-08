@@ -17,6 +17,7 @@ import {
 } from './actions';
 import BulkUserActionsForm from '@/components/BulkUserActionsForm';
 import UserCreateForm from '@/components/UserCreateForm';
+import UserFilters from '@/components/users/UserFilters';
 import UserList from '@/components/users/UserList';
 import {
   Card,
@@ -264,121 +265,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         {/* Main Content */}
         <div className="xl:col-span-2 space-y-4 md:space-y-6">
           {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filter Users</CardTitle>
-              <CardDescription>Search and filter your team members</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Quick Filters */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Link href="/users">
-                  <Badge
-                    variant={
-                      !statusFilter && !roleFilter && !teamFilter && !query ? 'default' : 'outline'
-                    }
-                    className="cursor-pointer"
-                  >
-                    All Users
-                  </Badge>
-                </Link>
-                <Link href="/users?status=ACTIVE">
-                  <Badge
-                    variant={statusFilter === 'ACTIVE' ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                  >
-                    <UserCheck className="mr-1 h-3 w-3" />
-                    Active
-                  </Badge>
-                </Link>
-                <Link href="/users?status=INVITED">
-                  <Badge
-                    variant={statusFilter === 'INVITED' ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                  >
-                    <UserPlus className="mr-1 h-3 w-3" />
-                    Invited
-                  </Badge>
-                </Link>
-                <Link href="/users?status=DISABLED">
-                  <Badge
-                    variant={statusFilter === 'DISABLED' ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                  >
-                    <UserX className="mr-1 h-3 w-3" />
-                    Disabled
-                  </Badge>
-                </Link>
-                <Link href="/users?role=ADMIN">
-                  <Badge
-                    variant={roleFilter === 'ADMIN' ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                  >
-                    Admins
-                  </Badge>
-                </Link>
-              </div>
-
-              {/* Advanced Filters */}
-              <form method="get" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="q">Search</Label>
-                  <Input id="q" name="q" defaultValue={query} placeholder="Name or email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <select
-                    name="status"
-                    defaultValue={statusFilter || ''}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">All</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="DISABLED">Disabled</option>
-                    <option value="INVITED">Invited</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <select
-                    name="role"
-                    defaultValue={roleFilter || ''}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">All</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="RESPONDER">Responder</option>
-                    <option value="USER">User</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="teamId">Team</Label>
-                  <select
-                    name="teamId"
-                    defaultValue={teamFilter || ''}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">All</option>
-                    {teams.map(team => (
-                      <option key={team.id} value={team.id}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2 md:col-span-4 flex gap-2">
-                  <Button type="submit" className="flex-1 md:flex-none">
-                    Apply Filters
-                  </Button>
-                  <Link href="/users">
-                    <Button type="button" variant="outline">
-                      Clear
-                    </Button>
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <UserFilters teams={teams} />
 
           {/* Bulk Actions */}
           {isAdmin && (
@@ -488,7 +375,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 of {auditLogTotal} entries
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[500px] overflow-y-auto">
+            <CardContent>
               <div className="space-y-3">
                 {auditLogs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
