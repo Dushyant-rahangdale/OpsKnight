@@ -130,7 +130,7 @@ export default function KeyboardShortcuts({
           maxHeight: '85vh',
           overflowY: 'auto',
           boxShadow: '0 20px 60px rgba(211, 47, 47, 0.3), 0 0 0 1px rgba(211, 47, 47, 0.1)',
-          border: '2px solid var(--primary)',
+          border: '2px solid var(--primary-color)',
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -140,7 +140,7 @@ export default function KeyboardShortcuts({
         <div
           style={{
             padding: '1.75rem 2rem',
-            borderBottom: '2px solid var(--primary)',
+            borderBottom: '2px solid var(--primary-color)',
             background: 'linear-gradient(135deg, #fee2e2 0%, #ffffff 100%)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -208,7 +208,7 @@ export default function KeyboardShortcuts({
             aria-label="Close"
             style={{
               background: 'transparent',
-              border: '2px solid var(--primary)',
+              border: '2px solid var(--primary-color)',
               borderRadius: '0px',
               fontSize: '1.5rem',
               cursor: 'pointer',
@@ -258,7 +258,7 @@ export default function KeyboardShortcuts({
                   gap: '0.75rem',
                   marginBottom: '1.25rem',
                   paddingBottom: '0.75rem',
-                  borderBottom: '2px solid var(--primary)',
+                  borderBottom: '2px solid var(--primary-color)',
                 }}
               >
                 <div
@@ -350,7 +350,7 @@ export default function KeyboardShortcuts({
         <div
           style={{
             padding: '1.25rem 2rem',
-            borderTop: '2px solid var(--primary)',
+            borderTop: '2px solid var(--primary-color)',
             background: '#fef2f2',
             display: 'flex',
             justifyContent: 'space-between',

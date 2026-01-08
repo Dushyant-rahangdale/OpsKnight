@@ -204,7 +204,7 @@ export default function AssigneeSection({
               style={{
                 flex: 1,
                 padding: '0.625rem 0.875rem',
-                border: '1px solid var(--primary)',
+                border: '1px solid var(--primary-color)',
                 borderRadius: '0px',
                 background: '#fff',
                 fontSize: '0.9rem',
@@ -394,7 +394,7 @@ export default function AssigneeSection({
           autoFocus
           style={{
             padding: '0.5rem',
-            border: '1px solid var(--primary)',
+            border: '1px solid var(--primary-color)',
             borderRadius: '0px',
             fontSize: '0.85rem',
             background: '#fff',

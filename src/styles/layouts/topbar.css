@@ -131,7 +131,7 @@
 
 .topbar-dropdown-item:hover {
   background: #f8fafc;
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .topbar-dropdown-divider {
@@ -176,7 +176,7 @@
   height: 32px;
   border-radius: 50%;
   background: rgba(148, 163, 184, 0.15);
-  color: var(--primary);
+  color: var(--primary-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -504,7 +504,7 @@
 }
 
 .user-menu-item:hover svg:first-of-type {
-  color: var(--primary);
+  color: var(--primary-color);
   transform: none;
 }
 
@@ -1310,7 +1310,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 .settings-row-control input:not([readonly]):focus,
 .settings-row-control select:focus,
 .settings-row-control textarea:focus {
-  border-color: var(--primary) !important;
+  border-color: var(--primary-color) !important;
   box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.1) !important;
   outline: none !important;
   transition: all 0.2s var(--ease-out);
@@ -1684,7 +1684,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .settings-scope-pill:hover {
   background: white;
-  border-color: var(--primary);
+  border-color: var(--primary-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -1694,7 +1694,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   height: 1rem;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--primary);
+  accent-color: var(--primary-color);
 }
 
 .settings-scope-pill span {
@@ -1719,7 +1719,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 }
 
 .settings-scope-pill input[type="checkbox"]:checked~span strong {
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 /* Empty state v2 improvements */
@@ -1867,7 +1867,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 .settings-link-button {
   background: none;
   border: none;
-  color: var(--primary);
+  color: var(--primary-color);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
@@ -1998,7 +1998,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .search-trigger-btn:hover .search-trigger-icon {
   opacity: 1;
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .search-trigger-placeholder {
@@ -2124,7 +2124,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 /* Search Input Bar */
 .search-input-bar {
   background: #ffffff;
-  border: 2px solid var(--primary);
+  border: 2px solid var(--primary-color);
   border-radius: 14px;
   box-shadow:
     0 8px 32px rgba(220, 38, 38, 0.2),
@@ -2151,7 +2151,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .search-container:focus-within .search-input-icon {
   opacity: 1;
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .search-input {
@@ -2186,7 +2186,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   width: 16px;
   height: 16px;
   border: 2px solid rgba(220, 38, 38, 0.2);
-  border-top-color: var(--primary);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -2195,7 +2195,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   width: 32px;
   height: 32px;
   border: 3px solid rgba(220, 38, 38, 0.1);
-  border-top-color: var(--primary);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
@@ -2268,13 +2268,13 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 .search-filter-chip:hover {
   background: rgba(220, 38, 38, 0.08);
   border-color: rgba(220, 38, 38, 0.2);
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .search-filter-chip.active {
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(220, 38, 38, 0.08) 100%);
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
 }
 
@@ -2398,7 +2398,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 }
 
 .search-section-action:hover {
-  color: var(--primary);
+  color: var(--primary-color);
   background: rgba(220, 38, 38, 0.05);
 }
 
@@ -2429,7 +2429,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   top: 0;
   bottom: 0;
   width: 3px;
-  background: var(--primary);
+  background: var(--primary-color);
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -2496,7 +2496,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .search-result-icon.action {
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(220, 38, 38, 0.06) 100%);
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .search-result-icon-emoji {
@@ -2565,7 +2565,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .search-highlight {
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
-  color: var(--primary);
+  color: var(--primary-color);
   padding: 0 2px;
   border-radius: 3px;
   font-weight: 700;
@@ -2618,7 +2618,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   background: rgba(220, 38, 38, 0.08);
   border: 1px solid rgba(220, 38, 38, 0.15);
   border-radius: 6px;
-  color: var(--primary);
+  color: var(--primary-color);
   font-weight: 600;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -2628,7 +2628,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .search-empty-link:hover {
   background: rgba(220, 38, 38, 0.12);
-  border-color: var(--primary);
+  border-color: var(--primary-color);
   transform: translateY(-1px);
 }
 
@@ -2828,7 +2828,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 .quick-actions-item:hover {
   background: linear-gradient(90deg, rgba(148, 163, 184, 0.1) 0%, rgba(211, 47, 47, 0.03) 100%);
   transform: translateX(4px);
-  border-left: 3px solid var(--primary);
+  border-left: 3px solid var(--primary-color);
   padding-left: calc(0.75rem - 3px);
 }
 
@@ -2840,7 +2840,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   height: 36px;
   border-radius: 8px;
   background: rgba(148, 163, 184, 0.1);
-  color: var(--primary);
+  color: var(--primary-color);
   flex-shrink: 0;
 }
 
@@ -2871,7 +2871,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
 
 .quick-actions-item:hover .quick-actions-item-arrow {
   opacity: 1;
-  color: var(--primary);
+  color: var(--primary-color);
 }/* ============================================
    MODERN TOPBAR UI ENHANCEMENTS
    ============================================ */
@@ -3164,7 +3164,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
   justify-content: center;
   background: rgba(148, 163, 184, 0.1);
   border-radius: 8px;
-  color: var(--primary);
+  color: var(--primary-color);
 }
 
 .topbar-notification-content {
@@ -3233,7 +3233,7 @@ section:not(.login-brand):not(.login-form):not(.login-card section),
       rgba(148, 163, 184, 0.08) 100%);
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-sm);
-  color: var(--primary);
+  color: var(--primary-color);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;

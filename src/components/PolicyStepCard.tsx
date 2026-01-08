@@ -113,7 +113,7 @@ export default function PolicyStepCard({
         style={{
           padding: '1.5rem',
           background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          border: '2px solid var(--primary)',
+          border: '2px solid var(--primary-color)',
           borderRadius: '12px',
         }}
       >

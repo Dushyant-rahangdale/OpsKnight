@@ -3290,7 +3290,7 @@ export default function StatusPageConfig({ statusPage, allServices }: StatusPage
                                     borderRadius: 'var(--radius-lg)',
                                     overflow: 'hidden',
                                     border: isSelected
-                                      ? '2px solid var(--primary)'
+                                      ? '2px solid var(--primary-color)'
                                       : '1px solid #e2e8f0',
                                     background: 'white',
                                     boxShadow: '0 10px 24px rgba(15, 23, 42, 0.08)',

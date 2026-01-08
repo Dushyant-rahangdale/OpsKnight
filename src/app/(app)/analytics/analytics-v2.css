@@ -276,7 +276,7 @@
 
 /* Premium Gradients */
 .text-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.6) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary-color)) 0%, hsl(var(--primary-color) / 0.6) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -424,7 +424,7 @@
 
 .analytics-narrative-link {
     font-size: 0.85rem;
-    color: hsl(var(--primary));
+    color: hsl(var(--primary-color));
     text-decoration: none;
 }
 
@@ -1007,7 +1007,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, transparent, var(--gauge-accent, var(--primary)), transparent);
+    background: linear-gradient(90deg, transparent, var(--gauge-accent, var(--primary-color)), transparent);
     opacity: 0.5;
 }
 

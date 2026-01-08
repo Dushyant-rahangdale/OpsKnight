@@ -142,7 +142,7 @@ export default function SnoozeDurationDialog({
                       padding: '0.625rem',
                       border:
                         duration === preset.minutes
-                          ? '2px solid var(--primary)'
+                          ? '2px solid var(--primary-color)'
                           : '1px solid var(--border)',
                       borderRadius: '0px',
                       background: duration === preset.minutes ? '#fef2f2' : 'white',

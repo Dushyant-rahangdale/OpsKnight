@@ -216,7 +216,7 @@ export default function SidebarWidget({
               width: '32px',
               height: '32px',
               border: '3px solid var(--color-neutral-200)',
-              borderTop: '3px solid var(--primary)',
+              borderTop: '3px solid var(--primary-color)',
               borderRadius: '50%',
               margin: '0 auto',
               animation: 'spin 1s linear infinite',

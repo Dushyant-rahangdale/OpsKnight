@@ -74,7 +74,7 @@ export default function DashboardRealTimeUpdates({
             width: '12px',
             height: '12px',
             borderRadius: '50%',
-            border: '2px solid var(--primary)',
+            border: '2px solid var(--primary-color)',
             borderTopColor: 'transparent',
             animation: 'spin 1s linear infinite',
           }}

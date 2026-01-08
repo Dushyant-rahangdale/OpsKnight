@@ -168,7 +168,7 @@ export default function DashboardSavedFilters() {
               padding: '0.35rem 0.75rem',
               borderRadius: '6px',
               fontSize: '0.8rem',
-              border: '1px solid var(--primary)',
+              border: '1px solid var(--primary-color)',
               background: 'var(--primary-color)',
               color: 'white',
               cursor: 'pointer',

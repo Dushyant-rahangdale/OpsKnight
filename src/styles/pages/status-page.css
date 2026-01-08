@@ -1,4 +1,4 @@
-﻿/* ========================================
+/* ========================================
    Status Page Template Styles
    Extracted from globals.css
    ======================================== */
@@ -16,13 +16,13 @@
 .status-page-input:focus-visible,
 .status-page-select:focus,
 .status-page-select:focus-visible {
-  border-color: var(--status-primary, var(--primary));
+  border-color: var(--status-primary, var(--primary-color));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-primary, #2563eb) 18%, transparent);
   outline: none;
 }
 
 .status-page-container {
-  --primary: var(--status-primary, var(--primary));
+  --primary: var(--status-primary, var(--primary-color));
   --primary-hover: var(--status-primary-hover, var(--primary-hover));
   --status-text: var(--sp-ink, #111827);
   --status-text-strong: var(--sp-ink-strong, var(--sp-ink, #0f172a));
@@ -148,7 +148,7 @@
   bottom: 12px;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   opacity: 0.12;
   /* UI: subtle accent rail on cards */
 }
@@ -175,7 +175,7 @@
 }
 
 .status-page-template-card.is-selected {
-  border-color: var(--primary) !important;
+  border-color: var(--primary-color) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18), 0 20px 40px rgba(15, 23, 42, 0.16) !important;
   /* UI: selection halo without heavy border weight */
 }
@@ -388,7 +388,7 @@
   bottom: 12px;
   width: 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   opacity: 0.12;
   /* UI: subtle accent rail on cards */
 }
@@ -415,7 +415,7 @@
 }
 
 .status-page-template-card.is-selected {
-  border-color: var(--primary) !important;
+  border-color: var(--primary-color) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18), 0 20px 40px rgba(15, 23, 42, 0.16) !important;
   /* UI: selection halo without heavy border weight */
 }
@@ -512,13 +512,13 @@
 .status-page-input:focus-visible,
 .status-page-select:focus,
 .status-page-select:focus-visible {
-  border-color: var(--status-primary, var(--primary));
+  border-color: var(--status-primary, var(--primary-color));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-primary, #2563eb) 18%, transparent);
   outline: none;
 }
 
 .status-page-container {
-  --primary: var(--status-primary, var(--primary));
+  --primary: var(--status-primary, var(--primary-color));
   --primary-hover: var(--status-primary-hover, var(--primary-hover));
   --status-text: var(--sp-ink, #111827);
   --status-text-strong: var(--sp-ink-strong, var(--sp-ink, #0f172a));
@@ -674,7 +674,7 @@
 }
 
 .status-page-config-tab-badge.is-active {
-  background: var(--primary);
+  background: var(--primary-color);
   color: #ffffff;
 }
 

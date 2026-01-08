@@ -221,7 +221,7 @@
 
 .iconBoxPrimary {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
-    color: var(--primary);
+    color: var(--primary-color);
 }
 
 .iconBoxSuccess {

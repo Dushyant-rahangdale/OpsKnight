@@ -116,7 +116,7 @@ export default function DashboardQuickFilters() {
               display: 'flex',
               alignItems: 'center',
               gap: '0.375rem',
-              border: isActive ? '1px solid var(--primary)' : '1px solid var(--border)',
+              border: isActive ? '1px solid var(--primary-color)' : '1px solid var(--border)',
               boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
               transition: 'all 0.15s ease',
               cursor: 'pointer',
