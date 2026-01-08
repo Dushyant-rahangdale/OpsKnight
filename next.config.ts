@@ -97,7 +97,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
+              "img-src 'self' data: https: https://api.dicebear.com",
               "font-src 'self' data:",
               "connect-src 'self'",
               "frame-ancestors 'none'",

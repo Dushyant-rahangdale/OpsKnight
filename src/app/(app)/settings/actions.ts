@@ -88,22 +88,22 @@ export async function updateProfile(
       switch (g?.toLowerCase()) {
         case 'male':
           // Professional male avatar with red background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-male&backgroundColor=b91c1c&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}-male&backgroundColor=b91c1c&radius=50`;
         case 'female':
           // Professional female avatar with green background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-female&backgroundColor=65a30d&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}-female&backgroundColor=65a30d&radius=50`;
         case 'non-binary':
           // Professional non-binary avatar with purple background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-nb&backgroundColor=7c3aed&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}-nb&backgroundColor=7c3aed&radius=50`;
         case 'other':
           // Professional avatar with teal background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-other&backgroundColor=0891b2&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}-other&backgroundColor=0891b2&radius=50`;
         case 'prefer-not-to-say':
           // Neutral professional avatar with blue background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}-neutral&backgroundColor=6366f1&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}-neutral&backgroundColor=6366f1&radius=50`;
         default:
           // Default avatar with green background
-          return `https://api.dicebear.com/9.x/big-smile/svg?seed=${userId}&backgroundColor=84cc16&radius=50`;
+          return `https://api.dicebear.com/9.x/big-smile/png?seed=${userId}&backgroundColor=84cc16&radius=50`;
       }
     };
 
