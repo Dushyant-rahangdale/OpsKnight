@@ -169,10 +169,7 @@ export function UserCard({
     }
   };
 
-  const avatarUrl =
-    user.avatarUrl && !isDefaultAvatar(user.avatarUrl)
-      ? user.avatarUrl
-      : getDefaultAvatar(user.gender, user.id);
+  const avatarUrl = user.avatarUrl || getDefaultAvatar(user.gender, user.id);
 
   const statusColors = {
     ACTIVE: 'bg-green-100 text-green-800 border-green-200',

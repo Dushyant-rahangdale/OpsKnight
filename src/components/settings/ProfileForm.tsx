@@ -67,7 +67,7 @@ export default function ProfileForm({
 
   // Use local state for preview - show default avatar if no custom avatar
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    avatarUrl && !isDefaultAvatar(avatarUrl) ? avatarUrl : getDefaultAvatar(gender, email || 'user')
+    avatarUrl || getDefaultAvatar(gender, email || 'user')
   );
 
   const defaultValues: ProfileFormData = {
