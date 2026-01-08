@@ -95,7 +95,7 @@ export function AvatarPicker({ currentAvatarUrl, onSelect, userName }: AvatarPic
   const generateAvatarUrl = (style: string, seed: string, bg: string) => {
     // Remove # from hex color
     const bgColor = bg.replace('#', '');
-    return `https://api.dicebear.com/9.x/${style}/png?seed=${seed}&backgroundColor=${bgColor}&radius=50`;
+    return `/api/avatar?style=${style}&seed=${seed}&backgroundColor=${bgColor}&radius=50`;
   };
 
   const handleSelect = (avatarId: string) => {
