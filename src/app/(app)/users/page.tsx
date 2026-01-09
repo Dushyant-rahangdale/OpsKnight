@@ -1,24 +1,23 @@
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import type { Role, UserStatus, AuditEntityType } from '@prisma/client';
+import type { Prisma, Role, UserStatus, AuditEntityType } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 import {
   addUser,
   addUserToTeam,
-  bulkUpdateUsers,
   deactivateUser,
   deleteUser,
   generateInvite,
   reactivateUser,
   updateUserRole,
 } from './actions';
-import BulkUserActionsForm from '@/components/BulkUserActionsForm';
 import UserCreateForm from '@/components/UserCreateForm';
 import UserFilters from '@/components/users/UserFilters';
 import UserList from '@/components/users/UserList';
+import UserSortDropdown from '@/components/users/UserSortDropdown';
 import {
   Card,
   CardContent,
@@ -218,7 +217,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   }
 
   return (
-    <div className="w-full px-4 py-6 space-y-6">
+    <div className="w-full px-4 py-6 space-y-6 [zoom:0.8]">
       {/* Header with Stats */}
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg p-4 md:p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -267,26 +266,6 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           {/* Filters */}
           <UserFilters teams={teams} />
 
-          {/* Bulk Actions */}
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Bulk Actions</CardTitle>
-                <CardDescription className="text-xs">
-                  Select users and apply bulk operations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BulkUserActionsForm
-                  action={bulkUpdateUsers}
-                  formId="bulk-users-form"
-                  className="bulk-actions-form-inline"
-                  disabled={!isAdmin}
-                />
-              </CardContent>
-            </Card>
-          )}
-
           {/* User List */}
           <Card>
             <CardHeader>
@@ -298,10 +277,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     users
                   </CardDescription>
                 </div>
-                <Button variant="outline" size="sm">
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Sort: {sortBy}
-                </Button>
+                <UserSortDropdown />
               </div>
             </CardHeader>
             <CardContent>
@@ -315,7 +291,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 deactivateUser={deactivateUser}
                 reactivateUser={reactivateUser}
                 deleteUser={deleteUser}
-                generateInvite={generateInvite}
+                generateInvite={generateInvite as any}
               />
 
               {/* Pagination */}
@@ -357,25 +333,25 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <div className="space-y-4 md:space-y-6">
           {/* Invite New User */}
           <Card>
-            <CardHeader>
+            <CardHeader className="p-5 pb-2">
               <CardTitle>Invite New User</CardTitle>
               <CardDescription>Add a new team member</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-5 pt-0">
               <UserCreateForm action={addUser} disabled={!isAdmin} />
             </CardContent>
           </Card>
 
           {/* Activity Log */}
           <Card>
-            <CardHeader>
+            <CardHeader className="p-5 pb-2">
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>
                 Showing {historySkip + 1}-{Math.min(historySkip + HISTORY_PER_PAGE, auditLogTotal)}{' '}
                 of {auditLogTotal} entries
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-5 pt-0">
               <div className="space-y-3">
                 {auditLogs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>

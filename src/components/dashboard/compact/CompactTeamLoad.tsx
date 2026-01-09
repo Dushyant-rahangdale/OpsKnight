@@ -71,39 +71,17 @@ const CompactTeamLoad = memo(function CompactTeamLoad({ assigneeLoad }: CompactT
   if (activeAssignees.length === 0) {
     return (
       <div
-        style={{
-          padding: '0.875rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--color-neutral-50)',
-          border: '1px solid var(--border)',
-          textAlign: 'center',
-        }}
+        className="p-3.5 rounded-sm bg-neutral-50 border border-border text-center"
         role="status"
         aria-label="No active assignments"
       >
-        <div
-          style={{
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--text-muted)',
-            fontWeight: 'var(--font-weight-medium)',
-          }}
-        >
-          No active assignments
-        </div>
+        <div className="text-sm text-muted-foreground font-medium">No active assignments</div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.375rem',
-      }}
-      role="list"
-      aria-label="Team incident load"
-    >
+    <div className="flex flex-col gap-1.5" role="list" aria-label="Team incident load">
       {activeAssignees.map(assignee => {
         const displayName = getDisplayName(assignee.name);
         const initials = getInitials(assignee.name);
@@ -114,56 +92,21 @@ const CompactTeamLoad = memo(function CompactTeamLoad({ assigneeLoad }: CompactT
         return (
           <div
             key={assignee.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.5rem 0.625rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--color-neutral-50)',
-              border: '1px solid var(--border)',
-            }}
+            className="flex items-center justify-between p-2 px-2.5 rounded-sm bg-neutral-50 border border-border"
             role="listitem"
             aria-label={`${displayName}: ${assignee.count} incidents, ${loadLabel}`}
           >
             {/* Name */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               {/* Avatar placeholder */}
               <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'var(--color-neutral-200)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  color: 'var(--text-secondary)',
-                  flexShrink: 0,
-                }}
+                className="w-6 h-6 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-secondary-foreground shrink-0"
                 aria-hidden="true"
               >
                 {initials}
               </div>
               <span
-                style={{
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 'var(--font-weight-medium)',
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
+                className="text-sm font-medium text-foreground whitespace-nowrap overflow-hidden overflow-ellipsis"
                 title={displayName}
               >
                 {displayName}
@@ -171,17 +114,8 @@ const CompactTeamLoad = memo(function CompactTeamLoad({ assigneeLoad }: CompactT
             </div>
             {/* Count badge */}
             <div
-              style={{
-                padding: '0.125rem 0.5rem',
-                borderRadius: 'var(--radius-full)',
-                background: loadColor,
-                color: 'white',
-                fontSize: 'var(--font-size-xs)',
-                fontWeight: 'var(--font-weight-semibold)',
-                minWidth: '20px',
-                textAlign: 'center',
-                fontVariantNumeric: 'tabular-nums',
-              }}
+              className="py-0.5 px-2 rounded-full text-white text-xs font-semibold min-w-[20px] text-center tabular-nums"
+              style={{ background: loadColor }}
               aria-label={`${assignee.count} incidents`}
             >
               {assignee.count}

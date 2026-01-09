@@ -233,8 +233,18 @@ export default function IncidentTableMobile({
                       fontSize: '0.7rem',
                       fontWeight: '700',
                       textTransform: 'uppercase',
-                      background: incident.urgency === 'HIGH' ? '#fee2e2' : '#fef3c7',
-                      color: incident.urgency === 'HIGH' ? '#b91c1c' : '#92400e',
+                      background:
+                        incident.urgency === 'HIGH'
+                          ? '#fee2e2'
+                          : incident.urgency === 'MEDIUM'
+                            ? '#fef3c7'
+                            : '#dcfce7',
+                      color:
+                        incident.urgency === 'HIGH'
+                          ? '#b91c1c'
+                          : incident.urgency === 'MEDIUM'
+                            ? '#92400e'
+                            : '#166534',
                       display: 'inline-block',
                     }}
                   >

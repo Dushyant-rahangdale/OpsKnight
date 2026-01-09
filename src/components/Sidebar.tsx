@@ -1,18 +1,46 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import _KeyboardShortcuts from './KeyboardShortcuts';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useModalState } from '@/hooks/useModalState';
-import { getDefaultAvatar } from '@/lib/avatar';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { Button } from '@/components/ui/shadcn/button';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  HelpCircle,
+  Settings,
+  LogOut,
+  Keyboard,
+  AlertCircle,
+  LayoutDashboard,
+  AlertTriangle,
+  Server,
+  Users,
+  User,
+  Calendar,
+  ShieldAlert,
+  FileClock,
+  ClipboardList,
+  PieChart,
+  FileWarning,
+  Activity,
+  ListTodo,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
-  section?: string; // For grouping items
-  requiresRole?: string[]; // Optional role requirements
+  section?: string;
+  requiresRole?: string[];
 };
 
 const navigationItems: NavItem[] = [
@@ -20,153 +48,86 @@ const navigationItems: NavItem[] = [
   {
     href: '/',
     label: 'Dashboard',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard />,
   },
   {
     href: '/incidents',
     label: 'Incidents',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 3 2.5 20h19L12 3Zm0 6 4.5 9h-9L12 9Zm0 3v4" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <AlertTriangle />,
   },
   {
     href: '/services',
     label: 'Services',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M4 6h16v5H4V6Zm0 7h16v5H4v-5Z" />
-      </svg>
-    ),
+    icon: <Server />,
   },
+
   // Operations Section
   {
     href: '/teams',
     label: 'Teams',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M7 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm10 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM3 19a4 4 0 0 1 8 0v1H3v-1Zm10 1v-1a4 4 0 0 1 8 0v1h-8Z" />
-      </svg>
-    ),
+    icon: <Users />,
     section: 'OPERATIONS',
   },
   {
     href: '/users',
     label: 'Users',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 20a6 6 0 0 1 16 0v1H4v-1Z" />
-      </svg>
-    ),
+    icon: <User />,
     section: 'OPERATIONS',
   },
   {
     href: '/schedules',
     label: 'Schedules',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M7 3v3m10-3v3M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <Calendar />,
     section: 'OPERATIONS',
   },
   {
     href: '/policies',
     label: 'Escalation Policies',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5Z" />
-      </svg>
-    ),
+    icon: <ShieldAlert />,
     section: 'OPERATIONS',
   },
+
   // Insights Section
   {
     href: '/analytics',
     label: 'Analytics',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 20V10m7 10V4m7 16v-7" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <PieChart />,
     section: 'INSIGHTS',
   },
   {
     href: '/postmortems',
     label: 'Postmortems',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <FileWarning />,
     section: 'INSIGHTS',
   },
   {
     href: '/status',
     label: 'Status Page',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <Activity />,
     section: 'INSIGHTS',
   },
   {
     href: '/action-items',
     label: 'Action Items',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <ListTodo />,
     section: 'INSIGHTS',
   },
   {
     href: '/events',
     label: 'Event Logs',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M5 4h14v4H5V4Zm0 6h14v4H5v-4Zm0 6h14v4H5v-4Z" />
-      </svg>
-    ),
+    icon: <FileClock />,
     section: 'INSIGHTS',
   },
   {
     href: '/audit',
     label: 'Audit Log',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm8 1.5V8h2.5L14 5.5ZM8 11h8v2H8v-2Zm0 4h8v2H8v-2Z" />
-      </svg>
-    ),
+    icon: <ClipboardList />,
     section: 'INSIGHTS',
   },
-
   {
     href: '/reports/executive',
     label: 'Executive Report',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
+    icon: <PieChart />,
     section: 'INSIGHTS',
     requiresRole: ['ADMIN'],
   },
@@ -192,21 +153,20 @@ export default function Sidebar(
   }
 ) {
   const pathname = usePathname();
+  const { isCollapsed, isMobile, toggleSidebar } = useSidebar();
+
   const [stats, setStats] = useState<{
     count: number;
     isClipped?: boolean;
     retentionDays?: number;
   } | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useModalState('sidebarMobileMenu');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const sidebarId = 'app-sidebar';
   const isDesktopCollapsed = !isMobile && isCollapsed;
-  const actionButtonPadding = isDesktopCollapsed ? '0.45rem' : '0.5rem';
-  const finalAvatarUrl = userAvatar || getDefaultAvatar(userGender, userId || 'user');
 
   useEffect(() => {
-    // Fetch active incidents count
     fetch('/api/sidebar-stats')
       .then(res => res.json())
       .then(data =>
@@ -220,55 +180,12 @@ export default function Sidebar(
   }, []);
 
   useEffect(() => {
-    // Check if mobile via media query (more robust than raw innerWidth; behaves well on zoom)
-    const mq = window.matchMedia('(max-width: 768px)');
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-
-  useEffect(() => {
-    // Load collapse preference (desktop only)
-    if (isMobile) return;
-    try {
-      const saved = localStorage.getItem('sidebarCollapsed');
-      if (saved === '1') setIsCollapsed(true);
-      if (saved === '0') setIsCollapsed(false);
-    } catch {
-      // ignore
-    }
-  }, [isMobile]);
-
-  useEffect(() => {
-    // Persist collapse preference (desktop only)
-    if (isMobile) return;
-    try {
-      localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
-    } catch {
-      // ignore
-    }
-  }, [isCollapsed, isMobile]);
-
-  // Never keep desktop-collapsed state on mobile overlay
-  useEffect(() => {
-    if (isMobile) {
-      setIsCollapsed(false);
-    }
-  }, [isMobile]);
-
-  useEffect(() => {
-    // Close mobile menu on route change
-    if (isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
+    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
-    // Ensure mobile menu is closed when switching to desktop
-    if (!isMobile && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
+    if (!isMobile && isMobileMenuOpen) setIsMobileMenuOpen(false);
   }, [isMobile, isMobileMenuOpen, setIsMobileMenuOpen]);
 
   const isActive = (path: string) => {
@@ -277,25 +194,21 @@ export default function Sidebar(
     return false;
   };
 
-  // Group items by section and filter by role
-  const groupedItems = navigationItems.reduce(
-    (acc, item) => {
-      // Filter by role requirements
-      if (item.requiresRole && userRole) {
-        if (!item.requiresRole.includes(userRole)) {
-          return acc; // Skip this item
+  const groupedItems = useMemo(() => {
+    return navigationItems.reduce(
+      (acc, item) => {
+        if (item.requiresRole) {
+          if (!userRole || !item.requiresRole.includes(userRole)) return acc;
         }
-      }
-
-      const section = item.section || 'MAIN';
-      if (!acc[section]) {
-        acc[section] = [];
-      }
-      acc[section].push(item);
-      return acc;
-    },
-    {} as Record<string, NavItem[]>
-  );
+        const section = item.section || 'MAIN';
+        // eslint-disable-next-line security/detect-object-injection
+        if (!acc[section]) acc[section] = [];
+        acc[section].push(item);
+        return acc;
+      },
+      {} as Record<string, NavItem[]>
+    );
+  }, [userRole]);
 
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.href);
@@ -305,19 +218,42 @@ export default function Sidebar(
       <Link
         key={item.href}
         href={item.href}
-        className={`nav-item ${active ? 'active' : ''}`}
         aria-current={active ? 'page' : undefined}
         aria-label={isDesktopCollapsed ? item.label : undefined}
         title={isDesktopCollapsed ? item.label : undefined}
+        className={cn(
+          'group relative flex items-center rounded-xl text-sm font-medium',
+          'transition-colors duration-150 motion-reduce:transition-none',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground/0',
+          'text-white/85 hover:text-white hover:bg-white/10',
+          active && 'bg-white/15 text-white ring-1 ring-white/10',
+          active &&
+            'after:absolute after:left-0 after:top-2 after:bottom-2 after:w-[3px] after:rounded-r-full after:bg-white/70',
+          isDesktopCollapsed ? 'h-11 w-11 justify-center px-0' : 'px-3 py-2.5 gap-3'
+        )}
       >
-        <span className="nav-icon">{item.icon}</span>
-        {!isDesktopCollapsed && <span className="sidebar-label">{item.label}</span>}
+        <span
+          className={cn(
+            'shrink-0 flex items-center justify-center opacity-85 group-hover:opacity-100',
+            '[&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0'
+          )}
+        >
+          {item.icon}
+        </span>
+
+        {!isDesktopCollapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+
         {showBadge && (
           <span
-            aria-label={`${stats.count} active incidents`}
-            className={`sidebar-badge ${isDesktopCollapsed ? 'sidebar-badge--dot' : ''}`}
+            aria-label={`${stats!.count} active incidents`}
+            className={cn(
+              'shrink-0 inline-flex items-center justify-center font-bold bg-red-500 text-white',
+              isDesktopCollapsed
+                ? 'absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full'
+                : 'ml-auto h-5 min-w-5 rounded-full px-1.5 text-[0.65rem]'
+            )}
           >
-            {isDesktopCollapsed ? '' : stats.count > 99 ? '99+' : stats.count}
+            {isDesktopCollapsed ? '' : stats!.count > 99 ? '99+' : stats!.count}
           </span>
         )}
       </Link>
@@ -325,55 +261,38 @@ export default function Sidebar(
   };
 
   const renderSection = (sectionName: string, items: NavItem[]) => {
-    if (sectionName === 'MAIN') {
-      return (
-        <div
-          key={sectionName}
-          className="sidebar-section"
-          data-section={sectionName}
-          style={{ marginBottom: isDesktopCollapsed ? '0.8rem' : '1.25rem' }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            {items.map(renderNavItem)}
-          </div>
-        </div>
-      );
-    }
-
-    // Minimal badge-style section header for OPERATIONS and INSIGHTS
-    const sectionColors: Record<string, { dot: string; text: string }> = {
-      OPERATIONS: {
-        dot: 'rgba(59, 130, 246, 0.8)', // Blue
-        text: 'rgba(255,255,255,0.75)',
-      },
-      INSIGHTS: {
-        dot: 'rgba(168, 85, 247, 0.8)', // Purple
-        text: 'rgba(255,255,255,0.75)',
-      },
+    const sectionColors: Record<string, { dotClass: string; textClass: string }> = {
+      OPERATIONS: { dotClass: 'bg-blue-500/80', textClass: 'text-white/75' },
+      INSIGHTS: { dotClass: 'bg-purple-500/80', textClass: 'text-white/75' },
     };
 
+    // eslint-disable-next-line security/detect-object-injection
     const colors = sectionColors[sectionName] || {
-      dot: 'rgba(255,255,255,0.5)',
-      text: 'rgba(255,255,255,0.75)',
+      dotClass: 'bg-white/50',
+      textClass: 'text-white/75',
     };
 
     return (
       <div
         key={sectionName}
-        className="sidebar-section"
+        className={cn('w-full', isDesktopCollapsed ? 'mb-3' : 'mb-5')}
         data-section={sectionName}
-        style={{ marginBottom: isDesktopCollapsed ? '0.8rem' : '1.25rem' }}
       >
-        {/* Minimal section header */}
-        {!isDesktopCollapsed && (
-          <div className="sidebar-section-header">
-            <div className="sidebar-section-dot" style={{ background: colors.dot }} />
-            <span className="sidebar-section-title" style={{ color: colors.text }}>
+        {!isDesktopCollapsed && sectionName !== 'MAIN' && (
+          <div className="flex items-center gap-2 mb-2.5 px-1">
+            <div className={cn('h-1 w-1 rounded-full', colors.dotClass)} />
+            <span
+              className={cn(
+                'text-[0.65rem] font-semibold tracking-wide uppercase',
+                colors.textClass
+              )}
+            >
               {sectionName}
             </span>
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+
+        <div className={cn('flex flex-col gap-1', isDesktopCollapsed && 'items-center')}>
           {items.map(renderNavItem)}
         </div>
       </div>
@@ -392,517 +311,273 @@ export default function Sidebar(
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
+
       <aside
         id={sidebarId}
-        className={`sidebar ${isDesktopCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'sidebar-mobile' : ''} ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
-        data-collapsed={isDesktopCollapsed ? 'true' : 'false'}
         aria-label="Main navigation"
         aria-hidden={isMobile && !isMobileMenuOpen}
+        data-collapsed={isDesktopCollapsed ? 'true' : 'false'}
+        className={cn(
+          // Use original CSS class which has clamp() for zoom-resilient width
+          'sidebar',
+          isDesktopCollapsed && 'sidebar-collapsed',
+          isMobile && 'sidebar-mobile',
+          isMobileMenuOpen && 'sidebar-mobile-open',
+          !isMobile && '[zoom:0.8] h-[125vh]',
+          !isMobile && !isDesktopCollapsed && '!w-72'
+        )}
       >
-        {' '}
-        {/* Branding Header - Enhanced */}
+        {/* Enhanced Header with Branding */}
         <div
-          className="sidebar-header"
-          style={{
-            padding: isDesktopCollapsed
-              ? '0.85rem 0.65rem 0.75rem'
-              : 'clamp(1rem, 2vw, 1.5rem) clamp(1rem, 2vw, 1.25rem) clamp(0.9rem, 1.8vw, 1.25rem)',
-            flexShrink: 0,
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)',
-            position: 'relative',
-            overflow: isDesktopCollapsed ? 'visible' : 'hidden', // Allow overflow when collapsed for toggle
-          }}
+          className={cn(
+            'relative shrink-0 border-b border-white/10',
+            'bg-gradient-to-b from-white/5 to-transparent',
+            isDesktopCollapsed ? 'p-3.5 px-2.5 pb-3' : 'p-3 md:p-4'
+          )}
         >
-          {/* Subtle background pattern */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background:
-                'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 50%)',
-              pointerEvents: 'none',
-            }}
-          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.05)_0%,transparent_55%)] pointer-events-none" />
 
           <Link
             href="/"
-            className="sidebar-brand"
-            style={{
-              textDecoration: 'none',
-              display: 'flex',
-              flexDirection: isDesktopCollapsed ? 'column' : 'row', // Stack vertically if collapsed
-              alignItems: 'center',
-              justifyContent: isDesktopCollapsed ? 'center' : 'flex-start',
-              gap: 'clamp(0.5rem, 1vw, 0.875rem)',
-              position: 'relative',
-              zIndex: 1,
-              transition: 'transform 0.2s ease',
-              minWidth: 0,
-              flex: isDesktopCollapsed ? 0 : 1, // Don't take full width if collapsed (allow button to exist)
-              width: isDesktopCollapsed ? '100%' : 'auto',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateX(2px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateX(0)';
-            }}
+            className={cn(
+              'relative z-10 flex items-center no-underline transition-transform hover:translate-x-0.5',
+              isDesktopCollapsed
+                ? 'flex-col justify-center gap-2 w-full'
+                : 'flex-row justify-start gap-2.5'
+            )}
           >
             <div
-              className="sidebar-logo"
-              style={{
-                width: 'clamp(32px, 4vw, 42px)',
-                height: 'clamp(32px, 4vw, 42px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(255,255,255,0.08)',
-                borderRadius: 'clamp(8px, 1vw, 11px)',
-                flexShrink: 0,
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
+              className={cn(
+                'relative shrink-0 rounded-xl border border-white/12 bg-white/8',
+                'shadow-md flex items-center justify-center overflow-hidden',
+                'transition-transform hover:scale-105',
+                isDesktopCollapsed ? 'h-10 w-10' : 'h-10 w-10 md:h-11 md:w-11'
+              )}
             >
-              {/* Logo glow effect */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background:
-                    'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <img
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)] pointer-events-none" />
+              <Image
                 src="/logo.svg"
-                alt="OpsSentinal"
-                style={{
-                  width: 'clamp(20px, 2.8vw, 28px)',
-                  height: 'clamp(20px, 2.8vw, 28px)',
-                  objectFit: 'contain',
-                  filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))',
-                  position: 'relative',
-                  zIndex: 1,
-                }}
+                alt="OpsSentinal logo"
+                width={48}
+                height={48}
+                className={cn(
+                  'relative z-10 object-contain',
+                  isDesktopCollapsed ? 'h-6 w-6' : 'h-7 w-7 md:h-8 md:w-8'
+                )}
               />
             </div>
+
             {!isDesktopCollapsed && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', minWidth: 0 }}>
-                <h1
-                  style={{
-                    fontSize: 'clamp(0.95rem, 2.2vw, 1.35rem)',
-                    fontWeight: '800',
-                    color: 'white',
-                    margin: 0,
-                    lineHeight: '1.2',
-                    letterSpacing: '-0.4px',
-                    textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                  }}
-                >
-                  OpsSentinal
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <h1 className="text-base md:text-lg font-extrabold text-white m-0 leading-tight tracking-tight">
+                  OpsSentinel
                 </h1>
-                <div
-                  className="sidebar-subtitle"
-                  style={{
-                    fontSize: 'clamp(0.55rem, 0.9vw, 0.7rem)',
-                    color: 'rgba(255,255,255,0.65)',
-                    fontWeight: '600',
-                    letterSpacing: '0.5px',
-                    textTransform: 'uppercase',
-                  }}
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    'w-fit px-2 py-0.5 mt-1',
+                    'text-[0.6rem] font-semibold uppercase tracking-wider',
+                    'bg-indigo-500/15 text-indigo-300',
+                    'border border-indigo-500/20',
+                    'rounded-full', // Ensure pill shape
+                    'backdrop-blur-sm transition-colors hover:bg-indigo-500/25'
+                  )}
                 >
-                  Enterprise
-                </div>
+                  Incident Response
+                </Badge>
               </div>
             )}
           </Link>
 
-          {/* Simple << / >> Collapse Toggle */}
+          {/* World-Class Desktop Collapse Toggle Button */}
           {!isMobile && (
-            <button
+            <Button
               type="button"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
               aria-label={isDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              aria-expanded={!isDesktopCollapsed}
-              aria-controls={sidebarId}
-              title={isDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="sidebar-collapse-toggle"
+              className={cn(
+                'absolute -right-3 top-1/2 -translate-y-1/2 z-20',
+                'w-6 h-6 rounded-full',
+                'bg-primary hover:bg-primary/90 text-white',
+                'border-2 border-white/20 shadow-lg hover:shadow-xl',
+                'transition-all duration-200 hover:scale-110',
+                'focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2'
+              )}
             >
-              {isDesktopCollapsed ? '>>' : '<<'}
-            </button>
+              {isDesktopCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+
+          {/* Mobile Close Button */}
+          {isMobile && isMobileMenuOpen && (
+            <Button
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3 h-9 w-9 rounded-lg bg-white/10 border border-white/20 text-white hover:bg-white/20"
+            >
+              <X className="h-5 w-5" />
+            </Button>
           )}
         </div>
-        {/* Scrollable Navigation Area */}
+
+        {/* Enhanced Scrollable Nav */}
         <nav
-          className="sidebar-nav"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: isDesktopCollapsed
-              ? '0.7rem 0.5rem'
-              : 'clamp(0.75rem, 1.6vw, 1rem) clamp(0.6rem, 1.4vw, 0.75rem)',
-            gap: isDesktopCollapsed ? '0.35rem' : '0.5rem',
-            scrollbarGutter: 'stable',
-            overscrollBehavior: 'contain',
-          }}
+          className={cn(
+            'flex-1 min-h-0 overflow-y-auto overflow-x-hidden',
+            'overscroll-contain',
+            // Enhanced scrollbar styling
+            '[scrollbar-width:thin]',
+            '[scrollbar-color:rgba(255,255,255,0.2)_transparent]',
+            // Webkit scrollbar
+            '[&::-webkit-scrollbar]:w-1.5',
+            '[&::-webkit-scrollbar-track]:bg-transparent',
+            '[&::-webkit-scrollbar-thumb]:bg-white/20',
+            '[&::-webkit-scrollbar-thumb]:rounded-full',
+            '[&::-webkit-scrollbar-thumb:hover]:bg-white/35',
+            // Compact padding
+            isDesktopCollapsed ? 'p-1.5' : 'p-2 md:p-3'
+          )}
         >
           {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
         </nav>
-        {/* Close button for mobile */}
-        {isMobile && isMobileMenuOpen && (
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-label="Close navigation menu"
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-md)',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all var(--transition-base)',
-            }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        )}
-        {/* User Profile and Footer - Refined */}
+
+        {/* Compact Footer Redesign */}
         <div
-          className="sidebar-footer"
-          style={{
-            padding: isDesktopCollapsed ? '0.75rem 0.5rem' : '1rem 0.75rem',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            flexShrink: 0,
-            marginTop: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: isDesktopCollapsed ? '0.6rem' : '0.75rem',
-          }}
+          className={cn(
+            'mt-auto shrink-0 border-t border-white/5',
+            // Removed bg-black/20 to match sidebar theme seamlessly
+            isDesktopCollapsed ? 'p-2' : 'p-3'
+          )}
         >
-          {/* User Profile - Compact */}
+          {/* User Profile Row */}
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: isDesktopCollapsed ? '0.5rem' : '0.75rem',
-              background: 'rgba(255,255,255,0.08)',
-              borderRadius: '8px',
-              justifyContent: isDesktopCollapsed ? 'center' : 'flex-start',
-              position: 'relative',
-            }}
-          >
-            {stats && stats.isClipped && (
-              <div
-                title={`Data retention limit: ${stats.retentionDays} days`}
-                style={{
-                  position: 'absolute',
-                  top: '-6px',
-                  right: '-6px',
-                  background: '#f59e0b',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '12px',
-                  height: '12px',
-                  fontSize: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'help',
-                  zIndex: 10,
-                }}
-              >
-                !
-              </div>
+            className={cn(
+              'flex items-center gap-3 group',
+              isDesktopCollapsed ? 'justify-center' : ''
             )}
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '600',
-                fontSize: 'clamp(0.72rem, 1vw, 0.85rem)',
-                color: 'white',
-                flexShrink: 0,
-                textTransform: 'uppercase',
-              }}
-              title={userName || userEmail || 'User'}
-            >
-              <img
-                src={finalAvatarUrl}
-                alt={userName || 'User'}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-              />
+          >
+            <div className="relative shrink-0">
+              <Avatar
+                className={cn(
+                  'border border-white/10 shadow-sm transition-transform group-hover:scale-105',
+                  isDesktopCollapsed ? 'w-8 h-8' : 'w-9 h-9'
+                )}
+              >
+                <AvatarImage
+                  src={
+                    userAvatar ||
+                    (userGender === 'FEMALE'
+                      ? 'https://i.pravatar.cc/150?img=44'
+                      : 'https://i.pravatar.cc/150?img=68')
+                  }
+                  alt={userName || 'User'}
+                />
+                <AvatarFallback className="bg-indigo-500/20 text-indigo-200 text-[10px] font-bold uppercase backdrop-blur-md">
+                  {(userName || userEmail || 'U').slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0B1120]" />
             </div>
+
             {!isDesktopCollapsed && (
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 'clamp(0.82rem, 1.05vw, 0.9rem)',
-                    fontWeight: '600',
-                    color: 'white',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    marginBottom: '0.125rem',
-                  }}
-                >
-                  {userName || userEmail || 'User'}
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="text-xs font-bold text-white truncate group-hover:text-indigo-200 transition-colors flex items-center gap-2">
+                  <span>{userName || 'User'}</span>
+                  {(() => {
+                    const roleKey = (userRole?.toLowerCase() || 'admin') as keyof typeof roleColors;
+                    const roleColors = {
+                      admin: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
+                      responder: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20',
+                      observer: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+                      user: 'text-sky-300 bg-sky-500/10 border-sky-500/20',
+                    };
+                    const activeColor = roleColors[roleKey] || roleColors.user;
+
+                    return (
+                      <span
+                        className={cn(
+                          'text-[9px] px-1.5 py-0.5 rounded border font-medium uppercase tracking-wide',
+                          activeColor
+                        )}
+                      >
+                        {userRole?.toLowerCase() || 'admin'}
+                      </span>
+                    );
+                  })()}
                 </div>
-                <div
-                  style={{
-                    fontSize: 'clamp(0.62rem, 0.9vw, 0.72rem)',
-                    color: 'rgba(255,255,255,0.65)',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {userRole ? userRole.toLowerCase() : 'User'}
+                <div className="text-[10px] text-white/40 font-medium truncate">
+                  {/* Display Email as requested */}
+                  {userEmail || 'user@example.com'}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Action Buttons Row */}
-          <div
-            style={{
-              display: isDesktopCollapsed ? 'flex' : 'grid',
-              flexDirection: isDesktopCollapsed ? 'column' : 'row',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: isDesktopCollapsed ? '0.4rem' : '0.5rem',
-            }}
-          >
-            {/* Documentation Link */}
-            <Link
-              href="/help"
-              onClick={() => isMobile && setIsMobileMenuOpen(false)}
-              aria-label="Documentation"
-              title="Documentation"
-              style={{
-                padding: actionButtonPadding,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                color: 'rgba(255,255,255,0.85)',
-                fontSize: 'clamp(0.62rem, 0.9vw, 0.75rem)',
-                fontWeight: '500',
-                textDecoration: 'none',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem',
-                textAlign: 'center',
-                minWidth: 0,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+          {/* Action Bar */}
+          {!isDesktopCollapsed && (
+            <div className="grid grid-cols-4 gap-1 mt-3">
+              <Link
+                href="/docs"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                title="Documentation"
               >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m0 4h.01" />
-              </svg>
-              {!isDesktopCollapsed && (
-                <span style={{ fontSize: 'clamp(0.58rem, 0.85vw, 0.7rem)', lineHeight: '1' }}>
-                  Docs
-                </span>
-              )}
-            </Link>
-
-            {/* Shortcuts Button */}
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('toggleKeyboardShortcuts'));
-                if (isMobile) setIsMobileMenuOpen(false);
-              }}
-              aria-label="Show keyboard shortcuts"
-              title="Keyboard Shortcuts"
-              style={{
-                padding: actionButtonPadding,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                color: 'rgba(255,255,255,0.85)',
-                fontSize: 'clamp(0.62rem, 0.9vw, 0.75rem)',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem',
-                textAlign: 'center',
-                minWidth: 0,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+                <HelpCircle className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/shortcuts"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                title="Keyboard Shortcuts"
               >
-                <rect x="4" y="2" width="16" height="20" rx="2" />
-                <path d="M9 6h6m-6 4h6m-2 4h2" />
-              </svg>
-              {!isDesktopCollapsed && (
-                <span style={{ fontSize: 'clamp(0.58rem, 0.85vw, 0.7rem)', lineHeight: '1' }}>
-                  Keys
-                </span>
-              )}
-            </button>
-
-            {/* Settings Link */}
-            <Link
-              href="/settings"
-              onClick={() => isMobile && setIsMobileMenuOpen(false)}
-              aria-label="Settings"
-              title="Settings"
-              style={{
-                padding: actionButtonPadding,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                color: 'rgba(255,255,255,0.85)',
-                fontSize: 'clamp(0.62rem, 0.9vw, 0.75rem)',
-                fontWeight: '500',
-                textDecoration: 'none',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem',
-                textAlign: 'center',
-                minWidth: 0,
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+                <Keyboard className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/settings"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                title="Settings"
               >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-              </svg>
-              {!isDesktopCollapsed && (
-                <span style={{ fontSize: 'clamp(0.58rem, 0.85vw, 0.7rem)', lineHeight: '1' }}>
-                  Settings
-                </span>
-              )}
-            </Link>
-          </div>
+                <Settings className="h-4 w-4" />
+              </Link>
+              <a
+                href="/api/auth/logout"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
+            </div>
+          )}
 
-          {/* Logout Button */}
-          <button
-            onClick={() => (window.location.href = '/api/auth/signout')}
-            aria-label="Sign Out"
-            title="Sign Out"
-            style={{
-              width: '100%',
-              padding: isDesktopCollapsed ? '0.5rem' : '0.625rem',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: '6px',
-              color: 'white',
-              fontSize: 'clamp(0.72rem, 1vw, 0.85rem)',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {!isDesktopCollapsed && 'Sign Out'}
-          </button>
+          {/* Collapsed Sign Out */}
+          {isDesktopCollapsed && (
+            <div className="mt-2 flex flex-col gap-1 items-center">
+              <div className="h-px w-4 bg-white/10 my-1" />
+              <a
+                href="/api/auth/logout"
+                className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
+            </div>
+          )}
+
+          {/* Footer Metadata */}
+          {!isDesktopCollapsed && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+              <span className="text-[10px] text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
+                opssentinal.com
+              </span>
+              <span className="text-[10px] text-white/10 font-mono">v1.0.2</span>
+            </div>
+          )}
         </div>
       </aside>
     </>
@@ -916,72 +591,27 @@ interface MobileMenuProps {
 }
 
 const MobileMenuButton = ({ isMobile, isMobileMenuOpen, setIsMobileMenuOpen }: MobileMenuProps) => (
-  <button
+  <Button
     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-    className="mobile-menu-button"
+    className={cn(
+      'fixed left-4 top-4 z-[1001] h-11 w-11 rounded-lg shadow-lg',
+      'bg-primary text-white',
+      'transition-transform hover:scale-[1.02] active:scale-[0.98]',
+      isMobile ? 'flex' : 'hidden'
+    )}
     aria-label="Toggle navigation menu"
     aria-expanded={isMobileMenuOpen}
-    style={{
-      display: isMobile ? 'flex' : 'none',
-      position: 'fixed',
-      top: '1rem',
-      left: '1rem',
-      zIndex: 1001,
-      width: '44px',
-      height: '44px',
-      borderRadius: 'var(--radius-md)',
-      background: 'var(--primary-color)',
-      border: 'none',
-      color: 'white',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      boxShadow: 'var(--shadow-lg)',
-      transition: 'all var(--transition-base)',
-    }}
+    size="icon"
   >
-    {isMobileMenuOpen ? (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-    ) : (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <line x1="3" y1="12" x2="21" y2="12" />
-        <line x1="3" y1="18" x2="21" y2="18" />
-      </svg>
-    )}
-  </button>
+    {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+  </Button>
 );
 
 const MobileBackdrop = ({ isMobile, isMobileMenuOpen, setIsMobileMenuOpen }: MobileMenuProps) =>
   isMobile && isMobileMenuOpen ? (
     <div
-      className="mobile-sidebar-backdrop"
+      className="fixed inset-0 z-[999] bg-black/50 backdrop-blur-sm"
       onClick={() => setIsMobileMenuOpen(false)}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 999,
-        animation: 'fadeIn var(--transition-base)',
-      }}
       aria-hidden="true"
     />
   ) : null;

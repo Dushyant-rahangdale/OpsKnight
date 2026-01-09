@@ -1,9 +1,16 @@
 import type { IncidentUrgency, Prisma } from '@prisma/client';
 
-export type IncidentListFilter = 'mine' | 'all_open' | 'resolved' | 'snoozed' | 'suppressed';
+export type IncidentListFilter =
+  | 'all'
+  | 'mine'
+  | 'all_open'
+  | 'resolved'
+  | 'snoozed'
+  | 'suppressed';
 export type IncidentListSort = 'newest' | 'oldest' | 'updated' | 'status' | 'priority';
 
 const incidentFilters: IncidentListFilter[] = [
+  'all',
   'mine',
   'all_open',
   'resolved',
@@ -17,7 +24,7 @@ export function normalizeIncidentFilter(value?: string): IncidentListFilter {
   if (value && incidentFilters.includes(value as IncidentListFilter)) {
     return value as IncidentListFilter;
   }
-  return 'all_open';
+  return 'all';
 }
 
 export function normalizeIncidentSort(value?: string): IncidentListSort {
@@ -69,7 +76,7 @@ export function buildIncidentWhere({
 
   if (urgency && urgency !== 'all') {
     const urgencyValue = urgency.toUpperCase() as IncidentUrgency;
-    if (urgencyValue === 'LOW' || urgencyValue === 'HIGH') {
+    if (urgencyValue === 'LOW' || urgencyValue === 'MEDIUM' || urgencyValue === 'HIGH') {
       where.urgency = urgencyValue;
     }
   }
@@ -90,7 +97,7 @@ export function buildIncidentOrderBy(
     return [{ status: 'asc' }];
   }
   if (sort === 'priority') {
-    return [{ priority: 'asc' }, { createdAt: 'desc' }];
+    return [{ priority: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }];
   }
   return [{ createdAt: 'desc' }];
 }

@@ -9,6 +9,19 @@ import {
   removeTagFromIncident,
   getAllTags,
 } from '@/app/(app)/incidents/tag-actions';
+import { Button } from '@/components/ui/shadcn/button';
+import { Badge } from '@/components/ui/shadcn/badge';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/shadcn/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/popover';
+import { Check, ChevronsUpDown, Plus, Tag as TagIcon, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type IncidentTagsProps = {
   incidentId: string;
@@ -19,20 +32,18 @@ type IncidentTagsProps = {
 export default function IncidentTags({ incidentId, tags, canManage }: IncidentTagsProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [isAdding, setIsAdding] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const [availableTags, setAvailableTags] = useState<Array<{ id: string; name: string }>>([]);
   const [isPending, startTransition] = useTransition();
 
-  const handleAddTag = async () => {
-    if (!newTagName.trim()) return;
-
+  const handleAddTag = async (tagName: string) => {
     startTransition(async () => {
       try {
-        await addTagToIncident(incidentId, newTagName.trim());
+        await addTagToIncident(incidentId, tagName.trim());
         showToast('Tag added successfully', 'success');
-        setNewTagName('');
-        setIsAdding(false);
+        setSearchValue('');
+        setOpen(false);
         router.refresh();
       } catch (error) {
         showToast(error instanceof Error ? error.message : 'Failed to add tag', 'error');
@@ -79,172 +90,109 @@ export default function IncidentTags({ incidentId, tags, canManage }: IncidentTa
     return colors[hash % colors.length];
   };
 
+  // Filter out tags already added to this incident
+  const filteredAvailableTags = availableTags.filter(
+    at => !tags.some(t => t.name.toLowerCase() === at.name.toLowerCase())
+  );
+
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '0.75rem',
-        }}
-      >
-        <h4
-          style={{
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
-          Tags
+    <div className="mb-6">
+      <div className="mb-2">
+        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+          TAGS
         </h4>
-        {canManage && !isAdding && (
-          <button
-            type="button"
-            onClick={() => {
-              setIsAdding(true);
-              loadAvailableTags();
-            }}
-            style={{
-              padding: '0.25rem 0.5rem',
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              color: 'var(--primary-color)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              cursor: 'pointer',
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {tags.map(tag => {
+          const tagColors = getTagColor(tag.name);
+          return (
+            <Badge
+              key={tag.id}
+              variant="outline"
+              className="rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all hover:shadow-sm"
+              style={{
+                backgroundColor: tagColors.bg,
+                color: tagColors.color,
+                borderColor: tagColors.border,
+              }}
+            >
+              #{tag.name}
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag.id)}
+                  disabled={isPending}
+                  className="ml-1.5 hover:opacity-70 disabled:opacity-50 rounded-full p-0.5 hover:bg-black/5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </Badge>
+          );
+        })}
+
+        {canManage && (
+          <Popover
+            open={open}
+            onOpenChange={isOpen => {
+              setOpen(isOpen);
+              if (isOpen) loadAvailableTags();
             }}
           >
-            + Add Tag
-          </button>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 rounded-full px-2 text-xs border-dashed text-muted-foreground hover:text-foreground hover:border-foreground/50 bg-transparent"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Tag
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[200px]" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Search/Create tag..."
+                  className="h-9"
+                  value={searchValue}
+                  onValueChange={setSearchValue}
+                />
+                <CommandList>
+                  <CommandEmpty className="py-2 px-2">
+                    <p className="text-xs text-muted-foreground mb-2 text-center">
+                      No existing tag found.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full h-7 text-xs"
+                      onClick={() => handleAddTag(searchValue)}
+                    >
+                      Create "{searchValue}"
+                    </Button>
+                  </CommandEmpty>
+                  <CommandGroup heading="Existing Tags">
+                    {filteredAvailableTags.map(tag => (
+                      <CommandItem
+                        key={tag.id}
+                        value={tag.name}
+                        onSelect={() => handleAddTag(tag.name)}
+                        className="text-xs"
+                      >
+                        {tag.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 
-      {tags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-          {tags.map(tag => {
-            const tagColors = getTagColor(tag.name);
-            return (
-              <span
-                key={tag.id}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.25rem 0.625rem',
-                  background: tagColors.bg,
-                  color: tagColors.color,
-                  border: `1px solid ${tagColors.border}`,
-                  borderRadius: '0px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                }}
-              >
-                #{tag.name}
-                {canManage && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag.id)}
-                    disabled={isPending}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: tagColors.color,
-                      cursor: isPending ? 'not-allowed' : 'pointer',
-                      padding: 0,
-                      margin: 0,
-                      fontSize: '0.9rem',
-                      lineHeight: 1,
-                      opacity: isPending ? 0.5 : 1,
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {isAdding && canManage && (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input
-            type="text"
-            value={newTagName}
-            onChange={e => setNewTagName(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddTag();
-              } else if (e.key === 'Escape') {
-                setIsAdding(false);
-                setNewTagName('');
-              }
-            }}
-            placeholder="Tag name..."
-            autoFocus
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-            }}
-            list="available-tags"
-          />
-          <datalist id="available-tags">
-            {availableTags.map(tag => (
-              <option key={tag.id} value={tag.name} />
-            ))}
-          </datalist>
-          <button
-            type="button"
-            onClick={handleAddTag}
-            disabled={isPending || !newTagName.trim()}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: isPending || !newTagName.trim() ? 'not-allowed' : 'pointer',
-              opacity: isPending || !newTagName.trim() ? 0.6 : 1,
-            }}
-          >
-            Add
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsAdding(false);
-              setNewTagName('');
-            }}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {tags.length === 0 && !isAdding && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          No tags assigned
-        </p>
+      {tags.length === 0 && !canManage && (
+        <p className="text-sm text-muted-foreground italic">No tags assigned</p>
       )}
     </div>
   );

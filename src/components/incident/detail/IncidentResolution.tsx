@@ -1,33 +1,44 @@
 'use client';
 
+import { useFormStatus } from 'react-dom';
+import { Button } from '@/components/ui/shadcn/button';
+import { Textarea } from '@/components/ui/shadcn/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/shadcn/card';
+import { CheckCircle2, Lock, Loader2, Target } from 'lucide-react';
+
 type IncidentResolutionProps = {
   incidentId: string;
   canManage: boolean;
   onResolve: (formData: FormData) => void;
 };
 
-import { useFormStatus } from 'react-dom';
-
 function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
+    <Button
       type="submit"
       disabled={pending}
-      className="glass-button primary"
-      style={{
-        width: '100%',
-        borderRadius: '0px',
-        padding: '0.875rem 1.5rem',
-        fontWeight: 600,
-        fontSize: '0.9rem',
-        opacity: pending ? 0.7 : 1,
-        cursor: pending ? 'not-allowed' : 'pointer',
-      }}
+      className="w-full h-10 bg-green-600 hover:bg-green-700 text-white"
     >
-      {pending ? 'Resolving...' : 'Resolve with Note'}
-    </button>
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Resolving...
+        </>
+      ) : (
+        <>
+          <CheckCircle2 className="mr-2 h-4 w-4" />
+          Resolve Incident
+        </>
+      )}
+    </Button>
   );
 }
 
@@ -38,135 +49,50 @@ export default function IncidentResolution({
 }: IncidentResolutionProps) {
   if (!canManage) {
     return (
-      <div
-        className="glass-panel"
-        style={{
-          padding: '1.5rem',
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0px',
-          boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
-          opacity: 0.7,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem',
-          }}
-        >
-          <h4 style={{ fontWeight: '700', color: 'var(--text-secondary)' }}>Resolution</h4>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-            }}
-          >
-            Required
-          </span>
-        </div>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-          ⚠️ You don&apos;t have access to resolve incidents. Responder role or above required.
-        </p>
-        <div style={{ display: 'grid', gap: '0.75rem', opacity: 0.5, pointerEvents: 'none' }}>
-          <textarea
-            name="resolution"
-            disabled
-            rows={4}
-            placeholder="Root cause, fix applied, or summary..."
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              borderRadius: '0px',
-              border: '1px solid #e2e8f0',
-              resize: 'vertical',
-              background: '#f3f4f6',
-              fontSize: '0.9rem',
-            }}
-          />
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            10-1000 chars. Supports **bold**, *italic*, `code`, links.
-          </div>
-          <button
-            type="button"
-            disabled
-            className="glass-button primary"
-            style={{ width: '100%', opacity: 0.5, borderRadius: '0px' }}
-          >
-            Resolve with Note
-          </button>
-        </div>
-      </div>
+      <Card className="border-orange-200 bg-orange-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-orange-900">
+            <Lock className="h-5 w-5" />
+            Resolution - Access Restricted
+          </CardTitle>
+          <CardDescription className="text-orange-700">
+            You need Responder role or above to resolve incidents
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: '1.5rem',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        border: '1px solid #e6e8ef',
-        borderRadius: '0px',
-        boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-        }}
-      >
-        <h4 style={{ fontWeight: '700' }}>Resolution</h4>
-        <span
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-          }}
-        >
-          Required
-        </span>
-      </div>
-      <form action={onResolve} style={{ display: 'grid', gap: '0.75rem' }}>
-        <textarea
-          name="resolution"
-          required
-          minLength={10}
-          maxLength={1000}
-          rows={4}
-          placeholder="Root cause, fix applied, or summary..."
-          style={{
-            width: '100%',
-            padding: '0.875rem',
-            borderRadius: '0px',
-            border: '1px solid var(--border)',
-            resize: 'vertical',
-            background: '#fff',
-            fontSize: '0.9rem',
-            fontFamily: 'inherit',
-            outline: 'none',
-            transition: 'border-color 0.15s',
-          }}
-          onFocus={e => {
-            e.currentTarget.style.borderColor = 'var(--primary-color)';
-          }}
-          onBlur={e => {
-            e.currentTarget.style.borderColor = 'var(--border)';
-          }}
-        />
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          10-1000 chars. Supports **bold**, *italic*, `code`, links.
-        </div>
-        <SubmitButton />
-      </form>
-    </div>
+    <Card className="border-green-200 bg-green-50/50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-green-900">
+          <Target className="h-5 w-5" />
+          Resolve Incident
+        </CardTitle>
+        <CardDescription className="text-green-700">
+          Mark this incident as resolved with a summary note
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={onResolve} className="space-y-4">
+          <div className="space-y-2">
+            <Textarea
+              name="resolution"
+              required
+              minLength={10}
+              maxLength={1000}
+              rows={4}
+              placeholder="Root cause, fix applied, or summary..."
+              className="resize-none bg-white"
+            />
+            <p className="text-xs text-muted-foreground">
+              10-1000 characters. Supports Markdown formatting.
+            </p>
+          </div>
+          <SubmitButton />
+        </form>
+      </CardContent>
+    </Card>
   );
 }

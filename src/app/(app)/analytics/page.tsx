@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 };
 
 const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'] as const;
-const allowedUrgency = ['HIGH', 'LOW'] as const;
+const allowedUrgency = ['HIGH', 'MEDIUM', 'LOW'] as const;
 const allowedWindows = new Set([1, 3, 7, 14, 30, 60, 90, 180, 365]);
 
 function getStatusColor(status: string): string {
@@ -153,9 +153,25 @@ export default async function AnalyticsV2Page({
     if (val === null) return 'default';
     return val >= 95 ? 'success' : val >= 80 ? 'warning' : 'danger';
   };
-  const lowUrgencyCount = Math.max(0, metrics.totalIncidents - metrics.highUrgencyCount);
+  const urgencyCounts = metrics.urgencyMix.reduce(
+    (acc, entry) => {
+      if (entry.urgency === 'HIGH') acc.high += entry.count;
+      else if (entry.urgency === 'MEDIUM') acc.medium += entry.count;
+      else if (entry.urgency === 'LOW') acc.low += entry.count;
+      return acc;
+    },
+    { high: 0, medium: 0, low: 0 }
+  );
+  const highUrgencyCount = urgencyCounts.high || metrics.highUrgencyCount || 0;
+  const mediumUrgencyCount = urgencyCounts.medium;
+  const lowUrgencyCount =
+    urgencyCounts.low ||
+    Math.max(0, metrics.totalIncidents - highUrgencyCount - mediumUrgencyCount);
   const highUrgencyPercent = metrics.totalIncidents
-    ? (metrics.highUrgencyCount / metrics.totalIncidents) * 100
+    ? (highUrgencyCount / metrics.totalIncidents) * 100
+    : 0;
+  const mediumUrgencyPercent = metrics.totalIncidents
+    ? (mediumUrgencyCount / metrics.totalIncidents) * 100
     : 0;
   const lowUrgencyPercent = metrics.totalIncidents
     ? (lowUrgencyCount / metrics.totalIncidents) * 100
@@ -272,7 +288,7 @@ export default async function AnalyticsV2Page({
   );
 
   return (
-    <main className="page-shell analytics-shell analytics-v2 pb-20">
+    <main className="page-shell analytics-shell analytics-v2 pb-20 [zoom:0.8]">
       <div className="analytics-header">
         <div className="analytics-header-left">
           <div className="analytics-header-pill-row">
@@ -973,10 +989,18 @@ export default async function AnalyticsV2Page({
           <div className="distribution-card-body distribution-urgency">
             <div className="distribution-urgency-row">
               <span>High urgency</span>
-              <strong>{metrics.highUrgencyCount.toLocaleString()}</strong>
+              <strong>{highUrgencyCount.toLocaleString()}</strong>
               <em>{highUrgencyPercent.toFixed(1)}%</em>
               <div className="distribution-urgency-bar">
                 <span style={{ width: `${highUrgencyPercent.toFixed(1)}%` }} />
+              </div>
+            </div>
+            <div className="distribution-urgency-row is-medium">
+              <span>Medium urgency</span>
+              <strong>{mediumUrgencyCount.toLocaleString()}</strong>
+              <em>{mediumUrgencyPercent.toFixed(1)}%</em>
+              <div className="distribution-urgency-bar">
+                <span style={{ width: `${mediumUrgencyPercent.toFixed(1)}%` }} />
               </div>
             </div>
             <div className="distribution-urgency-row is-low">

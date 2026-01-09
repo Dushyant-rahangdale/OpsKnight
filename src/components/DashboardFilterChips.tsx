@@ -1,6 +1,9 @@
 'use client';
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import { X } from 'lucide-react';
 
 type FilterChipsProps = {
   services: Array<{ id: string; name: string }>;
@@ -65,91 +68,36 @@ export default function DashboardFilterChips({ services, users }: FilterChipsPro
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.5rem',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        marginTop: '0.5rem',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 'var(--font-size-xs)',
-          color: 'var(--text-muted)',
-          fontWeight: 'var(--font-weight-medium)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-        }}
-      >
+    <div className="flex gap-2 items-center flex-wrap mt-2">
+      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
         Active Filters:
       </span>
       {activeFilters.map(filter => (
-        <div
+        <Badge
           key={filter.key}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.3rem 0.625rem',
-            background: 'var(--color-neutral-100)',
-            borderRadius: '999px',
-            fontSize: 'var(--font-size-xs)',
-            color: 'var(--text-primary)',
-            fontWeight: 'var(--font-weight-medium)',
-            border: '1px solid var(--border)',
-          }}
+          variant="secondary"
+          className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
         >
           <span>
             {filter.label}: <strong>{filter.value}</strong>
           </span>
           <button
             onClick={() => removeFilter(filter.key)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              fontSize: '0.95rem',
-              lineHeight: 1,
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              transition: 'color 0.15s ease',
-            }}
+            className="hover:text-foreground transition-colors"
             title={`Remove ${filter.label} filter`}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
           >
-            ×
+            <X className="h-3 w-3" />
           </button>
-        </div>
+        </Badge>
       ))}
-      <button
+      <Button
         onClick={clearAll}
-        style={{
-          padding: '0.3rem 0.625rem',
-          background: 'transparent',
-          border: '1px solid var(--border)',
-          borderRadius: '999px',
-          fontSize: 'var(--font-size-xs)',
-          color: 'var(--text-secondary)',
-          cursor: 'pointer',
-          fontWeight: 'var(--font-weight-medium)',
-          transition: 'all 0.15s ease',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = 'var(--color-neutral-100)';
-          e.currentTarget.style.color = 'var(--text-primary)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'var(--text-secondary)';
-        }}
+        variant="outline"
+        size="sm"
+        className="h-6 px-2.5 text-xs font-medium rounded-full"
       >
         Clear All
-      </button>
+      </Button>
     </div>
   );
 }

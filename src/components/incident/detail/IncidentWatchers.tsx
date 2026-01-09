@@ -1,14 +1,51 @@
 'use client';
 
+import { useState } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/shadcn/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/shadcn/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/popover';
+import { Button } from '@/components/ui/shadcn/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/shadcn/avatar';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Users, Lock, Trash2, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { getDefaultAvatar } from '@/lib/avatar';
+import { cn } from '@/lib/utils';
+
 type Watcher = {
   id: string;
-  user: { id: string; name: string; email: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+  };
   role: string;
 };
 
 type IncidentWatchersProps = {
   watchers: Watcher[];
-  users: Array<{ id: string; name: string; email: string }>;
+  // Updated type to include avatar/gender for selection list
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+  }>;
   canManage: boolean;
   onAddWatcher: (formData: FormData) => void;
   onRemoveWatcher: (formData: FormData) => void;
@@ -21,227 +58,213 @@ export default function IncidentWatchers({
   onAddWatcher,
   onRemoveWatcher,
 }: IncidentWatchersProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
+  // Filter out users who are already watchers to keep the list clean (optional, but good UX)
+  // Or just mark them. Let's keep them but maybe disable? no, just simple select for now.
+  const availableUsers = users.filter(u => !watchers.some(w => w.user.id === u.id));
+
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: '1.5rem',
-        background: canManage ? 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' : '#f9fafb',
-        border: '1px solid #e6e8ef',
-        borderRadius: '0px',
-        boxShadow: '0 12px 28px rgba(15, 23, 42, 0.08)',
-        opacity: canManage ? 1 : 0.7,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-        }}
-      >
-        <h4
-          style={{
-            fontWeight: '700',
-            color: canManage ? 'var(--text-primary)' : 'var(--text-secondary)',
-          }}
-        >
-          Stakeholders / Watchers
+    <div className="space-y-3">
+      <div className="flex justify-between items-center px-1">
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          Watchers
         </h4>
-        <span
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-          }}
+        <Badge
+          variant="outline"
+          className="text-[10px] font-normal text-muted-foreground border-border bg-transparent"
         >
           Visibility
-        </span>
+        </Badge>
       </div>
 
-      {canManage ? (
-        <>
-          <form
-            action={onAddWatcher}
-            style={{ display: 'grid', gap: '0.6rem', marginBottom: '1rem' }}
-          >
-            <select
-              name="watcherId"
-              defaultValue=""
-              style={{
-                padding: '0.625rem',
-                borderRadius: '0px',
-                border: '1px solid var(--border)',
-                background: '#fff',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                outline: 'none',
+      <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+        <div className="p-4 space-y-4">
+          {canManage ? (
+            <form
+              action={formData => {
+                // Reset selection after submit (optimistic)
+                // Ideally we'd wait for result, but for now simple reset
+                const res = onAddWatcher(formData);
+                setSelectedUserId('');
+                return res;
               }}
+              className="grid gap-3"
             >
-              <option value="">Select a user...</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </option>
-              ))}
-            </select>
-            <select
-              name="watcherRole"
-              defaultValue="FOLLOWER"
-              style={{
-                padding: '0.625rem',
-                borderRadius: '0px',
-                border: '1px solid var(--border)',
-                background: '#fff',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="FOLLOWER">Follower</option>
-              <option value="STAKEHOLDER">Stakeholder</option>
-              <option value="EXEC">Executive</option>
-            </select>
-            <button
-              className="glass-button"
-              style={{
-                height: '36px',
-                padding: '0 0.75rem',
-                fontSize: '0.85rem',
-                borderRadius: '0px',
-              }}
-            >
-              Add Watcher
-            </button>
-          </form>
-        </>
-      ) : (
-        <div style={{ marginBottom: '1rem' }}>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            ⚠️ You don't have access to manage watchers. Responder role or above required.
-          </p>
-          <div style={{ display: 'grid', gap: '0.6rem', opacity: 0.5, pointerEvents: 'none' }}>
-            <select
-              disabled
-              style={{
-                padding: '0.625rem',
-                borderRadius: '0px',
-                border: '1px solid #e2e8f0',
-                background: '#f3f4f6',
-              }}
-            >
-              <option value="">Select a user...</option>
-            </select>
-            <select
-              disabled
-              defaultValue="FOLLOWER"
-              style={{
-                padding: '0.625rem',
-                borderRadius: '0px',
-                border: '1px solid #e2e8f0',
-                background: '#f3f4f6',
-              }}
-            >
-              <option value="FOLLOWER">Follower</option>
-            </select>
-            <button
-              className="glass-button"
-              disabled
-              style={{
-                height: '36px',
-                padding: '0 0.75rem',
-                fontSize: '0.85rem',
-                opacity: 0.5,
-                borderRadius: '0px',
-              }}
-            >
-              Add Watcher
-            </button>
-          </div>
-        </div>
-      )}
+              <div className="flex flex-wrap gap-2">
+                {/* Searchable User Select (Combobox) */}
+                <input type="hidden" name="watcherId" value={selectedUserId} />
 
-      {watchers.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-          No watchers yet. Add stakeholders to keep them informed about this incident.
-        </p>
-      ) : (
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {watchers.map(watcher => (
-            <div
-              key={watcher.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.75rem',
-                padding: '0.875rem',
-                border: '1px solid var(--border)',
-                borderRadius: '0px',
-                background: '#fff',
-                transition: 'all 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    background: 'var(--primary-color)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  {watcher.user.name.charAt(0).toUpperCase()}
+                <div className="flex-1 min-w-[140px]">
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-full justify-between h-9 text-sm bg-background px-3 font-normal"
+                      >
+                        {selectedUser ? (
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <Avatar className="h-5 w-5 shrink-0">
+                              <AvatarImage
+                                src={
+                                  selectedUser.avatarUrl ||
+                                  getDefaultAvatar(selectedUser.gender, selectedUser.name)
+                                }
+                                alt={selectedUser.name}
+                              />
+                              <AvatarFallback className="text-[8px] bg-slate-100 font-bold text-slate-600">
+                                {selectedUser.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{selectedUser.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground truncate">Select user...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="p-0 border shadow-md rounded-lg w-[320px]"
+                      align="start"
+                    >
+                      <Command className="rounded-lg">
+                        <CommandInput
+                          placeholder="Search user..."
+                          className="border-none focus:ring-0"
+                        />
+                        <CommandList className="max-h-[300px]">
+                          <CommandEmpty className="py-6 text-center text-sm">
+                            No user found.
+                          </CommandEmpty>
+                          <CommandGroup className="p-1.5">
+                            {availableUsers.map(user => (
+                              <CommandItem
+                                key={user.id}
+                                value={`${user.name}|${user.email}`}
+                                onSelect={() => {
+                                  setSelectedUserId(user.id);
+                                  setOpen(false);
+                                }}
+                                className="flex items-center gap-2 cursor-pointer text-sm rounded-md aria-selected:bg-accent my-0 py-1.5"
+                              >
+                                <Avatar className="h-7 w-7 border border-slate-200 shrink-0">
+                                  <AvatarImage
+                                    src={user.avatarUrl || getDefaultAvatar(user.gender, user.name)}
+                                    alt={user.name}
+                                  />
+                                  <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-bold">
+                                    {user.name.slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-medium leading-none truncate text-xs">
+                                    {user.name}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground truncate">
+                                    {user.email}
+                                  </span>
+                                </div>
+                                <Check
+                                  className={cn(
+                                    'ml-auto h-4 w-4 text-primary shrink-0',
+                                    selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <div>
-                  <div
-                    style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}
-                  >
-                    {watcher.user.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--text-muted)',
-                      marginTop: '0.15rem',
-                    }}
-                  >
-                    {watcher.role}
-                  </div>
+
+                <div className="w-[110px] shrink-0">
+                  <Select name="watcherRole" defaultValue="FOLLOWER">
+                    <SelectTrigger className="w-full bg-background h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FOLLOWER">Follower</SelectItem>
+                      <SelectItem value="STAKEHOLDER">Stakeholder</SelectItem>
+                      <SelectItem value="EXEC">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              {canManage && (
-                <form action={onRemoveWatcher}>
-                  <input type="hidden" name="watcherMemberId" value={watcher.id} />
-                  <button
-                    className="glass-button"
-                    style={{
-                      height: '32px',
-                      padding: '0 0.75rem',
-                      fontSize: '0.8rem',
-                      borderRadius: '0px',
-                      background: '#feecec',
-                      border: '1px solid rgba(211,47,47,0.25)',
-                      color: 'var(--danger)',
-                    }}
-                  >
-                    Remove
-                  </button>
-                </form>
-              )}
+              <Button
+                type="submit"
+                size="sm"
+                className="w-full font-semibold h-8 text-xs"
+                disabled={!selectedUserId}
+              >
+                <Users className="h-3.5 w-3.5 mr-2" />
+                Add Watcher
+              </Button>
+            </form>
+          ) : (
+            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-sm text-muted-foreground flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Only responders can manage watchers
             </div>
-          ))}
+          )}
+
+          {watchers.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic text-center py-2">No watchers yet</p>
+          ) : (
+            <div className="space-y-2">
+              {watchers.map(watcher => (
+                <div
+                  key={watcher.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+                      <AvatarImage
+                        src={
+                          watcher.user.avatarUrl ||
+                          getDefaultAvatar(watcher.user.gender, watcher.user.name)
+                        }
+                        alt={watcher.user.name}
+                      />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                        {watcher.user.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {watcher.user.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground capitalize">
+                        {watcher.role.toLowerCase()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {canManage && (
+                    <form action={onRemoveWatcher}>
+                      <input type="hidden" name="watcherMemberId" value={watcher.id} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

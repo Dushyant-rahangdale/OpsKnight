@@ -88,12 +88,7 @@ const CompactServiceHealth = memo(function CompactServiceHealth({
   if (displayServices.length === 0) {
     return (
       <div
-        style={{
-          padding: '1.25rem',
-          textAlign: 'center',
-          color: 'var(--text-muted)',
-          fontSize: 'var(--font-size-sm)',
-        }}
+        className="p-5 text-center text-muted-foreground text-sm"
         role="status"
         aria-label="All services operational"
       >
@@ -103,11 +98,7 @@ const CompactServiceHealth = memo(function CompactServiceHealth({
   }
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
-      role="list"
-      aria-label="Service health status"
-    >
+    <div className="flex flex-col gap-2" role="list" aria-label="Service health status">
       {displayServices.map(service => {
         const statusColor = getStatusColor(service.status);
         const statusLabel = getStatusLabel(service.status);
@@ -116,47 +107,19 @@ const CompactServiceHealth = memo(function CompactServiceHealth({
         return (
           <div
             key={service.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.5rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--color-neutral-50)',
-              border: '1px solid var(--border)',
-            }}
+            className="flex items-center justify-between p-2 px-3 rounded-sm bg-neutral-50 border border-border"
             role="listitem"
             aria-label={`${service.name}: ${statusLabel}${incidentCount > 0 ? `, ${incidentCount} active incidents` : ''}`}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <div
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: statusColor,
-                  flexShrink: 0,
-                }}
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: statusColor }}
                 aria-hidden="true"
                 title={statusLabel}
               />
               <span
-                style={{
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 'var(--font-weight-medium)',
-                  color: 'var(--text-secondary)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
+                className="text-sm font-medium text-secondary-foreground overflow-hidden overflow-ellipsis whitespace-nowrap"
                 title={service.name}
               >
                 {service.name}
@@ -164,16 +127,7 @@ const CompactServiceHealth = memo(function CompactServiceHealth({
             </div>
             {incidentCount > 0 && (
               <span
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  color: 'var(--color-error)',
-                  padding: '0.125rem 0.375rem',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
+                className="text-xs font-semibold text-red-600 py-0.5 px-1.5 rounded-full bg-red-100 shrink-0 tabular-nums"
                 aria-label={`${incidentCount} active incidents`}
               >
                 {incidentCount}

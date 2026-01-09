@@ -5,6 +5,20 @@ import { useRouter } from 'next/navigation';
 import { reassignIncident } from '@/app/(app)/incidents/actions';
 import { useToast } from '../ToastProvider';
 import { getDefaultAvatar } from '@/lib/avatar';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/shadcn/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/popover';
+import { Button } from '@/components/ui/shadcn/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/shadcn/avatar';
+import { Check, ChevronsUpDown, Users as UsersIcon, User, Search, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type AssigneeSectionProps = {
   assignee: {
@@ -17,7 +31,14 @@ type AssigneeSectionProps = {
   team: { id: string; name: string } | null;
   assigneeId: string | null;
   teamId: string | null;
-  users: Array<{ id: string; name: string; email: string }>;
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+    role?: string;
+  }>;
   teams: Array<{ id: string; name: string }>;
   incidentId: string;
   canManage: boolean;
@@ -37,13 +58,13 @@ export default function AssigneeSection({
 }: AssigneeSectionProps) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [isReassigning, setIsReassigning] = useState(false);
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleReassign = async (value: string) => {
+    // Value format: "user:id", "team:id", or ""
     startTransition(async () => {
       try {
-        // Parse value: "user:id" or "team:id" or empty for unassign
         let newAssigneeId = '';
         let newTeamId = '';
 
@@ -58,7 +79,7 @@ export default function AssigneeSection({
           value ? 'Incident reassigned successfully' : 'Incident unassigned successfully',
           'success'
         );
-        setIsReassigning(false);
+        setOpen(false);
         router.refresh();
       } catch (error) {
         showToast(error instanceof Error ? error.message : 'Failed to reassign', 'error');
@@ -66,440 +87,170 @@ export default function AssigneeSection({
     });
   };
 
+  const currentValue = teamId ? `team:${teamId}` : assigneeId ? `user:${assigneeId}` : '';
+
+  // Generic Reassign Content (Shared)
+  const ReassignContent = (
+    <Command className="rounded-lg border shadow-md">
+      <CommandInput placeholder="Search assignee..." className="border-none focus:ring-0" />
+      <CommandList className="max-h-[300px]">
+        <CommandEmpty className="py-6 text-center text-sm">No results found.</CommandEmpty>
+
+        <CommandGroup heading="Actions" className="p-1.5">
+          <CommandItem
+            value="unassign"
+            onSelect={() => handleReassign('')}
+            className="text-sm rounded-md aria-selected:bg-accent"
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 mr-2 border">
+              <X className="h-4 w-4 text-slate-500" />
+            </div>
+            <span>Unassigned</span>
+            <Check
+              className={cn(
+                'ml-auto h-4 w-4 text-primary',
+                currentValue === '' ? 'opacity-100' : 'opacity-0'
+              )}
+            />
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Teams" className="p-1.5">
+          {teams.map(t => (
+            <CommandItem
+              key={t.id}
+              value={`team:${t.id}|${t.name}`} // Include name for better search
+              onSelect={() => handleReassign(`team:${t.id}`)}
+              className="text-sm rounded-md aria-selected:bg-accent my-0.5"
+            >
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-2 border border-indigo-200">
+                <UsersIcon className="h-4 w-4 text-indigo-600" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium">{t.name}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Team
+                </span>
+              </div>
+              <Check
+                className={cn(
+                  'ml-auto h-4 w-4 text-primary',
+                  currentValue === `team:${t.id}` ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+            </CommandItem>
+          ))}
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Users" className="p-1.5">
+          {users.map(u => (
+            <CommandItem
+              key={u.id}
+              value={`user:${u.id}|${u.name}|${u.email}`} // Include name/email for search
+              onSelect={() => handleReassign(`user:${u.id}`)}
+              className="text-sm rounded-md aria-selected:bg-accent my-0 py-1.5"
+            >
+              <Avatar className="h-7 w-7 mr-2 border border-slate-200 shrink-0">
+                <AvatarImage src={u.avatarUrl || getDefaultAvatar(u.gender, u.name)} alt={u.name} />
+                <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-bold">
+                  {u.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col min-w-0">
+                <span className="font-medium truncate text-xs">{u.name}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{u.email}</span>
+              </div>
+              <Check
+                className={cn(
+                  'ml-auto h-4 w-4 text-primary shrink-0',
+                  currentValue === `user:${u.id}` ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+
+  // Header Variant - Button Trigger
   if (variant === 'header') {
     return (
-      <div>
-        {!isReassigning ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.5rem',
-            }}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-500 hover:text-slate-900 shrink-0"
+            disabled={!canManage}
+            title="Change Assignee"
           >
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                color: 'var(--text-primary)',
-                flex: 1,
-              }}
-            >
-              {team ? `👥 ${team.name}` : assignee ? assignee.name : 'Unassigned'}
-            </div>
-            {canManage && (
-              <button
-                onClick={() => setIsReassigning(true)}
-                style={{
-                  padding: '0.35rem 0.65rem',
-                  background: 'rgba(15, 23, 42, 0.06)',
-                  border: '1px solid rgba(15, 23, 42, 0.12)',
-                  borderRadius: '0px',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(15, 23, 42, 0.2)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(15, 23, 42, 0.06)';
-                  e.currentTarget.style.borderColor = 'rgba(15, 23, 42, 0.12)';
-                }}
-              >
-                Change
-              </button>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <select
-              defaultValue={teamId ? `team:${teamId}` : assigneeId ? `user:${assigneeId}` : ''}
-              onChange={e => {
-                handleReassign(e.target.value);
-              }}
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid var(--border)',
-                borderRadius: '0px',
-                background: 'white',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-              disabled={isPending}
-            >
-              <option value="">Unassigned</option>
-              <optgroup label="👤 Users">
-                {users.map(user => (
-                  <option key={user.id} value={`user:${user.id}`}>
-                    {user.name} ({user.email})
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="👥 Teams">
-                {teams.map(team => (
-                  <option key={team.id} value={`team:${team.id}`}>
-                    {team.name}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-            <button
-              onClick={() => setIsReassigning(false)}
-              disabled={isPending}
-              style={{
-                padding: '0.35rem 0.65rem',
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: '0px',
-                color: 'var(--text-secondary)',
-                fontSize: '0.75rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                opacity: isPending ? 0.6 : 1,
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
+            <ChevronsUpDown className="h-3 w-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 w-[320px]" align="end">
+          {ReassignContent}
+        </PopoverContent>
+      </Popover>
     );
   }
 
-  if (variant === 'detail') {
-    return (
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.9rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Assignee
-        </label>
-        {isReassigning ? (
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <select
-              defaultValue={assigneeId || ''}
-              onChange={e => {
-                const newValue = e.target.value;
-                if (newValue !== (assigneeId || '')) {
-                  handleReassign(newValue || '');
-                } else {
-                  // Same value selected, just close
-                  setTimeout(() => setIsReassigning(false), 100);
-                }
-              }}
-              autoFocus
-              style={{
-                flex: 1,
-                padding: '0.625rem 0.875rem',
-                border: '1px solid var(--primary-color)',
-                borderRadius: '0px',
-                background: '#fff',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="">Unassigned</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => setIsReassigning(false)}
-              style={{
-                padding: '0.625rem 0.875rem',
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: '0px',
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.875rem 1rem',
-              background: assignee
-                ? 'linear-gradient(180deg, #feecec 0%, #fbdcdc 100%)'
-                : '#f9fafb',
-              border: `1px solid ${assignee ? 'rgba(211,47,47,0.2)' : 'var(--border)'}`,
-              borderRadius: '0px',
-              transition: 'all 0.15s',
-              cursor: canManage ? 'pointer' : 'default',
-            }}
-            onClick={() => canManage && setIsReassigning(true)}
-            onMouseEnter={e => {
-              if (canManage) {
-                e.currentTarget.style.borderColor = 'var(--primary-color)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(211, 47, 47, 0.1)';
-              }
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = assignee
-                ? 'rgba(211,47,47,0.2)'
-                : 'var(--border)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {assignee ? (
-                <>
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      boxShadow: '0 2px 4px rgba(211, 47, 47, 0.2)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <img
-                      src={assignee.avatarUrl || getDefaultAvatar(assignee.gender, assignee.name)}
-                      alt={assignee.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  </div>
-                  <div>
-                    <div
-                      style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}
-                    >
-                      {assignee.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '0.15rem',
-                      }}
-                    >
-                      {assignee.email}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      background: '#e5e7eb',
-                      color: '#9ca3af',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.2rem',
-                    }}
-                  >
-                    ?
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 500,
-                      color: 'var(--text-muted)',
-                      fontSize: '0.95rem',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    Unassigned
-                  </div>
-                </>
-              )}
-            </div>
-            {canManage && (
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  setIsReassigning(true);
-                }}
-                style={{
-                  padding: '0.5rem',
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: '0px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(211, 47, 47, 0.1)';
-                  e.currentTarget.style.borderColor = 'var(--primary-color)';
-                  e.currentTarget.style.color = 'var(--primary-color)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                }}
-                title="Reassign incident"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // List variant
-  if (isReassigning) {
-    return (
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}
-      >
-        <select
-          defaultValue={assigneeId || ''}
-          onChange={e => {
-            if (e.target.value) {
-              handleReassign(e.target.value);
-            }
-          }}
-          autoFocus
-          style={{
-            padding: '0.5rem',
-            border: '1px solid var(--primary-color)',
-            borderRadius: '0px',
-            fontSize: '0.85rem',
-            background: '#fff',
-            cursor: 'pointer',
-            outline: 'none',
-          }}
-        >
-          <option value="">Unassigned</option>
-          {users.map(user => (
-            <option key={user.id} value={user.id}>
-              {user.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => setIsReassigning(false)}
-          style={{
-            padding: '0.4rem 0.75rem',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: '0px',
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
-
+  // List/Detail Variant - Display as Card/Row Item
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      {assignee ? (
-        <>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            <img
-              src={assignee.avatarUrl || getDefaultAvatar(assignee.gender, assignee.name)}
-              alt={assignee.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          </div>
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-            {assignee.name.split(' ')[0]}
-          </span>
-        </>
-      ) : (
-        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.9rem' }}>
-          Unassigned
-        </span>
-      )}
-      {canManage && (
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            setIsReassigning(true);
-          }}
-          style={{
-            padding: '0.4rem',
-            background: '#fff',
-            border: '1px solid var(--border)',
-            borderRadius: '0px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-muted)',
-            transition: 'all 0.15s',
-            flexShrink: 0,
-            width: '28px',
-            height: '28px',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = '#feecec';
-            e.currentTarget.style.borderColor = 'var(--primary-color)';
-            e.currentTarget.style.color = 'var(--primary-color)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.borderColor = 'var(--border)';
-            e.currentTarget.style.color = 'var(--text-muted)';
-          }}
-          title="Reassign"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild disabled={!canManage}>
+        <div
+          className={cn(
+            'flex items-center gap-2 px-2 py-1 -ml-2 rounded-md transition-colors',
+            canManage ? 'cursor-pointer hover:bg-slate-100/50' : 'cursor-default'
+          )}
+          role="button"
+          tabIndex={canManage ? 0 : -1}
         >
-          <svg
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-          </svg>
-        </button>
+          {assignee ? (
+            <>
+              <Avatar className="h-6 w-6 border border-slate-200">
+                <AvatarImage
+                  src={assignee.avatarUrl || getDefaultAvatar(assignee.gender, assignee.name)}
+                  alt={assignee.name}
+                />
+                <AvatarFallback className="text-[9px]">
+                  {assignee.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
+                {assignee.name.split(' ')[0]}
+              </span>
+            </>
+          ) : team ? (
+            <>
+              <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200">
+                <UsersIcon className="h-3 w-3 text-indigo-600" />
+              </div>
+              <span className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
+                {team.name}
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-400">
+                <User className="h-3 w-3" />
+              </div>
+              <span className="text-sm italic text-slate-500">Unassigned</span>
+            </>
+          )}
+        </div>
+      </PopoverTrigger>
+      {canManage && (
+        <PopoverContent className="p-0 w-[320px]" align="start">
+          {ReassignContent}
+        </PopoverContent>
       )}
-    </div>
+    </Popover>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
-import styles from './Dashboard.module.css';
+import { cn } from '@/lib/utils';
 
 type MetricCardProps = {
   label: string;
@@ -117,9 +117,7 @@ const MetricCard = memo(function MetricCard({
   const animatedValue = useCountUp(shouldAnimate ? numericEnd : 0);
 
   // Format the display value
-  const formattedDisplay = shouldAnimate
-    ? animatedValue.toLocaleString()
-    : displayString;
+  const formattedDisplay = shouldAnimate ? animatedValue.toLocaleString() : displayString;
 
   // Memoized hover handlers
   const handleMouseEnter = useCallback(
@@ -144,54 +142,40 @@ const MetricCard = memo(function MetricCard({
 
   return (
     <div
-      className={`${styles.metricCard} ${isDark ? styles.hoverGlowEffect : ''}`}
-      style={{
-        padding: '1.5rem 1rem',
-        background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'var(--color-neutral-50)',
-        border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        textAlign: 'center' as const,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        overflow: 'hidden',
-        transform: 'translateZ(0)',
-        boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'none',
-      }}
+      className={cn(
+        'relative overflow-hidden rounded-md text-center transition-all duration-300',
+        'transform-gpu hover:shadow-lg',
+        isDark
+          ? 'bg-white/[0.03] border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:border-white/20'
+          : 'bg-neutral-50 border border-border hover:bg-neutral-100 hover:-translate-y-0.5',
+        'p-6 sm:p-4'
+      )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       role="figure"
       aria-label={`${label}: ${formattedDisplay}${rangeLabel ? ` ${rangeLabel}` : ''}`}
     >
+      {/* Hover glow effect for dark mode */}
+      {isDark && (
+        <div className="absolute top-0 -left-full w-3/5 h-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent skew-x-[-20deg] transition-[left] duration-600 pointer-events-none z-0 hover:left-[200%] hover:duration-800" />
+      )}
+
       <div
-        className={styles.metricValue}
-        style={{
-          fontSize: '2rem',
-          fontWeight: 'var(--font-weight-bold)',
-          color: isDark ? 'white' : 'var(--text-primary)',
-          marginBottom: '0.375rem',
-          lineHeight: '1.1',
-          fontVariantNumeric: 'tabular-nums',
-          position: 'relative',
-          zIndex: 2,
-        }}
+        className={cn(
+          'text-3xl sm:text-2xl font-bold mb-1.5 leading-tight tabular-nums relative z-10',
+          isDark ? 'text-white' : 'text-foreground'
+        )}
         aria-live="polite"
       >
         {formattedDisplay}
       </div>
       <div
-        className={styles.metricLabel}
-        style={{
-          fontSize: 'var(--font-size-xs)',
-          fontWeight: 'var(--font-weight-medium)',
-          color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted)',
-          textTransform: 'uppercase' as const,
-          letterSpacing: '0.05em',
-          position: 'relative',
-          zIndex: 2,
-        }}
+        className={cn(
+          'text-xs font-medium uppercase tracking-wide relative z-10',
+          isDark ? 'text-white/70' : 'text-muted-foreground'
+        )}
       >
-        {label}{' '}
-        {rangeLabel && <span style={{ opacity: 0.8, fontSize: '0.7rem' }}>{rangeLabel}</span>}
+        {label} {rangeLabel && <span className="opacity-80 text-[0.7rem]">{rangeLabel}</span>}
       </div>
     </div>
   );

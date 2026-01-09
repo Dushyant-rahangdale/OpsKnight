@@ -1000,6 +1000,11 @@
   color: #dc2626;
 }
 
+.analytics-urgency-medium .analytics-urgency-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
 .analytics-urgency-low .analytics-urgency-badge {
   background: rgba(107, 114, 128, 0.1);
   color: #6b7280;
@@ -1008,6 +1013,11 @@
 .analytics-urgency-high {
   border-left: 3px solid #dc2626;
   background: rgba(239, 68, 68, 0.02);
+}
+
+.analytics-urgency-medium {
+  border-left: 3px solid #d97706;
+  background: rgba(245, 158, 11, 0.02);
 }
 
 .analytics-urgency-low {

@@ -2637,12 +2637,18 @@ a {
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
 }
 
-/* Low Urgency - Yellow */
-.mobile-urgency-radio[data-value="LOW"] input:checked+.mobile-urgency-label {
-    background: #ca8a04;
-    /* Yellow-600 for better contrast */
+/* Medium Urgency - Amber */
+.mobile-urgency-radio[data-value="MEDIUM"] input:checked+.mobile-urgency-label {
+    background: #d97706;
     color: white;
-    box-shadow: 0 4px 12px rgba(202, 138, 4, 0.25);
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+}
+
+/* Low Urgency - Green */
+.mobile-urgency-radio[data-value="LOW"] input:checked+.mobile-urgency-label {
+    background: #16a34a;
+    color: white;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
 }
 
 /* iOS-style Menu Groups */

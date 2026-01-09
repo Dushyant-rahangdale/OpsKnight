@@ -80,25 +80,11 @@ const CompactOnCallStatus = memo(function CompactOnCallStatus({
   if (!isOnCall) {
     return (
       <div
-        style={{
-          padding: '0.875rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--color-neutral-50)',
-          border: '1px solid var(--border)',
-          textAlign: 'center',
-        }}
+        className="p-3.5 rounded-sm bg-neutral-50 border border-border text-center"
         role="status"
         aria-label="Not currently on-call"
       >
-        <div
-          style={{
-            fontSize: 'var(--font-size-sm)',
-            color: 'var(--text-muted)',
-            fontWeight: 'var(--font-weight-medium)',
-          }}
-        >
-          Not currently on-call
-        </div>
+        <div className="text-sm text-muted-foreground font-medium">Not currently on-call</div>
       </div>
     );
   }
@@ -107,32 +93,16 @@ const CompactOnCallStatus = memo(function CompactOnCallStatus({
   if (!endDate) {
     return (
       <div
-        style={{
-          padding: '0.875rem',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--color-success)',
-          border: '1px solid var(--color-success)',
-          color: 'white',
-        }}
+        className="p-3.5 rounded-sm bg-green-600 border border-green-600 text-white"
         role="status"
         aria-label="Currently on-call"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="flex items-center gap-2">
           <div
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'white',
-              boxShadow: '0 0 6px rgba(255,255,255,0.6)',
-            }}
+            className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]"
             aria-hidden="true"
           />
-          <span
-            style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)' }}
-          >
-            On-Call Now
-          </span>
+          <span className="text-sm font-semibold">On-Call Now</span>
         </div>
       </div>
     );
@@ -142,45 +112,21 @@ const CompactOnCallStatus = memo(function CompactOnCallStatus({
 
   return (
     <div
-      style={{
-        padding: '0.875rem',
-        borderRadius: 'var(--radius-sm)',
-        background: 'var(--color-success)',
-        border: '1px solid var(--color-success)',
-        color: 'white',
-      }}
+      className="p-3.5 rounded-sm bg-green-600 border border-green-600 text-white"
       role="status"
       aria-label={`On-call now, ${remainingDisplay}, until ${endTimeStr}`}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '0.375rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
           <div
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'white',
-              boxShadow: '0 0 6px rgba(255,255,255,0.6)',
-              animation: 'pulse 2s ease-in-out infinite',
-            }}
+            className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)] animate-pulse"
             aria-hidden="true"
           />
-          <span
-            style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)' }}
-          >
-            On-Call Now
-          </span>
+          <span className="text-sm font-semibold">On-Call Now</span>
         </div>
-        <span style={{ fontSize: 'var(--font-size-xs)', opacity: 0.85 }}>{remainingDisplay}</span>
+        <span className="text-xs opacity-85">{remainingDisplay}</span>
       </div>
-      <div style={{ fontSize: 'var(--font-size-xs)', opacity: 0.85 }}>Until {endTimeStr}</div>
+      <div className="text-xs opacity-85">Until {endTimeStr}</div>
     </div>
   );
 });

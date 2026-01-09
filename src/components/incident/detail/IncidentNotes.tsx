@@ -1,6 +1,11 @@
 'use client';
 
 import NoteCard from '../NoteCard';
+import { Button } from '@/components/ui/shadcn/button';
+import { Textarea } from '@/components/ui/shadcn/textarea';
+import { Avatar, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { MessageSquare, Send, Lock, User } from 'lucide-react';
 
 type Note = {
   id: string;
@@ -17,172 +22,70 @@ type IncidentNotesProps = {
 
 export default function IncidentNotes({ notes, canManage, onAddNote }: IncidentNotesProps) {
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: '1.5rem',
-        marginBottom: '2rem',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        border: '1px solid #e6e8ef',
-        borderRadius: '0px',
-        boxShadow: '0 14px 34px rgba(15, 23, 42, 0.08)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: '700',
-              marginBottom: '0.35rem',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Notes
-          </h3>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Decision trail and responder context
-          </div>
-        </div>
-        <div
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            fontWeight: 600,
-            padding: '0.35rem 0.75rem',
-            background: '#f9fafb',
-            border: '1px solid var(--border)',
-            borderRadius: '0px',
-          }}
-        >
-          Collaboration
-        </div>
-      </div>
-
-      {/* Notes List */}
-      <div
-        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}
-      >
-        {notes.map(note => (
-          <NoteCard
-            key={note.id}
-            content={note.content}
-            userName={note.user.name}
-            createdAt={note.createdAt}
-            isResolution={note.content.startsWith('Resolution:')}
-          />
-        ))}
-        {notes.length === 0 && (
-          <div
-            style={{
-              padding: '2rem',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontStyle: 'italic',
-              background: '#f9fafb',
-              border: '1px dashed var(--border)',
-              borderRadius: '0px',
-            }}
-          >
-            No notes added yet. Start the conversation by adding a note.
-          </div>
-        )}
-      </div>
-
+    <div className="space-y-6">
       {/* Add Note Form */}
       {canManage ? (
-        <form action={onAddNote} style={{ display: 'flex', gap: '0.75rem' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <textarea
-              name="content"
-              placeholder="Add a note... (supports **bold**, *italic*, `code`, links)"
-              required
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                borderRadius: '0px',
-                border: '1px solid var(--border)',
-                background: '#fff',
-                fontSize: '0.9rem',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                outline: 'none',
-                transition: 'border-color 0.15s',
-              }}
-              onFocus={e => {
-                e.currentTarget.style.borderColor = 'var(--primary-color)';
-              }}
-              onBlur={e => {
-                e.currentTarget.style.borderColor = 'var(--border)';
-              }}
-            />
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Supports Markdown formatting
+        <div className="p-4 bg-muted/30 rounded-lg border">
+          <form action={onAddNote} className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-8 w-8 bg-primary/10">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  <User className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <Textarea
+                  name="content"
+                  placeholder="Add a note... (supports Markdown)"
+                  required
+                  rows={3}
+                  className="resize-none bg-background"
+                />
+              </div>
             </div>
-          </div>
-          <button
-            className="glass-button primary"
-            type="submit"
-            style={{
-              alignSelf: 'flex-start',
-              padding: '0.875rem 1.5rem',
-              borderRadius: '0px',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Post Note
-          </button>
-        </form>
+            <div className="flex items-center justify-between gap-4 pl-11">
+              <p className="text-xs text-muted-foreground">Supports **bold**, *italic*, `code`</p>
+              <Button type="submit" size="sm">
+                <Send className="mr-2 h-4 w-4" />
+                Post Note
+              </Button>
+            </div>
+          </form>
+        </div>
       ) : (
-        <div
-          style={{
-            padding: '1rem',
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0px',
-            opacity: 0.7,
-          }}
-        >
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            ⚠️ You don't have access to add notes. Responder role or above required.
-          </p>
-          <div style={{ display: 'flex', gap: '0.75rem', opacity: 0.5, pointerEvents: 'none' }}>
-            <textarea
-              name="content"
-              placeholder="Add a note..."
-              disabled
-              rows={3}
-              style={{
-                flex: 1,
-                padding: '0.875rem',
-                borderRadius: '0px',
-                border: '1px solid #e2e8f0',
-                background: '#f3f4f6',
-                fontSize: '0.9rem',
-              }}
-            />
-            <button
-              className="glass-button primary"
-              disabled
-              style={{ opacity: 0.5, padding: '0.875rem 1.5rem', borderRadius: '0px' }}
-            >
-              Post Note
-            </button>
+        <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+            <Lock className="h-4 w-4 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-orange-900">Notes Restricted</p>
+            <p className="text-xs text-orange-700">Responder role required to add notes</p>
           </div>
         </div>
       )}
+
+      {/* Notes List */}
+      <div className="space-y-4">
+        {notes.length === 0 ? (
+          <div className="text-center py-12">
+            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No notes yet</h3>
+            <p className="text-sm text-muted-foreground">
+              Start the conversation by adding a note above.
+            </p>
+          </div>
+        ) : (
+          notes.map(note => (
+            <NoteCard
+              key={note.id}
+              content={note.content}
+              userName={note.user.name}
+              createdAt={note.createdAt}
+              isResolution={note.content.startsWith('Resolution:')}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }

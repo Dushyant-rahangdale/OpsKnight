@@ -80,7 +80,7 @@ async function deleteUserInternal(userId: string) {
   ]);
 }
 
-type UserFormState = {
+export type UserFormState = {
   error?: string | null;
   success?: boolean;
   inviteUrl?: string | null;

@@ -2,75 +2,71 @@
 
 import { useRealtime } from '@/hooks/useRealtime';
 import { useEffect, useState } from 'react';
+import { AlertCircle, Wifi } from 'lucide-react';
+import { Badge } from '@/components/ui/shadcn/badge';
 
 type DashboardRealtimeMetricsProps = {
-    initialMetrics?: {
-        open: number;
-        acknowledged: number;
-        resolved24h: number;
-        highUrgency: number;
-    };
-    onMetricsUpdate?: (metrics: { open: number; acknowledged: number; resolved24h: number; highUrgency: number }) => void;
+  initialMetrics?: {
+    open: number;
+    acknowledged: number;
+    resolved24h: number;
+    highUrgency: number;
+  };
+  onMetricsUpdate?: (metrics: {
+    open: number;
+    acknowledged: number;
+    resolved24h: number;
+    highUrgency: number;
+  }) => void;
 };
 
 export default function DashboardRealtimeMetrics({
-    initialMetrics,
-    onMetricsUpdate
+  initialMetrics,
+  onMetricsUpdate,
 }: DashboardRealtimeMetricsProps) {
-    const { isConnected, metrics, error } = useRealtime();
-    const [_displayMetrics, setDisplayMetrics] = useState(initialMetrics || {
-        open: 0,
-        acknowledged: 0,
-        resolved24h: 0,
-        highUrgency: 0
-    });
-
-    useEffect(() => {
-        if (metrics) {
-            setDisplayMetrics(metrics); // eslint-disable-line react-hooks/set-state-in-effect
-            if (onMetricsUpdate) {
-                onMetricsUpdate(metrics);
-            }
-        }
-    }, [metrics, onMetricsUpdate]);
-
-    if (error) {
-        return (
-            <div style={{
-                padding: '0.5rem',
-                background: 'var(--color-warning-light)',
-                color: 'var(--color-warning-dark)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.75rem',
-                textAlign: 'center'
-            }}>
-                Real-time updates unavailable
-            </div>
-        );
+  const { isConnected, metrics, error } = useRealtime();
+  const [_displayMetrics, setDisplayMetrics] = useState(
+    initialMetrics || {
+      open: 0,
+      acknowledged: 0,
+      resolved24h: 0,
+      highUrgency: 0,
     }
+  );
 
+  useEffect(() => {
+    if (metrics) {
+      setDisplayMetrics(metrics); // eslint-disable-line react-hooks/set-state-in-effect
+      if (onMetricsUpdate) {
+        onMetricsUpdate(metrics);
+      }
+    }
+  }, [metrics, onMetricsUpdate]);
+
+  if (error) {
     return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)'
-        }}>
-            {isConnected && (
-                <>
-                    <span style={{
-                        display: 'inline-block',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: 'var(--color-success)',
-                        animation: 'pulse 2s ease-in-out infinite'
-                    }} />
-                    <span>Live</span>
-                </>
-            )}
-        </div>
+      <Badge
+        variant="outline"
+        className="px-2 py-1 text-xs bg-amber-50 text-amber-900 border-amber-200"
+      >
+        <AlertCircle className="h-3 w-3 mr-1.5" />
+        Real-time updates unavailable
+      </Badge>
     );
-}
+  }
 
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      {isConnected && (
+        <>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+          </span>
+          <Wifi className="h-3 w-3" />
+          <span className="font-medium">Live</span>
+        </>
+      )}
+    </div>
+  );
+}

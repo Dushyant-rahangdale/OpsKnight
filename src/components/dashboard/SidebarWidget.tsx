@@ -1,6 +1,11 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/shadcn/card';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Button } from '@/components/ui/shadcn/button';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface WidgetAction {
   label: string;
@@ -21,8 +26,7 @@ interface SidebarWidgetProps {
 }
 
 /**
- * Widget Component - Matches OpsSentinal Slate Theme
- * Muted Executive Aesthetic with Professional Gradients
+ * Widget Component - Modern Tailwind Design
  */
 export default function SidebarWidget({
   title,
@@ -34,202 +38,86 @@ export default function SidebarWidget({
   lastUpdated,
   onRefresh,
 }: SidebarWidgetProps) {
-  const getActionStyles = (variant: string = 'secondary') => {
-    const baseStyles = {
-      padding: '0.5rem 0.875rem',
-      borderRadius: 'var(--radius-sm)',
-      fontSize: 'var(--font-size-sm)',
-      fontWeight: 'var(--font-weight-semibold)',
-      cursor: 'pointer',
-      border: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.375rem',
-      transition: 'all var(--transition-base) var(--ease-out)',
-      boxShadow: 'var(--shadow-xs)',
-    };
+  const [mounted, setMounted] = useState(false);
 
-    const variantStyles = {
-      primary: {
-        background: 'var(--primary-color)',
-        color: 'var(--text-inverse)',
-      },
-      secondary: {
-        background: 'var(--color-neutral-100)',
-        color: 'var(--text-primary)',
-        border: '1px solid var(--border)',
-      },
-      danger: {
-        background: 'rgba(190, 18, 60, 0.1)',
-        color: 'var(--color-error)',
-        border: '1px solid rgba(190, 18, 60, 0.2)',
-      },
-    };
-
-    return { ...baseStyles, ...variantStyles[variant as keyof typeof variantStyles] };
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <div
-      className="glass-panel"
-      style={{
-        padding: 'var(--spacing-6)',
-        background: 'var(--glass-bg)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 'var(--spacing-4)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-sm)',
-              background: iconBg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'var(--shadow-xs)',
-            }}
-          >
-            {icon}
+    <Card className="shadow-lg border-border/50 bg-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-sm flex items-center justify-center shadow-sm"
+              style={{ background: iconBg }}
+            >
+              {icon}
+            </div>
+            <h3 className="text-lg font-bold text-foreground tracking-tight">{title}</h3>
           </div>
-          <h3
-            style={{
-              fontSize: 'var(--font-size-lg)',
-              fontWeight: 'var(--font-weight-bold)',
-              margin: 0,
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.3px',
-            }}
-          >
-            {title}
-          </h3>
+
+          {/* Actions */}
+          {(actions || onRefresh) && (
+            <div className="flex gap-2 items-center">
+              {onRefresh && (
+                <Button
+                  onClick={onRefresh}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-neutral-100 hover:scale-105 transition-transform"
+                  title="Refresh data"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {actions?.map((action, idx) => (
+                <Button
+                  key={idx}
+                  onClick={action.onClick}
+                  size="sm"
+                  variant={
+                    action.variant === 'primary'
+                      ? 'default'
+                      : action.variant === 'danger'
+                        ? 'destructive'
+                        : 'secondary'
+                  }
+                  className="text-xs gap-1.5 shadow-xs hover:-translate-y-px transition-all"
+                >
+                  {action.icon}
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Actions */}
-        {(actions || onRefresh) && (
-          <div style={{ display: 'flex', gap: 'var(--spacing-2)', alignItems: 'center' }}>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                style={{
-                  ...getActionStyles('secondary'),
-                  padding: '0.5rem',
-                  minWidth: 'auto',
-                }}
-                title="Refresh data"
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'var(--color-neutral-200)';
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'var(--color-neutral-100)';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path
-                    d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            )}
-            {actions?.map((action, idx) => (
-              <button
-                key={idx}
-                onClick={action.onClick}
-                style={getActionStyles(action.variant)}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-xs)';
-                }}
-              >
-                {action.icon}
-                {action.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Last Updated Indicator */}
-      {lastUpdated && (
-        <div
-          style={{
-            fontSize: 'var(--font-size-xs)',
-            color: 'var(--text-muted)',
-            marginBottom: 'var(--spacing-3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--spacing-2)',
-            padding: '0.375rem 0.625rem',
-            background: 'var(--color-neutral-100)',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border)',
-            width: 'fit-content',
-          }}
-        >
-          <div
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--color-success)',
-              boxShadow: '0 0 8px var(--color-success)',
-              animation: 'pulse 2s ease-in-out infinite',
-            }}
-          />
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 'var(--font-weight-medium)' }}>
+        {/* Last Updated Indicator - Client Only to prevent hydration mismatch */}
+        {mounted && lastUpdated && (
+          <Badge
+            variant="secondary"
+            className="w-fit mt-2 flex items-center gap-2 text-xs font-medium"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse" />
             Updated {getTimeAgo(lastUpdated)}
-          </span>
-        </div>
-      )}
+          </Badge>
+        )}
+      </CardHeader>
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div
-          style={{
-            padding: 'var(--spacing-10)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-          }}
-        >
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid var(--color-neutral-200)',
-              borderTop: '3px solid var(--primary-color)',
-              borderRadius: '50%',
-              margin: '0 auto',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-          <p style={{ marginTop: 'var(--spacing-4)', fontSize: 'var(--font-size-sm)' }}>
-            Loading...
-          </p>
-        </div>
-      ) : (
-        children
-      )}
-    </div>
+      <CardContent>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="py-10 text-center text-muted-foreground">
+            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+            <p className="text-sm">Loading...</p>
+          </div>
+        ) : (
+          children
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -298,7 +298,7 @@ export default async function Dashboard({
 
   return (
     <DashboardRealtimeWrapper>
-      <main style={{ paddingBottom: '2rem' }}>
+      <main className="[zoom:0.8]" style={{ paddingBottom: '2rem' }}>
         <DashboardCommandCenter
           systemStatus={systemStatus}
           allOpenIncidentsCount={allOpenIncidentsCount}

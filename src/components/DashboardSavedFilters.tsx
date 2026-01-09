@@ -3,6 +3,10 @@
 import { logger } from '@/lib/logger';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/shadcn/button';
+import { Input } from '@/components/ui/shadcn/input';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { X, Save } from 'lucide-react';
 
 type SavedFilter = {
   id: string;
@@ -95,47 +99,17 @@ export default function DashboardSavedFilters() {
   const hasActiveFilters = searchParams.toString().length > 0;
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          marginBottom: '0.5rem',
-        }}
-      >
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '600' }}>
-          Saved Filters:
-        </span>
+    <div className="mb-4">
+      <div className="flex gap-2 items-center flex-wrap mb-2">
+        <span className="text-xs text-muted-foreground font-semibold">Saved Filters:</span>
         {savedFilters.map(filter => (
-          <button
+          <Badge
             key={filter.id}
+            variant="outline"
+            className="px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-neutral-50 hover:border-primary transition-all flex items-center gap-1.5"
             onClick={() => loadFilter(filter)}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              border: '1px solid var(--border)',
-              background: 'white',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#f9fafb';
-              e.currentTarget.style.borderColor = 'var(--primary-color)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'white';
-              e.currentTarget.style.borderColor = 'var(--border)';
-            }}
           >
-            <span>💾</span>
+            <Save className="h-3 w-3" />
             {filter.name}
             <button
               onClick={e => {
@@ -144,89 +118,41 @@ export default function DashboardSavedFilters() {
                   deleteFilter(filter.id);
                 }
               }}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                fontSize: '0.9rem',
-                padding: 0,
-                marginLeft: '0.25rem',
-                display: 'flex',
-                alignItems: 'center',
-              }}
+              className="ml-1 hover:text-foreground"
               title="Delete filter"
             >
-              ×
+              <X className="h-3 w-3" />
             </button>
-          </button>
+          </Badge>
         ))}
         {hasActiveFilters && (
-          <button
+          <Button
             onClick={saveCurrentFilter}
-            style={{
-              padding: '0.35rem 0.75rem',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              border: '1px solid var(--primary-color)',
-              background: 'var(--primary-color)',
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
+            size="sm"
+            className="h-7 px-3 text-xs font-semibold gap-1.5"
           >
-            <span>💾</span>
+            <Save className="h-3 w-3" />
             Save Current
-          </button>
+          </Button>
         )}
       </div>
 
       {showSaveDialog && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
           onClick={() => setShowSaveDialog(false)}
         >
           <div
-            style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              maxWidth: '400px',
-              width: '90%',
-              boxShadow: 'var(--shadow-lg)',
-            }}
+            className="bg-card p-6 rounded-lg max-w-md w-[90%] shadow-lg"
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>
-              Save Filter Preset
-            </h3>
-            <input
+            <h3 className="text-lg font-bold mb-4">Save Filter Preset</h3>
+            <Input
               type="text"
               value={filterName}
               onChange={e => setFilterName(e.target.value)}
               placeholder="Filter name (e.g., My Open Incidents)"
-              style={{
-                width: '100%',
-                padding: '0.6rem',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                marginBottom: '1rem',
-              }}
+              className="mb-4"
               autoFocus
               onKeyDown={e => {
                 if (e.key === 'Enter' && filterName.trim()) {
@@ -237,40 +163,19 @@ export default function DashboardSavedFilters() {
                 }
               }}
             />
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowSaveDialog(false);
                   setFilterName('');
                 }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  background: 'white',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                }}
               >
                 Cancel
-              </button>
-              <button
-                onClick={saveCurrentFilter}
-                disabled={!filterName.trim()}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  background: filterName.trim() ? 'var(--primary-color)' : '#ccc',
-                  color: 'white',
-                  cursor: filterName.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
-                }}
-              >
+              </Button>
+              <Button onClick={saveCurrentFilter} disabled={!filterName.trim()}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         </div>

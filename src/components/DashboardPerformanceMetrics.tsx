@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type PerformanceMetricsProps = {
   mtta: number | null; // in minutes
@@ -21,7 +23,7 @@ export default function DashboardPerformanceMetrics({
   mttaTrend = 'neutral',
   mttrTrend = 'neutral',
   previousMtta,
-  previousMttr
+  previousMttr,
 }: PerformanceMetricsProps) {
   // Memoize formatTime function to prevent recreation on every render
   const formatTime = useCallback((minutes: number | null) => {
@@ -41,7 +43,7 @@ export default function DashboardPerformanceMetrics({
     const mins = Math.round(minutes % 60);
     if (mins > 0) {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+        <div className="flex flex-col leading-tight">
           <span style={{ color }}>{hours}h</span>
           <span style={{ color }}>{mins}m</span>
         </div>
@@ -52,90 +54,126 @@ export default function DashboardPerformanceMetrics({
 
   // Memoize trend indicator calculations
   const { mttaTrendData, mttrTrendData } = useMemo(() => {
-    const getTrendIndicator = (current: number | null, previous: number | null, trend?: 'up' | 'down' | 'neutral') => {
+    const getTrendIndicator = (
+      current: number | null,
+      previous: number | null,
+      trend?: 'up' | 'down' | 'neutral'
+    ) => {
       if (!current || !previous) return null;
       const change = current - previous;
       const percentChange = Math.abs((change / previous) * 100);
-      
+
       if (trend === 'up' || change > 0) {
-        return { icon: '↑', color: '#ef5350', text: `+${formatTime(Math.abs(change))} (+${percentChange.toFixed(1)}%)` };
+        return {
+          icon: <TrendingUp className="h-3 w-3" />,
+          color: 'text-red-600',
+          text: `+${formatTime(Math.abs(change))} (+${percentChange.toFixed(1)}%)`,
+        };
       } else if (trend === 'down' || change < 0) {
-        return { icon: '↓', color: '#16a34a', text: `-${formatTime(Math.abs(change))} (-${percentChange.toFixed(1)}%)` };
+        return {
+          icon: <TrendingDown className="h-3 w-3" />,
+          color: 'text-green-600',
+          text: `-${formatTime(Math.abs(change))} (-${percentChange.toFixed(1)}%)`,
+        };
       }
       return null;
     };
 
     return {
       mttaTrendData: getTrendIndicator(mtta, previousMtta ?? null, mttaTrend),
-      mttrTrendData: getTrendIndicator(mttr, previousMttr ?? null, mttrTrend)
+      mttrTrendData: getTrendIndicator(mttr, previousMttr ?? null, mttrTrend),
     };
   }, [mtta, mttr, previousMtta, previousMttr, mttaTrend, mttrTrend, formatTime]);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-        {/* MTTA */}
-        <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '600' }}>
-              MTTA
-            </div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Mean Time to Acknowledge</span>
+    <div className="grid grid-cols-2 gap-4">
+      {/* MTTA */}
+      <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+            MTTA
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#dc2626', marginBottom: '0.25rem' }}>
-            {formatTime(mtta)}
+          <span className="text-[0.7rem] text-muted-foreground">Mean Time to Acknowledge</span>
+        </div>
+        <div className="text-[1.75rem] font-bold text-red-600 mb-1">{formatTime(mtta)}</div>
+        {mttaTrendData && (
+          <div
+            className={cn(
+              'text-[0.7rem] font-semibold flex items-center gap-1',
+              mttaTrendData.color
+            )}
+          >
+            {mttaTrendData.icon}
+            <span>{mttaTrendData.text}</span>
           </div>
-          {mttaTrendData && (
-            <div style={{ fontSize: '0.7rem', color: mttaTrendData.color, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span>{mttaTrendData.icon}</span>
-              <span>{mttaTrendData.text}</span>
-            </div>
+        )}
+      </div>
+
+      {/* MTTR */}
+      <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+            MTTR
+          </div>
+          <span className="text-[0.7rem] text-muted-foreground">Mean Time to Resolve</span>
+        </div>
+        <div className="text-[1.75rem] font-bold mb-1">{formatTimeForDisplay(mttr, '#16a34a')}</div>
+        {mttrTrendData && (
+          <div
+            className={cn(
+              'text-[0.7rem] font-semibold flex items-center gap-1',
+              mttrTrendData.color
+            )}
+          >
+            {mttrTrendData.icon}
+            <span>{mttrTrendData.text}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Ack SLA */}
+      <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 font-semibold">
+          Acknowledge SLA
+        </div>
+        <div
+          className={cn(
+            'text-2xl font-bold mb-0.5',
+            ackSlaRate >= 95
+              ? 'text-green-600'
+              : ackSlaRate >= 80
+                ? 'text-orange-500'
+                : 'text-red-600'
           )}
+        >
+          {ackSlaRate.toFixed(1)}%
         </div>
-
-        {/* MTTR */}
-        <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '600' }}>
-              MTTR
-            </div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Mean Time to Resolve</span>
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.25rem' }}>
-            {formatTimeForDisplay(mttr, '#16a34a')}
-          </div>
-          {mttrTrendData && (
-            <div style={{ fontSize: '0.7rem', color: mttrTrendData.color, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <span>{mttrTrendData.icon}</span>
-              <span>{mttrTrendData.text}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Ack SLA */}
-        <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.4rem', fontWeight: '600' }}>
-            Acknowledge SLA
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: ackSlaRate >= 95 ? 'var(--success)' : ackSlaRate >= 80 ? '#ffa726' : 'var(--danger)', marginBottom: '0.2rem' }}>
-            {ackSlaRate.toFixed(1)}%
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {ackSlaRate >= 95 ? 'Excellent' : ackSlaRate >= 80 ? 'Good' : 'Needs Improvement'}
-          </div>
-        </div>
-
-        {/* Resolve SLA */}
-        <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.4rem', fontWeight: '600' }}>
-            Resolve SLA
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: resolveSlaRate >= 95 ? 'var(--success)' : resolveSlaRate >= 80 ? '#ffa726' : 'var(--danger)', marginBottom: '0.2rem' }}>
-            {resolveSlaRate.toFixed(1)}%
-          </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {resolveSlaRate >= 95 ? 'Excellent' : resolveSlaRate >= 80 ? 'Good' : 'Needs Improvement'}
-          </div>
+        <div className="text-xs text-muted-foreground">
+          {ackSlaRate >= 95 ? 'Excellent' : ackSlaRate >= 80 ? 'Good' : 'Needs Improvement'}
         </div>
       </div>
+
+      {/* Resolve SLA */}
+      <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+        <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 font-semibold">
+          Resolve SLA
+        </div>
+        <div
+          className={cn(
+            'text-2xl font-bold mb-0.5',
+            resolveSlaRate >= 95
+              ? 'text-green-600'
+              : resolveSlaRate >= 80
+                ? 'text-orange-500'
+                : 'text-red-600'
+          )}
+        >
+          {resolveSlaRate.toFixed(1)}%
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {resolveSlaRate >= 95 ? 'Excellent' : resolveSlaRate >= 80 ? 'Good' : 'Needs Improvement'}
+        </div>
+      </div>
+    </div>
   );
 }

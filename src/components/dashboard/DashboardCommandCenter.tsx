@@ -6,7 +6,9 @@ import DashboardExport from '../DashboardExport';
 import DashboardTimeRange from '../DashboardTimeRange';
 import MetricCard from './MetricCard';
 import LiveClock from './LiveClock';
-import styles from './Dashboard.module.css';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type SystemStatus = {
   label: string;
@@ -46,136 +48,87 @@ export default function DashboardCommandCenter({
   isClipped,
   retentionDays,
 }: DashboardCommandCenterProps) {
-  // Determine pulse color RGB based on status label
-  const getPulseRgb = () => {
+  // Determine status badge color
+  const getStatusBadgeClass = () => {
     switch (systemStatus.label) {
       case 'CRITICAL':
-        return '239, 68, 68'; // Red
+        return 'bg-red-500/20 text-red-300 border-red-400/30';
       case 'DEGRADED':
-        return '245, 158, 11'; // Amber
+        return 'bg-amber-500/20 text-amber-300 border-amber-400/30';
       case 'OPERATIONAL':
-        return '34, 197, 94'; // Green
+        return 'bg-green-500/20 text-green-300 border-green-400/30';
       default:
-        return '255, 255, 255';
+        return 'bg-slate-500/20 text-slate-300 border-slate-400/30';
     }
   };
 
   return (
-    <div
-      className={`${styles.cinematicGlass}`}
-      style={{
-        borderRadius: 'var(--radius-lg)',
-        padding: '2rem', // Increased padding for luxury feel
-        marginBottom: '2rem',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden', // Clip ambient background
-      }}
-    >
-      {/* Header */}
+    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 md:p-8 mb-6 border border-white/10 shadow-2xl">
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950/20 to-slate-900 opacity-50 animate-[ambient-move_15s_ease_infinite]" />
+
+      {/* Noise texture overlay */}
       <div
+        className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-overlay"
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '1.5rem', // More breathing room
-          gap: '1.5rem',
-          flexWrap: 'wrap' as const,
-          position: 'relative',
-          zIndex: 10, // Ensure content stays above ambient noise
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E")`,
         }}
-      >
-        <div>
-          <div
-            style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.625rem' }}
-          >
-            <h1
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 'var(--font-weight-bold)',
-                margin: 0,
-                color: 'white',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)', // Subtle text shadow for legibility
-              }}
-            >
+      />
+
+      {/* Top highlight line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+      {/* Header */}
+      <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6 mb-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl md:text-2xl font-bold text-white [text-shadow:_0_2px_4px_rgb(0_0_0_/30%)]">
               Command Center
             </h1>
             <LiveClock timeZone={userTimeZone} />
           </div>
 
           {/* System Status */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: 'var(--font-size-sm)',
-              color: 'rgba(255, 255, 255, 0.9)',
-              marginBottom: '0.75rem',
-            }}
-          >
-            <span style={{ fontWeight: 'var(--font-weight-medium)' }}>System Status:</span>
-            <strong
-              className={styles.statusPulse}
+          <div className="flex flex-wrap items-center gap-2 text-sm text-white/90">
+            <span className="font-medium">System Status:</span>
+            <Badge
+              className={cn(
+                'font-bold uppercase tracking-wide text-xs border animate-[breathing-glow_3s_ease-in-out_infinite]',
+                getStatusBadgeClass()
+              )}
               style={
                 {
-                  color: systemStatus.color,
-                  fontWeight: 'var(--font-weight-bold)',
-                  background: systemStatus.bg,
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '9999px', // Pill shape
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase' as const,
-                  letterSpacing: '0.05em',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  '--status-color-rgb': getPulseRgb(),
+                  '--status-color-rgb':
+                    systemStatus.label === 'CRITICAL'
+                      ? '239, 68, 68'
+                      : systemStatus.label === 'DEGRADED'
+                        ? '245, 158, 11'
+                        : '34, 197, 94',
                 } as React.CSSProperties
               }
             >
               {systemStatus.label}
-            </strong>
+            </Badge>
             {allOpenIncidentsCount > 0 && (
-              <span style={{ opacity: 0.7, fontSize: 'var(--font-size-xs)' }}>
-                ({allOpenIncidentsCount} active)
-              </span>
+              <span className="text-xs opacity-70">({allOpenIncidentsCount} active)</span>
             )}
             {/* Retention Warning */}
             {isClipped && (
-              <div
+              <Badge
+                variant="outline"
+                className="bg-red-500/20 text-red-300 border-red-400/30 text-xs flex items-center gap-1.5 cursor-help"
                 title={`Data limited to ${retentionDays} days by retention policy`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.2rem 0.5rem',
-                  background: 'rgba(239, 68, 68, 0.2)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  borderRadius: '12px',
-                  color: '#fca5a5',
-                  fontSize: '0.7rem',
-                  fontWeight: '600',
-                  cursor: 'help',
-                }}
               >
-                <span style={{ fontSize: '0.8rem' }}>!</span>
+                <AlertCircle className="h-3 w-3" />
                 <span>Retention Limit: {retentionDays}d</span>
-              </div>
+              </Badge>
             )}
           </div>
 
           {/* Time Range */}
           <div>
             <Suspense
-              fallback={
-                <div
-                  style={{
-                    height: '32px',
-                    background: 'rgba(255,255,255,0.1)',
-                    borderRadius: '6px',
-                    width: '300px',
-                  }}
-                />
-              }
+              fallback={<div className="h-8 w-[300px] bg-white/10 rounded-md animate-pulse" />}
             >
               <DashboardTimeRange />
             </Suspense>
@@ -183,38 +136,11 @@ export default function DashboardCommandCenter({
         </div>
 
         {/* Actions */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.5rem',
-          }}
-        >
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  height: '36px',
-                  width: '80px',
-                  background: 'rgba(255,255,255,0.1)',
-                  borderRadius: '6px',
-                }}
-              />
-            }
-          >
+        <div className="flex gap-2">
+          <Suspense fallback={<div className="h-9 w-20 bg-white/10 rounded-md animate-pulse" />}>
             <DashboardRefresh />
           </Suspense>
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  height: '36px',
-                  width: '100px',
-                  background: 'rgba(255,255,255,0.1)',
-                  borderRadius: '6px',
-                }}
-              />
-            }
-          >
+          <Suspense fallback={<div className="h-9 w-24 bg-white/10 rounded-md animate-pulse" />}>
             <DashboardExport
               incidents={incidents}
               filters={filters}
@@ -230,13 +156,7 @@ export default function DashboardCommandCenter({
       </div>
 
       {/* Metrics Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '1rem',
-        }}
-      >
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <MetricCard label="TOTAL" value={totalInRange} rangeLabel={rangeLabel} isDark />
         <MetricCard label="OPEN" value={metricsOpenCount} rangeLabel={rangeLabel} isDark />
         <MetricCard label="RESOLVED" value={metricsResolvedCount} rangeLabel={rangeLabel} isDark />
@@ -247,6 +167,34 @@ export default function DashboardCommandCenter({
           isDark
         />
       </div>
+
+      <style jsx>{`
+        @keyframes ambient-move {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        @keyframes breathing-glow {
+          0% {
+            box-shadow: 0 0 0 0 rgba(var(--status-color-rgb), 0.4);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 8px 2px rgba(var(--status-color-rgb), 0.2);
+            transform: scale(1.02);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(var(--status-color-rgb), 0);
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }
