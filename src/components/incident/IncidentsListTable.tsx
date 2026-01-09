@@ -297,7 +297,7 @@ export default function IncidentsListTable({
     );
   };
 
-  const rowPad = 'p-3 md:p-3.5';
+  const rowPad = 'p-3.5 md:p-4';
   const metaText = 'text-xs';
   const titleText = 'text-sm';
 
@@ -551,10 +551,9 @@ export default function IncidentsListTable({
           {canManageIncidents && (
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={toggleSelectAllOnPage}
-              className="whitespace-nowrap"
+              className="glass-button"
+              style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}
               aria-label="Select all incidents on page"
             >
               {selectedIds.size === incidents.length && incidents.length > 0 ? (
@@ -715,147 +714,144 @@ export default function IncidentsListTable({
                             })}
                           </span>
                         </div>
-
-                        <div data-no-row-nav="true" className="flex items-center gap-2">
-                          <AssigneeSection
-                            assignee={incident.assignee}
-                            assigneeId={incident.assigneeId}
-                            team={null}
-                            teamId={null}
-                            users={users}
-                            teams={[]}
-                            incidentId={incident.id}
-                            canManage={canManageIncidents}
-                            variant="list"
-                          />
-
-                          {canManageIncidents && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200"
-                                  onClick={e => e.stopPropagation()}
-                                  aria-label="Incident actions"
-                                >
-                                  <MoreHorizontal className="h-4 w-4 text-slate-600" />
-                                </Button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent align="end" className="w-52">
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`/incidents/${incident.id}`}
-                                    onClick={e => e.stopPropagation()}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Eye className="h-4 w-4 text-slate-500" />
-                                    View details
-                                  </Link>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                {incident.status !== 'RESOLVED' && (
-                                  <DropdownMenuItem
-                                    onSelect={e => {
-                                      e.preventDefault();
-                                      handleStatusChange(incident.id, 'RESOLVED');
-                                    }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                    Resolve
-                                  </DropdownMenuItem>
-                                )}
-
-                                {incident.status !== 'ACKNOWLEDGED' &&
-                                  incident.status !== 'RESOLVED' &&
-                                  incident.status !== 'SUPPRESSED' && (
-                                    <DropdownMenuItem
-                                      onSelect={e => {
-                                        e.preventDefault();
-                                        handleStatusChange(incident.id, 'ACKNOWLEDGED');
-                                      }}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <CheckCircle2 className="h-4 w-4 text-amber-600" />
-                                      Acknowledge
-                                    </DropdownMenuItem>
-                                  )}
-
-                                {incident.status === 'ACKNOWLEDGED' && (
-                                  <DropdownMenuItem
-                                    onSelect={e => {
-                                      e.preventDefault();
-                                      handleStatusChange(incident.id, 'OPEN');
-                                    }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Circle className="h-4 w-4 text-slate-500" />
-                                    Unacknowledge
-                                  </DropdownMenuItem>
-                                )}
-
-                                {incident.status !== 'SNOOZED' &&
-                                  incident.status !== 'RESOLVED' && (
-                                    <DropdownMenuItem
-                                      onSelect={e => {
-                                        e.preventDefault();
-                                        handleStatusChange(incident.id, 'SNOOZED');
-                                      }}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <PauseCircle className="h-4 w-4 text-slate-600" />
-                                      Snooze
-                                    </DropdownMenuItem>
-                                  )}
-
-                                {incident.status === 'SNOOZED' && (
-                                  <DropdownMenuItem
-                                    onSelect={e => {
-                                      e.preventDefault();
-                                      handleStatusChange(incident.id, 'OPEN');
-                                    }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 text-slate-600" />
-                                    Unsnooze
-                                  </DropdownMenuItem>
-                                )}
-
-                                {incident.status !== 'SUPPRESSED' &&
-                                  incident.status !== 'RESOLVED' && (
-                                    <DropdownMenuItem
-                                      onSelect={e => {
-                                        e.preventDefault();
-                                        handleStatusChange(incident.id, 'SUPPRESSED');
-                                      }}
-                                      className="flex items-center gap-2"
-                                    >
-                                      <ShieldOff className="h-4 w-4 text-rose-600" />
-                                      Suppress
-                                    </DropdownMenuItem>
-                                  )}
-
-                                {incident.status === 'SUPPRESSED' && (
-                                  <DropdownMenuItem
-                                    onSelect={e => {
-                                      e.preventDefault();
-                                      handleStatusChange(incident.id, 'OPEN');
-                                    }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                                    Unsuppress
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
                       </div>
+                    </div>
+
+                    <AssigneeSection
+                      assignee={incident.assignee}
+                      incidentId={incident.id}
+                      canManage={canManageIncidents}
+                      users={users}
+                      teams={[]}
+                      team={null}
+                      assigneeId={null}
+                      teamId={null}
+                    />
+
+                    <div className="self-start sm:self-center" data-no-row-nav="true">
+                      {canManageIncidents && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200"
+                              onClick={e => e.stopPropagation()}
+                              aria-label="Incident actions"
+                            >
+                              <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/incidents/${incident.id}`}
+                                onClick={e => e.stopPropagation()}
+                                className="flex items-center gap-2"
+                              >
+                                <Eye className="h-4 w-4 text-slate-500" />
+                                View details
+                              </Link>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            {incident.status !== 'RESOLVED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'RESOLVED');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                Resolve
+                              </DropdownMenuItem>
+                            )}
+
+                            {incident.status !== 'ACKNOWLEDGED' &&
+                              incident.status !== 'RESOLVED' &&
+                              incident.status !== 'SUPPRESSED' && (
+                                <DropdownMenuItem
+                                  onSelect={e => {
+                                    e.preventDefault();
+                                    handleStatusChange(incident.id, 'ACKNOWLEDGED');
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <CheckCircle2 className="h-4 w-4 text-amber-600" />
+                                  Acknowledge
+                                </DropdownMenuItem>
+                              )}
+
+                            {incident.status === 'ACKNOWLEDGED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'OPEN');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Circle className="h-4 w-4 text-slate-500" />
+                                Unacknowledge
+                              </DropdownMenuItem>
+                            )}
+
+                            {incident.status !== 'SNOOZED' && incident.status !== 'RESOLVED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'SNOOZED');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <PauseCircle className="h-4 w-4 text-slate-600" />
+                                Snooze
+                              </DropdownMenuItem>
+                            )}
+
+                            {incident.status === 'SNOOZED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'OPEN');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <CheckCircle2 className="h-4 w-4 text-slate-600" />
+                                Unsnooze
+                              </DropdownMenuItem>
+                            )}
+
+                            {incident.status !== 'SUPPRESSED' && incident.status !== 'RESOLVED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'SUPPRESSED');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <ShieldOff className="h-4 w-4 text-rose-600" />
+                                Suppress
+                              </DropdownMenuItem>
+                            )}
+
+                            {incident.status === 'SUPPRESSED' && (
+                              <DropdownMenuItem
+                                onSelect={e => {
+                                  e.preventDefault();
+                                  handleStatusChange(incident.id, 'OPEN');
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                Unsuppress
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -238,6 +238,7 @@ export default function OperationalStatus({
               <span className="text-[10px] uppercase text-muted-foreground font-semibold">
                 Active Incidents
               </span>
+              <span className="text-[10px] text-muted-foreground">Excludes snoozed/suppressed</span>
               <span
                 className={cn(
                   'text-xl font-bold',

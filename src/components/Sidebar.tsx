@@ -18,7 +18,6 @@ import {
   Settings,
   LogOut,
   Keyboard,
-  AlertCircle,
   LayoutDashboard,
   AlertTriangle,
   Server,
@@ -72,7 +71,6 @@ const navigationItems: NavItem[] = [
     href: '/users',
     label: 'Users',
     icon: <User />,
-    section: 'OPERATIONS',
   },
   {
     href: '/schedules',
@@ -389,37 +387,29 @@ export default function Sidebar(
             )}
           </Link>
 
-          {/* Glassmorphic Chevron Toggle - Positioned Below Logo */}
+          {/* World-Class Desktop Collapse Toggle Button */}
           {!isMobile && (
-            <div className="absolute -right-1 top-20 z-50">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={toggleSidebar}
-                aria-label={isDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className={cn(
-                  'h-8 w-2.5 p-0', // Ultra-slim
-                  'bg-white/10 backdrop-blur-sm',
-                  'border border-white/20',
-                  'text-white/70',
-                  'flex items-center justify-center',
-                  'transition-all duration-300 ease-out',
-                  'hover:w-4 hover:bg-white/20 hover:text-white hover:border-white/30',
-                  'group',
-                  isDesktopCollapsed ? 'rounded-l-sm' : 'rounded-r-sm'
-                )}
-              >
-                <ChevronLeft
-                  className={cn(
-                    'h-2.5 w-2.5 transition-all duration-300',
-                    isDesktopCollapsed ? 'rotate-180' : 'rotate-0',
-                    'group-hover:scale-125'
-                  )}
-                  strokeWidth={2}
-                />
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              aria-label={isDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className={cn(
+                'absolute -right-3 top-1/2 -translate-y-1/2 z-20',
+                'w-6 h-6 rounded-full',
+                'bg-primary hover:bg-primary/90 text-white',
+                'border-2 border-white/20 shadow-lg hover:shadow-xl',
+                'transition-all duration-200 hover:scale-110',
+                'focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2'
+              )}
+            >
+              {isDesktopCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
           )}
 
           {/* Mobile Close Button */}

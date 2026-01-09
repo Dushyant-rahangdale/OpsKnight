@@ -5,7 +5,7 @@ import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 import Sidebar from '@/components/Sidebar';
-
+import SidebarTrigger from '@/components/SidebarTrigger';
 import TopbarUserMenu from '@/components/TopbarUserMenu';
 import SidebarSearch from '@/components/SidebarSearch';
 import QuickActions from '@/components/QuickActions';
@@ -132,6 +132,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <div className="content-shell">
                 <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 [zoom:0.8]">
                   <div className="flex items-center gap-4">
+                    <SidebarTrigger />
                     <OperationalStatus
                       tone={statusTone}
                       label={statusLabel}
