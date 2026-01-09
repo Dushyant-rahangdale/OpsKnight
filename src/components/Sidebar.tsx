@@ -449,28 +449,26 @@ export default function Sidebar(
           {Object.entries(groupedItems).map(([section, items]) => renderSection(section, items))}
         </nav>
 
-        {/* Enhanced Footer with User Profile and Actions */}
+        {/* Compact Footer Redesign */}
         <div
           className={cn(
             'mt-auto shrink-0 border-t border-white/5',
-            'bg-gradient-to-t from-black/20 to-transparent',
-            isDesktopCollapsed ? 'p-2' : 'p-4'
+            'bg-black/20 backdrop-blur-sm',
+            isDesktopCollapsed ? 'p-2' : 'p-3'
           )}
         >
-          {/* User Profile Card */}
+          {/* User Profile Row */}
           <div
             className={cn(
-              'flex items-center rounded-xl bg-white/5 border border-white/5',
-              'transition-all duration-200 hover:bg-white/10 hover:border-white/10 hover:shadow-lg hover:shadow-black/20',
-              'group cursor-pointer',
-              isDesktopCollapsed ? 'p-1.5 justify-center aspect-square' : 'p-3 gap-3 mb-4'
+              'flex items-center gap-3 group',
+              isDesktopCollapsed ? 'justify-center' : ''
             )}
           >
             <div className="relative shrink-0">
               <Avatar
                 className={cn(
-                  'border border-white/10 shadow-sm',
-                  isDesktopCollapsed ? 'w-8 h-8' : 'w-10 h-10'
+                  'border border-white/10 shadow-sm transition-transform group-hover:scale-105',
+                  isDesktopCollapsed ? 'w-8 h-8' : 'w-9 h-9'
                 )}
               >
                 <AvatarImage
@@ -482,91 +480,80 @@ export default function Sidebar(
                   }
                   alt={userName || 'User'}
                 />
-                <AvatarFallback className="bg-indigo-500/20 text-indigo-200 text-xs font-bold uppercase backdrop-blur-md">
+                <AvatarFallback className="bg-indigo-500/20 text-indigo-200 text-[10px] font-bold uppercase backdrop-blur-md">
                   {(userName || userEmail || 'U').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0B1120]" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0B1120]" />
             </div>
 
             {!isDesktopCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white truncate group-hover:text-indigo-200 transition-colors">
+                <div className="text-xs font-bold text-white truncate group-hover:text-indigo-200 transition-colors">
                   {userName || userEmail || 'User'}
                 </div>
-                <div className="text-[11px] text-white/50 uppercase tracking-wider font-medium truncate">
+                <div className="text-[10px] text-white/40 uppercase tracking-wider font-medium truncate">
                   {userRole ? userRole.toLowerCase() : 'Admin'}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Utility Bar */}
+          {/* Action Bar */}
           {!isDesktopCollapsed && (
-            <div className="grid grid-cols-3 gap-1 mb-4">
+            <div className="grid grid-cols-4 gap-1 mt-3">
               <Link
                 href="/docs"
-                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
                 title="Documentation"
               >
-                <HelpCircle className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
-                <span className="text-[9px] font-medium tracking-wide">Docs</span>
+                <HelpCircle className="h-4 w-4" />
               </Link>
               <Link
                 href="/shortcuts"
-                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
-                title="Shortcuts"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                title="Keyboard Shortcuts"
               >
-                <Keyboard className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
-                <span className="text-[9px] font-medium tracking-wide">Keys</span>
+                <Keyboard className="h-4 w-4" />
               </Link>
               <Link
                 href="/settings"
-                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
                 title="Settings"
               >
-                <Settings className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
-                <span className="text-[9px] font-medium tracking-wide">Settings</span>
+                <Settings className="h-4 w-4" />
               </Link>
+              <a
+                href="/api/auth/logout"
+                className="flex items-center justify-center h-8 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
             </div>
           )}
 
-          {/* Sign Out Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className={cn(
-              'w-full group relative overflow-hidden',
-              'text-white/40 hover:text-rose-200 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/10',
-              'transition-all duration-300',
-              isDesktopCollapsed ? 'h-9 px-0 justify-center' : 'h-10 justify-between px-4'
-            )}
-          >
-            <a href="/api/auth/logout">
-              <div className="flex items-center gap-3">
-                <LogOut
-                  className={cn(
-                    'transition-transform group-hover:-translate-x-0.5',
-                    isDesktopCollapsed ? 'h-5 w-5' : 'h-4 w-4'
-                  )}
-                />
-                {!isDesktopCollapsed && <span className="font-medium text-xs">Sign Out</span>}
-              </div>
-              {!isDesktopCollapsed && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] tracking-widest text-rose-500/50">
-                  ESC
-                </div>
-              )}
-            </a>
-          </Button>
+          {/* Collapsed Sign Out */}
+          {isDesktopCollapsed && (
+            <div className="mt-2 flex flex-col gap-1 items-center">
+              <div className="h-px w-4 bg-white/10 my-1" />
+              <a
+                href="/api/auth/logout"
+                className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
+            </div>
+          )}
 
-          {/* Version Info */}
+          {/* Footer Metadata */}
           {!isDesktopCollapsed && (
-            <div className="flex items-center justify-center mt-4 gap-2">
-              <div className="h-px w-8 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              <span className="text-[9px] text-white/20 font-mono">v1.0.2</span>
-              <div className="h-px w-8 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+              <span className="text-[10px] text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
+                opssentinal.com
+              </span>
+              <span className="text-[10px] text-white/10 font-mono">v1.0.2</span>
             </div>
           )}
         </div>
