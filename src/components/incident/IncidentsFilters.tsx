@@ -73,63 +73,28 @@ export default function IncidentsFilters({
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.75rem',
-        flexWrap: 'wrap',
-        alignItems: 'flex-end',
-      }}
-    >
+    <div className="flex flex-wrap items-end gap-3 w-full">
       {/* Search */}
-      <form onSubmit={handleSearch} style={{ flex: 1, minWidth: '240px', maxWidth: '520px' }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: '0.25rem',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
+      <form onSubmit={handleSearch} className="flex-1 min-w-[240px] max-w-full lg:max-w-[500px]">
+        <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
           Search
         </label>
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Title, description, or ID…"
-            style={{
-              width: '100%',
-              padding: '0.55rem 2.4rem 0.55rem 0.85rem',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              background: '#fff',
-              fontSize: '0.88rem',
-              outline: 'none',
-            }}
+            className="w-full px-3 py-2 pr-9 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
           />
           <button
             type="submit"
-            style={{
-              position: 'absolute',
-              right: '0.5rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              color: 'var(--text-muted)',
-            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-primary transition-colors bg-transparent border-0"
           >
             <svg
               viewBox="0 0 24 24"
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
@@ -142,30 +107,14 @@ export default function IncidentsFilters({
       </form>
 
       {/* Priority Filter */}
-      <div style={{ minWidth: 180 }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: '0.25rem',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
+      <div className="w-full sm:w-auto min-w-[160px]">
+        <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
           Priority
         </label>
         <select
           value={currentPriority}
           onChange={e => updateParams({ priority: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '0.55rem 0.8rem',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            background: '#fff',
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-          }}
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
         >
           <option value="all">All</option>
           <option value="P1">P1 - Critical</option>
@@ -177,30 +126,14 @@ export default function IncidentsFilters({
       </div>
 
       {/* Urgency Filter */}
-      <div style={{ minWidth: 160 }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: '0.25rem',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
+      <div className="w-full sm:w-auto min-w-[140px]">
+        <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
           Urgency
         </label>
         <select
           value={currentUrgency}
           onChange={e => updateParams({ urgency: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '0.55rem 0.8rem',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            background: '#fff',
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-          }}
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
         >
           <option value="all">All</option>
           <option value="HIGH">High</option>
@@ -209,30 +142,14 @@ export default function IncidentsFilters({
       </div>
 
       {/* Sort */}
-      <div style={{ minWidth: 190 }}>
-        <label
-          style={{
-            display: 'block',
-            marginBottom: '0.25rem',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
+      <div className="w-full sm:w-auto min-w-[170px]">
+        <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
           Sort
         </label>
         <select
           value={currentSort}
           onChange={e => updateParams({ sort: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '0.55rem 0.8rem',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            background: '#fff',
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-          }}
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white cursor-pointer outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
         >
           <option value="newest">Newest First</option>
           <option value="oldest">Oldest First</option>
@@ -242,12 +159,11 @@ export default function IncidentsFilters({
         </select>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="flex gap-2 items-center mt-2 sm:mt-0 lg:ml-auto">
         <button
           type="button"
           onClick={clearFilters}
-          className="glass-button"
-          style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.75rem' }}
+          className="px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors shadow-sm"
           aria-label="Clear incident filters"
           disabled={isPending}
         >
@@ -257,9 +173,7 @@ export default function IncidentsFilters({
         {/* Save as Preset Button */}
         <CreatePresetFromCurrent currentCriteria={criteria} />
 
-        {isPending && (
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Loading…</span>
-        )}
+        {isPending && <span className="text-xs text-slate-400 animate-pulse">Loading…</span>}
       </div>
     </div>
   );

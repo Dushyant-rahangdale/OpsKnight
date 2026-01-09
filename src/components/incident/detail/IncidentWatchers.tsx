@@ -94,105 +94,109 @@ export default function IncidentWatchers({
               }}
               className="grid gap-3"
             >
-              <div className="grid grid-cols-[1fr_auto] gap-2">
+              <div className="flex flex-wrap gap-2">
                 {/* Searchable User Select (Combobox) */}
                 <input type="hidden" name="watcherId" value={selectedUserId} />
 
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={open}
-                      className="justify-between h-9 text-sm bg-background px-3 font-normal"
-                    >
-                      {selectedUser ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage
-                              src={
-                                selectedUser.avatarUrl ||
-                                getDefaultAvatar(selectedUser.gender, selectedUser.name)
-                              }
-                              alt={selectedUser.name}
-                            />
-                            <AvatarFallback className="text-[8px] bg-slate-100 font-bold text-slate-600">
-                              {selectedUser.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="truncate">{selectedUser.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">Select user...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="p-0 border shadow-md rounded-lg w-[320px]"
-                    align="start"
-                  >
-                    <Command className="rounded-lg">
-                      <CommandInput
-                        placeholder="Search user..."
-                        className="border-none focus:ring-0"
-                      />
-                      <CommandList className="max-h-[300px]">
-                        <CommandEmpty className="py-6 text-center text-sm">
-                          No user found.
-                        </CommandEmpty>
-                        <CommandGroup className="p-1.5">
-                          {availableUsers.map(user => (
-                            <CommandItem
-                              key={user.id}
-                              value={`${user.name}|${user.email}`}
-                              onSelect={() => {
-                                setSelectedUserId(user.id);
-                                setOpen(false);
-                              }}
-                              className="flex items-center gap-2 cursor-pointer text-sm rounded-md aria-selected:bg-accent my-0 py-1.5"
-                            >
-                              <Avatar className="h-7 w-7 border border-slate-200 shrink-0">
-                                <AvatarImage
-                                  src={user.avatarUrl || getDefaultAvatar(user.gender, user.name)}
-                                  alt={user.name}
-                                />
-                                <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-bold">
-                                  {user.name.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-medium leading-none truncate text-xs">
-                                  {user.name}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground truncate">
-                                  {user.email}
-                                </span>
-                              </div>
-                              <Check
-                                className={cn(
-                                  'ml-auto h-4 w-4 text-primary shrink-0',
-                                  selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
-                                )}
+                <div className="flex-1 min-w-[140px]">
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-full justify-between h-9 text-sm bg-background px-3 font-normal"
+                      >
+                        {selectedUser ? (
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <Avatar className="h-5 w-5 shrink-0">
+                              <AvatarImage
+                                src={
+                                  selectedUser.avatarUrl ||
+                                  getDefaultAvatar(selectedUser.gender, selectedUser.name)
+                                }
+                                alt={selectedUser.name}
                               />
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                              <AvatarFallback className="text-[8px] bg-slate-100 font-bold text-slate-600">
+                                {selectedUser.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate">{selectedUser.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground truncate">Select user...</span>
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="p-0 border shadow-md rounded-lg w-[320px]"
+                      align="start"
+                    >
+                      <Command className="rounded-lg">
+                        <CommandInput
+                          placeholder="Search user..."
+                          className="border-none focus:ring-0"
+                        />
+                        <CommandList className="max-h-[300px]">
+                          <CommandEmpty className="py-6 text-center text-sm">
+                            No user found.
+                          </CommandEmpty>
+                          <CommandGroup className="p-1.5">
+                            {availableUsers.map(user => (
+                              <CommandItem
+                                key={user.id}
+                                value={`${user.name}|${user.email}`}
+                                onSelect={() => {
+                                  setSelectedUserId(user.id);
+                                  setOpen(false);
+                                }}
+                                className="flex items-center gap-2 cursor-pointer text-sm rounded-md aria-selected:bg-accent my-0 py-1.5"
+                              >
+                                <Avatar className="h-7 w-7 border border-slate-200 shrink-0">
+                                  <AvatarImage
+                                    src={user.avatarUrl || getDefaultAvatar(user.gender, user.name)}
+                                    alt={user.name}
+                                  />
+                                  <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-bold">
+                                    {user.name.slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-medium leading-none truncate text-xs">
+                                    {user.name}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground truncate">
+                                    {user.email}
+                                  </span>
+                                </div>
+                                <Check
+                                  className={cn(
+                                    'ml-auto h-4 w-4 text-primary shrink-0',
+                                    selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                <Select name="watcherRole" defaultValue="FOLLOWER">
-                  <SelectTrigger className="w-[110px] bg-background h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FOLLOWER">Follower</SelectItem>
-                    <SelectItem value="STAKEHOLDER">Stakeholder</SelectItem>
-                    <SelectItem value="EXEC">Executive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[110px] shrink-0">
+                  <Select name="watcherRole" defaultValue="FOLLOWER">
+                    <SelectTrigger className="w-full bg-background h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FOLLOWER">Follower</SelectItem>
+                      <SelectItem value="STAKEHOLDER">Stakeholder</SelectItem>
+                      <SelectItem value="EXEC">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button
                 type="submit"

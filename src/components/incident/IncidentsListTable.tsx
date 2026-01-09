@@ -237,15 +237,7 @@ export default function IncidentsListTable({
     : Math.min(incidents.length, totalItems);
 
   return (
-    <div
-      className="glass-panel"
-      style={{
-        background: 'white',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
-        border: '1px solid var(--border)',
-      }}
-    >
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <style>{`
                 details.incident-row-menu > summary::-webkit-details-marker { display: none; }
                 details.incident-row-menu > summary { list-style: none; }
@@ -612,18 +604,7 @@ export default function IncidentsListTable({
       )}
 
       {/* Panel header */}
-      <div
-        style={{
-          padding: '0.9rem 1.25rem',
-          background: 'white',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="px-5 py-3.5 bg-white border-b border-slate-200 flex justify-between items-center gap-4 flex-wrap">
         <div>
           <div
             style={{
@@ -697,7 +678,7 @@ export default function IncidentsListTable({
       </div>
 
       {/* List content */}
-      <div style={{ padding: '1rem 1.25rem', background: 'white' }}>
+      <div className="p-4 lg:p-5 bg-white">
         {incidents.length === 0 ? (
           <div
             style={{
