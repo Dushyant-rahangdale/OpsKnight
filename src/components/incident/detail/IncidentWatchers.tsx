@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -7,20 +8,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/shadcn/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/shadcn/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/popover';
 import { Button } from '@/components/ui/shadcn/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/shadcn/avatar';
 import { Badge } from '@/components/ui/shadcn/badge';
-import { Users, Lock, Trash2 } from 'lucide-react';
+import { Users, Lock, Trash2, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { getDefaultAvatar } from '@/lib/avatar';
+import { cn } from '@/lib/utils';
 
 type Watcher = {
   id: string;
-  user: { id: string; name: string; email: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+  };
   role: string;
 };
 
 type IncidentWatchersProps = {
   watchers: Watcher[];
-  users: Array<{ id: string; name: string; email: string }>;
+  // Updated type to include avatar/gender for selection list
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+  }>;
   canManage: boolean;
   onAddWatcher: (formData: FormData) => void;
   onRemoveWatcher: (formData: FormData) => void;
@@ -33,6 +58,15 @@ export default function IncidentWatchers({
   onAddWatcher,
   onRemoveWatcher,
 }: IncidentWatchersProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
+  // Filter out users who are already watchers to keep the list clean (optional, but good UX)
+  // Or just mark them. Let's keep them but maybe disable? no, just simple select for now.
+  const availableUsers = users.filter(u => !watchers.some(w => w.user.id === u.id));
+
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
@@ -50,20 +84,104 @@ export default function IncidentWatchers({
       <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
         <div className="p-4 space-y-4">
           {canManage ? (
-            <form action={onAddWatcher} className="grid gap-3">
+            <form
+              action={formData => {
+                // Reset selection after submit (optimistic)
+                // Ideally we'd wait for result, but for now simple reset
+                const res = onAddWatcher(formData);
+                setSelectedUserId('');
+                return res;
+              }}
+              className="grid gap-3"
+            >
               <div className="grid grid-cols-[1fr_auto] gap-2">
-                <Select name="watcherId">
-                  <SelectTrigger className="bg-background h-9 text-sm">
-                    <SelectValue placeholder="Select user..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Searchable User Select (Combobox) */}
+                <input type="hidden" name="watcherId" value={selectedUserId} />
+
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="justify-between h-9 text-sm bg-background px-3 font-normal"
+                    >
+                      {selectedUser ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage
+                              src={
+                                selectedUser.avatarUrl ||
+                                getDefaultAvatar(selectedUser.gender, selectedUser.name)
+                              }
+                              alt={selectedUser.name}
+                            />
+                            <AvatarFallback className="text-[8px] bg-slate-100 font-bold text-slate-600">
+                              {selectedUser.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{selectedUser.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Select user...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="p-0 border shadow-md rounded-lg w-[320px]"
+                    align="start"
+                  >
+                    <Command className="rounded-lg">
+                      <CommandInput
+                        placeholder="Search user..."
+                        className="border-none focus:ring-0"
+                      />
+                      <CommandList className="max-h-[300px]">
+                        <CommandEmpty className="py-6 text-center text-sm">
+                          No user found.
+                        </CommandEmpty>
+                        <CommandGroup className="p-1.5">
+                          {availableUsers.map(user => (
+                            <CommandItem
+                              key={user.id}
+                              value={`${user.name}|${user.email}`}
+                              onSelect={() => {
+                                setSelectedUserId(user.id);
+                                setOpen(false);
+                              }}
+                              className="flex items-center gap-2 cursor-pointer text-sm rounded-md aria-selected:bg-accent my-0 py-1.5"
+                            >
+                              <Avatar className="h-7 w-7 border border-slate-200 shrink-0">
+                                <AvatarImage
+                                  src={user.avatarUrl || getDefaultAvatar(user.gender, user.name)}
+                                  alt={user.name}
+                                />
+                                <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-bold">
+                                  {user.name.slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-medium leading-none truncate text-xs">
+                                  {user.name}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground truncate">
+                                  {user.email}
+                                </span>
+                              </div>
+                              <Check
+                                className={cn(
+                                  'ml-auto h-4 w-4 text-primary shrink-0',
+                                  selectedUserId === user.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
 
                 <Select name="watcherRole" defaultValue="FOLLOWER">
                   <SelectTrigger className="w-[110px] bg-background h-9 text-sm">
@@ -76,7 +194,12 @@ export default function IncidentWatchers({
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" size="sm" className="w-full font-semibold h-8 text-xs">
+              <Button
+                type="submit"
+                size="sm"
+                className="w-full font-semibold h-8 text-xs"
+                disabled={!selectedUserId}
+              >
                 <Users className="h-3.5 w-3.5 mr-2" />
                 Add Watcher
               </Button>
@@ -98,7 +221,14 @@ export default function IncidentWatchers({
                   className="flex items-center justify-between p-3 rounded-lg border bg-card/50 hover:bg-accent/5 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border border-border">
+                    <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+                      <AvatarImage
+                        src={
+                          watcher.user.avatarUrl ||
+                          getDefaultAvatar(watcher.user.gender, watcher.user.name)
+                        }
+                        alt={watcher.user.name}
+                      />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                         {watcher.user.name.slice(0, 2).toUpperCase()}
                       </AvatarFallback>

@@ -3,8 +3,10 @@
 import _TimelineEvent from '../TimelineEvent';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
-import { Clock, AlertCircle, CheckCircle2, Target, Activity, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import { Card, CardContent } from '@/components/ui/shadcn/card';
+import { Clock, AlertCircle, CheckCircle2, Target, Activity, Plus, ArrowRight } from 'lucide-react';
 
 type Event = {
   id: string;
@@ -96,53 +98,45 @@ export default function IncidentTimeline({
     switch (type) {
       case 'CREATED':
         return {
-          iconBg: 'bg-gradient-to-br from-rose-500 to-red-600',
-          cardBg: 'bg-gradient-to-br from-rose-50 to-red-50',
-          border: 'border-rose-200',
-          textColor: 'text-rose-700',
-          icon: <AlertCircle className="h-4 w-4 text-white" />,
+          variant: 'destructive' as const,
+          icon: <AlertCircle className="h-4 w-4" />,
           label: 'Created',
+          avatarBg: 'bg-red-100',
+          avatarText: 'text-red-600',
         };
       case 'ACKNOWLEDGED':
         return {
-          iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
-          cardBg: 'bg-gradient-to-br from-amber-50 to-orange-50',
-          border: 'border-amber-200',
-          textColor: 'text-amber-700',
-          icon: <CheckCircle2 className="h-4 w-4 text-white" />,
+          variant: 'default' as const,
+          icon: <CheckCircle2 className="h-4 w-4" />,
           label: 'Acknowledged',
+          avatarBg: 'bg-amber-100',
+          avatarText: 'text-amber-600',
         };
       case 'RESOLVED':
         return {
-          iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-          cardBg: 'bg-gradient-to-br from-emerald-50 to-green-50',
-          border: 'border-emerald-200',
-          textColor: 'text-emerald-700',
-          icon: <Target className="h-4 w-4 text-white" />,
+          variant: 'default' as const,
+          icon: <Target className="h-4 w-4" />,
           label: 'Resolved',
+          avatarBg: 'bg-green-100',
+          avatarText: 'text-green-600',
         };
       default:
         return {
-          iconBg: 'bg-gradient-to-br from-[var(--primary-light)] to-[var(--primary)]',
-          cardBg: 'bg-gradient-to-br from-white to-[var(--color-neutral-50)]',
-          border: 'border-[var(--border)]',
-          textColor: 'text-[var(--text-primary)]',
-          icon: <Activity className="h-4 w-4 text-white" />,
+          variant: 'secondary' as const,
+          icon: <Activity className="h-4 w-4" />,
           label: 'Event',
+          avatarBg: 'bg-gray-100',
+          avatarText: 'text-gray-600',
         };
     }
   };
 
   if (timelineEvents.length === 0) {
     return (
-      <div className="py-12 px-8 text-center bg-gradient-to-br from-white to-[var(--color-neutral-50)] border border-[var(--border)] rounded-[var(--radius-lg)]">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-[var(--color-neutral-100)] flex items-center justify-center">
-          <Clock className="h-6 w-6 text-[var(--text-muted)]" />
-        </div>
-        <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">
-          No timeline events yet
-        </p>
-        <p className="text-xs text-[var(--text-muted)]">
+      <div className="text-center py-12">
+        <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No timeline events yet</h3>
+        <p className="text-sm text-muted-foreground">
           Events will appear here as the incident progresses.
         </p>
       </div>
@@ -150,60 +144,57 @@ export default function IncidentTimeline({
   }
 
   return (
-    <div className="relative pl-8">
-      {/* Timeline Line */}
-      <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-rose-400 via-amber-400 to-emerald-400 rounded-full" />
+    <div className="space-y-0 relative">
+      {/* Continuous vertical line background */}
+      <div className="absolute left-5 top-4 bottom-4 w-px bg-border/50" />
 
-      <div className="space-y-4">
-        {timelineEvents.map((event, index) => {
-          const config = getEventConfig(event.type);
-          const isLast = index === timelineEvents.length - 1;
+      {timelineEvents.map((event, index) => {
+        const config = getEventConfig(event.type);
 
-          return (
-            <div key={event.id} className="relative">
-              {/* Timeline Dot */}
-              <div
-                className={cn(
-                  'absolute -left-5 top-3 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-10',
-                  config.iconBg
-                )}
+        return (
+          <div
+            key={event.id}
+            className="relative flex gap-4 pb-8 group animate-in slide-in-from-left-2 fade-in duration-500 fill-mode-backwards"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            {/* Avatar */}
+            <div className="relative z-10 bg-background pt-1">
+              <Avatar
+                className={`h-10 w-10 border-2 border-background ring-1 ring-border shadow-sm ${config.avatarBg} transition-transform group-hover:scale-105`}
               >
-                {config.icon}
-              </div>
-
-              {/* Event Card */}
-              <div
-                className={cn(
-                  'rounded-[var(--radius-md)] border p-4 transition-all hover:shadow-[var(--shadow-md)]',
-                  config.cardBg,
-                  config.border
-                )}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider',
-                      config.iconBg,
-                      'text-white'
-                    )}
-                  >
-                    {config.label}
-                  </span>
-                  <span className="text-xs text-[var(--text-muted)] tabular-nums font-medium">
-                    {formatDateTime(event.createdAt, userTimeZone, { format: 'datetime' })}
-                  </span>
-                </div>
-
-                {/* Message */}
-                <p className={cn('text-sm leading-relaxed font-medium', config.textColor)}>
-                  {formatEscalationMessage(event.message)}
-                </p>
-              </div>
+                <AvatarFallback className={`${config.avatarBg} ${config.avatarText}`}>
+                  {config.icon}
+                </AvatarFallback>
+              </Avatar>
             </div>
-          );
-        })}
-      </div>
+
+            {/* Content */}
+            <div className="flex-1 pt-1 min-w-0">
+              <Card className="border-none shadow-sm hover:shadow-md transition-shadow bg-card/50">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={event.type !== 'EVENT' ? config.variant : 'outline'}
+                        className="text-[10px] uppercase font-bold tracking-wider"
+                      >
+                        {config.label}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground tabular-nums flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" />
+                      {formatDateTime(event.createdAt, userTimeZone, { format: 'datetime' })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed break-words">
+                    {formatEscalationMessage(event.message)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

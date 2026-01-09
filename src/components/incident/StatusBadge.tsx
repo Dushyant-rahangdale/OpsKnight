@@ -1,22 +1,18 @@
 'use client';
 
 import { memo } from 'react';
+import { cn } from '@/lib/utils';
+import { IncidentStatus } from '@prisma/client';
+import { AlertCircle, CheckCircle2, Clock, EyeOff, MinusCircle } from 'lucide-react';
 
 type StatusBadgeProps = {
-  status:
-    | 'OPEN'
-    | 'ACKNOWLEDGED'
-    | 'RESOLVED'
-    | 'SNOOZED'
-    | 'SUPPRESSED'
-    | 'OPERATIONAL'
-    | 'DEGRADED'
-    | 'CRITICAL';
+  status: IncidentStatus;
   size?: 'sm' | 'md' | 'lg';
   showDot?: boolean;
+  className?: string;
 };
 
-function StatusBadge({ status, size = 'md', showDot = false }: StatusBadgeProps) {
+function StatusBadge({ status, size = 'md', showDot = false, className }: StatusBadgeProps) {
   const sizeStyles = {
     sm: { padding: '0.22rem 0.55rem', fontSize: '0.7rem' },
     md: { padding: '0.25rem 0.75rem', fontSize: '0.8rem' },
@@ -79,6 +75,7 @@ function StatusBadge({ status, size = 'md', showDot = false }: StatusBadgeProps)
 
   return (
     <span
+      className={cn(className)}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

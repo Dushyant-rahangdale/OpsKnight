@@ -1,115 +1,81 @@
 'use client';
 
 import { memo } from 'react';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { cn } from '@/lib/utils';
+import { AlertCircle, ArrowUp, Zap } from 'lucide-react';
 
 type PriorityBadgeProps = {
   priority: string | null | undefined;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  className?: string;
 };
 
-function PriorityBadge({ priority, size = 'md', showLabel = false }: PriorityBadgeProps) {
-  if (!priority) {
-    return null;
-  }
+function PriorityBadge({ priority, size = 'md', showLabel = true, className }: PriorityBadgeProps) {
+  if (!priority) return null;
 
-  const sizeStyles = {
-    sm: { padding: '0.15rem 0.5rem', fontSize: '0.7rem' },
-    md: { padding: '0.25rem 0.75rem', fontSize: '0.8rem' },
-    lg: { padding: '0.35rem 1rem', fontSize: '0.9rem' },
-  };
-
-  const priorityConfig: Record<
-    string,
-    {
-      bg: string;
-      color: string;
-      border: string;
-      label: string;
-      severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
-    }
-  > = {
+  const config: Record<string, { label: string; color: string; icon: any }> = {
     P1: {
-      bg: 'linear-gradient(180deg, #fee2e2 0%, #fecaca 100%)',
-      color: '#991b1b',
-      border: '1px solid rgba(220, 38, 38, 0.3)',
-      label: 'Critical',
-      severity: 'CRITICAL',
+      label: 'Crisis',
+      color: 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200',
+      icon: Zap,
     },
     P2: {
-      bg: 'linear-gradient(180deg, #fed7aa 0%, #fdba74 100%)',
-      color: '#9a3412',
-      border: '1px solid rgba(234, 88, 12, 0.3)',
       label: 'High',
-      severity: 'HIGH',
+      color: 'bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200',
+      icon: ArrowUp,
     },
     P3: {
-      bg: 'linear-gradient(180deg, #fef3c7 0%, #fde68a 100%)',
-      color: '#92400e',
-      border: '1px solid rgba(245, 158, 11, 0.3)',
       label: 'Medium',
-      severity: 'MEDIUM',
+      color: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200',
+      icon: AlertCircle,
     },
     P4: {
-      bg: 'linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%)',
-      color: '#1e40af',
-      border: '1px solid rgba(59, 130, 246, 0.3)',
       label: 'Low',
-      severity: 'LOW',
+      color: 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200',
+      icon: null,
     },
     P5: {
-      bg: 'linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%)',
-      color: '#4b5563',
-      border: '1px solid rgba(107, 114, 128, 0.3)',
       label: 'Info',
-      severity: 'INFO',
+      color: 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200',
+      icon: null,
     },
   };
 
-  const config = priorityConfig[priority] || priorityConfig['P5'];
-  const style = sizeStyles[size];
+  const {
+    label,
+    color,
+    icon: Icon,
+  } = config[priority] || {
+    label: priority,
+    color: 'bg-slate-100 text-slate-700 border-slate-200',
+    icon: null,
+  };
+
+  const textClass =
+    size === 'sm'
+      ? 'text-[10px] px-1.5 py-0.5'
+      : size === 'lg'
+        ? 'text-sm px-3 py-1'
+        : 'text-xs px-2.5 py-0.5';
+  const displayLabel =
+    size === 'sm' && !showLabel ? priority : showLabel ? `${priority} - ${label}` : priority;
 
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        ...style,
-        background: config.bg,
-        color: config.color,
-        border: config.border,
-        borderRadius: '9999px',
-        fontWeight: 700,
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-        letterSpacing: '0.05em',
-        boxShadow: size === 'lg' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-      }}
-      title={showLabel ? undefined : `${priority} - ${config.label}`}
-    >
-      <span
-        style={{
-          fontSize: size === 'lg' ? '0.95em' : size === 'md' ? '0.9em' : '0.85em',
-          fontWeight: 800,
-        }}
-      >
-        {priority}
-      </span>
-      {showLabel && (
-        <span
-          style={{
-            fontSize: size === 'lg' ? '0.75em' : size === 'md' ? '0.7em' : '0.65em',
-            fontWeight: 600,
-            opacity: 0.9,
-          }}
-        >
-          {config.label}
-        </span>
+    <Badge
+      variant="outline"
+      className={cn(
+        'font-bold border shadow-sm flex items-center gap-1.5 shrink-0 transition-colors',
+        color,
+        textClass,
+        className
       )}
-    </span>
+    >
+      {Icon && <Icon className={cn('shrink-0', size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5')} />}
+      <span>{displayLabel}</span>
+    </Badge>
   );
 }
 
-// Memoize PriorityBadge to prevent unnecessary re-renders
 export default memo(PriorityBadge);

@@ -1,8 +1,9 @@
 'use client';
 
 import { logger } from '@/lib/logger';
-import { Card } from '@/components/ui';
 import CustomFieldInput from './CustomFieldInput';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Settings, AlertCircle } from 'lucide-react';
 
 type CustomFieldValue = {
   id: string;
@@ -33,16 +34,25 @@ type IncidentCustomFieldsProps = {
   canManage: boolean;
 };
 
+function formatFieldValue(value: string | null, type: string): string {
+  if (!value) return '';
+  if (type === 'BOOLEAN') return value === 'true' ? 'Yes' : 'No';
+  if (type === 'DATE') {
+    try {
+      return new Date(value).toLocaleDateString();
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
 export default function IncidentCustomFields({
   incidentId,
   customFieldValues,
   allCustomFields,
   canManage,
 }: IncidentCustomFieldsProps) {
-  if (allCustomFields.length === 0) {
-    return null;
-  }
-
   // Create a map of existing values
   const valueMap = new Map(customFieldValues.map(v => [v.customField.id, v]));
 
@@ -53,80 +63,79 @@ export default function IncidentCustomFields({
     valueId: valueMap.get(field.id)?.id || null,
   }));
 
-  return (
-    <Card>
-      <div style={{ padding: 'var(--spacing-5)' }}>
-        <h3
-          style={{
-            fontSize: 'var(--font-size-lg)',
-            fontWeight: 'var(--font-weight-semibold)',
-            marginBottom: 'var(--spacing-4)',
-          }}
-        >
-          Custom Fields
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-          {fieldsWithValues.map(({ field, value }) => (
-            <div key={field.id}>
-              {canManage ? (
-                <CustomFieldInput
-                  field={field}
-                  value={value || ''}
-                  onChange={async newValue => {
-                    try {
-                      const response = await fetch(`/api/incidents/${incidentId}/custom-fields`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          customFieldId: field.id,
-                          value: newValue,
-                        }),
-                      });
-                      if (!response.ok) {
-                        throw new Error('Failed to update custom field');
-                      }
-                      window.location.reload();
-                    } catch (error) {
-                      if (error instanceof Error) {
-                        logger.error('Failed to update custom field', { error: error.message });
-                      } else {
-                        logger.error('Failed to update custom field', { error: String(error) });
-                      }
-                      alert('Failed to update custom field');
-                    }
-                  }}
-                />
-              ) : (
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      marginBottom: 'var(--spacing-2)',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 'var(--font-weight-medium)',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    {field.name}
-                  </label>
-                  <div
-                    style={{
-                      padding: 'var(--spacing-3)',
-                      background: 'var(--color-neutral-50)',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--color-neutral-200)',
-                      color: value ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontSize: 'var(--font-size-base)',
-                    }}
-                  >
-                    {value || <span style={{ fontStyle: 'italic' }}>Not set</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+  // Empty state when no custom fields exist
+  if (allCustomFields.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-slate-100 flex items-center justify-center">
+          <Settings className="h-6 w-6 text-slate-400" />
         </div>
+        <p className="text-sm font-medium text-slate-600 mb-1">No Custom Fields</p>
+        <p className="text-xs text-slate-500">
+          Custom fields can be configured in Settings → Custom Fields
+        </p>
       </div>
-    </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {fieldsWithValues.map(({ field, value }) => (
+        <div key={field.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+          {canManage ? (
+            <CustomFieldInput
+              field={field}
+              value={value || ''}
+              onChange={async newValue => {
+                try {
+                  const response = await fetch(`/api/incidents/${incidentId}/custom-fields`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      customFieldId: field.id,
+                      value: newValue,
+                    }),
+                  });
+                  if (!response.ok) {
+                    throw new Error('Failed to update custom field');
+                  }
+                  window.location.reload();
+                } catch (error) {
+                  if (error instanceof Error) {
+                    logger.error('Failed to update custom field', { error: error.message });
+                  } else {
+                    logger.error('Failed to update custom field', { error: String(error) });
+                  }
+                  alert('Failed to update custom field');
+                }
+              }}
+            />
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700">{field.name}</span>
+                {field.required && (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-200 bg-amber-50"
+                  >
+                    Required
+                  </Badge>
+                )}
+              </div>
+              <div className="text-sm">
+                {value ? (
+                  <span className="text-slate-900 font-medium">
+                    {formatFieldValue(value, field.type)}
+                  </span>
+                ) : (
+                  <span className="text-slate-400 italic text-xs">Not set</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }

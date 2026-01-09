@@ -28,7 +28,14 @@ import Pagination from './Pagination';
 
 type IncidentsListTableProps = {
   incidents: IncidentListItem[];
-  users: Array<{ id: string; name: string; email: string }>;
+  users: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+    gender?: string | null;
+    role?: string;
+  }>;
   canManageIncidents: boolean;
   pagination?: {
     currentPage: number;

@@ -3,6 +3,13 @@
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/shadcn/button';
 import { Textarea } from '@/components/ui/shadcn/textarea';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/shadcn/card';
 import { CheckCircle2, Lock, Loader2, Target } from 'lucide-react';
 
 type IncidentResolutionProps = {
@@ -18,12 +25,12 @@ function SubmitButton() {
     <Button
       type="submit"
       disabled={pending}
-      className="w-full h-11 font-semibold bg-gradient-to-r from-[var(--color-success)] to-emerald-600 hover:from-emerald-600 hover:to-[var(--color-success)] text-white shadow-[var(--shadow-success)]"
+      className="w-full h-10 bg-green-600 hover:bg-green-700 text-white"
     >
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Resolving Incident...
+          Resolving...
         </>
       ) : (
         <>
@@ -42,56 +49,50 @@ export default function IncidentResolution({
 }: IncidentResolutionProps) {
   if (!canManage) {
     return (
-      <div className="p-5 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-[var(--radius-lg)]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-warning)]/20 flex items-center justify-center shrink-0">
-            <Lock className="h-5 w-5 text-[var(--color-warning)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-[var(--color-warning-dark)]">
-              Permission Required
-            </p>
-            <p className="text-xs text-[var(--color-warning)]">
-              Responder role or above required to resolve incidents.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Card className="border-orange-200 bg-orange-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-orange-900">
+            <Lock className="h-5 w-5" />
+            Resolution - Access Restricted
+          </CardTitle>
+          <CardDescription className="text-orange-700">
+            You need Responder role or above to resolve incidents
+          </CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   return (
-    <div className="p-5 bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-[var(--radius-lg)]">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-success)] to-emerald-600 flex items-center justify-center shadow-[var(--shadow-success)]">
-          <Target className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h4 className="text-sm font-bold text-[var(--text-primary)]">Resolution</h4>
-          <p className="text-xs text-[var(--text-muted)]">
-            Mark this incident as resolved with a summary note
-          </p>
-        </div>
-      </div>
-
-      <form action={onResolve} className="space-y-4">
-        <div className="space-y-2">
-          <Textarea
-            name="resolution"
-            required
-            minLength={10}
-            maxLength={1000}
-            rows={4}
-            placeholder="Root cause, fix applied, or summary..."
-            className="resize-none bg-white border-emerald-200 focus:border-[var(--color-success)] focus:ring-[var(--color-success)]/20"
-          />
-          <p className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
-            <CheckCircle2 className="h-3 w-3" />
-            10-1000 characters. Supports Markdown formatting.
-          </p>
-        </div>
-        <SubmitButton />
-      </form>
-    </div>
+    <Card className="border-green-200 bg-green-50/50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-green-900">
+          <Target className="h-5 w-5" />
+          Resolve Incident
+        </CardTitle>
+        <CardDescription className="text-green-700">
+          Mark this incident as resolved with a summary note
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form action={onResolve} className="space-y-4">
+          <div className="space-y-2">
+            <Textarea
+              name="resolution"
+              required
+              minLength={10}
+              maxLength={1000}
+              rows={4}
+              placeholder="Root cause, fix applied, or summary..."
+              className="resize-none bg-white"
+            />
+            <p className="text-xs text-muted-foreground">
+              10-1000 characters. Supports Markdown formatting.
+            </p>
+          </div>
+          <SubmitButton />
+        </form>
+      </CardContent>
+    </Card>
   );
 }
