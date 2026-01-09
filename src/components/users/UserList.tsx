@@ -4,6 +4,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { UserCard } from './UserCard';
 import { Button } from '@/components/ui/shadcn/button';
 import { Checkbox } from '@/components/ui/shadcn/checkbox';
+import type { UserFormState } from '@/app/(app)/users/actions';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +50,11 @@ type UserListProps = {
   deactivateUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
   reactivateUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
   deleteUser: (userId: string, formData?: FormData) => Promise<{ error?: string } | undefined>;
-  generateInvite: (userId: string, prevState: unknown, formData: FormData) => Promise<unknown>;
+  generateInvite: (
+    userId: string,
+    prevState: UserFormState,
+    formData: FormData
+  ) => Promise<UserFormState>;
 };
 
 export default function UserList({
@@ -205,7 +211,7 @@ export default function UserList({
 
           const handleGenerateInvite = async () => {
             const formData = new FormData();
-            await generateInvite(user.id, { error: null, token: null }, formData);
+            await generateInvite(user.id, { error: null }, formData);
           };
 
           const handleAddToTeam = async (teamId: string) => {
