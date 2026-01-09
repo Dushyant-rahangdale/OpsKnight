@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { IncidentStatus } from '@prisma/client';
 import SnoozeDurationDialog from './SnoozeDurationDialog';
 import { snoozeIncidentWithDuration } from '@/app/(app)/incidents/snooze-actions';
+import { Button } from '@/components/ui/shadcn/button';
+import { Check, X, Clock, BellOff, Bell, Lock, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type IncidentStatusActionsProps = {
   incidentId: string;
@@ -32,246 +35,125 @@ export default function IncidentStatusActions({
 
   if (!canManage) {
     return (
-      <div
-        style={{
-          padding: '0.75rem',
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0px',
-          opacity: 0.7,
-        }}
-      >
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          ⚠️ Responder role required to manage incidents
-        </p>
+      <div className="p-4 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-[var(--radius-md)]">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-warning)]/20 flex items-center justify-center shrink-0">
+            <Lock className="h-4 w-4 text-[var(--color-warning)]" />
+          </div>
+          <p className="text-sm text-[var(--color-warning-dark)] font-medium">
+            Responder role required to manage this incident
+          </p>
+        </div>
       </div>
     );
   }
 
+  const isResolved = currentStatus === 'RESOLVED';
+  const isSnoozed = currentStatus === 'SNOOZED';
+  const isSuppressed = currentStatus === 'SUPPRESSED';
+  const isAcknowledged = currentStatus === 'ACKNOWLEDGED';
+
   return (
-    <div style={{ display: 'grid', gap: '0.75rem' }}>
-      {/* Primary Actions */}
-      <div style={{ display: 'grid', gap: '0.5rem' }}>
-        {currentStatus === 'ACKNOWLEDGED' ? (
-          <form action={onUnacknowledge}>
-            <button
-              type="submit"
-              className="glass-button"
-              style={{
-                width: '100%',
-                background: 'linear-gradient(180deg, #feecec 0%, #fbdcdc 100%)',
-                color: 'var(--danger)',
-                border: '1px solid rgba(211,47,47,0.3)',
-                borderRadius: '0px',
-                boxShadow: '0 4px 12px rgba(211, 47, 47, 0.15)',
-                padding: '0.75rem 1rem',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M3 3l18 18M9 9l6 6" />
-              </svg>
-              Unacknowledge Incident
-            </button>
-          </form>
-        ) : (
-          currentStatus !== 'SUPPRESSED' &&
-          currentStatus !== 'RESOLVED' &&
-          currentStatus !== 'SNOOZED' && (
-            <form action={onAcknowledge}>
-              <button
-                type="submit"
-                className="glass-button"
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(180deg, #fff4cc 0%, #ffe9a8 100%)',
-                  color: '#b45309',
-                  border: '1px solid #f6c453',
-                  borderRadius: '0px',
-                  boxShadow: '0 10px 20px rgba(245, 158, 11, 0.15)',
-                  padding: '0.75rem 1rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Acknowledge Incident
-              </button>
-            </form>
-          )
-        )}
-        {currentStatus === 'SNOOZED' && (
+    <div className="space-y-3">
+      {/* Primary Action */}
+      {isAcknowledged ? (
+        <form action={onUnacknowledge}>
+          <Button
+            type="submit"
+            variant="outline"
+            className="w-full justify-center h-11 font-semibold text-[var(--color-error)] border-[var(--color-error)]/30 bg-[var(--color-error)]/5 hover:bg-[var(--color-error)]/10 hover:border-[var(--color-error)]/50"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Unacknowledge Incident
+          </Button>
+        </form>
+      ) : (
+        !isSuppressed &&
+        !isResolved &&
+        !isSnoozed && (
           <form action={onAcknowledge}>
-            <button
+            <Button
               type="submit"
-              className="glass-button"
-              style={{
-                width: '100%',
-                background: 'linear-gradient(180deg, #fff4cc 0%, #ffe9a8 100%)',
-                color: '#b45309',
-                border: '1px solid #f6c453',
-                borderRadius: '0px',
-                boxShadow: '0 10px 20px rgba(245, 158, 11, 0.15)',
-                padding: '0.75rem 1rem',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
+              className="w-full justify-center h-11 font-semibold bg-gradient-to-r from-[var(--color-warning)] to-amber-500 hover:from-amber-500 hover:to-[var(--color-warning)] text-white shadow-[var(--shadow-primary)]"
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <Check className="h-4 w-4 mr-2" />
               Acknowledge Incident
-            </button>
+            </Button>
           </form>
-        )}
-      </div>
+        )
+      )}
+
+      {isSnoozed && (
+        <form action={onAcknowledge}>
+          <Button
+            type="submit"
+            className="w-full justify-center h-11 font-semibold bg-gradient-to-r from-[var(--color-warning)] to-amber-500 hover:from-amber-500 hover:to-[var(--color-warning)] text-white shadow-[var(--shadow-primary)]"
+          >
+            <Check className="h-4 w-4 mr-2" />
+            Acknowledge Incident
+          </Button>
+        </form>
+      )}
 
       {/* Secondary Actions */}
-      <div
-        style={{
-          padding: '0.75rem',
-          background: '#f9fafb',
-          border: '1px solid var(--border)',
-          borderRadius: '0px',
-          display: 'grid',
-          gap: '0.5rem',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            fontWeight: 600,
-            marginBottom: '0.25rem',
-          }}
-        >
-          Additional Actions
-        </div>
-
-        {currentStatus === 'SNOOZED' ? (
-          <form action={onUnsnooze}>
-            <button
-              type="submit"
-              className="glass-button"
-              style={{
-                width: '100%',
-                background: '#feecec',
-                color: 'var(--danger)',
-                border: '1px solid rgba(211,47,47,0.25)',
-                borderRadius: '0px',
-                padding: '0.625rem 0.875rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-              }}
-            >
-              🔔 Unsnooze Incident
-            </button>
-          </form>
-        ) : (
-          currentStatus !== 'SUPPRESSED' &&
-          currentStatus !== 'RESOLVED' && (
-            <button
-              type="button"
-              onClick={() => setShowSnoozeDialog(true)}
-              className="glass-button"
-              style={{
-                width: '100%',
-                background: '#f3f4f6',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border)',
-                borderRadius: '0px',
-                padding: '0.625rem 0.875rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              ⏰ Snooze Incident
-            </button>
-          )
-        )}
-
-        {currentStatus === 'SUPPRESSED' ? (
-          <form action={onUnsuppress}>
-            <button
-              type="submit"
-              className="glass-button"
-              style={{
-                width: '100%',
-                background: '#feecec',
-                color: 'var(--danger)',
-                border: '1px solid rgba(211,47,47,0.25)',
-                borderRadius: '0px',
-                padding: '0.625rem 0.875rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-              }}
-            >
-              🔊 Unsuppress Incident
-            </button>
-          </form>
-        ) : (
-          currentStatus !== 'SNOOZED' &&
-          currentStatus !== 'RESOLVED' && (
-            <form action={onSuppress}>
-              <button
+      {!isResolved && (
+        <div className="grid grid-cols-2 gap-2">
+          {isSnoozed ? (
+            <form action={onUnsnooze} className="col-span-1">
+              <Button
                 type="submit"
-                className="glass-button"
-                style={{
-                  width: '100%',
-                  background: '#f3f4f6',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '0px',
-                  padding: '0.625rem 0.875rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                }}
+                variant="outline"
+                size="sm"
+                className="w-full h-9 text-xs font-semibold"
               >
-                🔕 Suppress Incident
-              </button>
+                <Bell className="h-3.5 w-3.5 mr-1.5" />
+                Unsnooze
+              </Button>
             </form>
-          )
-        )}
-      </div>
+          ) : (
+            !isSuppressed && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full h-9 text-xs font-semibold"
+                onClick={() => setShowSnoozeDialog(true)}
+              >
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Snooze
+              </Button>
+            )
+          )}
+
+          {isSuppressed ? (
+            <form action={onUnsuppress} className="col-span-1">
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="w-full h-9 text-xs font-semibold"
+              >
+                <Bell className="h-3.5 w-3.5 mr-1.5" />
+                Unsuppress
+              </Button>
+            </form>
+          ) : (
+            !isSnoozed && (
+              <form action={onSuppress} className="col-span-1">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 text-xs font-semibold"
+                >
+                  <BellOff className="h-3.5 w-3.5 mr-1.5" />
+                  Suppress
+                </Button>
+              </form>
+            )
+          )}
+        </div>
+      )}
 
       {showSnoozeDialog && (
         <SnoozeDurationDialog

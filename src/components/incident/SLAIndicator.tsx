@@ -3,190 +3,230 @@
 import { memo, useMemo } from 'react';
 import { calculateMTTA, calculateMTTR, checkAckSLA, checkResolveSLA } from '@/lib/sla';
 import { formatTimeMinutesMs } from '@/lib/time-format';
-import { getPrioritySLATarget, checkPriorityAckSLA, checkPriorityResolveSLA } from '@/lib/sla-priority';
+import {
+  getPrioritySLATarget,
+  checkPriorityAckSLA,
+  checkPriorityResolveSLA,
+} from '@/lib/sla-priority';
 import { Incident, Service } from '@prisma/client';
+import { CheckCircle2, XCircle, Timer, TrendingUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type SLAIndicatorProps = {
-    incident: Incident;
-    service: Service;
-    showDetails?: boolean;
+  incident: Incident;
+  service: Service;
+  showDetails?: boolean;
 };
 
 function SLAIndicator({ incident, service, showDetails = false }: SLAIndicatorProps) {
-    // Memoize expensive SLA calculations
-    const { mtta, mttr, ackSlaMet, resolveSlaMet, ackTimeRemaining, resolveTimeRemaining, targetAckMinutes, targetResolveMinutes } = useMemo(() => {
-        const mtta = calculateMTTA(incident);
-        const mttr = calculateMTTR(incident);
-        
-        // Use priority-based SLA if priority exists, otherwise use service defaults
-        const priorityTarget = getPrioritySLATarget(incident.priority, service);
-        const ackSlaMet = incident.acknowledgedAt 
-            ? (incident.priority ? checkPriorityAckSLA(incident, service) : checkAckSLA(incident, service))
-            : null;
-        const resolveSlaMet = incident.resolvedAt 
-            ? (incident.priority ? checkPriorityResolveSLA(incident, service) : checkResolveSLA(incident, service))
-            : null;
+  const {
+    mtta,
+    mttr,
+    ackSlaMet,
+    resolveSlaMet,
+    ackTimeRemaining,
+    resolveTimeRemaining,
+    targetAckMinutes,
+    targetResolveMinutes,
+  } = useMemo(() => {
+    const mtta = calculateMTTA(incident);
+    const mttr = calculateMTTR(incident);
 
-        const targetAckMinutes = priorityTarget.ack;
-        const targetResolveMinutes = priorityTarget.resolve;
+    const priorityTarget = getPrioritySLATarget(incident.priority, service);
+    const ackSlaMet = incident.acknowledgedAt
+      ? incident.priority
+        ? checkPriorityAckSLA(incident, service)
+        : checkAckSLA(incident, service)
+      : null;
+    const resolveSlaMet = incident.resolvedAt
+      ? incident.priority
+        ? checkPriorityResolveSLA(incident, service)
+        : checkResolveSLA(incident, service)
+      : null;
 
-        // Calculate time remaining for open incidents
-        const now = new Date();
-        const timeSinceCreation = (now.getTime() - incident.createdAt.getTime()) / (1000 * 60);
-        const ackTimeRemaining = incident.status === 'OPEN' && !incident.acknowledgedAt
-            ? targetAckMinutes - timeSinceCreation
-            : null;
-        const resolveTimeRemaining = incident.status !== 'RESOLVED' && !incident.resolvedAt
-            ? targetResolveMinutes - timeSinceCreation
-            : null;
+    const targetAckMinutes = priorityTarget.ack;
+    const targetResolveMinutes = priorityTarget.resolve;
 
-        return {
-            mtta,
-            mttr,
-            ackSlaMet,
-            resolveSlaMet,
-            ackTimeRemaining,
-            resolveTimeRemaining,
-            targetAckMinutes,
-            targetResolveMinutes
-        };
-    }, [incident, service]);
+    const now = new Date();
+    const timeSinceCreation = (now.getTime() - incident.createdAt.getTime()) / (1000 * 60);
+    const ackTimeRemaining =
+      incident.status === 'OPEN' && !incident.acknowledgedAt
+        ? targetAckMinutes - timeSinceCreation
+        : null;
+    const resolveTimeRemaining =
+      incident.status !== 'RESOLVED' && !incident.resolvedAt
+        ? targetResolveMinutes - timeSinceCreation
+        : null;
 
+    return {
+      mtta,
+      mttr,
+      ackSlaMet,
+      resolveSlaMet,
+      ackTimeRemaining,
+      resolveTimeRemaining,
+      targetAckMinutes,
+      targetResolveMinutes,
+    };
+  }, [incident, service]);
+
+  // Compact mode for inline usage
+  if (!showDetails) {
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            padding: '0.875rem',
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            border: '1px solid var(--border)',
-            borderRadius: '0px'
-        }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-                SLA Tracking
-            </div>
-
-            {showDetails && (
-                <>
-                    {/* Acknowledgement SLA */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Acknowledgement</span>
-                            {incident.acknowledgedAt ? (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: ackSlaMet ? '#16a34a' : '#dc2626',
-                                    background: ackSlaMet ? '#eaf7ef' : '#feecec',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '0px'
-                                }}>
-                                    {ackSlaMet ? '✓ Met' : '✗ Breached'}
-                                </span>
-                            ) : (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: ackTimeRemaining && ackTimeRemaining > 0 ? '#6b7280' : '#dc2626',
-                                    background: ackTimeRemaining && ackTimeRemaining > 0 ? '#f3f4f6' : '#feecec',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '0px'
-                                }}>
-                                    {ackTimeRemaining && ackTimeRemaining > 0 ? `⏱ ${Math.round(ackTimeRemaining)}m left` : '✗ Breached'}
-                                </span>
-                            )}
-                        </div>
-                        {mtta !== null && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Time: {formatTimeMinutesMs(mtta)} / Target: {targetAckMinutes}m
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Resolution SLA */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Resolution</span>
-                            {incident.resolvedAt ? (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: resolveSlaMet ? '#16a34a' : '#dc2626',
-                                    background: resolveSlaMet ? '#eaf7ef' : '#feecec',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '0px'
-                                }}>
-                                    {resolveSlaMet ? '✓ Met' : '✗ Breached'}
-                                </span>
-                            ) : (
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: resolveTimeRemaining && resolveTimeRemaining > 0 ? '#6b7280' : '#dc2626',
-                                    background: resolveTimeRemaining && resolveTimeRemaining > 0 ? '#f3f4f6' : '#feecec',
-                                    padding: '0.15rem 0.5rem',
-                                    borderRadius: '0px'
-                                }}>
-                                    {resolveTimeRemaining && resolveTimeRemaining > 0 ? `⏱ ${Math.round(resolveTimeRemaining)}m left` : '✗ Breached'}
-                                </span>
-                            )}
-                        </div>
-                        {mttr !== null && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Time: {formatTimeMinutesMs(mttr)} / Target: {targetResolveMinutes}m
-                            </div>
-                        )}
-                    </div>
-                </>
+      <div className="flex gap-2 flex-wrap">
+        {incident.acknowledgedAt && (
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold',
+              ackSlaMet
+                ? 'bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]'
+                : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
             )}
-
-            {!showDetails && (
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {incident.acknowledgedAt && (
-                        <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: ackSlaMet ? '#16a34a' : '#dc2626',
-                            background: ackSlaMet ? '#eaf7ef' : '#feecec',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0px'
-                        }}>
-                            Ack: {ackSlaMet ? '✓' : '✗'}
-                        </span>
-                    )}
-                    {incident.resolvedAt && (
-                        <span style={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: resolveSlaMet ? '#16a34a' : '#dc2626',
-                            background: resolveSlaMet ? '#eaf7ef' : '#feecec',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0px'
-                        }}>
-                            Resolve: {resolveSlaMet ? '✓' : '✗'}
-                        </span>
-                    )}
-                    {!incident.acknowledgedAt && !incident.resolvedAt && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {ackTimeRemaining && ackTimeRemaining > 0 ? `${Math.round(ackTimeRemaining)}m to acknowledge` : 'SLA breached'}
-                        </span>
-                    )}
-                </div>
+          >
+            {ackSlaMet ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+            Ack {ackSlaMet ? 'Met' : 'Breached'}
+          </span>
+        )}
+        {incident.resolvedAt && (
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold',
+              resolveSlaMet
+                ? 'bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]'
+                : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
             )}
-        </div>
+          >
+            {resolveSlaMet ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+            Resolve {resolveSlaMet ? 'Met' : 'Breached'}
+          </span>
+        )}
+        {!incident.acknowledgedAt && !incident.resolvedAt && (
+          <span className="text-sm text-[var(--text-muted)]">
+            {ackTimeRemaining && ackTimeRemaining > 0
+              ? `${Math.round(ackTimeRemaining)}m to acknowledge`
+              : 'SLA breached'}
+          </span>
+        )}
+      </div>
     );
+  }
+
+  // Detailed mode
+  return (
+    <div className="space-y-4">
+      {/* Acknowledgement SLA */}
+      <div className="p-4 bg-gradient-to-br from-white to-[var(--color-neutral-50)] border border-[var(--border)] rounded-[var(--radius-md)]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-[var(--text-secondary)]">Acknowledgement</span>
+          {incident.acknowledgedAt ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold',
+                ackSlaMet
+                  ? 'bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]'
+                  : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
+              )}
+            >
+              {ackSlaMet ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+              {ackSlaMet ? 'Met' : 'Breached'}
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold',
+                ackTimeRemaining && ackTimeRemaining > 0
+                  ? 'bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]'
+                  : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
+              )}
+            >
+              {ackTimeRemaining && ackTimeRemaining > 0 ? (
+                <>
+                  <Timer className="h-3 w-3" />
+                  {Math.round(ackTimeRemaining)}m left
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-3 w-3" />
+                  Breached
+                </>
+              )}
+            </span>
+          )}
+        </div>
+        {mtta !== null && (
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            <TrendingUp className="h-3 w-3" />
+            <span>
+              Time: {formatTimeMinutesMs(mtta)} / Target: {targetAckMinutes}m
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Resolution SLA */}
+      <div className="p-4 bg-gradient-to-br from-white to-[var(--color-neutral-50)] border border-[var(--border)] rounded-[var(--radius-md)]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-[var(--text-secondary)]">Resolution</span>
+          {incident.resolvedAt ? (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold',
+                resolveSlaMet
+                  ? 'bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]'
+                  : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
+              )}
+            >
+              {resolveSlaMet ? (
+                <CheckCircle2 className="h-3 w-3" />
+              ) : (
+                <XCircle className="h-3 w-3" />
+              )}
+              {resolveSlaMet ? 'Met' : 'Breached'}
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold',
+                resolveTimeRemaining && resolveTimeRemaining > 0
+                  ? 'bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]'
+                  : 'bg-[var(--badge-error-bg)] text-[var(--badge-error-text)]'
+              )}
+            >
+              {resolveTimeRemaining && resolveTimeRemaining > 0 ? (
+                <>
+                  <Timer className="h-3 w-3" />
+                  {Math.round(resolveTimeRemaining)}m left
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-3 w-3" />
+                  Breached
+                </>
+              )}
+            </span>
+          )}
+        </div>
+        {mttr !== null && (
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            <TrendingUp className="h-3 w-3" />
+            <span>
+              Time: {formatTimeMinutesMs(mttr)} / Target: {targetResolveMinutes}m
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-// Memoize SLAIndicator to prevent unnecessary re-renders when parent updates
 export default memo(SLAIndicator, (prevProps, nextProps) => {
-    // Custom comparison: only re-render if incident or service data actually changed
-    return (
-        prevProps.incident.id === nextProps.incident.id &&
-        prevProps.incident.status === nextProps.incident.status &&
-        prevProps.incident.acknowledgedAt?.getTime() === nextProps.incident.acknowledgedAt?.getTime() &&
-        prevProps.incident.resolvedAt?.getTime() === nextProps.incident.resolvedAt?.getTime() &&
-        prevProps.incident.priority === nextProps.incident.priority &&
-        prevProps.service.id === nextProps.service.id &&
-        prevProps.showDetails === nextProps.showDetails
-    );
+  return (
+    prevProps.incident.id === nextProps.incident.id &&
+    prevProps.incident.status === nextProps.incident.status &&
+    prevProps.incident.acknowledgedAt?.getTime() === nextProps.incident.acknowledgedAt?.getTime() &&
+    prevProps.incident.resolvedAt?.getTime() === nextProps.incident.resolvedAt?.getTime() &&
+    prevProps.incident.priority === nextProps.incident.priority &&
+    prevProps.service.id === nextProps.service.id &&
+    prevProps.showDetails === nextProps.showDetails
+  );
 });

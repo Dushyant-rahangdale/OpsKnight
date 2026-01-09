@@ -9,6 +9,9 @@ import {
   removeTagFromIncident,
   getAllTags,
 } from '@/app/(app)/incidents/tag-actions';
+import { Button } from '@/components/ui/shadcn/button';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Input } from '@/components/ui/shadcn/input';
 
 type IncidentTagsProps = {
   incidentId: string;
@@ -80,67 +83,37 @@ export default function IncidentTags({ incidentId, tags, canManage }: IncidentTa
   };
 
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '0.75rem',
-        }}
-      >
-        <h4
-          style={{
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
-          Tags
-        </h4>
+    <div className="mb-6">
+      <div className="flex justify-between items-center mb-3">
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tags</h4>
         {canManage && !isAdding && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setIsAdding(true);
               loadAvailableTags();
             }}
-            style={{
-              padding: '0.25rem 0.5rem',
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              color: 'var(--primary-color)',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="h-6 px-2 text-xs font-semibold text-primary hover:text-primary/80 hover:bg-primary/10"
           >
             + Add Tag
-          </button>
+          </Button>
         )}
       </div>
 
       {tags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <div className="flex flex-wrap gap-2 mb-3">
           {tags.map(tag => {
             const tagColors = getTagColor(tag.name);
             return (
-              <span
+              <Badge
                 key={tag.id}
+                variant="outline"
+                className="rounded-sm border px-2 py-0.5 text-xs font-semibold transition-all hover:scale-105"
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.25rem 0.625rem',
-                  background: tagColors.bg,
+                  backgroundColor: tagColors.bg,
                   color: tagColors.color,
-                  border: `1px solid ${tagColors.border}`,
-                  borderRadius: '0px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
+                  borderColor: tagColors.border,
                 }}
               >
                 #{tag.name}
@@ -149,33 +122,23 @@ export default function IncidentTags({ incidentId, tags, canManage }: IncidentTa
                     type="button"
                     onClick={() => handleRemoveTag(tag.id)}
                     disabled={isPending}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: tagColors.color,
-                      cursor: isPending ? 'not-allowed' : 'pointer',
-                      padding: 0,
-                      margin: 0,
-                      fontSize: '0.9rem',
-                      lineHeight: 1,
-                      opacity: isPending ? 0.5 : 1,
-                    }}
+                    className="ml-1.5 hover:opacity-70 disabled:opacity-50"
                   >
                     ×
                   </button>
                 )}
-              </span>
+              </Badge>
             );
           })}
         </div>
       )}
 
       {isAdding && canManage && (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input
+        <div className="flex gap-2 items-start">
+          <Input
             type="text"
             value={newTagName}
-            onChange={e => setNewTagName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTagName(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -187,13 +150,7 @@ export default function IncidentTags({ incidentId, tags, canManage }: IncidentTa
             }}
             placeholder="Tag name..."
             autoFocus
-            style={{
-              flex: 1,
-              padding: '0.5rem',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-            }}
+            className="h-8 text-xs"
             list="available-tags"
           />
           <datalist id="available-tags">
@@ -201,50 +158,30 @@ export default function IncidentTags({ incidentId, tags, canManage }: IncidentTa
               <option key={tag.id} value={tag.name} />
             ))}
           </datalist>
-          <button
-            type="button"
+          <Button
+            size="sm"
             onClick={handleAddTag}
             disabled={isPending || !newTagName.trim()}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: isPending || !newTagName.trim() ? 'not-allowed' : 'pointer',
-              opacity: isPending || !newTagName.trim() ? 0.6 : 1,
-            }}
+            className="h-8 px-3 text-xs"
           >
             Add
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               setIsAdding(false);
               setNewTagName('');
             }}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: '0px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="h-8 px-3 text-xs"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
 
       {tags.length === 0 && !isAdding && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          No tags assigned
-        </p>
+        <p className="text-sm text-muted-foreground italic">No tags assigned</p>
       )}
     </div>
   );
