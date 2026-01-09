@@ -488,9 +488,12 @@ export default function Sidebar(
             </div>
 
             {!isDesktopCollapsed && (
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-white truncate group-hover:text-indigo-200 transition-colors">
-                  {userName || 'User'}
+              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                <div className="text-xs font-bold text-white truncate group-hover:text-indigo-200 transition-colors flex items-center gap-2">
+                  <span>{userName || 'User'}</span>
+                  <span className="text-[9px] text-indigo-300 bg-indigo-500/10 px-1 rounded border border-indigo-500/20 font-medium uppercase tracking-wide">
+                    {userRole?.toLowerCase() || 'admin'}
+                  </span>
                 </div>
                 <div className="text-[10px] text-white/40 font-medium truncate">
                   {/* Display Email as requested */}
