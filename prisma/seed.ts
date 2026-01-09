@@ -140,6 +140,12 @@ function sha256(value: string) {
   return crypto.createHash('sha256').update(value).digest('hex');
 }
 
+function hashSecret(value: string) {
+  // Use bcrypt for credential-like values to increase computational effort.
+  const saltRounds = 10;
+  return bcrypt.hashSync(value, saltRounds);
+}
+
 async function clearDatabase() {
   const deleteOperations: Prisma.PrismaPromise<unknown>[] = [
     prisma.statusPageWebhook.deleteMany(),
@@ -793,7 +799,7 @@ async function main() {
     data: {
       userId: admin.id,
       deviceId: 'device-admin-1',
-      token: sha256('fcm-token-admin'),
+      token: hashSecret('fcm-token-admin'),
       platform: 'web',
       userAgent: 'Seed Script',
     },
@@ -804,7 +810,7 @@ async function main() {
     data: {
       name: 'Admin CLI Key',
       prefix: apiKeySeed.slice(0, 8),
-      tokenHash: sha256(apiKeySeed),
+      tokenHash: hashSecret(apiKeySeed),
       scopes: ['incidents:read', 'incidents:write', 'services:read'],
       userId: admin.id,
     },
@@ -814,7 +820,7 @@ async function main() {
     data: {
       type: 'INVITE',
       identifier: seededUsers[2]?.email ?? 'invite@example.com',
-      tokenHash: sha256('invite-token'),
+      tokenHash: hashSecret('invite-token'),
       expiresAt: minutesFrom(new Date(), 60 * 24),
       metadata: { source: 'seed' },
     },
