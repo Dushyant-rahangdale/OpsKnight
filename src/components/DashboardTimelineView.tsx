@@ -81,7 +81,10 @@ export default function DashboardTimelineView({ incidents, services }: Dashboard
   };
 
   const getUrgencyColor = (urgency: string) => {
-    return urgency === 'HIGH' ? '#ef5350' : '#ffa726';
+    if (urgency === 'HIGH') return '#ef5350';
+    if (urgency === 'MEDIUM') return '#f59e0b';
+    if (urgency === 'LOW') return '#16a34a';
+    return '#6b7280';
   };
 
   const formatTimeLabel = (dateStr: string) => {

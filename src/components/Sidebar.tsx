@@ -19,6 +19,19 @@ import {
   LogOut,
   Keyboard,
   AlertCircle,
+  LayoutDashboard,
+  AlertTriangle,
+  Server,
+  Users,
+  User,
+  Calendar,
+  ShieldAlert,
+  FileClock,
+  ClipboardList,
+  PieChart,
+  FileWarning,
+  Activity,
+  ListTodo,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,70 +48,42 @@ const navigationItems: NavItem[] = [
   {
     href: '/',
     label: 'Dashboard',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5Z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard />,
   },
   {
     href: '/incidents',
     label: 'Incidents',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 3 2.5 20h19L12 3Zm0 6 4.5 9h-9L12 9Zm0 3v4" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <AlertTriangle />,
   },
   {
     href: '/services',
     label: 'Services',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M4 6h16v5H4V6Zm0 7h16v5H4v-5Z" />
-      </svg>
-    ),
+    icon: <Server />,
   },
 
   // Operations Section
   {
     href: '/teams',
     label: 'Teams',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M7 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm10 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM3 19a4 4 0 0 1 8 0v1H3v-1Zm10 1v-1a4 4 0 0 1 8 0v1h-8Z" />
-      </svg>
-    ),
+    icon: <Users />,
     section: 'OPERATIONS',
   },
   {
     href: '/users',
     label: 'Users',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 20a6 6 0 0 1 16 0v1H4v-1Z" />
-      </svg>
-    ),
+    icon: <User />,
     section: 'OPERATIONS',
   },
   {
     href: '/schedules',
     label: 'Schedules',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M7 3v3m10-3v3M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <Calendar />,
     section: 'OPERATIONS',
   },
   {
     href: '/policies',
     label: 'Escalation Policies',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5Z" />
-      </svg>
-    ),
+    icon: <ShieldAlert />,
     section: 'OPERATIONS',
   },
 
@@ -106,83 +91,43 @@ const navigationItems: NavItem[] = [
   {
     href: '/analytics',
     label: 'Analytics',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 20V10m7 10V4m7 16v-7" strokeLinecap="round" />
-      </svg>
-    ),
+    icon: <PieChart />,
     section: 'INSIGHTS',
   },
   {
     href: '/postmortems',
     label: 'Postmortems',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <FileWarning />,
     section: 'INSIGHTS',
   },
   {
     href: '/status',
     label: 'Status Page',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <Activity />,
     section: 'INSIGHTS',
   },
   {
     href: '/action-items',
     label: 'Action Items',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    icon: <ListTodo />,
     section: 'INSIGHTS',
   },
   {
     href: '/events',
     label: 'Event Logs',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M5 4h14v4H5V4Zm0 6h14v4H5v-4Zm0 6h14v4H5v-4Z" />
-      </svg>
-    ),
+    icon: <FileClock />,
     section: 'INSIGHTS',
   },
   {
     href: '/audit',
     label: 'Audit Log',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-        <path d="M6 4h9l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm8 1.5V8h2.5L14 5.5ZM8 11h8v2H8v-2Zm0 4h8v2H8v-2Z" />
-      </svg>
-    ),
+    icon: <ClipboardList />,
     section: 'INSIGHTS',
   },
   {
     href: '/reports/executive',
     label: 'Executive Report',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
+    icon: <PieChart />,
     section: 'INSIGHTS',
     requiresRole: ['ADMIN'],
   },
@@ -290,7 +235,7 @@ export default function Sidebar(
         <span
           className={cn(
             'shrink-0 flex items-center justify-center opacity-85 group-hover:opacity-100',
-            '[&_svg]:h-[18px] [&_svg]:w-[18px] [&_svg]:shrink-0'
+            '[&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0'
           )}
         >
           {item.icon}
@@ -377,7 +322,9 @@ export default function Sidebar(
           'sidebar',
           isDesktopCollapsed && 'sidebar-collapsed',
           isMobile && 'sidebar-mobile',
-          isMobileMenuOpen && 'sidebar-mobile-open'
+          isMobileMenuOpen && 'sidebar-mobile-open',
+          !isMobile && '[zoom:0.8] h-[125vh]',
+          !isMobile && !isDesktopCollapsed && '!w-72'
         )}
       >
         {/* Enhanced Header with Branding */}
@@ -385,7 +332,7 @@ export default function Sidebar(
           className={cn(
             'relative shrink-0 border-b border-white/10',
             'bg-gradient-to-b from-white/5 to-transparent',
-            isDesktopCollapsed ? 'p-3.5 px-2.5 pb-3' : 'p-4 md:p-5 md:px-5 md:pb-5'
+            isDesktopCollapsed ? 'p-3.5 px-2.5 pb-3' : 'p-3 md:p-4'
           )}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.05)_0%,transparent_55%)] pointer-events-none" />
@@ -396,7 +343,7 @@ export default function Sidebar(
               'relative z-10 flex items-center no-underline transition-transform hover:translate-x-0.5',
               isDesktopCollapsed
                 ? 'flex-col justify-center gap-2 w-full'
-                : 'flex-row justify-start gap-3'
+                : 'flex-row justify-start gap-2.5'
             )}
           >
             <div
@@ -404,7 +351,7 @@ export default function Sidebar(
                 'relative shrink-0 rounded-xl border border-white/12 bg-white/8',
                 'shadow-md flex items-center justify-center overflow-hidden',
                 'transition-transform hover:scale-105',
-                isDesktopCollapsed ? 'h-10 w-10' : 'h-12 w-12 md:h-13 md:w-13'
+                isDesktopCollapsed ? 'h-10 w-10' : 'h-10 w-10 md:h-11 md:w-11'
               )}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)] pointer-events-none" />
@@ -415,23 +362,28 @@ export default function Sidebar(
                 height={48}
                 className={cn(
                   'relative z-10 object-contain',
-                  isDesktopCollapsed ? 'h-6 w-6' : 'h-8 w-8 md:h-9 md:w-9'
+                  isDesktopCollapsed ? 'h-6 w-6' : 'h-7 w-7 md:h-8 md:w-8'
                 )}
               />
             </div>
 
             {!isDesktopCollapsed && (
-              <div className="flex flex-col gap-1 min-w-0">
-                <h1 className="text-lg md:text-xl lg:text-2xl font-extrabold text-white m-0 leading-tight tracking-tight">
-                  Ops
-                  <wbr />
-                  Sentinal
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <h1 className="text-base md:text-lg font-extrabold text-white m-0 leading-tight tracking-tight">
+                  OpsSentinel
                 </h1>
                 <Badge
                   variant="secondary"
-                  className="w-fit px-2 py-0.5 text-[0.6rem] font-medium bg-white/10 text-white/80 border-white/20 rounded-full"
+                  className={cn(
+                    'w-fit px-2 py-0.5 mt-1',
+                    'text-[0.6rem] font-semibold uppercase tracking-wider',
+                    'bg-indigo-500/15 text-indigo-300',
+                    'border border-indigo-500/20',
+                    'rounded-full', // Ensure pill shape
+                    'backdrop-blur-sm transition-colors hover:bg-indigo-500/25'
+                  )}
                 >
-                  Incident Response Platform
+                  Incident Response
                 </Badge>
               </div>
             )}
@@ -500,124 +452,121 @@ export default function Sidebar(
         {/* Enhanced Footer with User Profile and Actions */}
         <div
           className={cn(
-            'mt-auto shrink-0 border-t border-white/10',
-            'bg-gradient-to-t from-white/5 to-transparent',
-            isDesktopCollapsed ? 'p-2.5' : 'p-4'
+            'mt-auto shrink-0 border-t border-white/5',
+            'bg-gradient-to-t from-black/20 to-transparent',
+            isDesktopCollapsed ? 'p-2' : 'p-4'
           )}
         >
-          {/* User Profile Section */}
+          {/* User Profile Card */}
           <div
             className={cn(
-              'flex items-center rounded-lg bg-white/8 backdrop-blur-sm relative transition-all',
-              'hover:bg-white/12',
-              isDesktopCollapsed ? 'p-2 justify-center' : 'p-3 gap-3 mb-3'
+              'flex items-center rounded-xl bg-white/5 border border-white/5',
+              'transition-all duration-200 hover:bg-white/10 hover:border-white/10 hover:shadow-lg hover:shadow-black/20',
+              'group cursor-pointer',
+              isDesktopCollapsed ? 'p-1.5 justify-center aspect-square' : 'p-3 gap-3 mb-4'
             )}
           >
-            {stats && stats.isClipped && (
-              <div className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-amber-500 border border-white/20 flex items-center justify-center">
-                <AlertCircle className="h-2 w-2 text-white" />
-              </div>
-            )}
-
-            <Avatar className={cn('shrink-0', isDesktopCollapsed ? 'w-8 h-8' : 'w-9 h-9')}>
-              <AvatarImage
-                src={
-                  userAvatar ||
-                  (userGender === 'FEMALE'
-                    ? 'https://i.pravatar.cc/150?img=44'
-                    : 'https://i.pravatar.cc/150?img=68')
-                }
-                alt={userName || 'User'}
-              />
-              <AvatarFallback className="bg-white/15 text-white text-sm font-semibold uppercase">
-                {(userName || userEmail || 'U').slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative shrink-0">
+              <Avatar
+                className={cn(
+                  'border border-white/10 shadow-sm',
+                  isDesktopCollapsed ? 'w-8 h-8' : 'w-10 h-10'
+                )}
+              >
+                <AvatarImage
+                  src={
+                    userAvatar ||
+                    (userGender === 'FEMALE'
+                      ? 'https://i.pravatar.cc/150?img=44'
+                      : 'https://i.pravatar.cc/150?img=68')
+                  }
+                  alt={userName || 'User'}
+                />
+                <AvatarFallback className="bg-indigo-500/20 text-indigo-200 text-xs font-bold uppercase backdrop-blur-md">
+                  {(userName || userEmail || 'U').slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0B1120]" />
+            </div>
 
             {!isDesktopCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white truncate">
+                <div className="text-sm font-semibold text-white truncate group-hover:text-indigo-200 transition-colors">
                   {userName || userEmail || 'User'}
                 </div>
-                <div className="text-xs text-white/65 capitalize truncate">
-                  {userRole ? userRole.toLowerCase() : 'User'}
+                <div className="text-[11px] text-white/50 uppercase tracking-wider font-medium truncate">
+                  {userRole ? userRole.toLowerCase() : 'Admin'}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className={cn('flex gap-1.5', isDesktopCollapsed ? 'flex-col' : 'grid grid-cols-3')}>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                'text-white/75 hover:text-white hover:bg-white/10',
-                isDesktopCollapsed ? 'w-full h-9 px-2' : 'h-8 px-2'
-              )}
-              title="Documentation"
-            >
-              <Link href="/docs">
-                <HelpCircle className="h-4 w-4" />
-                {!isDesktopCollapsed && <span className="ml-1.5 text-xs">Docs</span>}
+          {/* Utility Bar */}
+          {!isDesktopCollapsed && (
+            <div className="grid grid-cols-3 gap-1 mb-4">
+              <Link
+                href="/docs"
+                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                title="Documentation"
+              >
+                <HelpCircle className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span className="text-[9px] font-medium tracking-wide">Docs</span>
               </Link>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                'text-white/75 hover:text-white hover:bg-white/10',
-                isDesktopCollapsed ? 'w-full h-9 px-2' : 'h-8 px-2'
-              )}
-              title="Keyboard Shortcuts"
-            >
-              <Link href="/shortcuts">
-                <Keyboard className="h-4 w-4" />
-                {!isDesktopCollapsed && <span className="ml-1.5 text-xs">Keys</span>}
+              <Link
+                href="/shortcuts"
+                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                title="Shortcuts"
+              >
+                <Keyboard className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span className="text-[9px] font-medium tracking-wide">Keys</span>
               </Link>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className={cn(
-                'text-white/75 hover:text-white hover:bg-white/10',
-                isDesktopCollapsed ? 'w-full h-9 px-2' : 'h-8 px-2'
-              )}
-              title="Settings"
-            >
-              <Link href="/settings">
-                <Settings className="h-4 w-4" />
-                {!isDesktopCollapsed && <span className="ml-1.5 text-xs">Settings</span>}
+              <Link
+                href="/settings"
+                className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                title="Settings"
+              >
+                <Settings className="h-4 w-4 mb-1 opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span className="text-[9px] font-medium tracking-wide">Settings</span>
               </Link>
-            </Button>
-          </div>
+            </div>
+          )}
 
-          {/* Logout Button */}
+          {/* Sign Out Button */}
           <Button
             variant="ghost"
             size="sm"
             asChild
             className={cn(
-              'w-full mt-2 text-red-400/80 hover:text-red-300 hover:bg-red-500/10',
-              isDesktopCollapsed ? 'h-9 px-2' : 'h-8 px-3'
+              'w-full group relative overflow-hidden',
+              'text-white/40 hover:text-rose-200 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/10',
+              'transition-all duration-300',
+              isDesktopCollapsed ? 'h-9 px-0 justify-center' : 'h-10 justify-between px-4'
             )}
           >
             <a href="/api/auth/logout">
-              <LogOut className="h-4 w-4" />
-              {!isDesktopCollapsed && <span className="ml-2 text-xs font-medium">Sign Out</span>}
+              <div className="flex items-center gap-3">
+                <LogOut
+                  className={cn(
+                    'transition-transform group-hover:-translate-x-0.5',
+                    isDesktopCollapsed ? 'h-5 w-5' : 'h-4 w-4'
+                  )}
+                />
+                {!isDesktopCollapsed && <span className="font-medium text-xs">Sign Out</span>}
+              </div>
+              {!isDesktopCollapsed && (
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] tracking-widest text-rose-500/50">
+                  ESC
+                </div>
+              )}
             </a>
           </Button>
 
           {/* Version Info */}
           {!isDesktopCollapsed && (
-            <div className="flex items-center justify-between px-2 pt-3 text-[10px] text-white/30 font-medium tracking-tight">
-              <span>v1.0.0</span>
-              <span>OpsSentinel</span>
+            <div className="flex items-center justify-center mt-4 gap-2">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+              <span className="text-[9px] text-white/20 font-mono">v1.0.2</span>
+              <div className="h-px w-8 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             </div>
           )}
         </div>

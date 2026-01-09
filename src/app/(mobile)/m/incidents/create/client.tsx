@@ -23,7 +23,7 @@ export default function MobileCreateIncidentClient({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [urgency, setUrgency] = useState<'HIGH' | 'LOW'>('LOW');
+  const [urgency, setUrgency] = useState<'HIGH' | 'MEDIUM' | 'LOW'>('LOW');
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
@@ -58,9 +58,11 @@ export default function MobileCreateIncidentClient({
   };
 
   const submitButtonStyle =
-    urgency === 'LOW'
-      ? { background: '#ca8a04', borderColor: '#ca8a04', color: 'white' }
-      : { background: '#dc2626', borderColor: '#dc2626', color: 'white' };
+    urgency === 'HIGH'
+      ? { background: '#dc2626', borderColor: '#dc2626', color: 'white' }
+      : urgency === 'MEDIUM'
+        ? { background: '#d97706', borderColor: '#d97706', color: 'white' }
+        : { background: '#16a34a', borderColor: '#16a34a', color: 'white' };
 
   return (
     <form action={handleSubmit}>
@@ -180,6 +182,13 @@ export default function MobileCreateIncidentClient({
               label="High"
               checked={urgency === 'HIGH'}
               onChange={() => setUrgency('HIGH')}
+            />
+            <UrgencyRadio
+              name="urgency"
+              value="MEDIUM"
+              label="Medium"
+              checked={urgency === 'MEDIUM'}
+              onChange={() => setUrgency('MEDIUM')}
             />
             <UrgencyRadio
               name="urgency"

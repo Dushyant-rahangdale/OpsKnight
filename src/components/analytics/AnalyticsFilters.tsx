@@ -24,7 +24,7 @@ export default function AnalyticsFilters({
   currentFilters,
 }: AnalyticsFiltersProps) {
   const statusOptions = ['ALL', 'OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'];
-  const urgencyOptions = ['ALL', 'HIGH', 'LOW'];
+  const urgencyOptions = ['ALL', 'HIGH', 'MEDIUM', 'LOW'];
   const windowOptions = [1, 3, 7, 14, 30, 60, 90, 180, 365];
 
   const getUserName = (user: { name: string | null; email: string | null }) => {

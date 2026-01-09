@@ -9,6 +9,15 @@ import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from 
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 import { logger } from '@/lib/logger';
 
+const allowedUrgencies = new Set<IncidentUrgency>(['LOW', 'MEDIUM', 'HIGH']);
+
+function parseIncidentUrgency(value: string): IncidentUrgency {
+  if (allowedUrgencies.has(value as IncidentUrgency)) {
+    return value as IncidentUrgency;
+  }
+  throw new Error('Invalid incident urgency.');
+}
+
 export async function updateIncidentStatus(id: string, status: IncidentStatus) {
   try {
     // Check resource-level authorization
@@ -29,7 +38,6 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
 
     // Build update data
     const updateData: any = {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       status,
       // Track SLA timestamps
       ...(status === 'ACKNOWLEDGED' && !incident.acknowledgedAt
@@ -357,7 +365,7 @@ export async function updateIncidentUrgency(id: string, urgency: string) {
   } catch (error) {
     throw new Error(getUserFriendlyError(error));
   }
-  const parsedUrgency: IncidentUrgency = urgency === 'LOW' ? 'LOW' : 'HIGH';
+  const parsedUrgency = parseIncidentUrgency(urgency);
   await prisma.incident.update({
     where: { id },
     data: {
@@ -407,7 +415,7 @@ export async function createIncident(formData: FormData) {
   }
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
-  const urgency = formData.get('urgency') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const urgency = parseIncidentUrgency(formData.get('urgency') as string);
   const serviceId = formData.get('serviceId') as string;
   const priority = formData.get('priority') as string | null;
   const dedupKey = formData.get('dedupKey') as string | null;

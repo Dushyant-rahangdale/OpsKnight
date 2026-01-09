@@ -141,6 +141,7 @@ export default function IncidentsFilters({
         >
           <option value="all">All</option>
           <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
           <option value="LOW">Low</option>
         </select>
       </div>

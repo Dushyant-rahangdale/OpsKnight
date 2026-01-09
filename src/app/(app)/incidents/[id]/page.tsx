@@ -171,6 +171,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         return 'from-red-600 to-rose-700';
     }
   };
+  const urgencyBadgeStyles: Record<'HIGH' | 'MEDIUM' | 'LOW', string> = {
+    HIGH: 'bg-red-50 text-red-700',
+    MEDIUM: 'bg-amber-50 text-amber-700',
+    LOW: 'bg-emerald-50 text-emerald-700',
+  };
+  const urgencyBadgeClass =
+    urgencyBadgeStyles[incident.urgency as 'HIGH' | 'MEDIUM' | 'LOW'] ?? urgencyBadgeStyles.LOW;
 
   return (
     <div className="w-full px-4 py-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 [zoom:0.8]">
@@ -235,7 +242,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               </div>
               <div className="flex items-center justify-between">
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${incident.urgency === 'HIGH' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold ${urgencyBadgeClass}`}
                 >
                   {incident.urgency}
                 </span>

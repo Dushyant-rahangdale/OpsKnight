@@ -54,6 +54,13 @@ export default function IncidentHeader({ incident, users, teams, canManage }: In
   const { userTimeZone } = useTimezone();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const urgencyStyles: Record<'HIGH' | 'MEDIUM' | 'LOW', { text: string; dot: string }> = {
+    HIGH: { text: 'text-red-700', dot: 'bg-red-500 animate-pulse' },
+    MEDIUM: { text: 'text-amber-700', dot: 'bg-amber-500' },
+    LOW: { text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  };
+  const urgencyStyle =
+    urgencyStyles[incident.urgency as 'HIGH' | 'MEDIUM' | 'LOW'] ?? urgencyStyles.LOW;
 
   const handleUrgencyChange = (newUrgency: string) => {
     startTransition(async () => {
@@ -129,21 +136,23 @@ export default function IncidentHeader({ incident, users, teams, canManage }: In
                       HIGH
                     </div>
                   </SelectItem>
+                  <SelectItem value="MEDIUM">
+                    <div className="flex items-center gap-2 font-semibold text-amber-700">
+                      <div className="w-2 h-2 rounded-full bg-amber-500" />
+                      MEDIUM
+                    </div>
+                  </SelectItem>
                   <SelectItem value="LOW">
-                    <div className="flex items-center gap-2 font-semibold text-blue-700">
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <div className="flex items-center gap-2 font-semibold text-emerald-700">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
                       LOW
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             ) : (
-              <div
-                className={`flex items-center gap-2 font-bold text-sm ${incident.urgency === 'HIGH' ? 'text-red-700' : 'text-blue-700'}`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full ${incident.urgency === 'HIGH' ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}
-                />
+              <div className={`flex items-center gap-2 font-bold text-sm ${urgencyStyle.text}`}>
+                <div className={`w-2 h-2 rounded-full ${urgencyStyle.dot}`} />
                 {incident.urgency}
               </div>
             )}

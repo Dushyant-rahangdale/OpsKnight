@@ -69,7 +69,7 @@ export function buildIncidentWhere({
 
   if (urgency && urgency !== 'all') {
     const urgencyValue = urgency.toUpperCase() as IncidentUrgency;
-    if (urgencyValue === 'LOW' || urgencyValue === 'HIGH') {
+    if (urgencyValue === 'LOW' || urgencyValue === 'MEDIUM' || urgencyValue === 'HIGH') {
       where.urgency = urgencyValue;
     }
   }

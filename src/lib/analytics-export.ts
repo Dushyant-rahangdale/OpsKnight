@@ -4,7 +4,7 @@ export type AnalyticsExportFilters = {
   serviceId?: string;
   assigneeId?: string;
   status?: 'OPEN' | 'ACKNOWLEDGED' | 'SNOOZED' | 'SUPPRESSED' | 'RESOLVED';
-  urgency?: 'HIGH' | 'LOW';
+  urgency?: 'HIGH' | 'MEDIUM' | 'LOW';
 };
 
 const shouldInclude = (value?: string) => Boolean(value) && value !== 'ALL';

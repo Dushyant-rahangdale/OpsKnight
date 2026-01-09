@@ -192,7 +192,7 @@ export default function IncidentsListTable({
         else if (action === 'suppress') result = await bulkSuppress(ids);
         else if (action === 'unsuppress') result = await bulkUnsuppress(ids);
         else if (action === 'urgency' && value)
-          result = await bulkUpdateUrgency(ids, value as 'HIGH' | 'LOW');
+          result = await bulkUpdateUrgency(ids, value as 'HIGH' | 'MEDIUM' | 'LOW');
         else if (action === 'status' && value)
           result = await bulkUpdateStatus(ids, value as IncidentStatus);
         else return;
@@ -347,6 +347,7 @@ export default function IncidentsListTable({
                       Urgency…
                     </option>
                     <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
                     <option value="LOW">LOW</option>
                   </select>
                   <Button variant="secondary" size="sm" onClick={() => setBulkAction(null)}>

@@ -1777,6 +1777,10 @@
     background: linear-gradient(90deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.9));
 }
 
+.analytics-v2 .urgency-mix-row.is-medium .urgency-mix-bar span {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.3), rgba(245, 158, 11, 0.9));
+}
+
 .analytics-v2 .urgency-mix-row.is-low .urgency-mix-bar span {
     background: linear-gradient(90deg, rgba(100, 116, 139, 0.3), rgba(100, 116, 139, 0.9));
 }
@@ -1981,6 +1985,10 @@
 
 .analytics-v2 .distribution-urgency-row.is-low .distribution-urgency-bar span {
     background: linear-gradient(90deg, rgba(100, 116, 139, 0.35), rgba(100, 116, 139, 0.9));
+}
+
+.analytics-v2 .distribution-urgency-row.is-medium .distribution-urgency-bar span {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.35), rgba(245, 158, 11, 0.9));
 }
 
 .analytics-v2 .distribution-urgency-footnote {

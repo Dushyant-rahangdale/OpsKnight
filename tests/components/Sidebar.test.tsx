@@ -47,14 +47,13 @@ describe('Sidebar', () => {
     });
   });
 
-  it('renders the brand title with an optional line break', () => {
+  it('renders the brand title correctly', () => {
     renderWithProvider(
       <Sidebar userName="Alex Doe" userEmail="alex@example.com" userRole="ADMIN" />
     );
 
-    const heading = screen.getByRole('heading', { name: /OpsSentinal/i });
-    expect(heading).toHaveClass('sidebar-brand-title');
-    expect(heading.querySelector('wbr')).not.toBeNull();
+    const heading = screen.getByRole('heading', { name: /OpsSentinel/i });
+    expect(heading).toBeInTheDocument();
   });
 
   it('honors collapsed state from localStorage', async () => {
