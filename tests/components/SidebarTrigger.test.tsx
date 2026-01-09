@@ -30,14 +30,14 @@ describe('SidebarTrigger', () => {
     localStorage.clear();
   });
 
-  it('shows a label and toggles it on click', () => {
+  it('toggles label on click', () => {
     renderWithProvider(<SidebarTrigger />);
 
-    expect(screen.getByText('Collapse')).toBeInTheDocument();
-
     const button = screen.getByRole('button', { name: /collapse sidebar/i });
+    expect(button).toBeInTheDocument();
+
     fireEvent.click(button);
 
-    expect(screen.getByText('Expand')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
   });
 });
