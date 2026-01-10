@@ -397,19 +397,19 @@ export default function Sidebar(
               aria-label={isDesktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               className={cn(
                 'absolute -right-3 top-1/2 -translate-y-1/2 z-20',
-                'w-6 h-6 rounded-full',
-                'bg-slate-900 text-white',
-                'border border-slate-700 shadow-[0_0_15px_rgba(0,0,0,0.3)]',
-                'hover:bg-slate-800 hover:scale-110 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)]',
+                'w-6 h-6 rounded-full group',
+                'bg-black/40 backdrop-blur-md text-white/90',
+                'border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.2)]',
+                'hover:bg-black/60 hover:text-white hover:scale-110 hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]',
                 'transition-all duration-300 ease-out',
-                'focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2',
+                'focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2',
                 'flex items-center justify-center'
               )}
             >
               {isDesktopCollapsed ? (
-                <ChevronsRight className="h-3.5 w-3.5 stroke-[3]" />
+                <ChevronsRight className="h-3.5 w-3.5 stroke-[3] transition-transform duration-300 group-hover:translate-x-0.5" />
               ) : (
-                <ChevronsLeft className="h-3.5 w-3.5 stroke-[3]" />
+                <ChevronsLeft className="h-3.5 w-3.5 stroke-[3] transition-transform duration-300 group-hover:-translate-x-0.5" />
               )}
             </Button>
           )}
