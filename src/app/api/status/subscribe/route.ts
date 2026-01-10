@@ -36,16 +36,18 @@ export async function POST(req: NextRequest) {
 
     // Redirect to status page subscribe endpoint
     // This endpoint exists for API compatibility
-    const response = await fetch(`${req.nextUrl.origin}/api/status-page/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ statusPageId, email }),
-    });
+    const response = await fetch(
+      `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/status-page/subscribe`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusPageId, email }),
+      }
+    );
 
     const data = await response.json();
     return jsonOk(data, response.status);
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('api.status.subscribe.error', {
       error: error instanceof Error ? error.message : String(error),
     });
