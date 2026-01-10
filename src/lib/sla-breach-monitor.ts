@@ -62,7 +62,7 @@ export async function checkSLABreaches(
   // Get all active incidents with their service SLA targets
   const incidents = await prisma.incident.findMany({
     where: {
-      status: { not: 'RESOLVED' },
+      status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] },
     },
     select: {
       id: true,

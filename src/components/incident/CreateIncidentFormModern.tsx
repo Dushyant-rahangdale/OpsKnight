@@ -110,8 +110,6 @@ const formSchema = z.object({
   priority: z.string().optional(),
   assigneeId: z.string().optional(),
   dedupKey: z.string().max(200).optional(),
-  notifyOnCall: z.boolean(),
-  notifySlack: z.boolean(),
   // Custom fields are handled separately or via dynamic schema if needed,
   // currently just collecting them manually for the action
 });
@@ -145,8 +143,6 @@ export default function CreateIncidentFormModern({
       priority: initialTemplate?.defaultPriority || '',
       assigneeId: 'unassigned', // Use specific string for unassigned to simple Select Logic
       dedupKey: '',
-      notifyOnCall: true,
-      notifySlack: true,
     },
   });
 
@@ -164,8 +160,6 @@ export default function CreateIncidentFormModern({
         priority: initialTemplate.defaultPriority || '',
         assigneeId: 'unassigned',
         dedupKey: '',
-        notifyOnCall: true,
-        notifySlack: true,
       });
     }
   }, [initialTemplate, form]);
@@ -204,8 +198,6 @@ export default function CreateIncidentFormModern({
       }
     }
     if (data.dedupKey) formData.append('dedupKey', data.dedupKey);
-    if (data.notifyOnCall) formData.append('notifyOnCall', 'on');
-    if (data.notifySlack) formData.append('notifySlack', 'on');
 
     // Add custom fields
     Object.entries(customFieldValues).forEach(([key, value]) => {
@@ -692,52 +684,9 @@ export default function CreateIncidentFormModern({
                   />
                 </div>
 
-                {/* Notification Toggles */}
-                <div className="flex items-center gap-6">
-                  <FormField
-                    control={form.control}
-                    name="notifyOnCall"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2 space-y-0">
-                        <FormControl>
-                          <div className="relative flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={field.onChange}
-                              className="peer h-4 w-4 appearance-none rounded border border-input bg-background checked:bg-primary checked:border-primary transition-colors cursor-pointer"
-                            />
-                            <Check className="absolute top-0.5 left-0.5 h-3 w-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none" />
-                          </div>
-                        </FormControl>
-                        <FormLabel className="text-xs font-semibold cursor-pointer select-none">
-                          Notify Responders
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="notifySlack"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2 space-y-0">
-                        <FormControl>
-                          <div className="relative flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={field.onChange}
-                              className="peer h-4 w-4 appearance-none rounded border border-input bg-background checked:bg-primary checked:border-primary transition-colors cursor-pointer"
-                            />
-                            <Check className="absolute top-0.5 left-0.5 h-3 w-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none" />
-                          </div>
-                        </FormControl>
-                        <FormLabel className="text-xs font-semibold cursor-pointer select-none">
-                          Post to Slack
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Info className="h-3 w-3" />
+                  Notifications follow escalation and service rules automatically.
                 </div>
               </div>
             </div>

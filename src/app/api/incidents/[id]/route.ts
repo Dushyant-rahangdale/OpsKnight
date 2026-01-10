@@ -132,6 +132,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     select: {
       id: true,
       status: true,
+      urgency: true,
       acknowledgedAt: true,
       resolvedAt: true,
       assigneeId: true,
@@ -176,10 +177,41 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       updates.nextEscalationAt = null;
     } else if (
       status === 'OPEN' &&
-      ['SNOOZED', 'SUPPRESSED', 'ACKNOWLEDGED'].includes(currentIncident.status)
+      ['SNOOZED', 'SUPPRESSED', 'ACKNOWLEDGED', 'RESOLVED'].includes(currentIncident.status)
     ) {
       updates.escalationStatus = 'ESCALATING';
-      updates.nextEscalationAt = new Date();
+      if (currentIncident.status === 'ACKNOWLEDGED') {
+        const policyData = await prisma.incident.findUnique({
+          where: { id },
+          select: {
+            currentEscalationStep: true,
+            service: {
+              select: {
+                policy: {
+                  select: {
+                    steps: {
+                      orderBy: { stepOrder: 'asc' },
+                      select: { delayMinutes: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+        const stepIndex = policyData?.currentEscalationStep ?? 0;
+        const delayMinutes = policyData?.service?.policy?.steps?.[stepIndex]?.delayMinutes ?? 0;
+        updates.nextEscalationAt = new Date(Date.now() + delayMinutes * 60 * 1000);
+      } else {
+        updates.nextEscalationAt = new Date();
+      }
+      if (currentIncident.status === 'ACKNOWLEDGED' || currentIncident.status === 'RESOLVED') {
+        updates.acknowledgedAt = null;
+      }
+      if (currentIncident.status === 'RESOLVED') {
+        updates.resolvedAt = null;
+        updates.currentEscalationStep = 0;
+      }
     }
   }
   if (urgency) {
@@ -204,6 +236,58 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   logger.info('api.incident.updated', { incidentId: incident.id, apiKeyId: apiKey.id });
 
+  if (status) {
+    const eventMessage =
+      status === 'SNOOZED'
+        ? 'Incident snoozed (escalation paused)'
+        : status === 'SUPPRESSED'
+          ? 'Incident suppressed (escalation paused)'
+          : status === 'OPEN' && currentIncident.status === 'ACKNOWLEDGED'
+            ? 'Incident unacknowledged (escalation resumed)'
+            : status === 'OPEN' &&
+                (currentIncident.status === 'SNOOZED' || currentIncident.status === 'SUPPRESSED')
+              ? 'Incident unsnoozed/unsuppressed (escalation resumed)'
+              : `Status updated to ${status}${status === 'ACKNOWLEDGED' || status === 'RESOLVED' ? ' (escalation stopped)' : ''}`;
+
+    await prisma.incidentEvent.create({
+      data: {
+        incidentId: incident.id,
+        message: eventMessage,
+      },
+    });
+  }
+
+  if (urgency && urgency !== currentIncident.urgency) {
+    await prisma.incidentEvent.create({
+      data: {
+        incidentId: incident.id,
+        message: `Urgency updated to ${urgency}`,
+      },
+    });
+  }
+
+  if (assigneeId !== null && assigneeId !== currentIncident.assigneeId) {
+    if (!assigneeId) {
+      await prisma.incidentEvent.create({
+        data: {
+          incidentId: incident.id,
+          message: 'Incident unassigned',
+        },
+      });
+    } else {
+      const assignee = await prisma.user.findUnique({
+        where: { id: assigneeId },
+        select: { name: true },
+      });
+      await prisma.incidentEvent.create({
+        data: {
+          incidentId: incident.id,
+          message: `Incident manually reassigned to ${assignee?.name || 'user'}`,
+        },
+      });
+    }
+  }
+
   // Trigger status page webhooks for incident updates
   try {
     const updatedIncident = await prisma.incident.findUnique({
@@ -220,6 +304,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
       if (updatedIncident.status === 'RESOLVED') {
         eventType = 'incident.resolved';
+      } else if (updatedIncident.status === 'ACKNOWLEDGED') {
+        eventType = 'incident.acknowledged';
+      } else if (updatedIncident.status === 'SNOOZED') {
+        eventType = 'incident.snoozed';
+      } else if (updatedIncident.status === 'SUPPRESSED') {
+        eventType = 'incident.suppressed';
       }
 
       await triggerWebhooksForService(updatedIncident.serviceId, eventType, {
@@ -265,6 +355,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     logger.error('api.incident.service_notification_import_failed', {
       error: e instanceof Error ? e.message : String(e),
+    });
+  }
+
+  // Notify status page subscribers (Email)
+  try {
+    let notifyEvent: 'acknowledged' | 'resolved' | 'investigating' | null = null;
+    if (status === 'ACKNOWLEDGED') notifyEvent = 'acknowledged';
+    else if (status === 'RESOLVED') notifyEvent = 'resolved';
+    else if (status === 'OPEN') notifyEvent = 'investigating';
+
+    if (notifyEvent) {
+      const { notifyStatusPageSubscribers } = await import('@/lib/status-page-notifications');
+      await notifyStatusPageSubscribers(incident.id, notifyEvent as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    }
+  } catch (e) {
+    logger.error('api.incident.status_page_notification_failed', {
+      error: e instanceof Error ? e.message : String(e),
+      incidentId: incident.id,
     });
   }
 

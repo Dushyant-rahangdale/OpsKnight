@@ -4,7 +4,6 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
-import { notifySlackForIncident as _notifySlackForIncident } from '@/lib/slack';
 import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from '@/lib/rbac';
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 import { logger } from '@/lib/logger';
@@ -81,7 +80,8 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
       if (
         incident.status === 'SNOOZED' ||
         incident.status === 'SUPPRESSED' ||
-        incident.status === 'ACKNOWLEDGED'
+        incident.status === 'ACKNOWLEDGED' ||
+        incident.status === 'RESOLVED'
       ) {
         updateData.escalationStatus = 'ESCALATING';
         if (incident.status === 'ACKNOWLEDGED') {
@@ -109,6 +109,13 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
           updateData.nextEscalationAt = new Date(Date.now() + delayMinutes * 60 * 1000);
         } else {
           updateData.nextEscalationAt = new Date(); // Resume immediately
+        }
+        if (incident.status === 'ACKNOWLEDGED' || incident.status === 'RESOLVED') {
+          updateData.acknowledgedAt = null;
+        }
+        if (incident.status === 'RESOLVED') {
+          updateData.resolvedAt = null;
+          updateData.currentEscalationStep = 0;
         }
       }
     }
@@ -420,8 +427,6 @@ export async function createIncident(formData: FormData) {
   const priority = formData.get('priority') as string | null;
   const dedupKey = formData.get('dedupKey') as string | null;
   const assigneeId = formData.get('assigneeId') as string | null;
-  const notifyOnCall = formData.get('notifyOnCall') === 'on';
-  const notifySlack = formData.get('notifySlack') === 'on';
 
   // Extract custom field values
   const customFieldEntries: Array<{ fieldId: string; value: string }> = [];
@@ -499,6 +504,9 @@ export async function createIncident(formData: FormData) {
           data: {
             status: 'OPEN',
             resolvedAt: null, // Clear resolution time
+            escalationStatus: 'ESCALATING',
+            nextEscalationAt: new Date(),
+            currentEscalationStep: 0,
             events: {
               create: {
                 message: `Incident re-opened due to manual report within 30m window.\nSummary: ${title}`,
@@ -528,7 +536,7 @@ export async function createIncident(formData: FormData) {
         priority: priority && priority.length ? priority : null,
         dedupKey: dedupKey && dedupKey.length ? dedupKey : null,
         assigneeId: assigneeId && assigneeId.length ? assigneeId : null,
-        teamId: teamId && teamId.length ? teamId : null,
+        teamId: !assigneeId && teamId && teamId.length ? teamId : null,
         events: {
           create: {
             message: assigneeId
@@ -547,20 +555,6 @@ export async function createIncident(formData: FormData) {
         },
       },
     });
-
-    if (notifyOnCall || notifySlack) {
-      await tx.incidentEvent.create({
-        data: {
-          incidentId: createdIncident.id,
-          message: `Notifications: ${[
-            notifyOnCall ? 'On-call' : null,
-            notifySlack ? 'Service channel' : null,
-          ]
-            .filter(Boolean)
-            .join(', ')}`,
-        },
-      });
-    }
 
     return createdIncident;
   });

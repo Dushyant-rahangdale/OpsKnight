@@ -306,7 +306,6 @@ export async function updatePolicyStep(
   }
 
   const updateData: any = {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     targetType: finalTargetType,
     targetUserId: finalTargetType === 'USER' ? targetId : null,
     targetTeamId: finalTargetType === 'TEAM' ? targetId : null,
@@ -442,11 +441,11 @@ export async function movePolicyStep(
     await prisma.$transaction([
       prisma.escalationRule.update({
         where: { id: stepId },
-        data: { stepOrder: newOrder },
+        data: { stepOrder: newOrder, delayMinutes: targetStep.delayMinutes },
       }),
       prisma.escalationRule.update({
         where: { id: targetStep.id },
-        data: { stepOrder: currentOrder },
+        data: { stepOrder: currentOrder, delayMinutes: step.delayMinutes },
       }),
     ]);
 

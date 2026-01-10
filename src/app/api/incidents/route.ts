@@ -8,201 +8,228 @@ import { logger } from '@/lib/logger';
 import { executeEscalation } from '@/lib/escalation';
 
 function parseLimit(value: string | null) {
-    const limit = Number(value);
-    if (Number.isNaN(limit) || limit <= 0) return 50;
-    return Math.min(limit, 200);
+  const limit = Number(value);
+  if (Number.isNaN(limit) || limit <= 0) return 50;
+  return Math.min(limit, 200);
 }
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 60;
 
 async function getApiUserContext(apiKeyUserId: string) {
-    const user = await prisma.user.findUnique({
-        where: { id: apiKeyUserId },
-        select: {
-            id: true,
-            role: true,
-            teamMemberships: { select: { teamId: true } }
-        }
-    });
+  const user = await prisma.user.findUnique({
+    where: { id: apiKeyUserId },
+    select: {
+      id: true,
+      role: true,
+      teamMemberships: { select: { teamId: true } },
+    },
+  });
 
-    if (!user) return null;
+  if (!user) return null;
 
-    return {
-        id: user.id,
-        role: user.role,
-        teamIds: user.teamMemberships.map((membership) => membership.teamId)
-    };
+  return {
+    id: user.id,
+    role: user.role,
+    teamIds: user.teamMemberships.map(membership => membership.teamId),
+  };
 }
 
 export async function GET(req: NextRequest) {
-    const apiKey = await authenticateApiKey(req);
-    if (!apiKey) {
-        return jsonError('Unauthorized. Missing or invalid API key.', 401);
-    }
-    if (!hasApiScopes(apiKey.scopes, ['incidents:read'])) {
-        return jsonError('API key missing scope: incidents:read.', 403);
-    }
+  const apiKey = await authenticateApiKey(req);
+  if (!apiKey) {
+    return jsonError('Unauthorized. Missing or invalid API key.', 401);
+  }
+  if (!hasApiScopes(apiKey.scopes, ['incidents:read'])) {
+    return jsonError('API key missing scope: incidents:read.', 403);
+  }
 
-    const rate = checkRateLimit(`api:${apiKey.id}:incidents:get`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-    if (!rate.allowed) {
-        const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
-        return NextResponse.json(
-            { error: 'Rate limit exceeded.' },
-            { status: 429, headers: { 'Retry-After': String(retryAfter) } }
-        );
-    }
+  const rate = checkRateLimit(
+    `api:${apiKey.id}:incidents:get`,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_MS
+  );
+  if (!rate.allowed) {
+    const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+    return NextResponse.json(
+      { error: 'Rate limit exceeded.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
+  }
 
-    const apiUser = await getApiUserContext(apiKey.userId);
-    if (!apiUser) {
-        return jsonError('Unauthorized. API key user not found.', 401);
-    }
+  const apiUser = await getApiUserContext(apiKey.userId);
+  if (!apiUser) {
+    return jsonError('Unauthorized. API key user not found.', 401);
+  }
 
-    const { searchParams } = new URL(req.url);
-    const limit = parseLimit(searchParams.get('limit'));
+  const { searchParams } = new URL(req.url);
+  const limit = parseLimit(searchParams.get('limit'));
 
-    const accessFilter = apiUser.role === 'ADMIN' || apiUser.role === 'RESPONDER'
-        ? undefined
-        : {
-            OR: [
-                { assigneeId: apiUser.id },
-                { service: { teamId: { in: apiUser.teamIds } } }
-            ]
+  const accessFilter =
+    apiUser.role === 'ADMIN' || apiUser.role === 'RESPONDER'
+      ? undefined
+      : {
+          OR: [{ assigneeId: apiUser.id }, { service: { teamId: { in: apiUser.teamIds } } }],
         };
 
-    const incidents = await prisma.incident.findMany({
-        where: accessFilter,
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        include: {
-            service: { select: { id: true, name: true } },
-            assignee: { select: { id: true, name: true, email: true } }
-        }
-    });
+  const incidents = await prisma.incident.findMany({
+    where: accessFilter,
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: {
+      service: { select: { id: true, name: true } },
+      assignee: { select: { id: true, name: true, email: true } },
+    },
+  });
 
-    return jsonOk({ incidents }, 200);
+  return jsonOk({ incidents }, 200);
 }
 
 export async function POST(req: NextRequest) {
-    const apiKey = await authenticateApiKey(req);
-    if (!apiKey) {
-        return jsonError('Unauthorized. Missing or invalid API key.', 401);
-    }
-    if (!hasApiScopes(apiKey.scopes, ['incidents:write'])) {
-        return jsonError('API key missing scope: incidents:write.', 403);
-    }
+  const apiKey = await authenticateApiKey(req);
+  if (!apiKey) {
+    return jsonError('Unauthorized. Missing or invalid API key.', 401);
+  }
+  if (!hasApiScopes(apiKey.scopes, ['incidents:write'])) {
+    return jsonError('API key missing scope: incidents:write.', 403);
+  }
 
-    const rate = checkRateLimit(`api:${apiKey.id}:incidents:post`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
-    if (!rate.allowed) {
-        const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
-        return NextResponse.json(
-            { error: 'Rate limit exceeded.' },
-            { status: 429, headers: { 'Retry-After': String(retryAfter) } }
-        );
-    }
+  const rate = checkRateLimit(
+    `api:${apiKey.id}:incidents:post`,
+    RATE_LIMIT_MAX,
+    RATE_LIMIT_WINDOW_MS
+  );
+  if (!rate.allowed) {
+    const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+    return NextResponse.json(
+      { error: 'Rate limit exceeded.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
+  }
 
-    const apiUser = await getApiUserContext(apiKey.userId);
-    if (!apiUser) {
-        return jsonError('Unauthorized. API key user not found.', 401);
-    }
+  const apiUser = await getApiUserContext(apiKey.userId);
+  if (!apiUser) {
+    return jsonError('Unauthorized. API key user not found.', 401);
+  }
 
-    let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    try {
-        body = await req.json();
-    } catch (_error) {
-        return jsonError('Invalid JSON in request body.', 400);
+  let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  try {
+    body = await req.json();
+  } catch (_error) {
+    return jsonError('Invalid JSON in request body.', 400);
+  }
+  const parsed = IncidentCreateSchema.safeParse({
+    title: body.title,
+    description: body.description ?? null,
+    serviceId: body.serviceId,
+    urgency: body.urgency,
+    priority: body.priority ?? null,
+  });
+
+  if (!parsed.success) {
+    return jsonError('Invalid request body.', 400, { issues: parsed.error.issues });
+  }
+
+  const { title, description, serviceId, urgency, priority } = parsed.data;
+
+  const service = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!service) {
+    return jsonError('Service not found.', 404);
+  }
+
+  if (apiUser.role !== 'ADMIN' && apiUser.role !== 'RESPONDER') {
+    if (!service.teamId || !apiUser.teamIds.includes(service.teamId)) {
+      return jsonError('Forbidden. Service access denied.', 403);
     }
-    const parsed = IncidentCreateSchema.safeParse({
-        title: body.title,
-        description: body.description ?? null,
-        serviceId: body.serviceId,
-        urgency: body.urgency,
-        priority: body.priority ?? null
+  }
+
+  const incident = await prisma.incident.create({
+    data: {
+      title,
+      description,
+      urgency,
+      priority,
+      status: 'OPEN',
+      serviceId,
+    },
+  });
+
+  logger.info('api.incident.created', {
+    incidentId: incident.id,
+    serviceId: incident.serviceId,
+    apiKeyId: apiKey.id,
+  });
+
+  // Execute escalation policy to assign/notify per policy steps
+  try {
+    await executeEscalation(incident.id);
+  } catch (e) {
+    logger.error('api.incident.escalation_failed', {
+      error: e instanceof Error ? e.message : String(e),
+      incidentId: incident.id,
+    });
+  }
+
+  // Trigger status page webhooks for incident.created event
+  try {
+    const incidentWithRelations = await prisma.incident.findUnique({
+      where: { id: incident.id },
+      include: {
+        service: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+      },
     });
 
-    if (!parsed.success) {
-        return jsonError('Invalid request body.', 400, { issues: parsed.error.issues });
+    if (incidentWithRelations) {
+      const { triggerWebhooksForService } = await import('@/lib/status-page-webhooks');
+      await triggerWebhooksForService(incident.serviceId, 'incident.created', {
+        id: incidentWithRelations.id,
+        title: incidentWithRelations.title,
+        description: incidentWithRelations.description,
+        status: incidentWithRelations.status,
+        urgency: incidentWithRelations.urgency,
+        priority: incidentWithRelations.priority,
+        service: {
+          id: incidentWithRelations.service.id,
+          name: incidentWithRelations.service.name,
+        },
+        assignee: incidentWithRelations.assignee,
+        createdAt: incidentWithRelations.createdAt.toISOString(),
+      });
     }
-
-    const { title, description, serviceId, urgency, priority } = parsed.data;
-
-    const service = await prisma.service.findUnique({ where: { id: serviceId } });
-    if (!service) {
-        return jsonError('Service not found.', 404);
-    }
-
-    if (apiUser.role !== 'ADMIN' && apiUser.role !== 'RESPONDER') {
-        if (!service.teamId || !apiUser.teamIds.includes(service.teamId)) {
-            return jsonError('Forbidden. Service access denied.', 403);
-        }
-    }
-
-    const incident = await prisma.incident.create({
-        data: {
-            title,
-            description,
-            urgency,
-            priority,
-            status: 'OPEN',
-            serviceId
-        }
+  } catch (e) {
+    // Log but don't fail the request
+    logger.error('api.incident.webhook_trigger_failed', {
+      error: e instanceof Error ? e.message : String(e),
     });
+  }
 
-    logger.info('api.incident.created', { incidentId: incident.id, serviceId: incident.serviceId, apiKeyId: apiKey.id });
+  // Trigger service-level notifications (Slack, Webhooks)
+  try {
+    const { sendIncidentNotifications } = await import('@/lib/user-notifications');
+    // Run in background, don't await to keep API fast
+    sendIncidentNotifications(incident.id, 'triggered').catch(err => {
+      logger.error('api.incident.service_notification_failed', {
+        error: err.message,
+        incidentId: incident.id,
+      });
+    });
+  } catch (e) {
+    logger.error('api.incident.service_notification_import_failed', {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
 
-    // Execute escalation policy to assign/notify per policy steps
-    try {
-        await executeEscalation(incident.id);
-    } catch (e) {
-        logger.error('api.incident.escalation_failed', { error: e instanceof Error ? e.message : String(e), incidentId: incident.id });
-    }
+  // Notify status page subscribers (Email)
+  try {
+    const { notifyStatusPageSubscribers } = await import('@/lib/status-page-notifications');
+    await notifyStatusPageSubscribers(incident.id, 'triggered');
+  } catch (e) {
+    logger.error('api.incident.status_page_notification_failed', {
+      error: e instanceof Error ? e.message : String(e),
+      incidentId: incident.id,
+    });
+  }
 
-    // Trigger status page webhooks for incident.created event
-    try {
-        const incidentWithRelations = await prisma.incident.findUnique({
-            where: { id: incident.id },
-            include: {
-                service: { select: { id: true, name: true } },
-                assignee: { select: { id: true, name: true, email: true } },
-            },
-        });
-
-        if (incidentWithRelations) {
-            const { triggerWebhooksForService } = await import('@/lib/status-page-webhooks');
-            await triggerWebhooksForService(
-                incident.serviceId,
-                'incident.created',
-                {
-                    id: incidentWithRelations.id,
-                    title: incidentWithRelations.title,
-                    description: incidentWithRelations.description,
-                    status: incidentWithRelations.status,
-                    urgency: incidentWithRelations.urgency,
-                    priority: incidentWithRelations.priority,
-                    service: {
-                        id: incidentWithRelations.service.id,
-                        name: incidentWithRelations.service.name,
-                    },
-                    assignee: incidentWithRelations.assignee,
-                    createdAt: incidentWithRelations.createdAt.toISOString(),
-                }
-            );
-        }
-    } catch (e) {
-        // Log but don't fail the request
-        logger.error('api.incident.webhook_trigger_failed', { error: e instanceof Error ? e.message : String(e) });
-    }
-
-    // Trigger service-level notifications (Slack, Webhooks)
-    try {
-        const { sendIncidentNotifications } = await import('@/lib/user-notifications');
-        // Run in background, don't await to keep API fast
-        sendIncidentNotifications(incident.id, 'triggered').catch(err => {
-            logger.error('api.incident.service_notification_failed', { error: err.message, incidentId: incident.id });
-        });
-    } catch (e) {
-        logger.error('api.incident.service_notification_import_failed', { error: e instanceof Error ? e.message : String(e) });
-    }
-
-    return jsonOk({ incident }, 201);
+  return jsonOk({ incident }, 201);
 }

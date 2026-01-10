@@ -148,18 +148,23 @@ export default function PolicyStepCreateForm({
             )}
 
             {targetType === 'SCHEDULE' && (
-              <Select name="targetScheduleId" required disabled={isPending}>
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select a schedule" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schedules.map(schedule => (
-                    <SelectItem key={schedule.id} value={schedule.id}>
-                      {schedule.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Select name="targetScheduleId" required disabled={isPending}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select a schedule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schedules.map(schedule => (
+                      <SelectItem key={schedule.id} value={schedule.id}>
+                        {schedule.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-amber-700">
+                  Schedule timezone is authoritative. Changing it can shift coverage.
+                </p>
+              </div>
             )}
           </div>
 

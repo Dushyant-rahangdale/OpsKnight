@@ -1,7 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { formatDateTime } from '@/lib/timezone';
+import {
+  addDaysToDateKey,
+  formatDateKeyInTimeZone,
+  formatDateTime,
+  getDatePartsInTimeZone,
+  startOfDayInTimeZone,
+  startOfDayFromDateKey,
+  startOfNextDayFromDateKey,
+} from '@/lib/timezone';
 import { getDefaultAvatar } from '@/lib/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Button } from '@/components/ui/shadcn/button';
@@ -34,18 +42,32 @@ type ScheduleCalendarProps = {
 
 const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const startOffset = firstDay.getDay();
-  const totalDays = lastDay.getDate();
+function getWeekdayIndex(dateKey: string, timeZone: string): number {
+  const day = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+  }).format(startOfDayFromDateKey(dateKey, timeZone));
+  const index = weekdayLabels.indexOf(day);
+  return index === -1 ? 0 : index;
+}
+
+function getDayNumber(dateKey: string): number {
+  const parts = dateKey.split('-');
+  return Number(parts[2]);
+}
+
+function buildCalendar(baseDate: Date, shifts: CalendarShift[], timeZone: string) {
+  const { year, month } = getDatePartsInTimeZone(baseDate, timeZone);
+  const firstDayKey = `${year}-${String(month).padStart(2, '0')}-01`;
+  const firstDayIndex = getWeekdayIndex(firstDayKey, timeZone);
+  const totalDays = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const totalCells = Math.ceil((firstDayIndex + totalDays) / 7) * 7;
+  const firstCellKey = addDaysToDateKey(firstDayKey, -firstDayIndex);
   const cells: CalendarCell[] = [];
 
-  const shiftsForDate = (date: Date) => {
-    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  const shiftsForDateKey = (dateKey: string) => {
+    const dayStart = startOfDayFromDateKey(dateKey, timeZone);
+    const dayEnd = startOfNextDayFromDateKey(dateKey, timeZone);
 
     // Filter shifts that overlap with this day
     const overlapping = shifts.filter(shift => {
@@ -98,20 +120,11 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[]) {
     });
   };
 
-  for (let i = 0; i < startOffset; i++) {
-    const date = new Date(year, month, 1 - (startOffset - i));
-    cells.push({ date, inMonth: false, shifts: shiftsForDate(date) });
-  }
-
-  for (let day = 1; day <= totalDays; day++) {
-    const date = new Date(year, month, day);
-    cells.push({ date, inMonth: true, shifts: shiftsForDate(date) });
-  }
-
-  const trailing = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7);
-  for (let i = 1; i <= trailing; i++) {
-    const date = new Date(year, month, totalDays + i);
-    cells.push({ date, inMonth: false, shifts: shiftsForDate(date) });
+  for (let i = 0; i < totalCells; i++) {
+    const dateKey = addDaysToDateKey(firstCellKey, i);
+    const date = startOfDayFromDateKey(dateKey, timeZone);
+    const inMonth = dateKey.startsWith(`${year}-${String(month).padStart(2, '0')}-`);
+    cells.push({ date, inMonth, shifts: shiftsForDateKey(dateKey) });
   }
 
   return cells;
@@ -138,13 +151,10 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
   }, [shifts, filterLayer]);
 
   const calendarCells = useMemo(
-    () => buildCalendar(cursor, filteredShifts),
-    [cursor, filteredShifts]
+    () => buildCalendar(cursor, filteredShifts, timeZone),
+    [cursor, filteredShifts, timeZone]
   );
-  const todayKey = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
-  }, []);
+  const todayKey = useMemo(() => formatDateKeyInTimeZone(new Date(), timeZone), [timeZone]);
 
   const toggleExpand = (dateKey: string) => {
     setExpandedDates(prev => {
@@ -159,15 +169,29 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
   };
 
   const handlePrev = () => {
-    setCursor(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setCursor(prev => {
+      const { year, month } = getDatePartsInTimeZone(prev, timeZone);
+      const previousMonthIndex = month - 2;
+      const newYear = year + Math.floor(previousMonthIndex / 12);
+      const newMonth = (((previousMonthIndex % 12) + 12) % 12) + 1;
+      const monthKey = `${newYear}-${String(newMonth).padStart(2, '0')}-01`;
+      return startOfDayFromDateKey(monthKey, timeZone);
+    });
   };
 
   const handleNext = () => {
-    setCursor(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setCursor(prev => {
+      const { year, month } = getDatePartsInTimeZone(prev, timeZone);
+      const nextMonthIndex = month;
+      const newYear = year + Math.floor(nextMonthIndex / 12);
+      const newMonth = (nextMonthIndex % 12) + 1;
+      const monthKey = `${newYear}-${String(newMonth).padStart(2, '0')}-01`;
+      return startOfDayFromDateKey(monthKey, timeZone);
+    });
   };
 
   const handleToday = () => {
-    setCursor(new Date());
+    setCursor(startOfDayInTimeZone(new Date(), timeZone));
   };
 
   return (
@@ -223,8 +247,8 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
           {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-1">
             {calendarCells.map(cell => {
-              const isToday = cell.date.toDateString() === todayKey;
-              const dateKey = cell.date.toISOString();
+              const dateKey = formatDateKeyInTimeZone(cell.date, timeZone);
+              const isToday = dateKey === todayKey;
               const isExpanded = expandedDates.has(dateKey);
               const preview = cell.shifts.slice(0, 2);
               const remaining = cell.shifts.length - preview.length;
@@ -249,7 +273,7 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
                         isToday && 'text-primary font-bold'
                       )}
                     >
-                      {cell.date.getDate()}
+                      {getDayNumber(dateKey)}
                     </span>
                     {isToday && (
                       <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
