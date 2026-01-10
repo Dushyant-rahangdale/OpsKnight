@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
           // Get SLA metrics for this service
           const metrics = await calculateSLAMetrics({
             serviceId: def.serviceId || undefined,
-            priority: def.priority || undefined,
+            priority: (def as any).priority || undefined,
             windowDays,
           });
 
