@@ -104,3 +104,16 @@ See [Escalation Policies](./escalation-policies.md).
 - ✅ Rotate fairly among team members
 - ✅ Consider timezone differences
 - ✅ Define handoff procedures
+
+## Schedule Timezone Behavior
+
+Schedules are timezone-authoritative. Every date and time you see or enter on a schedule is interpreted in the schedule's timezone, not the viewer's browser timezone.
+
+This affects:
+
+- Calendar day grouping and "today" highlight: days are computed in the schedule timezone so shifts do not drift to adjacent days for remote viewers.
+- Timeline ranges: 7-day and 14-day windows are built from the schedule timezone's day boundaries.
+- Override presets: quick durations (e.g., 4h/8h) fill the form using the schedule timezone so they match manual inputs.
+- Form submissions: date/time inputs keep their hidden values in sync with the displayed fields to avoid stale timezone data.
+
+If you change a schedule's timezone, re-save layers and overrides so their intended local times stay accurate in the new timezone.

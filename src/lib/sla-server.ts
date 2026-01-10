@@ -40,6 +40,7 @@ export type SLAMetricsFilter = {
   teamId?: string | string[];
   assigneeId?: string | null;
   urgency?: 'HIGH' | 'MEDIUM' | 'LOW';
+  priority?: string | string[];
   status?: 'OPEN' | 'ACKNOWLEDGED' | 'SNOOZED' | 'SUPPRESSED' | 'RESOLVED';
   startDate?: Date;
   endDate?: Date;

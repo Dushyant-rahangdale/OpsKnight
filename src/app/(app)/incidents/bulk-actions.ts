@@ -27,6 +27,8 @@ export async function bulkAcknowledge(incidentIds: string[]) {
       data: {
         status: 'ACKNOWLEDGED',
         acknowledgedAt: new Date(),
+        escalationStatus: 'COMPLETED',
+        nextEscalationAt: null,
       },
     });
 
@@ -578,6 +580,8 @@ export async function bulkUpdateStatus(
           id: true,
           status: true,
           currentEscalationStep: true,
+          acknowledgedAt: true,
+          resolvedAt: true,
           service: {
             select: {
               policy: {
@@ -609,6 +613,13 @@ export async function bulkUpdateStatus(
             status,
             escalationStatus: 'ESCALATING',
             nextEscalationAt,
+            acknowledgedAt:
+              incident.status === 'ACKNOWLEDGED' || incident.status === 'RESOLVED'
+                ? null
+                : incident.acknowledgedAt,
+            resolvedAt: incident.status === 'RESOLVED' ? null : incident.resolvedAt,
+            currentEscalationStep:
+              incident.status === 'RESOLVED' ? 0 : incident.currentEscalationStep,
           },
         });
       }
@@ -617,6 +628,8 @@ export async function bulkUpdateStatus(
 
       if (status === 'ACKNOWLEDGED') {
         updateData.acknowledgedAt = new Date();
+        updateData.escalationStatus = 'COMPLETED';
+        updateData.nextEscalationAt = null;
       } else if (status === 'RESOLVED') {
         updateData.resolvedAt = new Date();
         updateData.escalationStatus = 'COMPLETED';

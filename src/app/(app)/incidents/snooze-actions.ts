@@ -6,79 +6,119 @@ import { assertResponderOrAbove, getCurrentUser } from '@/lib/rbac';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 import { logger } from '@/lib/logger';
 
-export async function snoozeIncidentWithDuration(incidentId: string, durationMinutes: number, reason?: string) {
-    try {
-        await assertResponderOrAbove();
-    } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Unauthorized');
-    }
+export async function snoozeIncidentWithDuration(
+  incidentId: string,
+  durationMinutes: number,
+  reason?: string
+) {
+  try {
+    await assertResponderOrAbove();
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+  }
 
-    const snoozedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
-    const user = await getCurrentUser();
-    const userTimeZone = getUserTimeZone(user ?? undefined);
+  const snoozedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+  const user = await getCurrentUser();
+  const userTimeZone = getUserTimeZone(user ?? undefined);
 
-    await prisma.incident.update({
-        where: { id: incidentId },
-        data: {
-            status: 'SNOOZED',
-            snoozedUntil,
-            snoozeReason: reason || null,
-            escalationStatus: 'PAUSED',
-            nextEscalationAt: null,
-            events: {
-                create: {
-                    message: `Incident snoozed until ${formatDateTime(snoozedUntil, userTimeZone, { format: 'datetime' })}${reason ? ` (Reason: ${reason})` : ''}${user ? ` by ${user.name}` : ''}`
-                }
-            }
-        }
+  await prisma.incident.update({
+    where: { id: incidentId },
+    data: {
+      status: 'SNOOZED',
+      snoozedUntil,
+      snoozeReason: reason || null,
+      escalationStatus: 'PAUSED',
+      nextEscalationAt: null,
+      events: {
+        create: {
+          message: `Incident snoozed until ${formatDateTime(snoozedUntil, userTimeZone, { format: 'datetime' })}${reason ? ` (Reason: ${reason})` : ''}${user ? ` by ${user.name}` : ''}`,
+        },
+      },
+    },
+  });
+
+  // Schedule auto-unsnooze job using PostgreSQL job queue
+  try {
+    const { scheduleAutoUnsnooze } = await import('@/lib/jobs/queue');
+    await scheduleAutoUnsnooze(incidentId, snoozedUntil);
+  } catch (error) {
+    logger.error('Failed to schedule auto-unsnooze job', {
+      component: 'snooze-actions',
+      error,
+      incidentId,
     });
+    // Continue anyway - internal worker will pick it up via snoozedUntil field
+  }
 
-    // Schedule auto-unsnooze job using PostgreSQL job queue
-    try {
-        const { scheduleAutoUnsnooze } = await import('@/lib/jobs/queue');
-        await scheduleAutoUnsnooze(incidentId, snoozedUntil);
-    } catch (error) {
-        logger.error('Failed to schedule auto-unsnooze job', { component: 'snooze-actions', error, incidentId });
-        // Continue anyway - internal worker will pick it up via snoozedUntil field
-    }
-
-    revalidatePath(`/incidents/${incidentId}`);
-    revalidatePath('/incidents');
-    revalidatePath('/');
+  revalidatePath(`/incidents/${incidentId}`);
+  revalidatePath('/incidents');
+  revalidatePath('/');
 }
 
 export async function processAutoUnsnooze() {
-    const now = new Date();
-    const incidentsToUnsnooze = await prisma.incident.findMany({
-        where: {
-            status: 'SNOOZED',
-            snoozedUntil: { lte: now }
+  const now = new Date();
+  const incidentsToUnsnooze = await prisma.incident.findMany({
+    where: {
+      status: 'SNOOZED',
+      snoozedUntil: { lte: now },
+    },
+    select: { id: true },
+  });
+
+  let processedCount = 0;
+  for (const incident of incidentsToUnsnooze) {
+    await prisma.incident.update({
+      where: { id: incident.id },
+      data: {
+        status: 'OPEN',
+        snoozedUntil: null,
+        snoozeReason: null,
+        escalationStatus: 'ESCALATING',
+        nextEscalationAt: new Date(),
+        events: {
+          create: {
+            message: 'Incident auto-unsnoozed (snooze duration expired)',
+          },
         },
-        select: { id: true }
+      },
     });
-
-    let processedCount = 0;
-    for (const incident of incidentsToUnsnooze) {
-        await prisma.incident.update({
-            where: { id: incident.id },
-            data: {
-                status: 'OPEN',
-                snoozedUntil: null,
-                snoozeReason: null,
-                escalationStatus: 'ESCALATING',
-                nextEscalationAt: new Date(),
-                events: {
-                    create: {
-                        message: 'Incident auto-unsnoozed (snooze duration expired)'
-                    }
-                }
-            }
+    try {
+      const { sendIncidentNotifications } = await import('@/lib/user-notifications');
+      await sendIncidentNotifications(incident.id, 'updated');
+      const { notifyStatusPageSubscribers } = await import('@/lib/status-page-notifications');
+      await notifyStatusPageSubscribers(incident.id, 'investigating');
+      const { triggerWebhooksForService } = await import('@/lib/status-page-webhooks');
+      const updatedIncident = await prisma.incident.findUnique({
+        where: { id: incident.id },
+        include: {
+          service: { select: { id: true, name: true } },
+          assignee: { select: { id: true, name: true, email: true } },
+        },
+      });
+      if (updatedIncident) {
+        await triggerWebhooksForService(updatedIncident.serviceId, 'incident.updated', {
+          id: updatedIncident.id,
+          title: updatedIncident.title,
+          description: updatedIncident.description,
+          status: updatedIncident.status,
+          urgency: updatedIncident.urgency,
+          priority: updatedIncident.priority,
+          service: updatedIncident.service,
+          assignee: updatedIncident.assignee,
+          createdAt: updatedIncident.createdAt.toISOString(),
+          acknowledgedAt: updatedIncident.acknowledgedAt?.toISOString() || null,
+          resolvedAt: updatedIncident.resolvedAt?.toISOString() || null,
         });
-        processedCount++;
+      }
+    } catch (error) {
+      logger.error('Failed to notify after auto-unsnooze', {
+        component: 'snooze-actions',
+        incidentId: incident.id,
+        error,
+      });
     }
+    processedCount++;
+  }
 
-    return { processed: processedCount };
+  return { processed: processedCount };
 }
-
-
-

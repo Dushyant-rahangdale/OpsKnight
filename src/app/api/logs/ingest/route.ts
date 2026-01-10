@@ -9,7 +9,8 @@ const RATE_LIMIT_MAX = 30; // 30 logs per minute per IP
 export async function POST(req: NextRequest) {
   try {
     // Basic Rate Limiting by IP
-    const ip = req.headers.get('x-forwarded-for') || 'anonymous';
+    const ipHeader = req.headers.get('x-forwarded-for') || '';
+    const ip = ipHeader.split(',')[0]?.trim() || 'anonymous';
     const rate = checkRateLimit(`api:logs:ingest:${ip}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
     if (!rate.allowed) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });

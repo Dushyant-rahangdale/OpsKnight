@@ -5,13 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
 import { DateTimeInput } from '@/components/ui';
 import { formatDateForInput } from '@/lib/timezone';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/shadcn/card';
+import { Card, CardContent } from '@/components/ui/shadcn/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avatar';
+import { getDefaultAvatar } from '@/lib/avatar';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
@@ -32,8 +28,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/shadcn/alert-dialog';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/shadcn/tooltip';
+import {
   ChevronDown,
-  ChevronUp,
   Trash2,
   Edit3,
   Users,
@@ -42,10 +43,12 @@ import {
   ArrowDown,
   UserPlus,
   Layers,
-  HelpCircle,
+  Info,
   AlertTriangle,
   Loader2,
   UserX,
+  Check,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -59,9 +62,7 @@ type LayerCardProps = {
     users: Array<{
       userId: string;
       position: number;
-      user: {
-        name: string;
-      };
+      user: { name: string; avatarUrl?: string | null; gender?: string | null };
     }>;
   };
   scheduleId: string;
@@ -77,7 +78,26 @@ type LayerCardProps = {
     direction: 'up' | 'down'
   ) => Promise<{ error?: string } | undefined>;
   removeLayerUser: (layerId: string, userId: string) => Promise<{ error?: string } | undefined>;
+  colorIndex?: number;
 };
+
+const LAYER_COLORS = [
+  { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  {
+    bg: 'bg-violet-500',
+    light: 'bg-violet-50',
+    text: 'text-violet-700',
+    border: 'border-violet-200',
+  },
+  {
+    bg: 'bg-emerald-500',
+    light: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+  },
+  { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  { bg: 'bg-rose-500', light: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+];
 
 function formatShortTime(date: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -86,6 +106,27 @@ function formatShortTime(date: Date, timeZone: string): string {
     hour12: false,
     timeZone: timeZone,
   }).format(date);
+}
+
+// Info Tooltip Component for consistent help icons
+function HelpTip({ children }: { children: React.ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" className="text-slate-300 hover:text-blue-500 transition-colors">
+            <Info className="h-3 w-3" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="right"
+          className="max-w-[250px] text-xs z-50 bg-slate-900 text-white border-slate-800"
+        >
+          {children}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 export default function LayerCard({
@@ -99,6 +140,7 @@ export default function LayerCard({
   addLayerUser,
   moveLayerUser,
   removeLayerUser,
+  colorIndex = 0,
 }: LayerCardProps) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -106,9 +148,10 @@ export default function LayerCard({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isRespondersOpen, setIsRespondersOpen] = useState(true);
+  const [isRespondersOpen, setIsRespondersOpen] = useState(false);
 
-  // Memoize event handlers to prevent unnecessary re-renders
+  const color = LAYER_COLORS[colorIndex % LAYER_COLORS.length];
+
   const handleDelete = useCallback(async () => {
     setShowDeleteConfirm(false);
     startTransition(async () => {
@@ -116,7 +159,7 @@ export default function LayerCard({
       if (result?.error) {
         showToast(result.error, 'error');
       } else {
-        showToast('Layer deleted successfully', 'success');
+        showToast('Layer deleted', 'success');
         router.refresh();
       }
     });
@@ -130,7 +173,8 @@ export default function LayerCard({
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          showToast('Layer updated successfully', 'success');
+          showToast('Layer updated', 'success');
+          setIsEditOpen(false);
           router.refresh();
         }
         setIsUpdating(false);
@@ -146,14 +190,12 @@ export default function LayerCard({
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          const userId = formData.get('userId') as string;
-          const userName = users.find(u => u.id === userId)?.name || 'User';
-          showToast(`${userName} added to layer`, 'success');
+          showToast('Responder added', 'success');
           router.refresh();
         }
       });
     },
-    [layer.id, addLayerUser, users, showToast, router]
+    [layer.id, addLayerUser, showToast, router]
   );
 
   const handleMoveUser = useCallback(
@@ -163,7 +205,6 @@ export default function LayerCard({
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          showToast('User position updated', 'success');
           router.refresh();
         }
       });
@@ -178,16 +219,14 @@ export default function LayerCard({
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          const userName = layer.users.find(u => u.userId === userId)?.user.name || 'User';
-          showToast(`${userName} removed from layer`, 'success');
+          showToast('Responder removed', 'success');
           router.refresh();
         }
       });
     },
-    [layer.id, layer.users, removeLayerUser, showToast, router]
+    [layer.id, removeLayerUser, showToast, router]
   );
 
-  // Memoize availableUsers calculation to avoid recalculation on every render
   const availableUsers = useMemo(
     () => users.filter(user => !layer.users.some(layerUser => layerUser.userId === user.id)),
     [users, layer.users]
@@ -195,362 +234,303 @@ export default function LayerCard({
 
   return (
     <>
-      <Card className="mb-6">
-        {/* Layer Header */}
-        <CardHeader className="border-b">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-3">
-                <Layers className="h-5 w-5 text-primary" />
-                <CardTitle className="text-xl">{layer.name}</CardTitle>
-                <div
-                  className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 border border-blue-200 cursor-help"
-                  title="A layer defines a rotation pattern. Multiple layers can run simultaneously to provide different coverage (e.g., day shift and night shift)."
-                >
-                  <HelpCircle className="h-3 w-3 text-blue-700" />
-                </div>
+      <Card className={cn('border-l-[3px] shadow-sm', color.border)}>
+        {/* Compact Header */}
+        <div className="flex items-center justify-between p-3 bg-slate-50/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn('h-6 w-6 rounded-md flex items-center justify-center', color.light)}>
+              <Layers className={cn('h-3 w-3', color.text)} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-semibold text-slate-800 truncate">{layer.name}</h3>
+                <HelpTip>
+                  <p>
+                    <strong>Layer:</strong> A rotation pattern that cycles through responders.
+                    Multiple layers can run simultaneously.
+                  </p>
+                </HelpTip>
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    {formatShortTime(new Date(layer.start), timeZone)} {timeZone}
-                  </span>
-                </div>
-                <Badge variant="outline" size="xs">
-                  {layer.rotationLengthHours}h rotation
-                </Badge>
+              <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-2.5 w-2.5" />
+                  {layer.rotationLengthHours}h
+                </span>
+                <span>•</span>
+                <span>{formatShortTime(new Date(layer.start), timeZone)}</span>
                 {layer.end && (
-                  <span className="text-xs">
-                    ends {formatShortTime(new Date(layer.end), timeZone)}
-                  </span>
+                  <>
+                    <span>→</span>
+                    <span>{formatShortTime(new Date(layer.end), timeZone)}</span>
+                  </>
                 )}
               </div>
-            </div>
-
-            <div className="flex gap-2">
-              {canManageSchedules ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditOpen(!isEditOpen)}
-                    className="gap-2"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    Edit Layer
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Remove
-                  </Button>
-                </>
-              ) : (
-                <Button variant="ghost" size="sm" disabled title="Admin or Responder role required">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-6 pt-6">
-          {/* Edit Layer Form */}
+          {canManageSchedules && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditOpen(!isEditOpen)}
+                className={cn('h-6 w-6', isEditOpen && 'bg-slate-200')}
+              >
+                <Edit3 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <CardContent className="p-0">
+          {/* Compact Edit Form */}
           {isEditOpen && (
-            <Card
-              className={cn(
-                canManageSchedules ? 'bg-muted/50' : 'border-orange-200 bg-orange-50/50'
-              )}
-            >
-              <CardHeader>
-                <CardTitle className="text-sm">Edit Layer Details</CardTitle>
-                <CardDescription className="text-xs">
-                  Update layer configuration and rotation settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {canManageSchedules ? (
-                  <form action={handleUpdate} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`name-${layer.id}`}>Name</Label>
-                        <Input
-                          id={`name-${layer.id}`}
-                          name="name"
-                          defaultValue={layer.name}
-                          required
-                          disabled={isUpdating}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`rotation-${layer.id}`}>Rotation (hours)</Label>
-                        <Input
-                          id={`rotation-${layer.id}`}
-                          name="rotationLengthHours"
-                          type="number"
-                          min="1"
-                          defaultValue={layer.rotationLengthHours}
-                          required
-                          disabled={isUpdating}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`start-${layer.id}`}>Start</Label>
-                        <DateTimeInput
-                          name="start"
-                          value={formatDateForInput(new Date(layer.start), timeZone)}
-                          required
-                          fullWidth
-                          disabled={isUpdating}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`end-${layer.id}`}>
-                          End <span className="text-xs text-muted-foreground">(Optional)</span>
-                        </Label>
-                        <DateTimeInput
-                          name="end"
-                          value={layer.end ? formatDateForInput(new Date(layer.end), timeZone) : ''}
-                          fullWidth
-                          disabled={isUpdating}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button type="submit" size="sm" disabled={isUpdating}>
-                        {isUpdating ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          'Save Changes'
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="flex items-center gap-2 text-orange-900">
-                    <AlertTriangle className="h-5 w-5" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        You don't have permission to edit this layer
-                      </p>
-                      <p className="text-xs text-orange-700">Admin or Responder role required.</p>
-                    </div>
+            <div className="p-3 bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-1 duration-150">
+              <form action={handleUpdate} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[10px] text-slate-500 uppercase">Name</Label>
+                    <Input
+                      name="name"
+                      defaultValue={layer.name}
+                      required
+                      disabled={isUpdating}
+                      className="h-8 text-sm"
+                    />
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <div>
+                    <Label className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
+                      Rotation (hrs)
+                      <HelpTip>How long each person is on-call before the next takes over.</HelpTip>
+                    </Label>
+                    <Input
+                      name="rotationLengthHours"
+                      type="number"
+                      min="1"
+                      defaultValue={layer.rotationLengthHours}
+                      required
+                      disabled={isUpdating}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[10px] text-slate-500 uppercase">Start</Label>
+                    <DateTimeInput
+                      name="start"
+                      value={formatDateForInput(new Date(layer.start), timeZone)}
+                      required
+                      fullWidth
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
+                      End
+                      <HelpTip>Optional. Leave empty for indefinite rotation.</HelpTip>
+                    </Label>
+                    <DateTimeInput
+                      name="end"
+                      value={layer.end ? formatDateForInput(new Date(layer.end), timeZone) : ''}
+                      fullWidth
+                      disabled={isUpdating}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditOpen(false)}
+                    className="h-7 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm" disabled={isUpdating} className="h-7 text-xs">
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <Check className="h-3 w-3 mr-1" />
+                    )}
+                    Save
+                  </Button>
+                </div>
+              </form>
+            </div>
           )}
 
-          {/* Responders Section */}
+          {/* Responders Collapsible */}
           <Collapsible open={isRespondersOpen} onOpenChange={setIsRespondersOpen}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">Responders</CardTitle>
-                      <Badge variant="secondary" size="xs" className="ml-2">
-                        {layer.users.length}
-                      </Badge>
-                    </div>
-                    {isRespondersOpen ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between p-2.5 px-3 text-left hover:bg-slate-50 transition-colors border-t border-slate-100">
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <Users className="h-3 w-3" />
+                  <span className="font-medium">Responders</span>
+                  <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-slate-100">
+                    {layer.users.length}
+                  </Badge>
+                  <HelpTip>
+                    <p>
+                      <strong>Responders:</strong> Team members in this rotation. Order determines
+                      who's on-call first.
+                    </p>
+                  </HelpTip>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 text-slate-400 transition-transform',
+                    isRespondersOpen && 'rotate-180'
+                  )}
+                />
+              </button>
+            </CollapsibleTrigger>
 
-              <CollapsibleContent>
-                <CardContent className="space-y-4">
-                  {layer.users.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                      <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No responders in this layer.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {layer.users.map((layerUser, index) => (
-                        <Card
-                          key={layerUser.userId}
+            <CollapsibleContent>
+              <div className="px-3 pb-3 space-y-1">
+                {layer.users.length === 0 ? (
+                  <div className="py-4 text-center border border-dashed border-slate-200 rounded-md bg-slate-50/50">
+                    <Users className="h-5 w-5 text-slate-300 mx-auto mb-1" />
+                    <p className="text-[10px] text-slate-400">No responders yet</p>
+                  </div>
+                ) : (
+                  layer.users.map((layerUser, index) => (
+                    <div
+                      key={layerUser.userId}
+                      className={cn(
+                        'flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-slate-50 group',
+                        isPending && 'opacity-50'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
                           className={cn(
-                            'transition-all duration-200',
-                            isPending && 'opacity-60 pointer-events-none'
+                            'w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center',
+                            index === 0
+                              ? `${color.light} ${color.text}`
+                              : 'bg-slate-100 text-slate-500'
                           )}
                         >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="info" size="xs" className="font-mono">
-                                  #{index + 1}
-                                </Badge>
-                                <span className="font-medium text-sm">{layerUser.user.name}</span>
-                              </div>
-
-                              <div className="flex gap-2">
-                                {canManageSchedules ? (
-                                  <>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleMoveUser(layerUser.userId, 'up')}
-                                      disabled={index === 0 || isPending}
-                                      className="h-8 w-8 p-0"
-                                      title="Move up"
-                                    >
-                                      <ArrowUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleMoveUser(layerUser.userId, 'down')}
-                                      disabled={index === layer.users.length - 1 || isPending}
-                                      className="h-8 w-8 p-0"
-                                      title="Move down"
-                                    >
-                                      <ArrowDown className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveUser(layerUser.userId)}
-                                      disabled={isPending}
-                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
-                                      title="Remove responder"
-                                    >
-                                      <UserX className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                ) : (
-                                  <div className="flex gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      disabled
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <ArrowUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      disabled
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <ArrowDown className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      disabled
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <UserX className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Add Responder */}
-                  {canManageSchedules && availableUsers.length > 0 && (
-                    <Card className="bg-muted/50 mt-4">
-                      <CardContent className="p-4">
-                        <form action={handleAddUser} className="flex gap-2">
-                          <div className="flex-1">
-                            <select
-                              name="userId"
-                              required
-                              disabled={isPending}
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <option value="">Select responder to add</option>
-                              {availableUsers.map(user => (
-                                <option key={user.id} value={user.id}>
-                                  {user.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <Button type="submit" disabled={isPending} className="gap-2">
-                            {isPending ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Adding...
-                              </>
-                            ) : (
-                              <>
-                                <UserPlus className="h-4 w-4" />
-                                Add
-                              </>
-                            )}
+                          {index + 1}
+                        </span>
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage
+                            src={
+                              layerUser.user.avatarUrl ||
+                              getDefaultAvatar(layerUser.user.gender, layerUser.user.name)
+                            }
+                          />
+                          <AvatarFallback className="text-[8px] bg-slate-100">
+                            {layerUser.user.name
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-slate-700">
+                          {layerUser.user.name}
+                        </span>
+                        {index === 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="h-4 px-1 text-[8px] bg-emerald-50 text-emerald-600 border-emerald-100"
+                          >
+                            NEXT
+                          </Badge>
+                        )}
+                      </div>
+                      {canManageSchedules && (
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleMoveUser(layerUser.userId, 'up')}
+                            disabled={index === 0 || isPending}
+                            className="h-5 w-5"
+                          >
+                            <ArrowUp className="h-2.5 w-2.5" />
                           </Button>
-                        </form>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {canManageSchedules && availableUsers.length === 0 && layer.users.length > 0 && (
-                    <div className="text-center py-4 text-xs text-muted-foreground bg-muted/30 rounded-lg">
-                      All available users have been added to this layer
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleMoveUser(layerUser.userId, 'down')}
+                            disabled={index === layer.users.length - 1 || isPending}
+                            className="h-5 w-5"
+                          >
+                            <ArrowDown className="h-2.5 w-2.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveUser(layerUser.userId)}
+                            disabled={isPending}
+                            className="h-5 w-5 text-slate-400 hover:text-red-500"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
+                  ))
+                )}
+
+                {/* Add Responder */}
+                {canManageSchedules && availableUsers.length > 0 && (
+                  <form action={handleAddUser} className="mt-2">
+                    <select
+                      name="userId"
+                      required
+                      disabled={isPending}
+                      className="w-full h-7 text-xs rounded-md border border-slate-200 bg-white px-2 hover:border-blue-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    >
+                      <option value="">+ Add responder...</option>
+                      {availableUsers.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" size="sm" disabled={isPending} className="hidden">
+                      Add
+                    </Button>
+                  </form>
+                )}
+              </div>
+            </CollapsibleContent>
           </Collapsible>
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Delete Layer Permanently
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-4 w-4" />
+              Delete Layer
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="text-destructive font-semibold">This action cannot be undone.</span>
-              <br />
-              <br />
-              Are you sure you want to delete the layer <strong>{layer.name}</strong>? This will
-              remove all responders from this layer.
+            <AlertDialogDescription className="text-sm">
+              Delete <strong>{layer.name}</strong>? This removes all responders from this layer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-8 text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
+              className="h-8 text-xs bg-red-600 hover:bg-red-700"
             >
-              Delete Layer
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -71,13 +71,22 @@ export async function GET(req: NextRequest) {
 
     const serviceIds = statusPage.services.filter(sp => sp.showOnPage).map(sp => sp.serviceId);
 
-    const effectiveServiceIds =
-      serviceIds.length > 0
-        ? serviceIds
-        : (await prisma.service.findMany({ select: { id: true } })).map(s => s.id);
+    if (serviceIds.length === 0) {
+      return jsonOk(
+        {
+          status: 'operational',
+          services: [],
+          incidents: [],
+          metrics: { uptime: [] },
+          retention: null,
+          updatedAt: new Date().toISOString(),
+        },
+        200
+      );
+    }
 
     const services = await prisma.service.findMany({
-      where: { id: { in: effectiveServiceIds } },
+      where: { id: { in: serviceIds } },
       select: {
         id: true,
         name: true,
@@ -107,7 +116,7 @@ export async function GET(req: NextRequest) {
 
     // Optimized: Single call to get metrics and incidents for all services in scope
     const metrics = await calculateSLAMetrics({
-      serviceId: effectiveServiceIds,
+      serviceId: serviceIds,
       includeIncidents: true,
       incidentLimit: 20,
     });
@@ -140,7 +149,7 @@ export async function GET(req: NextRequest) {
     }));
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const uptimeMap = await calculateMultiServiceUptime(effectiveServiceIds, thirtyDaysAgo);
+    const uptimeMap = await calculateMultiServiceUptime(serviceIds, thirtyDaysAgo);
     const uptimeMetrics = services.map(service => ({
       serviceId: service.id,
       uptime: parseFloat((uptimeMap[service.id] || 100).toFixed(3)),
@@ -149,13 +158,13 @@ export async function GET(req: NextRequest) {
     const headers: Record<string, string> =
       statusPage.requireAuth || statusPage.statusApiRequireToken
         ? {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-        }
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          }
         : {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-        };
+            'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+          };
 
     return jsonOk(
       {

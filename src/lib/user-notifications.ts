@@ -290,17 +290,22 @@ export async function sendIncidentNotifications(
 
         // Send via all enabled channels
         const channelResults = await Promise.all(
-          channels.map(channel => sendNotification(incidentId, userId, channel, message))
+          channels.map(channel =>
+            sendNotification(incidentId, userId, channel, message).then(result => ({
+              channel,
+              result,
+            }))
+          )
         );
 
-        const successful = channelResults.filter(r => r.success);
-        const failed = channelResults.filter(r => !r.success);
+        const successful = channelResults.filter(r => r.result.success);
+        const failed = channelResults.filter(r => !r.result.success);
 
         return {
           userId,
           success: successful.length > 0,
-          channelsUsed: successful.map((_, i) => channels[i]),
-          errors: failed.map((r, i) => `${channels[i]}: ${r.error || 'Failed'}`),
+          channelsUsed: successful.map(r => r.channel),
+          errors: failed.map(r => `${r.channel}: ${r.result.error || 'Failed'}`),
         };
       });
 

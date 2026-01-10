@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
@@ -35,6 +35,14 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
     }
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    router.refresh();
+    setLastUpdated(new Date());
+    setTimeUntilRefresh(autoRefreshInterval);
+    setTimeout(() => setIsRefreshing(false), 500);
+  }, [router, autoRefreshInterval]);
+
   // Auto-refresh timer
   useEffect(() => {
     if (!autoRefreshEnabled) {
@@ -43,7 +51,7 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
     }
 
     const countdownInterval = setInterval(() => {
-      setTimeUntilRefresh((prev) => (prev <= 1 ? autoRefreshInterval : prev - 1));
+      setTimeUntilRefresh(prev => (prev <= 1 ? autoRefreshInterval : prev - 1));
     }, 1000);
 
     const refreshInterval = setInterval(() => {
@@ -54,15 +62,7 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
       clearInterval(countdownInterval);
       clearInterval(refreshInterval);
     };
-  }, [router, autoRefreshInterval, autoRefreshEnabled]);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    router.refresh();
-    setLastUpdated(new Date());
-    setTimeUntilRefresh(autoRefreshInterval);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
+  }, [handleRefresh, autoRefreshEnabled, autoRefreshInterval]);
 
   const toggleAutoRefresh = () => {
     const newValue = !autoRefreshEnabled;
@@ -78,9 +78,7 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
           <>
             Updated: {formatDateTime(lastUpdated, userTimeZone, { format: 'time' })}
             {autoRefreshEnabled && (
-              <span className="ml-2 text-xs opacity-80 font-mono">
-                (Auto: {timeUntilRefresh}s)
-              </span>
+              <span className="ml-2 text-xs opacity-80 font-mono">(Auto: {timeUntilRefresh}s)</span>
             )}
           </>
         ) : (
@@ -97,7 +95,7 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
           className="h-8 gap-2 bg-white text-slate-800 hover:bg-white/90 font-semibold shadow-sm"
           title="Refresh dashboard data"
         >
-          <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+          <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
           {isRefreshing ? 'Refreshing...' : 'Refresh'}
         </Button>
 
@@ -106,8 +104,8 @@ export default function DashboardRefresh({ autoRefreshInterval = 60 }: Dashboard
           variant="outline"
           size="sm"
           className={cn(
-            "h-8 gap-1.5 border-white/20 text-white hover:bg-white/10 hover:text-white transition-all",
-            autoRefreshEnabled ? "bg-white/20" : "bg-transparent"
+            'h-8 gap-1.5 border-white/20 text-white hover:bg-white/10 hover:text-white transition-all',
+            autoRefreshEnabled ? 'bg-white/20' : 'bg-transparent'
           )}
           title={autoRefreshEnabled ? 'Disable auto-refresh' : 'Enable auto-refresh'}
         >

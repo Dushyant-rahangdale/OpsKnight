@@ -1,9 +1,9 @@
 /**
  * PostgreSQL-based Job Queue System
- * 
+ *
  * This implementation uses PostgreSQL instead of Redis/BullMQ.
  * Jobs are stored in the BackgroundJob table and processed by cron jobs.
- * 
+ *
  * Benefits:
  * - No additional infrastructure (Redis) needed
  * - Uses existing PostgreSQL database
@@ -13,6 +13,7 @@
  */
 
 import { Prisma } from '@prisma/client';
+import { logger } from '../logger';
 import prisma from '../prisma';
 
 export type JobType = 'ESCALATION' | 'NOTIFICATION' | 'AUTO_UNSNOOZE' | 'SCHEDULED_TASK';
@@ -58,7 +59,7 @@ export async function scheduleEscalation(
   delayMs: number
 ): Promise<string> {
   const scheduledAt = new Date(Date.now() + delayMs);
-  
+
   return scheduleJob('ESCALATION', scheduledAt, {
     incidentId,
     stepIndex,
@@ -76,7 +77,7 @@ export async function scheduleNotification(
   delayMs: number = 0
 ): Promise<string> {
   const scheduledAt = new Date(Date.now() + delayMs);
-  
+
   return scheduleJob('NOTIFICATION', scheduledAt, {
     incidentId,
     userId,
@@ -100,9 +101,10 @@ export async function scheduleAutoUnsnooze(
 /**
  * Get pending jobs that are ready to execute
  */
-export async function getPendingJobs(limit: number = 50): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export async function getPendingJobs(limit: number = 50): Promise<any[]> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   const now = new Date();
-  
+
   return prisma.backgroundJob.findMany({
     where: {
       status: 'PENDING',
@@ -121,10 +123,8 @@ export async function getPendingJobs(limit: number = 50): Promise<any[]> { // es
  * Atomically claim pending jobs for processing.
  * Uses SKIP LOCKED to avoid concurrent workers claiming the same jobs.
  */
-export async function claimPendingJobs(
-  limit: number = 50,
-  type?: JobType
-): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export async function claimPendingJobs(limit: number = 50, type?: JobType): Promise<any[]> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   const typeFilter = type ? Prisma.sql`AND "type" = ${type}` : Prisma.empty;
   const jobs = await prisma.$queryRaw<any[]>( // eslint-disable-line @typescript-eslint/no-explicit-any
     Prisma.sql`
@@ -191,7 +191,7 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
   if (!job) return;
 
   const shouldRetry = job.attempts < job.maxAttempts;
-  
+
   await prisma.backgroundJob.update({
     where: { id: jobId },
     data: {
@@ -199,7 +199,7 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
       failedAt: shouldRetry ? null : new Date(),
       error: shouldRetry ? null : error,
       // Reschedule for retry with exponential backoff
-      scheduledAt: shouldRetry 
+      scheduledAt: shouldRetry
         ? new Date(Date.now() + Math.pow(2, job.attempts) * 5000) // 5s, 10s, 20s
         : job.scheduledAt,
     },
@@ -209,7 +209,8 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
 /**
  * Process a single job
  */
-export async function processJob(job: any): Promise<boolean> { // eslint-disable-line @typescript-eslint/no-explicit-any
+export async function processJob(job: any): Promise<boolean> {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   try {
     if (job.status !== 'PROCESSING') {
       await markJobProcessing(job.id);
@@ -218,10 +219,7 @@ export async function processJob(job: any): Promise<boolean> { // eslint-disable
     switch (job.type) {
       case 'ESCALATION':
         const { executeEscalation } = await import('../escalation');
-        const result = await executeEscalation(
-          job.payload.incidentId,
-          job.payload.stepIndex
-        );
+        const result = await executeEscalation(job.payload.incidentId, job.payload.stepIndex);
         const benignReason = (result.reason || '').toLowerCase();
         const shouldComplete =
           result.escalated ||
@@ -260,7 +258,7 @@ export async function processJob(job: any): Promise<boolean> { // eslint-disable
         const incident = await prisma.incident.findUnique({
           where: { id: job.payload.incidentId },
         });
-        
+
         if (incident && incident.status === 'SNOOZED' && incident.snoozedUntil) {
           const now = new Date();
           if (now >= incident.snoozedUntil) {
@@ -270,13 +268,49 @@ export async function processJob(job: any): Promise<boolean> { // eslint-disable
                 status: 'OPEN',
                 snoozedUntil: null,
                 snoozeReason: null,
+                escalationStatus: 'ESCALATING',
+                nextEscalationAt: new Date(),
                 events: {
                   create: {
-                    message: 'Incident auto-unsnoozed',
+                    message: 'Incident auto-unsnoozed (snooze duration expired)',
                   },
                 },
               },
             });
+            try {
+              const { sendIncidentNotifications } = await import('../user-notifications');
+              await sendIncidentNotifications(job.payload.incidentId, 'updated');
+              const { notifyStatusPageSubscribers } = await import('../status-page-notifications');
+              await notifyStatusPageSubscribers(job.payload.incidentId, 'investigating');
+              const { triggerWebhooksForService } = await import('../status-page-webhooks');
+              const updatedIncident = await prisma.incident.findUnique({
+                where: { id: job.payload.incidentId },
+                include: {
+                  service: { select: { id: true, name: true } },
+                  assignee: { select: { id: true, name: true, email: true } },
+                },
+              });
+              if (updatedIncident) {
+                await triggerWebhooksForService(updatedIncident.serviceId, 'incident.updated', {
+                  id: updatedIncident.id,
+                  title: updatedIncident.title,
+                  description: updatedIncident.description,
+                  status: updatedIncident.status,
+                  urgency: updatedIncident.urgency,
+                  priority: updatedIncident.priority,
+                  service: updatedIncident.service,
+                  assignee: updatedIncident.assignee,
+                  createdAt: updatedIncident.createdAt.toISOString(),
+                  acknowledgedAt: updatedIncident.acknowledgedAt?.toISOString() || null,
+                  resolvedAt: updatedIncident.resolvedAt?.toISOString() || null,
+                });
+              }
+            } catch (error) {
+              logger.error('Auto-unsnooze notifications failed', {
+                incidentId: job.payload.incidentId,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
             await markJobCompleted(job.id);
             return true;
           } else {

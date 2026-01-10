@@ -531,56 +531,16 @@ export default function CreateIncidentForm({
             </label>
             <div
               style={{
-                display: 'grid',
-                gap: '0.75rem',
                 padding: '1rem',
                 background: '#f9fafb',
                 border: '1px solid var(--border)',
                 borderRadius: '0px',
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
               }}
             >
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  name="notifyOnCall"
-                  defaultChecked
-                  style={{ width: '18px', height: '18px', cursor: 'pointer', margin: 0 }}
-                />
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                  Notify on-call responders immediately
-                </span>
-              </label>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  name="notifySlack"
-                  defaultChecked
-                  style={{ width: '18px', height: '18px', cursor: 'pointer', margin: 0 }}
-                />
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                  Post to service Slack channel
-                </span>
-              </label>
+              Notifications follow escalation policy and service configuration automatically.
             </div>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              These notifications will be sent when the incident is created.
-            </p>
           </div>
         </div>
       </section>

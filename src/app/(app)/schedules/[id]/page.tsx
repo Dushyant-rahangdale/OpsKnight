@@ -21,7 +21,7 @@ import LayerCreateForm from '@/components/LayerCreateForm';
 import OverrideForm from '@/components/OverrideForm';
 import OverrideList from '@/components/OverrideList';
 import CurrentCoverageDisplay from '@/components/CurrentCoverageDisplay';
-import ScheduleTimeline from '@/components/ScheduleTimeline';
+import CoverageTimeline from '@/components/CoverageTimeline';
 import LayerHelpPanel from '@/components/LayerHelpPanel';
 import ScheduleEditForm from '@/components/ScheduleEditForm';
 
@@ -467,11 +467,11 @@ export default async function ScheduleDetailPage({
           </section>
 
           {/* Timeline View */}
-          <ScheduleTimeline
+          <CoverageTimeline
             shifts={scheduleBlocks.map(block => ({
               id: block.id,
-              start: block.start.toISOString(),
-              end: block.end.toISOString(),
+              start: block.start,
+              end: block.end,
               label: `${block.layerName}: ${block.userName}${block.source === 'override' ? ' (Override)' : ''}`,
               layerName: block.layerName,
               userName: block.userName,
@@ -480,7 +480,6 @@ export default async function ScheduleDetailPage({
               source: block.source,
             }))}
             timeZone={schedule.timeZone}
-            layers={schedule.layers.map(l => ({ id: l.id, name: l.name }))}
           />
 
           {/* Calendar View */}
