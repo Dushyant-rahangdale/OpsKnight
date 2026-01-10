@@ -124,18 +124,24 @@ const MetricCard = memo(function MetricCard({
     <div
       className={cn(
         'relative overflow-hidden text-center transition-all duration-300',
-        isHero ? 'rounded-lg' : 'rounded-md',
-        isHero ? 'transform-gpu' : 'transform-gpu hover:shadow-lg',
+        isHero
+          ? 'rounded-lg'
+          : 'group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-white to-primary/5 shadow-sm hover:shadow-md',
+        isHero ? 'transform-gpu' : 'transform-gpu',
         isDark
           ? 'bg-white/[0.03] border border-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:bg-white/[0.08] hover:border-white/20'
           : isHero
             ? 'bg-white/10 border border-white/20 backdrop-blur text-primary-foreground shadow-sm hover:bg-white/15'
-            : 'bg-neutral-50 border border-border hover:bg-neutral-100 hover:-translate-y-0.5',
+            : '',
         isHero ? 'p-3 md:p-4' : 'p-6 sm:p-4'
       )}
       role="figure"
       aria-label={`${label}: ${formattedDisplay}${rangeLabel ? ` ${rangeLabel}` : ''}`}
     >
+      {/* Accent bar for default variant */}
+      {!isDark && !isHero && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/60" />
+      )}
       {/* Hover glow effect for dark mode */}
       {isDark && (
         <div className="absolute top-0 -left-full w-3/5 h-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent skew-x-[-20deg] transition-[left] duration-600 pointer-events-none z-0 hover:left-[200%] hover:duration-800" />
@@ -163,4 +169,3 @@ const MetricCard = memo(function MetricCard({
 });
 
 export default MetricCard;
-

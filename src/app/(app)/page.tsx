@@ -9,9 +9,7 @@ import DashboardIncidentFilters from '@/components/dashboard/DashboardIncidentFi
 import IncidentsListTable from '@/components/incident/IncidentsListTable';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel';
 import OnCallWidget from '@/components/dashboard/OnCallWidget';
-import SidebarWidget, {
-  WIDGET_ICON_BG,
-} from '@/components/dashboard/SidebarWidget';
+import SidebarWidget, { WIDGET_ICON_BG } from '@/components/dashboard/SidebarWidget';
 import CompactPerformanceMetrics from '@/components/dashboard/compact/CompactPerformanceMetrics';
 import CompactTeamLoad from '@/components/dashboard/compact/CompactTeamLoad';
 import SmartInsightsBanner from '@/components/dashboard/SmartInsightsBanner';
@@ -61,17 +59,19 @@ export default async function Dashboard({
   // Extract search params
   const statusParam =
     typeof awaitedSearchParams.status === 'string' ? awaitedSearchParams.status : undefined;
-  const status = statusParam && ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'SNOOZED', 'SUPPRESSED'].includes(statusParam)
-    ? statusParam
-    : undefined;
+  const status =
+    statusParam &&
+    ['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'SNOOZED', 'SUPPRESSED'].includes(statusParam)
+      ? statusParam
+      : undefined;
   const assigneeParam =
     typeof awaitedSearchParams.assignee === 'string' ? awaitedSearchParams.assignee : undefined;
-  const assignee = assigneeParam === undefined || assigneeParam === 'all' ? undefined : assigneeParam;
+  const assignee =
+    assigneeParam === undefined || assigneeParam === 'all' ? undefined : assigneeParam;
   const serviceParam =
     typeof awaitedSearchParams.service === 'string' ? awaitedSearchParams.service : undefined;
   const service = serviceParam && serviceParam !== 'all' ? serviceParam : undefined;
-  const search =
-    typeof awaitedSearchParams.search === 'string' ? awaitedSearchParams.search : '';
+  const search = typeof awaitedSearchParams.search === 'string' ? awaitedSearchParams.search : '';
   const urgencyParam =
     typeof awaitedSearchParams.urgency === 'string' ? awaitedSearchParams.urgency : undefined;
   const urgency = (
@@ -102,9 +102,9 @@ export default async function Dashboard({
   const email = session?.user?.email ?? null;
   const user = email
     ? await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, name: true, timeZone: true },
-    })
+        where: { email },
+        select: { id: true, name: true, timeZone: true },
+      })
     : null;
   const userName = user?.name || 'there';
   const userTimeZone = user?.timeZone || 'UTC';
@@ -201,14 +201,14 @@ export default async function Dashboard({
     }),
     user
       ? getWidgetData(user.id, 'user', {
-        serviceId: service,
-        assigneeId: assigneeFilter,
-        urgency: urgency as 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
-        status: status as IncidentStatus | undefined,
-        startDate: metricsStartDate,
-        endDate: metricsEndDate,
-        includeAllTime: range === 'all',
-      })
+          serviceId: service,
+          assigneeId: assigneeFilter,
+          urgency: urgency as 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
+          status: status as IncidentStatus | undefined,
+          startDate: metricsStartDate,
+          endDate: metricsEndDate,
+          includeAllTime: range === 'all',
+        })
       : Promise.resolve(null),
   ]);
 
@@ -241,10 +241,9 @@ export default async function Dashboard({
   const systemStatus =
     currentCriticalActive > 0
       ? { label: 'CRITICAL', color: 'var(--color-danger)', bg: 'rgba(239, 68, 68, 0.1)' }
-      : (slaMetrics.mediumUrgencyCount > 0 || slaMetrics.lowUrgencyCount > 0)
+      : slaMetrics.mediumUrgencyCount > 0 || slaMetrics.lowUrgencyCount > 0
         ? { label: 'DEGRADED', color: 'var(--color-warning)', bg: 'rgba(245, 158, 11, 0.1)' }
         : { label: 'OPERATIONAL', color: 'var(--color-success)', bg: 'rgba(34, 197, 94, 0.1)' };
-
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
@@ -295,9 +294,9 @@ export default async function Dashboard({
   const criticalFocus = criticalIncidents.slice(0, 3);
   const myQueueItems = user
     ? activeIncidents
-      .filter(incident => incident.assigneeId === user.id)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(0, 3)
+        .filter(incident => incident.assigneeId === user.id)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(0, 3)
     : [];
   const servicesAtRisk = slaMetrics.serviceMetrics
     .filter(serviceMetric => (serviceMetric.activeCount ?? 0) > 0)
@@ -320,10 +319,7 @@ export default async function Dashboard({
     MEDIUM: 'warning',
     LOW: 'info',
   };
-  const statusVariant: Record<
-    IncidentStatus,
-    'success' | 'warning' | 'neutral'
-  > = {
+  const statusVariant: Record<IncidentStatus, 'success' | 'warning' | 'neutral'> = {
     OPEN: 'success',
     ACKNOWLEDGED: 'warning',
     RESOLVED: 'neutral',
@@ -402,23 +398,25 @@ export default async function Dashboard({
               userId={user?.id ?? null}
             />
 
-
-
             {/* Ops Pulse Panel - Unified Container */}
-            <div className="group relative rounded-2xl border border-border/60 bg-white shadow-sm overflow-hidden">
+            <div className="group relative rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-white to-primary/5 shadow-sm overflow-hidden">
+              {/* Accent bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/60" />
 
               {/* Header */}
-              <div className="p-4 pb-3 border-b border-border/60">
+              <div className="p-4 pb-3 border-b border-primary/10">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                        <Activity className="w-5 h-5 text-emerald-600" />
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Activity className="w-5 h-5 text-primary" />
                       </div>
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Ops Pulse</h3>
-                      <p className="text-[10px] text-slate-500 font-medium">Signals that need attention right now</p>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Signals that need attention right now
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -432,44 +430,48 @@ export default async function Dashboard({
               {/* Content Grid */}
               <div className="p-4">
                 <div className="grid gap-5 md:grid-cols-3">
-                  <div className="group/card relative rounded-xl border border-border/60 bg-white shadow-sm hover:shadow transition-colors">
+                  {/* My Queue Card */}
+                  <div className="group/card relative rounded-2xl border border-primary/20 bg-gradient-to-br from-emerald-50/30 via-white to-emerald-50/20 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col">
+                    {/* Accent bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-500" />
                     {/* Header */}
                     <div className="p-4 pb-2">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-200/50 flex items-center justify-center text-emerald-600">
                             <UserRound className="w-4 h-4" />
                           </div>
                           {myQueueItems.length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white shadow-sm">
                               {myQueueItems.length}
                             </span>
                           )}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">My Queue</h4>
-                          <p className="text-[9px] text-slate-500 font-medium">Assigned to you</p>
+                          <h4 className="text-sm font-bold text-slate-800">My Queue</h4>
+                          <p className="text-[10px] text-slate-500 font-medium">Assigned to you</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Content */}
-                    <div className="px-4 pb-4 space-y-2">
+                    <div className="px-4 pb-4 flex-1 flex flex-col">
                       {myQueueItems.length === 0 ? (
-                        <div className="py-4 text-center">
+                        <div className="py-6 text-center">
+                          <CheckCircle2 className="w-6 h-6 mx-auto text-emerald-300 mb-2" />
                           <p className="text-xs text-slate-500 font-medium">Queue is clear!</p>
                         </div>
                       ) : (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {myQueueItems.slice(0, 3).map(item => (
                             <Link
                               key={item.id}
                               href={`/incidents/${item.id}`}
-                              className="block p-2 rounded-lg bg-slate-50/40 border border-border/60 hover:border-emerald-200/50 hover:bg-white transition-colors"
+                              className="block p-2.5 rounded-xl bg-white/80 border border-emerald-100/80 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-sm transition-all duration-200"
                             >
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                <p className="text-xs font-medium text-slate-700 truncate">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-sm" />
+                                <p className="text-xs font-semibold text-slate-700 truncate">
                                   {item.title}
                                 </p>
                               </div>
@@ -479,7 +481,7 @@ export default async function Dashboard({
                       )}
                       <Link
                         href={user ? `/?status=OPEN&assignee=${user.id}` : '/incidents?status=OPEN'}
-                        className="flex items-center justify-center gap-1 mt-2 py-1.5 text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100/50 rounded-md transition-colors"
+                        className="flex items-center justify-center gap-1.5 mt-auto py-2 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100/70 rounded-lg transition-colors"
                       >
                         View my queue &rarr;
                       </Link>
@@ -487,44 +489,49 @@ export default async function Dashboard({
                   </div>
 
                   {/* Critical Focus Card */}
-                  <div className="group/card relative rounded-xl border border-border/60 bg-white shadow-sm hover:shadow transition-colors">
+                  <div className="group/card relative rounded-2xl border border-primary/20 bg-gradient-to-br from-rose-50/30 via-white to-rose-50/20 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col">
+                    {/* Accent bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-400 to-rose-500" />
                     {/* Header */}
                     <div className="p-4 pb-2">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600">
+                          <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-200/50 flex items-center justify-center text-rose-600">
                             <Siren className="w-4 h-4" />
                           </div>
                           {currentCriticalActive > 0 && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white shadow-sm animate-pulse">
                               {currentCriticalActive}
                             </span>
                           )}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">Critical Focus</h4>
-                          <p className="text-[9px] text-slate-500 font-medium">Immediate attention</p>
+                          <h4 className="text-sm font-bold text-slate-800">Critical Focus</h4>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            Immediate attention
+                          </p>
                         </div>
                       </div>
                     </div>
 
                     {/* Content */}
-                    <div className="px-4 pb-4 space-y-2">
+                    <div className="px-4 pb-4 flex-1 flex flex-col">
                       {criticalFocus.length === 0 ? (
-                        <div className="py-4 text-center">
+                        <div className="py-6 text-center">
+                          <ShieldAlert className="w-6 h-6 mx-auto text-rose-200 mb-2" />
                           <p className="text-xs text-slate-500 font-medium">All systems stable</p>
                         </div>
                       ) : (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {criticalFocus.slice(0, 3).map(incident => (
                             <Link
                               key={incident.id}
                               href={`/incidents/${incident.id}`}
-                              className="block p-2 rounded-lg bg-slate-50/40 border border-border/60 hover:border-red-200/50 hover:bg-white transition-colors"
+                              className="block p-2.5 rounded-xl bg-white/80 border border-rose-100/80 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm transition-all duration-200"
                             >
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                                <p className="text-xs font-medium text-slate-700 truncate">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 shadow-sm animate-pulse" />
+                                <p className="text-xs font-semibold text-slate-700 truncate">
                                   {incident.title}
                                 </p>
                               </div>
@@ -534,7 +541,7 @@ export default async function Dashboard({
                       )}
                       <Link
                         href="/incidents?status=OPEN&urgency=HIGH"
-                        className="flex items-center justify-center gap-1 mt-2 py-1.5 text-[10px] font-semibold text-red-700 hover:text-red-800 hover:bg-red-100/50 rounded-md transition-colors"
+                        className="flex items-center justify-center gap-1.5 mt-auto py-2 text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50/50 hover:bg-rose-100/70 rounded-lg transition-colors"
                       >
                         View critical &rarr;
                       </Link>
@@ -542,54 +549,59 @@ export default async function Dashboard({
                   </div>
 
                   {/* Services at Risk Card */}
-                  <div className="group/card relative rounded-xl border border-border/60 bg-white shadow-sm hover:shadow transition-colors">
+                  <div className="group/card relative rounded-2xl border border-primary/20 bg-gradient-to-br from-amber-50/30 via-white to-amber-50/20 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col">
+                    {/* Accent bar */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-500" />
                     {/* Header */}
                     <div className="p-4 pb-2">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-200/50 flex items-center justify-center text-amber-600">
                             <AlertTriangle className="w-4 h-4" />
                           </div>
                           {servicesAtRisk.length > 0 && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white shadow-sm">
                               {servicesAtRisk.length}
                             </span>
                           )}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-800">Services at Risk</h4>
-                          <p className="text-[9px] text-slate-500 font-medium">Active by service</p>
+                          <h4 className="text-sm font-bold text-slate-800">Services at Risk</h4>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            Active by service
+                          </p>
                         </div>
                       </div>
                     </div>
 
                     {/* Content */}
-                    <div className="px-4 pb-4 space-y-2">
+                    <div className="px-4 pb-4 flex-1 flex flex-col">
                       {servicesAtRisk.length === 0 ? (
-                        <div className="py-4 text-center">
+                        <div className="py-6 text-center">
+                          <List className="w-6 h-6 mx-auto text-amber-200 mb-2" />
                           <p className="text-xs text-slate-500 font-medium">All services healthy</p>
                         </div>
                       ) : (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {servicesAtRisk.slice(0, 4).map(serviceItem => (
                             <Link
                               key={serviceItem.id}
                               href={`/services/${serviceItem.id}`}
-                              className="flex items-center justify-between p-2 rounded-lg bg-slate-50/40 border border-border/60 hover:border-amber-200/50 hover:bg-white transition-colors"
+                              className="flex items-center justify-between p-2.5 rounded-xl bg-white/80 border border-amber-100/80 hover:border-amber-300 hover:bg-amber-50/50 hover:shadow-sm transition-all duration-200"
                             >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                                <p className="text-xs font-medium text-slate-700 truncate">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="w-2 h-2 rounded-full bg-amber-500 shrink-0 shadow-sm" />
+                                <p className="text-xs font-semibold text-slate-700 truncate">
                                   {serviceItem.name}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[9px] font-bold text-slate-500">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded">
                                   {serviceItem.activeCount}
                                 </span>
                                 {serviceItem.criticalCount > 0 && (
-                                  <span className="text-[9px] font-bold text-red-500 ml-1">
-                                    {serviceItem.criticalCount} !
+                                  <span className="text-[10px] font-bold text-white bg-rose-500 px-1.5 py-0.5 rounded animate-pulse">
+                                    {serviceItem.criticalCount}!
                                   </span>
                                 )}
                               </div>
@@ -599,7 +611,7 @@ export default async function Dashboard({
                       )}
                       <Link
                         href="/services"
-                        className="flex items-center justify-center gap-1 mt-2 py-1.5 text-[10px] font-semibold text-amber-700 hover:text-amber-800 hover:bg-amber-100/50 rounded-md transition-colors"
+                        className="flex items-center justify-center gap-1.5 mt-auto py-2 text-[11px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50/50 hover:bg-amber-100/70 rounded-lg transition-colors"
                       >
                         View services &rarr;
                       </Link>
@@ -626,7 +638,7 @@ export default async function Dashboard({
             />
           </div>
 
-          <aside className="xl:col-span-4 space-y-6 xl:sticky xl:top-6">
+          <aside className="xl:col-span-4 space-y-6">
             <QuickActionsPanel greeting={greeting} userName={userName} />
             {widgetData && (
               <WidgetProvider initialData={widgetData}>
@@ -657,6 +669,6 @@ export default async function Dashboard({
           </aside>
         </div>
       </div>
-    </DashboardRealtimeWrapper >
+    </DashboardRealtimeWrapper>
   );
 }

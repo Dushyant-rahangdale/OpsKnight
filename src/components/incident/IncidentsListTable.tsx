@@ -298,7 +298,9 @@ export default function IncidentsListTable({
   const headerTitle = title ?? 'Incident list';
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm overflow-hidden">
+    <div className="group relative rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-white to-primary/5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      {/* Accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/60" />
       {/* Sticky Command Bar (Bulk Actions) */}
       {(selectedCount > 0 || bulkAction) && (
         <div className="sticky top-0 z-20 border-b border-white/15 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -529,7 +531,7 @@ export default function IncidentsListTable({
       )}
 
       {/* Header */}
-      <div className="px-4 md:px-5 py-3.5 bg-white border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+      <div className="px-4 md:px-5 py-3.5 border-b border-primary/10 flex flex-wrap justify-between items-center gap-3">
         <div className="min-w-[220px]">
           <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-extrabold">
             {headerTitle}
@@ -595,7 +597,7 @@ export default function IncidentsListTable({
       </div>
 
       {/* Content */}
-      <div className="p-3 md:p-4 lg:p-5 bg-white">
+      <div className="p-3 md:p-4 lg:p-5">
         {incidents.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-gradient-to-br from-slate-50 to-white p-10 text-center">
             <div className="text-4xl opacity-30 mb-3">!</div>

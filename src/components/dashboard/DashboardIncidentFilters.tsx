@@ -124,16 +124,16 @@ export default function DashboardIncidentFilters({
   ].filter(Boolean).length;
 
   return (
-    <div className="group relative rounded-2xl border border-slate-200/60 bg-white/50 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+    <div className="group relative rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-white to-primary/5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
       {/* Accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-violet-500" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/60" />
 
       {/* Header */}
       <div className="p-4 pb-3 border-b border-slate-200/60">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100/50 border border-blue-100 flex items-center justify-center">
-              <Filter className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Filter className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">Filter Incidents</h3>
@@ -165,7 +165,9 @@ export default function DashboardIncidentFilters({
       <div className="p-4 space-y-4">
         {/* Quick Filters */}
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Quick Filters</p>
+          <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+            Quick Filters
+          </p>
           <div className="flex flex-wrap gap-1.5">
             <Badge
               variant={currentStatus === 'all' && currentAssignee === 'all' ? 'default' : 'outline'}
@@ -217,7 +219,9 @@ export default function DashboardIncidentFilters({
               variant={currentUrgency === 'MEDIUM' ? 'warning' : 'outline'}
               size="xs"
               className="cursor-pointer transition-colors"
-              onClick={() => updateParams({ urgency: currentUrgency === 'MEDIUM' ? 'all' : 'MEDIUM' })}
+              onClick={() =>
+                updateParams({ urgency: currentUrgency === 'MEDIUM' ? 'all' : 'MEDIUM' })
+              }
             >
               <AlertCircle className="mr-0.5 h-3 w-3" /> Medium
             </Badge>
@@ -335,9 +339,7 @@ export default function DashboardIncidentFilters({
           </div>
         </div>
 
-        {isPending && (
-          <div className="text-[10px] text-slate-400 animate-pulse">Updating...</div>
-        )}
+        {isPending && <div className="text-[10px] text-slate-400 animate-pulse">Updating...</div>}
       </div>
     </div>
   );
