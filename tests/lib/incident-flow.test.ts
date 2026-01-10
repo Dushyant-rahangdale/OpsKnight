@@ -26,6 +26,10 @@ vi.mock('@/lib/escalation', () => ({
   executeEscalation: vi.fn().mockResolvedValue({ escalated: false }),
 }));
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
 describe('incident flow safeguards', () => {
   const prismaMock = prisma as any;
 
@@ -96,6 +100,7 @@ describe('incident flow safeguards', () => {
       id: 'inc-9',
       status: 'SNOOZED',
       snoozedUntil,
+      createdAt: new Date(),
     });
     prismaMock.incident.update.mockResolvedValue({});
 
@@ -127,6 +132,17 @@ describe('incident flow safeguards', () => {
         resolvedAt: new Date(),
       });
     prismaMock.incident.update.mockResolvedValue({ id: 'inc-old' });
+    prismaMock.incident.findUnique.mockResolvedValue({
+      id: 'inc-old',
+      title: 'Disk full',
+      description: 'Disk usage exceeded',
+      status: 'OPEN',
+      urgency: 'HIGH',
+      priority: 'P1',
+      service: { id: 'svc-1', name: 'Service 1' },
+      assignee: null,
+      createdAt: new Date(),
+    });
 
     const formData = new FormData();
     formData.append('title', 'Disk full');
