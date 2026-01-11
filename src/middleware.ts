@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 
 const PUBLIC_PATH_PREFIXES = [
   '/login',
+  '/forgot-password',
   '/set-password',
   '/api/auth',
   '/api/health',

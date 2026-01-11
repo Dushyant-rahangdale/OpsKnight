@@ -29,7 +29,7 @@ export async function initiatePasswordReset(
 
   try {
     // 1. Rate Limit Check (Audit Log based)
-    await checkRateLimit(normalizedEmail, ipAddress);
+    await checkRateLimit(normalizedEmail, ipAddress, 'PASSWORD_RESET_INITIATED');
 
     // 2. User Lookup
     const user = await prisma.user.findUnique({
@@ -205,13 +205,13 @@ export async function initiatePasswordReset(
   }
 }
 
-async function checkRateLimit(email: string, ip?: string) {
+export async function checkRateLimit(email: string, ip: string | undefined, action: string) {
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
 
   // Check by Email
   const emailCount = await prisma.auditLog.count({
     where: {
-      action: 'PASSWORD_RESET_INITIATED',
+      action,
       details: {
         path: ['targetEmail'],
         equals: email,
@@ -228,7 +228,7 @@ async function checkRateLimit(email: string, ip?: string) {
   if (ip) {
     const ipCount = await prisma.auditLog.count({
       where: {
-        action: 'PASSWORD_RESET_INITIATED',
+        action,
         details: {
           path: ['ip'],
           equals: ip,
@@ -237,7 +237,13 @@ async function checkRateLimit(email: string, ip?: string) {
       },
     });
 
-    if (ipCount >= MAX_ATTEMPTS_PER_WINDOW * 2) {
+    // Stricter limit for failures?
+    const limit =
+      action === 'PASSWORD_RESET_FAILED'
+        ? MAX_ATTEMPTS_PER_WINDOW * 2
+        : MAX_ATTEMPTS_PER_WINDOW * 2;
+
+    if (ipCount >= limit) {
       // Allow slightly more per IP to account for NAT
       throw new Error('Too many requests from this IP.');
     }
@@ -277,9 +283,9 @@ async function logAttempt(
  * Attempts to match the duration of a successful lookup + potential token generation.
  * Target duration: approx 300-500ms.
  */
-async function simulateWork(startTime: number) {
+export async function simulateWork(startTime: number) {
   // Generate a dummy hash to burn CPU
-  const dummy = '$2a$10$abcdefghijklmnopqrstuv'; // Cost 10 bcrypt
+  const dummy = '$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquii.V3ilJjy8.rXkFKxu'; // Cost 12 bcrypt
   // bcrypt.compare is async
   try {
     await bcrypt.compare('dummy-password', dummy);
@@ -290,5 +296,122 @@ async function simulateWork(startTime: number) {
   const minTime = 300;
   if (elapsed < minTime) {
     await new Promise(resolve => setTimeout(resolve, minTime - elapsed));
+  }
+}
+
+/**
+ * Completes the password reset process.
+ * Verifies token, enforcing rate limits, and updates the user's password.
+ */
+export async function completePasswordReset(
+  token: string,
+  password: string,
+  ip?: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    // 1. Rate Limit Check (IP based) - Prevent token brute forcing
+    if (ip) {
+      await checkRateLimit('unknown', ip, 'PASSWORD_RESET_FAILED');
+    }
+
+    // 2. Validate Token Format & Password Strength
+    if (!token) {
+      return { success: false, error: 'Invalid request parameters.' };
+    }
+
+    // Dynamic import to avoid circular dependency if any (though passwords.ts is generic)
+    const { validatePasswordStrength } = await import('@/lib/passwords');
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      return { success: false, error: passwordError };
+    }
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
+    // 3. Find Token
+    const startTime = Date.now(); // Start timer for timing mitigation
+    const record = await prisma.userToken.findFirst({
+      where: {
+        tokenHash,
+        type: { in: ['PASSWORD_RESET', 'ADMIN_RESET_LINK'] },
+        usedAt: null,
+      },
+      // Note: UserToken does not have a direct 'user' relation in schema, relies on 'identifier' (email)
+    });
+
+    if (!record) {
+      await simulateWork(startTime); // Mitigate timing attack
+      await logAttempt('unknown', 'PASSWORD_RESET_FAILED', ip, undefined, {
+        reason: 'INVALID_TOKEN',
+      });
+      return { success: false, error: 'Invalid or expired token.' };
+    }
+
+    // 4. Check Expiration
+    if (record.expiresAt < new Date()) {
+      await prisma.userToken.delete({ where: { tokenHash } });
+      await simulateWork(startTime); // Mitigate timing attack
+      await logAttempt(record.identifier, 'PASSWORD_RESET_FAILED', ip, undefined, {
+        reason: 'EXPIRED_TOKEN',
+      });
+      return { success: false, error: 'Token has expired.' };
+    }
+
+    // Get user and hash password before transaction
+    const email = record.identifier;
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      await simulateWork(startTime); // Mitigate timing attack
+      await prisma.userToken.update({
+        where: { tokenHash },
+        data: { usedAt: new Date() },
+      });
+      return { success: false, error: 'Invalid or expired token.' };
+    }
+
+    const salt = await bcrypt.genSalt(12);
+
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // 5. Transaction: Update User & Mark Token Used
+    await prisma.$transaction(async tx => {
+      // Re-fetch user within transaction to ensure latest state, though not strictly necessary here
+      // as we already fetched it and are only updating based on ID.
+      // const userToUpdate = await tx.user.findUnique({ where: { email: record.identifier } });
+      // if (!userToUpdate) throw new Error('User not found during transaction');
+
+      await tx.user.update({
+        where: { id: user.id }, // Use the user object fetched earlier
+        data: {
+          passwordHash,
+          status: 'ACTIVE',
+          invitedAt: null,
+          deactivatedAt: null,
+        },
+      });
+
+      await tx.userToken.update({
+        where: { tokenHash },
+        data: { usedAt: new Date() },
+      });
+    });
+
+    // 6. Revoke Sessions (Outside transaction is fine, it's a side effect)
+    // Dynamic import to avoid circular dep if auth imports password-reset
+    const { revokeUserSessions } = await import('@/lib/auth');
+    await revokeUserSessions(user.id);
+
+    // 7. Audit Log
+    await logAttempt(email, 'PASSWORD_RESET_COMPLETED', ip, user.id, {});
+
+    return { success: true, message: 'Password has been reset successfully.' };
+  } catch (error) {
+    logger.error('Error in completePasswordReset', { error });
+    // Handle rate limit error specifically
+    if (error instanceof Error && error.message.includes('Too many requests')) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: 'An internal error occurred.' };
   }
 }

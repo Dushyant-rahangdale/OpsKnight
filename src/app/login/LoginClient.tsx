@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Spinner from '@/components/ui/Spinner';
 import SsoButton from '@/components/auth/SsoButton';
 
@@ -35,6 +36,7 @@ export default function LoginClient({
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isValid, setIsValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -71,6 +73,7 @@ export default function LoginClient({
         redirect: false,
         email: email.trim(),
         password,
+        rememberMe: String(rememberMe), // Pass as string since credentials are strings
         callbackUrl,
       });
 
@@ -251,12 +254,17 @@ export default function LoginClient({
                 )}
 
                 {error && (
-                  <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+                  >
                     <svg
                       className="h-4 w-4 shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
+                      aria-hidden="true"
                     >
                       <path
                         strokeLinecap="round"
@@ -288,12 +296,16 @@ export default function LoginClient({
                   </div>
                 )}
 
-                <form onSubmit={handleCredentials} className="space-y-4">
+                <form onSubmit={handleCredentials} className="space-y-4" noValidate>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    <label
+                      htmlFor="email-input"
+                      className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600"
+                    >
                       Work email
                     </label>
                     <input
+                      id="email-input"
                       type="email"
                       value={email}
                       onChange={event => setEmail(event.target.value)}
@@ -301,24 +313,30 @@ export default function LoginClient({
                       placeholder="name@company.com"
                       autoComplete="email"
                       required
+                      autoFocus
+                      aria-describedby={error ? 'login-error' : undefined}
                       disabled={isSubmitting || isSSOLoading}
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
+                      <label
+                        htmlFor="password-input"
+                        className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600"
+                      >
                         Password
                       </label>
-                      <a
+                      <Link
                         href="/forgot-password"
                         className="text-xs font-semibold text-slate-700 transition hover:text-slate-900"
                       >
                         Forgot?
-                      </a>
+                      </Link>
                     </div>
                     <div className="relative">
                       <input
+                        id="password-input"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={event => setPassword(event.target.value)}
@@ -326,6 +344,7 @@ export default function LoginClient({
                         placeholder="********"
                         autoComplete="current-password"
                         required
+                        aria-describedby={error ? 'login-error' : undefined}
                         disabled={isSubmitting || isSSOLoading}
                       />
                       <button
@@ -371,6 +390,23 @@ export default function LoginClient({
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Remember Me */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="remember-me"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                    />
+                    <label
+                      htmlFor="remember-me"
+                      className="text-sm text-slate-600 cursor-pointer select-none"
+                    >
+                      Remember this device for 30 days
+                    </label>
                   </div>
 
                   <button
