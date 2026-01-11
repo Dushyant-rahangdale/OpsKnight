@@ -1052,6 +1052,13 @@ model IncidentMetricRollup {
   mediumUrgencyIncidents  Int @default(0)
   lowUrgencyIncidents     Int @default(0)
   
+  // Priority breakdown (P1-P5)
+  p1Incidents   Int @default(0)
+  p2Incidents   Int @default(0)
+  p3Incidents   Int @default(0)
+  p4Incidents   Int @default(0)
+  p5Incidents   Int @default(0)
+  
   // SLA Metrics (stored in milliseconds for precision)
   mttaSum   BigInt @default(0) // Sum of MTTA values
   mttaCount Int    @default(0) // Count for averaging
@@ -1171,3 +1178,17 @@ model SLAPerformanceLog {
   @@map("sla_performance_logs")
 }
 
+// Distributed cron scheduler state for production multi-worker environments
+model CronSchedulerState {
+  id              String    @id @default("singleton") // Only one row exists
+  lastRunAt       DateTime?
+  lastSuccessAt   DateTime?
+  lastError       String?
+  nextRunAt       DateTime?
+  lastRollupDate  String?   // "YYYY-MM-DD" format
+  lockedBy        String?   // Worker instance ID holding the lock
+  lockedAt        DateTime? // When lock was acquired
+  updatedAt       DateTime  @updatedAt
+  
+  @@map("cron_scheduler_state")
+}

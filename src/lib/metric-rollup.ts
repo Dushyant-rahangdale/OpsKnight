@@ -126,6 +126,7 @@ export async function generateDailyRollup(
             id: true,
             status: true,
             urgency: true,
+            priority: true,
             createdAt: true,
             acknowledgedAt: true,
             resolvedAt: true,
@@ -147,6 +148,11 @@ export async function generateDailyRollup(
         let highUrgencyIncidents = 0;
         let mediumUrgencyIncidents = 0;
         let lowUrgencyIncidents = 0;
+        let p1Incidents = 0;
+        let p2Incidents = 0;
+        let p3Incidents = 0;
+        let p4Incidents = 0;
+        let p5Incidents = 0;
         let mttaSum = BigInt(0);
         let mttaCount = 0;
         let mttrSum = BigInt(0);
@@ -186,6 +192,14 @@ export async function generateDailyRollup(
               lowUrgencyIncidents++;
               break;
           }
+
+          // Priority counts (P1-P5)
+          const priority = incident.priority?.toUpperCase() || '';
+          if (priority === 'P1' || priority === '1') p1Incidents++;
+          else if (priority === 'P2' || priority === '2') p2Incidents++;
+          else if (priority === 'P3' || priority === '3') p3Incidents++;
+          else if (priority === 'P4' || priority === '4') p4Incidents++;
+          else if (priority === 'P5' || priority === '5') p5Incidents++;
 
           // MTTA calculation
           if (incident.acknowledgedAt) {
@@ -284,6 +298,11 @@ export async function generateDailyRollup(
               highUrgencyIncidents,
               mediumUrgencyIncidents,
               lowUrgencyIncidents,
+              p1Incidents,
+              p2Incidents,
+              p3Incidents,
+              p4Incidents,
+              p5Incidents,
               mttaSum,
               mttaCount,
               mttrSum,
@@ -313,6 +332,11 @@ export async function generateDailyRollup(
               highUrgencyIncidents,
               mediumUrgencyIncidents,
               lowUrgencyIncidents,
+              p1Incidents,
+              p2Incidents,
+              p3Incidents,
+              p4Incidents,
+              p5Incidents,
               mttaSum,
               mttaCount,
               mttrSum,

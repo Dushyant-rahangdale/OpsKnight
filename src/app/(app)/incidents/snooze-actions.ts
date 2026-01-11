@@ -21,38 +21,48 @@ export async function snoozeIncidentWithDuration(
   const user = await getCurrentUser();
   const userTimeZone = getUserTimeZone(user ?? undefined);
 
-  await prisma.incident.update({
-    where: { id: incidentId },
-    data: {
-      status: 'SNOOZED',
-      snoozedUntil,
-      snoozeReason: reason || null,
-      escalationStatus: 'PAUSED',
-      nextEscalationAt: null,
-      events: {
-        create: {
-          message: `Incident snoozed until ${formatDateTime(snoozedUntil, userTimeZone, { format: 'datetime' })}${reason ? ` (Reason: ${reason})` : ''}${user ? ` by ${user.name}` : ''}`,
+  try {
+    await prisma.incident.update({
+      where: { id: incidentId },
+      data: {
+        status: 'SNOOZED',
+        snoozedUntil,
+        snoozeReason: reason || null,
+        escalationStatus: 'PAUSED',
+        nextEscalationAt: null,
+        events: {
+          create: {
+            message: `Incident snoozed until ${formatDateTime(snoozedUntil, userTimeZone, { format: 'datetime' })}${reason ? ` (Reason: ${reason})` : ''}${user ? ` by ${user.name}` : ''}`,
+          },
         },
       },
-    },
-  });
+    });
 
-  // Schedule auto-unsnooze job using PostgreSQL job queue
-  try {
-    const { scheduleAutoUnsnooze } = await import('@/lib/jobs/queue');
-    await scheduleAutoUnsnooze(incidentId, snoozedUntil);
+    // Schedule auto-unsnooze job using PostgreSQL job queue
+    try {
+      const { scheduleAutoUnsnooze } = await import('@/lib/jobs/queue');
+      await scheduleAutoUnsnooze(incidentId, snoozedUntil);
+    } catch (error) {
+      logger.error('Failed to schedule auto-unsnooze job', {
+        component: 'snooze-actions',
+        error,
+        incidentId,
+      });
+      // Continue anyway - internal worker will pick it up via snoozedUntil field
+    }
+
+    revalidatePath(`/incidents/${incidentId}`);
+    revalidatePath('/incidents');
+    revalidatePath('/');
   } catch (error) {
-    logger.error('Failed to schedule auto-unsnooze job', {
+    logger.error('Failed to snooze incident', {
       component: 'snooze-actions',
       error,
       incidentId,
+      userId: user?.id,
     });
-    // Continue anyway - internal worker will pick it up via snoozedUntil field
+    throw new Error('Failed to snooze incident. Please try again.');
   }
-
-  revalidatePath(`/incidents/${incidentId}`);
-  revalidatePath('/incidents');
-  revalidatePath('/');
 }
 
 export async function processAutoUnsnooze() {
@@ -67,21 +77,30 @@ export async function processAutoUnsnooze() {
 
   let processedCount = 0;
   for (const incident of incidentsToUnsnooze) {
-    await prisma.incident.update({
-      where: { id: incident.id },
-      data: {
-        status: 'OPEN',
-        snoozedUntil: null,
-        snoozeReason: null,
-        escalationStatus: 'ESCALATING',
-        nextEscalationAt: new Date(),
-        events: {
-          create: {
-            message: 'Incident auto-unsnoozed (snooze duration expired)',
+    try {
+      await prisma.incident.update({
+        where: { id: incident.id },
+        data: {
+          status: 'OPEN',
+          snoozedUntil: null,
+          snoozeReason: null,
+          escalationStatus: 'ESCALATING',
+          nextEscalationAt: new Date(),
+          events: {
+            create: {
+              message: 'Incident auto-unsnoozed (snooze duration expired)',
+            },
           },
         },
-      },
-    });
+      });
+    } catch (error) {
+      logger.error('Failed to unsnooze incident', {
+        component: 'snooze-actions',
+        incidentId: incident.id,
+        error,
+      });
+      continue; // Skip to next incident
+    }
     try {
       const { sendIncidentNotifications } = await import('@/lib/user-notifications');
       await sendIncidentNotifications(incident.id, 'updated');

@@ -562,6 +562,8 @@ export async function processPendingEscalations(
         in: ['OPEN', 'SNOOZED'], // Only escalate if still open or snoozed
       },
     },
+    take: 50, // Process in batches to avoid OOM
+    orderBy: { nextEscalationAt: 'asc' }, // Process oldest due first
     select: {
       id: true,
       currentEscalationStep: true,
