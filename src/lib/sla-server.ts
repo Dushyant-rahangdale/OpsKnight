@@ -1807,6 +1807,27 @@ export async function calculateSLAMetricsFromRollups(
     },
   });
 
+  // FIX: Heatmap always needs last 365 days of data, regardless of requested window
+  const heatmapStart = new Date();
+  heatmapStart.setDate(heatmapStart.getDate() - 365);
+  // Ensure we don't query future (if end is in past, clamp it? No, heatmap is usually up to now)
+  const heatmapEnd = new Date();
+
+  // If the requested range already covers the heatmap window, we can reuse 'rollups'
+  // But usually requested range < 365 days, so we need a separate query
+  const heatmapRollups = await prisma.incidentMetricRollup.findMany({
+    where: {
+      date: { gte: heatmapStart, lte: heatmapEnd },
+      granularity: 'daily',
+      ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
+      ...(filters.teamId ? { teamId: filters.teamId } : {}),
+    },
+    select: {
+      date: true,
+      totalIncidents: true,
+    },
+  });
+
   // Aggregate all rollups
   let totalIncidents = 0;
   let openIncidents = 0;
@@ -1967,7 +1988,10 @@ export async function calculateSLAMetricsFromRollups(
 
     recurringTitles: [],
     eventsPerIncident: 0,
-    heatmapData: [],
+    heatmapData: heatmapRollups.map(r => ({
+      date: r.date.toISOString().split('T')[0],
+      count: r.totalIncidents,
+    })),
     serviceMetrics: [],
     insights: [],
     currentShifts: [],
