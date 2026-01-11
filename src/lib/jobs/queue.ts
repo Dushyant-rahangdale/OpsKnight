@@ -102,7 +102,6 @@ export async function scheduleAutoUnsnooze(
  * Get pending jobs that are ready to execute
  */
 export async function getPendingJobs(limit: number = 50): Promise<any[]> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
   const now = new Date();
 
   return prisma.backgroundJob.findMany({
@@ -124,7 +123,6 @@ export async function getPendingJobs(limit: number = 50): Promise<any[]> {
  * Uses SKIP LOCKED to avoid concurrent workers claiming the same jobs.
  */
 export async function claimPendingJobs(limit: number = 50, type?: JobType): Promise<any[]> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
   const typeFilter = type ? Prisma.sql`AND "type" = ${type}` : Prisma.empty;
   const jobs = await prisma.$queryRaw<any[]>( // eslint-disable-line @typescript-eslint/no-explicit-any
     Prisma.sql`
@@ -210,7 +208,6 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
  * Process a single job
  */
 export async function processJob(job: any): Promise<boolean> {
-  // eslint-disable-line @typescript-eslint/no-explicit-any
   try {
     if (job.status !== 'PROCESSING') {
       await markJobProcessing(job.id);
@@ -250,6 +247,14 @@ export async function processJob(job: any): Promise<boolean> {
           await markJobCompleted(job.id);
           return true;
         } else {
+          // If a notification record was created (we have an ID), mark job as completed
+          // because the notification-retry cron will handle the retries from here.
+          // We don't want to fail the job and retry, as that would create duplicate records.
+          if (notificationResult.notificationId) {
+            await markJobCompleted(job.id);
+            return true;
+          }
+
           await markJobFailed(job.id, notificationResult.error || 'Notification failed');
           return false;
         }

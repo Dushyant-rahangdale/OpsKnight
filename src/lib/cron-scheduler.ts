@@ -5,39 +5,138 @@ import { retryFailedNotifications } from './notification-retry';
 import { processAutoUnsnooze } from '@/app/(app)/incidents/snooze-actions';
 import { cleanupUserTokens } from '@/lib/user-tokens';
 import { checkSLABreaches } from './sla-breach-monitor';
+import crypto from 'crypto';
 
-// Global state to persist across HMR
-const globalForCron = global as unknown as {
-  cronState:
-    | {
-        timer: NodeJS.Timeout | null;
-        isRunning: boolean;
-        lastRunAt: Date | null;
-        lastSuccessAt: Date | null;
-        lastError: string | null;
-        nextRunAt: Date | null;
-        initialized: boolean;
-        lastRollupDate: string | null;
-      }
-    | undefined;
-};
+/**
+ * Production-Grade Cron Scheduler
+ *
+ * FEATURES:
+ * 1. DB-backed state - survives restarts, shared across workers
+ * 2. Distributed locking - only one worker runs at a time
+ * 3. Self-healing - stale locks are reclaimed after timeout
+ * 4. Dynamic scheduling - runs when needed, not on fixed interval
+ * 5. Graceful degradation - continues with defaults on DB errors
+ */
 
-const state = globalForCron.cronState || {
-  timer: null,
-  isRunning: false,
-  lastRunAt: null,
-  lastSuccessAt: null,
-  lastError: null,
-  nextRunAt: null,
-  initialized: false,
-  lastRollupDate: null,
-};
-
-if (process.env.NODE_ENV !== 'production') globalForCron.cronState = state;
-
+// Generate unique worker ID for this process instance
+const WORKER_ID = `worker-${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
+const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes - consider lock stale after this
 const MIN_DELAY_MS = 15_000;
-const MAX_DELAY_MS = 2 * 60_000; // Reduced from 5min to 2min for faster SLA breach detection
+const MAX_DELAY_MS = 2 * 60_000;
+const SINGLETON_ID = 'singleton';
 
+// Local state for timer management (not persisted)
+let timer: NodeJS.Timeout | null = null;
+let initialized = false;
+
+/**
+ * Get or create the singleton scheduler state from database
+ * Uses upsert to avoid race conditions on initial creation
+ */
+async function getState() {
+  const { default: prisma } = await import('./prisma');
+
+  // Use upsert to handle race conditions when creating the singleton
+  const state = await prisma.cronSchedulerState.upsert({
+    where: { id: SINGLETON_ID },
+    update: {}, // No updates needed, just return existing
+    create: { id: SINGLETON_ID },
+  });
+
+  return state;
+}
+
+/**
+ * Attempt to acquire distributed lock
+ * Returns true if lock acquired, false if another worker holds it
+ */
+async function acquireLock(): Promise<boolean> {
+  const { default: prisma } = await import('./prisma');
+  const now = new Date();
+
+  try {
+    // Try to acquire lock using atomic update
+    const result = await prisma.cronSchedulerState.updateMany({
+      where: {
+        id: SINGLETON_ID,
+        OR: [
+          { lockedBy: null }, // No lock
+          { lockedBy: WORKER_ID }, // We already have it
+          { lockedAt: { lt: new Date(now.getTime() - LOCK_TIMEOUT_MS) } }, // Stale lock
+        ],
+      },
+      data: {
+        lockedBy: WORKER_ID,
+        lockedAt: now,
+      },
+    });
+
+    if (result.count > 0) {
+      logger.debug('[Cron] Lock acquired', { workerId: WORKER_ID });
+      return true;
+    }
+
+    // Lock held by another worker
+    const state = await getState();
+    logger.debug('[Cron] Lock held by another worker', {
+      holder: state.lockedBy,
+      since: state.lockedAt?.toISOString(),
+    });
+    return false;
+  } catch (error) {
+    logger.error('[Cron] Failed to acquire lock', { error });
+    return false;
+  }
+}
+
+/**
+ * Release the distributed lock
+ */
+async function releaseLock(): Promise<void> {
+  const { default: prisma } = await import('./prisma');
+
+  try {
+    await prisma.cronSchedulerState.updateMany({
+      where: {
+        id: SINGLETON_ID,
+        lockedBy: WORKER_ID, // Only release if we hold it
+      },
+      data: {
+        lockedBy: null,
+        lockedAt: null,
+      },
+    });
+    logger.debug('[Cron] Lock released', { workerId: WORKER_ID });
+  } catch (error) {
+    logger.error('[Cron] Failed to release lock', { error });
+  }
+}
+
+/**
+ * Update scheduler state in database
+ */
+async function updateState(data: {
+  lastRunAt?: Date;
+  lastSuccessAt?: Date;
+  lastError?: string | null;
+  nextRunAt?: Date | null;
+  lastRollupDate?: string | null;
+}): Promise<void> {
+  const { default: prisma } = await import('./prisma');
+
+  try {
+    await prisma.cronSchedulerState.update({
+      where: { id: SINGLETON_ID },
+      data,
+    });
+  } catch (error) {
+    logger.error('[Cron] Failed to update state', { error });
+  }
+}
+
+/**
+ * Calculate next scheduled time based on pending work
+ */
 async function getNextScheduledTime(): Promise<Date> {
   try {
     const prisma = (await import('./prisma')).default;
@@ -51,17 +150,12 @@ async function getNextScheduledTime(): Promise<Date> {
         select: { nextEscalationAt: true },
       }),
       prisma.backgroundJob.findFirst({
-        where: {
-          status: 'PENDING',
-        },
+        where: { status: 'PENDING' },
         orderBy: { scheduledAt: 'asc' },
         select: { scheduledAt: true },
       }),
-      // Check for next potential SLA breach
       prisma.incident.findFirst({
-        where: {
-          status: { not: 'RESOLVED' },
-        },
+        where: { status: { not: 'RESOLVED' } },
         orderBy: { createdAt: 'asc' },
         select: {
           createdAt: true,
@@ -77,25 +171,25 @@ async function getNextScheduledTime(): Promise<Date> {
       }),
     ]);
 
-    const times = [
+    const times: (number | null)[] = [
       nextIncident?.nextEscalationAt ? new Date(nextIncident.nextEscalationAt).getTime() : null,
       nextJob?.scheduledAt ? new Date(nextJob.scheduledAt).getTime() : null,
     ];
 
-    // Add SLA breach check time (5 min before ack target for unacked incidents)
+    // Add SLA breach check time (5 min before ack target)
     if (
       nextSlaBreach &&
       !nextSlaBreach.acknowledgedAt &&
       nextSlaBreach.service.serviceNotifyOnSlaBreach
     ) {
       const createdAt = new Date(nextSlaBreach.createdAt).getTime();
-      const ackWarningMs = 5 * 60 * 1000; // 5 min warning threshold
+      const ackWarningMs = 5 * 60 * 1000;
       const targetAckMs = (nextSlaBreach.service.targetAckMinutes || 15) * 60 * 1000;
       const breachCheckTime = createdAt + targetAckMs - ackWarningMs;
       times.push(breachCheckTime > Date.now() ? breachCheckTime : null);
     }
 
-    const validTimes = times.filter((value): value is number => typeof value === 'number');
+    const validTimes = times.filter((v): v is number => typeof v === 'number');
 
     if (validTimes.length === 0) {
       return new Date(Date.now() + MAX_DELAY_MS);
@@ -103,67 +197,88 @@ async function getNextScheduledTime(): Promise<Date> {
 
     return new Date(Math.min(...validTimes));
   } catch (error) {
-    // Database connection error - use max delay as fallback
-    logger.error('[Cron Scheduler] Failed to query next scheduled time from database', { error });
+    logger.error('[Cron] Failed to query next scheduled time', { error });
     return new Date(Date.now() + MAX_DELAY_MS);
   }
 }
 
+/**
+ * Schedule the next cron run
+ */
 function scheduleNextRun(targetTime: Date) {
   const now = Date.now();
   const rawDelay = targetTime.getTime() - now;
   const delay = Math.min(Math.max(rawDelay, MIN_DELAY_MS), MAX_DELAY_MS);
-  state.nextRunAt = new Date(now + delay);
+  const nextRunAt = new Date(now + delay);
 
-  if (state.timer) {
-    clearTimeout(state.timer);
+  if (timer) {
+    clearTimeout(timer);
   }
 
-  state.timer = setTimeout(runOnce, delay);
+  timer = setTimeout(runOnce, delay);
+
+  // Update DB with next run time (fire and forget)
+  updateState({ nextRunAt }).catch(() => {});
+
+  logger.debug('[Cron] Next run scheduled', {
+    nextRunAt: nextRunAt.toISOString(),
+    delayMs: delay,
+  });
 }
 
+/**
+ * Execute one cron cycle
+ */
 async function runOnce() {
-  if (state.isRunning) {
+  // Try to acquire lock
+  const hasLock = await acquireLock();
+  if (!hasLock) {
+    // Another worker is running, schedule retry
+    scheduleNextRun(new Date(Date.now() + MIN_DELAY_MS));
     return;
   }
 
-  state.isRunning = true;
   const startTime = Date.now();
-  state.lastRunAt = new Date();
-  logger.info('Cron worker tick started', { timestamp: state.lastRunAt.toISOString() });
+  await updateState({ lastRunAt: new Date() });
+
+  logger.info('[Cron] Worker tick started', {
+    workerId: WORKER_ID,
+    timestamp: new Date().toISOString(),
+  });
 
   try {
+    // Process all scheduled tasks
     const escalationResult = await processPendingEscalations();
-    logger.info('Escalations processed', {
+    logger.info('[Cron] Escalations processed', {
       processed: escalationResult.processed,
       total: escalationResult.total,
       errors: escalationResult.errors,
     });
 
     const jobResult = await processPendingJobs(50);
-    logger.info('Background jobs processed', {
+    logger.info('[Cron] Background jobs processed', {
       processed: jobResult.processed,
       failed: jobResult.failed,
       total: jobResult.total,
     });
 
     const retryResult = await retryFailedNotifications();
-    logger.info('Notification retries processed', retryResult);
+    logger.info('[Cron] Notification retries processed', retryResult);
 
     const autoUnsnoozeResult = await processAutoUnsnooze();
-    logger.info('Auto-unsnooze processed', autoUnsnoozeResult);
+    logger.info('[Cron] Auto-unsnooze processed', autoUnsnoozeResult);
 
     const tokenCleanup = await cleanupUserTokens();
-    logger.info('User tokens cleaned up', tokenCleanup);
+    logger.info('[Cron] User tokens cleaned up', tokenCleanup);
 
-    // SLA Breach Monitoring (runs every cycle)
     const breachResult = await checkSLABreaches();
-    logger.info('SLA breaches checked', {
+    logger.info('[Cron] SLA breaches checked', {
       activeIncidents: breachResult.activeIncidentCount,
       warnings: breachResult.warningCount,
     });
 
-    // Metric Rollup Generation (runs once daily at/after 1 AM UTC)
+    // Daily rollup generation (once per day at/after 1 AM UTC)
+    const state = await getState();
     const now = new Date();
     const todayKey = now.toISOString().split('T')[0];
     const isNewDay = !state.lastRollupDate || state.lastRollupDate !== todayKey;
@@ -178,90 +293,118 @@ async function runOnce() {
         const { generateAllDailyRollups } = await import('./metric-rollup');
         await generateAllDailyRollups(yesterday);
 
-        state.lastRollupDate = todayKey;
-        logger.info('Daily metric rollups generated', {
+        await updateState({ lastRollupDate: todayKey });
+        logger.info('[Cron] Daily metric rollups generated', {
           date: yesterday.toISOString().split('T')[0],
           nextRun: 'tomorrow at 1 AM UTC',
         });
       } catch (error) {
-        logger.error('Failed to generate daily rollups', {
+        logger.error('[Cron] Failed to generate daily rollups', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
-        // Don't set lastRollupDate so it will retry next cycle
+        // Don't update lastRollupDate so it retries next cycle
       }
     }
 
     const duration = Date.now() - startTime;
-    state.lastSuccessAt = new Date();
-    state.lastError = null;
-    logger.info('Cron worker tick completed', { durationMs: duration });
+    await updateState({
+      lastSuccessAt: new Date(),
+      lastError: null,
+    });
+
+    logger.info('[Cron] Worker tick completed', {
+      workerId: WORKER_ID,
+      durationMs: duration,
+    });
   } catch (error) {
-    state.lastError = error instanceof Error ? error.message : String(error);
-    logger.error('Cron worker tick failed', {
-      error: state.lastError,
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await updateState({ lastError: errorMsg });
+    logger.error('[Cron] Worker tick failed', {
+      workerId: WORKER_ID,
+      error: errorMsg,
       stack: error instanceof Error ? error.stack : undefined,
     });
   } finally {
-    state.isRunning = false;
+    // Release lock and schedule next run
+    await releaseLock();
+
     try {
       const nextTime = await getNextScheduledTime();
       scheduleNextRun(nextTime);
     } catch (error) {
-      state.lastError = error instanceof Error ? error.message : String(error);
-      logger.error('Failed to schedule next cron tick', { error: state.lastError });
+      logger.error('[Cron] Failed to schedule next tick, retrying in MAX_DELAY', { error });
+      scheduleNextRun(new Date(Date.now() + MAX_DELAY_MS));
     }
   }
 }
 
 /**
- * Start the internal cron scheduler
- * Runs escalation and job processing every 2 minutes
+ * Start the cron scheduler
  */
 export function startCronScheduler() {
-  if (state.initialized) {
-    return; // Already initialized, silent return
-  }
-
-  // Run by default (including development) unless explicitly disabled
-  // Now that we have singleton protection, it's safe to run in dev
-  const enableInternalCron = process.env.ENABLE_INTERNAL_CRON !== 'false';
-
-  if (!enableInternalCron) {
-    logger.info('Internal cron scheduler disabled (set ENABLE_INTERNAL_CRON=true to enable)');
-    state.initialized = true; // Mark as initialized so we don't log again
+  if (initialized) {
+    logger.debug('[Cron] Already initialized, skipping');
     return;
   }
 
-  state.initialized = true;
-  scheduleNextRun(new Date());
-  logger.info('Internal cron scheduler started (dynamic schedule)');
-}
-
-/**
- * Stop the internal cron scheduler
- */
-/**
- * Stop the internal cron scheduler
- */
-export function stopCronScheduler() {
-  if (state.timer) {
-    clearTimeout(state.timer);
-    state.timer = null;
-    state.nextRunAt = null;
-    state.lastError = null;
-    state.isRunning = false;
-    logger.info('Internal cron scheduler stopped');
+  const enableInternalCron = process.env.ENABLE_INTERNAL_CRON !== 'false';
+  if (!enableInternalCron) {
+    logger.info('[Cron] Scheduler disabled via ENABLE_INTERNAL_CRON=false');
+    initialized = true;
+    return;
   }
+
+  initialized = true;
+  logger.info('[Cron] Starting scheduler', { workerId: WORKER_ID });
+
+  // Schedule first run immediately
+  scheduleNextRun(new Date());
 }
 
-export function getCronSchedulerStatus() {
-  return {
-    running: !!state.timer,
-    lastRunAt: state.lastRunAt,
-    lastSuccessAt: state.lastSuccessAt,
-    lastError: state.lastError,
-    nextRunAt: state.nextRunAt,
-    schedule: 'dynamic',
-  };
+/**
+ * Stop the cron scheduler
+ */
+export async function stopCronScheduler() {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+
+  await releaseLock();
+  initialized = false; // Allow restart
+
+  logger.info('[Cron] Scheduler stopped', { workerId: WORKER_ID });
+}
+
+/**
+ * Get current scheduler status
+ */
+export async function getCronSchedulerStatus() {
+  try {
+    const state = await getState();
+    return {
+      running: !!timer,
+      workerId: WORKER_ID,
+      lastRunAt: state.lastRunAt,
+      lastSuccessAt: state.lastSuccessAt,
+      lastError: state.lastError,
+      nextRunAt: state.nextRunAt,
+      lockedBy: state.lockedBy,
+      lockedAt: state.lockedAt,
+      schedule: 'dynamic',
+    };
+  } catch (error) {
+    return {
+      running: !!timer,
+      workerId: WORKER_ID,
+      lastRunAt: null,
+      lastSuccessAt: null,
+      lastError: 'Failed to read state from database',
+      nextRunAt: null,
+      lockedBy: null,
+      lockedAt: null,
+      schedule: 'dynamic',
+    };
+  }
 }

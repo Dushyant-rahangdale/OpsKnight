@@ -117,19 +117,32 @@ export async function checkSLABreaches(
 
       // Warning: within threshold but not yet breached
       if (ackRemainingMs > 0 && ackRemainingMs < ackWarningThreshold) {
-        warnings.push({
-          incidentId: incident.id,
-          title: incident.title,
-          serviceId: incident.service.id,
-          serviceName: incident.service.name,
-          breachType: 'ack',
-          timeRemainingMs: ackRemainingMs,
-          targetMinutes: ackTargetMinutes,
-          urgency: incident.urgency,
-          status: incident.status,
-          assigneeName: incident.assignee?.name,
-          createdAt: incident.createdAt,
+        // Check if we already warned about this recently
+        const recentWarning = await prisma.incidentEvent.findFirst({
+          where: {
+            incidentId: incident.id,
+            message: { startsWith: '⏰ SLA ACK Warning' },
+            createdAt: {
+              gte: new Date(now.getTime() - ackWarningThreshold),
+            },
+          },
         });
+
+        if (!recentWarning) {
+          warnings.push({
+            incidentId: incident.id,
+            title: incident.title,
+            serviceId: incident.service.id,
+            serviceName: incident.service.name,
+            breachType: 'ack',
+            timeRemainingMs: ackRemainingMs,
+            targetMinutes: ackTargetMinutes,
+            urgency: incident.urgency,
+            status: incident.status,
+            assigneeName: incident.assignee?.name,
+            createdAt: incident.createdAt,
+          });
+        }
       }
     }
 
@@ -138,19 +151,32 @@ export async function checkSLABreaches(
 
     // Warning: within threshold but not yet breached
     if (resolveRemainingMs > 0 && resolveRemainingMs < resolveWarningThreshold) {
-      warnings.push({
-        incidentId: incident.id,
-        title: incident.title,
-        serviceId: incident.service.id,
-        serviceName: incident.service.name,
-        breachType: 'resolve',
-        timeRemainingMs: resolveRemainingMs,
-        targetMinutes: resolveTargetMinutes,
-        urgency: incident.urgency,
-        status: incident.status,
-        assigneeName: incident.assignee?.name,
-        createdAt: incident.createdAt,
+      // Check if we already warned about this recently
+      const recentWarning = await prisma.incidentEvent.findFirst({
+        where: {
+          incidentId: incident.id,
+          message: { startsWith: '⚠️ SLA RESOLVE Warning' },
+          createdAt: {
+            gte: new Date(now.getTime() - resolveWarningThreshold),
+          },
+        },
       });
+
+      if (!recentWarning) {
+        warnings.push({
+          incidentId: incident.id,
+          title: incident.title,
+          serviceId: incident.service.id,
+          serviceName: incident.service.name,
+          breachType: 'resolve',
+          timeRemainingMs: resolveRemainingMs,
+          targetMinutes: resolveTargetMinutes,
+          urgency: incident.urgency,
+          status: incident.status,
+          assigneeName: incident.assignee?.name,
+          createdAt: incident.createdAt,
+        });
+      }
     }
   }
 

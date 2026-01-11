@@ -62,7 +62,7 @@ function isPublicPath(pathname: string) {
 
   // Public static assets in /public folder (images, etc)
   // Only allow specific extensions to avoid leaking pages as static files
-  return /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+  return /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
 }
 
 function normalizeHostname(value?: string | null) {
@@ -141,6 +141,7 @@ function getSecurityHeaders(): Record<string, string> {
       "font-src 'self' data: https://fonts.gstatic.com", // Allow Google Fonts
       "connect-src 'self'",
       "frame-ancestors 'none'",
+      "manifest-src 'self'",
     ].join('; '),
     // HSTS (only in production with HTTPS)
     ...(isProduction && {
@@ -180,7 +181,7 @@ export default async function middleware(req: NextRequest) {
     !pathname.startsWith('/setup') &&
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/favicon') &&
-    !/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+    !/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
 
   if (shouldRedirectToMobile) {
     const mobileUrl = req.nextUrl.clone();
@@ -297,7 +298,7 @@ export default async function middleware(req: NextRequest) {
     pathname.startsWith('/status') ||
     pathname.startsWith('/logs') ||
     isPublicPath(pathname) ||
-    /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot)$/i.test(pathname);
+    /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
 
   if (!skipDomainCheck) {
     const statusConfig = await fetchStatusDomainConfig(req.nextUrl.origin);

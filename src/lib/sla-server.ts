@@ -230,7 +230,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   // Check if we should use rollup data for this historical query
   // This dramatically improves performance for queries beyond the real-time window
-  const useRollups = await shouldUseRollups(finalStart);
+  // FIX: Disable rollups if using filters not supported by the rollup schema (urgency, assignee, status)
+  // NOTE: Priority IS now supported in rollups (p1-p5 fields)
+  const hasIncompatibleFilters = filters.urgency || filters.assigneeId || filters.status;
+  const useRollups = !hasIncompatibleFilters && (await shouldUseRollups(finalStart));
   if (useRollups) {
     // For historical queries, use pre-aggregated rollups
     logger.info('[SLA] Using rollup data for historical query', {
@@ -247,6 +250,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     const rollupMetrics = await calculateSLAMetricsFromRollups(finalStart, finalEnd, {
       serviceId: serviceIdFilter,
       teamId: teamIdFilter,
+      priority: filters.priority,
     });
 
     // Return metrics from rollups
@@ -1789,7 +1793,7 @@ export function getExternalStatusLabel(dynamicStatus: string): string {
 export async function calculateSLAMetricsFromRollups(
   start: Date,
   end: Date,
-  filters: { serviceId?: string | null; teamId?: string | null } = {}
+  filters: { serviceId?: string | null; teamId?: string | null; priority?: string | string[] } = {}
 ): Promise<SLAMetrics & { dataSource: 'rollup' }> {
   const { default: prisma } = await import('./prisma');
 
@@ -1797,6 +1801,13 @@ export async function calculateSLAMetricsFromRollups(
   const retentionPolicy = await getRetentionPolicy();
   const requestedStart = start; // Simplified
   const requestedEnd = end;
+
+  // Normalize priority filter to array
+  const priorityFilter = filters.priority
+    ? Array.isArray(filters.priority)
+      ? filters.priority.map(p => p.toUpperCase())
+      : [filters.priority.toUpperCase()]
+    : null;
 
   const rollups = await prisma.incidentMetricRollup.findMany({
     where: {
@@ -1845,9 +1856,32 @@ export async function calculateSLAMetricsFromRollups(
   let reopenCount = 0;
   let autoResolveCount = 0;
   let afterHoursCount = 0;
+  let highUrgencyIncidents = 0;
+  let mediumUrgencyIncidents = 0;
+  let lowUrgencyIncidents = 0;
 
   for (const rollup of rollups) {
-    totalIncidents += rollup.totalIncidents;
+    // If priority filter is set, use p1-p5 fields; otherwise use totalIncidents
+    let incidentsToAdd = rollup.totalIncidents;
+    if (priorityFilter) {
+      incidentsToAdd = 0;
+      if (priorityFilter.includes('P1') || priorityFilter.includes('1')) {
+        incidentsToAdd += rollup.p1Incidents;
+      }
+      if (priorityFilter.includes('P2') || priorityFilter.includes('2')) {
+        incidentsToAdd += rollup.p2Incidents;
+      }
+      if (priorityFilter.includes('P3') || priorityFilter.includes('3')) {
+        incidentsToAdd += rollup.p3Incidents;
+      }
+      if (priorityFilter.includes('P4') || priorityFilter.includes('4')) {
+        incidentsToAdd += rollup.p4Incidents;
+      }
+      if (priorityFilter.includes('P5') || priorityFilter.includes('5')) {
+        incidentsToAdd += rollup.p5Incidents;
+      }
+    }
+    totalIncidents += incidentsToAdd;
     openIncidents += rollup.openIncidents;
     acknowledgedIncidents += rollup.acknowledgedIncidents;
     resolvedIncidents += rollup.resolvedIncidents;
@@ -1863,6 +1897,9 @@ export async function calculateSLAMetricsFromRollups(
     reopenCount += rollup.reopenCount;
     autoResolveCount += rollup.autoResolveCount;
     afterHoursCount += rollup.afterHoursCount;
+    highUrgencyIncidents += rollup.highUrgencyIncidents;
+    mediumUrgencyIncidents += rollup.mediumUrgencyIncidents;
+    lowUrgencyIncidents += rollup.lowUrgencyIncidents;
   }
 
   // Calculate averages (convert from ms to minutes)
@@ -1911,9 +1948,9 @@ export async function calculateSLAMetricsFromRollups(
     acknowledgedCount: acknowledgedIncidents,
     resolved24h: 0, // Not available in rollups
     unassignedActive: 0, // Not available
-    highUrgencyCount: 0, // Not available
-    mediumUrgencyCount: 0, // Not available
-    lowUrgencyCount: 0, // Not available
+    highUrgencyCount: highUrgencyIncidents,
+    mediumUrgencyCount: mediumUrgencyIncidents,
+    lowUrgencyCount: lowUrgencyIncidents,
     alertsCount: 0, // Not available
     snoozedCount: 0, // Not available
     suppressedCount: 0, // Not available
