@@ -50,15 +50,107 @@ export default function LoginAnimation() {
     return () => clearInterval(interval);
   }, []);
 
+  // Parallax Effect State
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Calculate normalized position (-1 to 1)
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = (e.clientY / window.innerHeight) * 2 - 1;
+      setMousePos({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   if (!mounted) return null;
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden">
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden cursor-crosshair select-none">
+      {/* 1. Deep Space Grid Background with Parallax */}
+      <div
+        className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_100%)] transition-transform duration-100 ease-out"
+        style={{ transform: `translate(${mousePos.x * 20}px, ${mousePos.y * 20}px)` }}
+      />
+
+      {/* 2. HUD Corners - Filling the Void */}
+      {/* Top Left: System ID */}
+      <div className="absolute top-12 left-12 flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 bg-cyan-500 animate-pulse" />
+          <span className="text-[10px] font-mono font-bold text-cyan-400 tracking-widest">
+            SENTINEL_CORE_V4
+          </span>
+        </div>
+        <div className="h-[1px] w-24 bg-cyan-500/30" />
+        <span className="text-[9px] text-cyan-500/50 font-mono">LIVE_TELEMETRY_STREAM</span>
+      </div>
+
+      {/* Top Right: Uptime / Clock */}
+      <div className="absolute top-12 right-12 text-right">
+        <span className="block text-[10px] font-mono text-cyan-500/70 tracking-widest">UPTIME</span>
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-xl font-mono text-cyan-400 font-bold tracking-widest leading-none">
+            99.99%
+          </span>
+        </div>
+        <div className="flex gap-1 justify-end mt-1">
+          <span className="h-1 w-1 bg-cyan-500/50" />
+          <span className="h-1 w-1 bg-cyan-500/50" />
+          <span className="h-1 w-1 bg-cyan-500/50" />
+        </div>
+      </div>
+
+      {/* Bottom Left: Coordinates */}
+      <div className="absolute bottom-12 left-12 font-mono text-[9px] text-cyan-500/40 space-y-1">
+        <div className="flex gap-4">
+          <span>LAT: 34.0522 N</span>
+          <span>LNG: 118.2437 W</span>
+        </div>
+        <div className="flex gap-2 items-center">
+          <span>NODE: US-WEST-1</span>
+          <span className="animate-pulse text-emerald-500">● ONLINE</span>
+        </div>
+      </div>
+
+      {/* Bottom Right: Network Traffic */}
+      <div className="absolute bottom-12 right-12 text-right">
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[9px] font-mono text-cyan-500/60 uppercase tracking-widest">
+            Net Throughput
+          </span>
+          <div className="flex items-end gap-[2px] h-8">
+            {[4, 6, 3, 7, 5, 8, 4, 6, 3].map((h, i) => (
+              <div
+                key={i}
+                className="w-1 bg-cyan-500/40 animate-pulse"
+                style={{ height: `${h * 10}%`, animationDelay: `${i * 0.1}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,transparent_70%)]" />
 
+      {/* Background Terminal: Ping Simulation (Locked to Center) */}
+      <div
+        className="absolute flex items-center justify-center z-0 pointer-events-none transition-transform duration-75 ease-out"
+        style={{ transform: `translate(${mousePos.x * -10}px, ${mousePos.y * -10}px)` }}
+      >
+        <div className="w-[600px] h-[400px] opacity-100 mask-image-[radial-gradient(circle,black_40%,transparent_100%)]">
+          <TerminalPing />
+        </div>
+      </div>
+
       {/* Central Connectivity Mesh */}
-      <div className="relative h-[400px] w-[400px] flex items-center justify-center">
+      <div
+        className="relative h-[400px] w-[400px] flex items-center justify-center z-10 transition-transform duration-300 ease-out"
+        style={{ transform: `translate(${mousePos.x * 5}px, ${mousePos.y * 5}px)` }}
+      >
         {/* Rotating Hexagon Field */}
         <div className="absolute inset-0 animate-[spin_60s_linear_infinite] opacity-20">
           <svg viewBox="0 0 400 400" className="h-full w-full">
@@ -69,6 +161,14 @@ export default function LoginAnimation() {
               className="fill-none stroke-cyan-500/30 stroke-dashed"
             />
             <circle cx="200" cy="200" r="190" className="fill-none stroke-cyan-500/10" />
+
+            {/* Added Extra Rings for Density */}
+            <circle
+              cx="200"
+              cy="200"
+              r="240"
+              className="fill-none stroke-cyan-500/5 stroke-dotted"
+            />
           </svg>
         </div>
 
@@ -92,19 +192,23 @@ export default function LoginAnimation() {
         ))}
       </div>
 
-      {/* Terminal Status */}
-      <div className="absolute bottom-12 left-0 right-0 flex justify-center">
-        <div className="glass-panel px-4 py-2 rounded-full border border-white/10 bg-black/20 backdrop-blur-md flex items-center gap-3">
+      {/* Terminal Status - Status Badge */}
+      <div className="absolute bottom-24 lg:bottom-12 left-0 right-0 flex justify-center z-20">
+        <div className="glass-panel px-4 py-2 rounded-full border border-white/10 bg-black/40 backdrop-blur-md flex items-center gap-3 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div
             className={`h-2 w-2 rounded-full ${activeIncident !== null ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}
           />
-          <span className="text-[10px] font-mono tracking-widest text-white/80 uppercase">
+          <span className="text-[10px] font-mono tracking-widest text-white/90 uppercase">
             {activeIncident !== null
               ? `INCIDENT DETECTED: ${nodes[activeIncident].label}`
               : 'SYSTEM SECURE • MONITORING ACTIVE'}
           </span>
         </div>
       </div>
+
+      {/* CRT Scanline Overlay */}
+      <div className="absolute inset-0 z-50 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[size:100%_2px,3px_100%] opacity-20" />
+      <div className="absolute inset-0 z-50 pointer-events-none bg-[radial-gradient(circle,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
     </div>
   );
 }
@@ -163,5 +267,56 @@ function ServiceNode({ label, angle, status, radius, isTarget, isFixing }: any) 
         </div>
       </div>
     </>
+  );
+}
+
+function TerminalPing() {
+  const [lines, setLines] = useState<string[]>([]);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Initial header simulating real terminal startup
+    setLines([
+      'root@ops-sentinal:~# ping -c 999 opssentinal.com',
+      'PING opssentinal.com (104.21.55.2) 56(84) bytes of data.',
+    ]);
+
+    let seq = 1;
+    const interval = setInterval(() => {
+      setLines(prev => {
+        const newLines = [...prev];
+        // Keep max 15 lines to stay within view but allow scrolling feel
+        if (newLines.length > 15) newLines.shift();
+
+        const time = (12 + Math.random() * 8).toFixed(1);
+        newLines.push(`64 bytes from 104.21.55.2: icmp_seq=${seq} ttl=58 time=${time} ms`);
+        seq++;
+        return newLines;
+      });
+    }, 1000); // Standard ping interval is 1s
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [lines]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex flex-col justify-center items-center h-full w-full font-mono text-xs leading-relaxed text-emerald-500/90 overflow-hidden text-center"
+      style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
+    >
+      {lines.map((line, i) => (
+        <div key={i} className="whitespace-nowrap">
+          {line}
+        </div>
+      ))}
+      <div className="animate-pulse bg-emerald-500 h-4 w-2.5 mt-1" />
+    </div>
   );
 }
