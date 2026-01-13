@@ -231,10 +231,12 @@ export default function Sidebar(
         title={isDesktopCollapsed ? item.label : undefined}
         className={cn(
           'group relative flex items-center rounded-xl text-sm font-medium',
-          'transition-colors duration-150 motion-reduce:transition-none',
+          'transition-all duration-200 ease-out motion-reduce:transition-none',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground/0',
-          'text-white/85 hover:text-white hover:bg-white/10',
-          active && 'bg-white/15 text-white ring-1 ring-white/10',
+          'text-white/85 hover:text-white hover:bg-white/12 hover:shadow-[0_0_12px_rgba(255,255,255,0.05)]',
+          'hover:translate-x-0.5',
+          active &&
+            'bg-white/15 text-white ring-1 ring-white/10 shadow-[0_0_15px_rgba(255,255,255,0.08)]',
           active &&
             'after:absolute after:left-0 after:top-2 after:bottom-2 after:w-[3px] after:rounded-r-full after:bg-white/70',
           isDesktopCollapsed ? 'h-11 w-11 justify-center px-0' : 'px-3 py-2.5 gap-3'
@@ -243,6 +245,7 @@ export default function Sidebar(
         <span
           className={cn(
             'shrink-0 flex items-center justify-center opacity-85 group-hover:opacity-100',
+            'transition-transform duration-200 group-hover:scale-110',
             '[&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0'
           )}
         >
