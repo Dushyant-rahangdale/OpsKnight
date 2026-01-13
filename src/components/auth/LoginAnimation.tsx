@@ -110,6 +110,22 @@ export default function LoginAnimation() {
         style={{ transform: `translate(${mousePos.x * 20}px, ${mousePos.y * 20}px)` }}
       />
 
+      {/* Floating Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-cyan-500/30 animate-[float-particle_15s_ease-in-out_infinite]"
+            style={{
+              left: `${(i * 5) % 100}%`,
+              top: `${(i * 7 + 20) % 100}%`,
+              animationDelay: `${i * 0.7}s`,
+              animationDuration: `${12 + (i % 8)}s`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* 2. HUD Corners - Filling the Void */}
       {/* Top Left: System ID */}
       <div className="absolute top-12 left-12 flex flex-col gap-1">
