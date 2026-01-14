@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 type Props = {
   callbackUrl: string;
@@ -33,7 +32,6 @@ export default function MobileLoginClient({
   ssoProviderType,
   ssoProviderLabel,
 }: Props) {
-  const router = useRouter();
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,7 +124,8 @@ export default function MobileLoginClient({
         setPassword('');
         passwordInputRef.current?.focus();
       } else if (result?.ok) {
-        router.push(result?.url || safeCallbackUrl);
+        // Use hard navigation to ensure session is properly picked up
+        window.location.href = result?.url || safeCallbackUrl;
       }
     } catch {
       setError('An unexpected error occurred.');

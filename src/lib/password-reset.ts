@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-
+import { logger } from '@/lib/logger';
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_ATTEMPTS_PER_WINDOW = 5;
 
@@ -34,8 +34,10 @@ export async function initiatePasswordReset(
     // 3. Timing Mitigation & User Validation
     if (!user || user.status === 'DISABLED') {
       await simulateWork(startTime);
-      // Log attempt lightly
-      console.log('Password reset requested for non-existent or disabled user', normalizedEmail);
+      // Log attempt without PII (no email in logs)
+      logger.debug('[PasswordReset] Request for unknown/disabled user', {
+        component: 'password-reset',
+      });
       return {
         success: true,
         message:
@@ -67,38 +69,65 @@ export async function initiatePasswordReset(
       },
     });
 
-    // 5. Send Email (Simplified - no dynamic providers for now to fix crash)
-    // We assume there is a basic email sender or just log it for now if providers are broken
-    // But the user said "pull back logic from old commit".
-    // The old commit used `import { sendEmail } from '@/lib/email'` dynamically?
-    // Let's rely on standard log/action.
-    // To be safe and FIX the crash, I will use a very basic implementation.
+    // 5. Send notification - try email first, fallback to SMS
+    const { getEmailConfig, getSMSConfig } = await import('./notification-providers');
+    const { getAppUrl } = await import('@/lib/app-url');
+    const appUrl = await getAppUrl();
+    const resetLink = `${appUrl}/reset-password?token=${token}`;
 
-    // Attempting to send using standard email lib if available
-    try {
-      // Dynamic import to avoid circular dependency if that was the issue
-      const { sendEmail } = await import('@/lib/email');
-      const { getPasswordResetEmailTemplate } = await import('@/lib/password-reset-email-template');
-      const { getAppUrl } = await import('@/lib/app-url');
+    let notificationSent = false;
 
-      const appUrl = await getAppUrl();
-      const resetLink = `${appUrl}/reset-password?token=${token}`;
+    // Try email first
+    const emailConfig = await getEmailConfig();
+    if (emailConfig?.enabled) {
+      try {
+        const { sendEmail } = await import('@/lib/email');
+        const { getPasswordResetEmailTemplate } =
+          await import('@/lib/password-reset-email-template');
 
-      const emailTemplate = getPasswordResetEmailTemplate({
-        userName: user.name || 'User',
-        resetLink,
-        expiryMinutes: 60,
+        const emailTemplate = getPasswordResetEmailTemplate({
+          userName: user.name || 'User',
+          resetLink,
+          expiryMinutes: 60,
+        });
+
+        await sendEmail({
+          to: user.email,
+          subject: emailTemplate.subject,
+          text: emailTemplate.text,
+          html: emailTemplate.html,
+        });
+        notificationSent = true;
+      } catch (e) {
+        logger.warn('[PasswordReset] Email sending failed, will try SMS fallback', {
+          component: 'password-reset',
+        });
+      }
+    }
+
+    // Fallback to SMS if email failed/disabled and user has SMS enabled
+    if (!notificationSent && user.phoneNumber && user.smsNotificationsEnabled) {
+      const smsConfig = await getSMSConfig();
+      if (smsConfig?.enabled) {
+        try {
+          const { sendSMS } = await import('@/lib/sms');
+          await sendSMS({
+            to: user.phoneNumber,
+            message: `Reset your password: ${resetLink}`,
+          });
+          notificationSent = true;
+        } catch (e) {
+          logger.warn('[PasswordReset] SMS sending failed', {
+            component: 'password-reset',
+          });
+        }
+      }
+    }
+
+    if (!notificationSent) {
+      logger.warn('[PasswordReset] No notification channel available', {
+        component: 'password-reset',
       });
-
-      await sendEmail({
-        to: user.email,
-        subject: emailTemplate.subject,
-        text: emailTemplate.text,
-        html: emailTemplate.html,
-      });
-    } catch (e) {
-      console.error('Failed to send email in legacy fallback mode', e);
-      // Do not crash
     }
 
     await logAttempt(normalizedEmail, 'PASSWORD_RESET_INITIATED', ipAddress, user.id);
