@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import Spinner from '@/components/ui/Spinner';
 import SsoButton from '@/components/auth/SsoButton';
@@ -39,7 +38,6 @@ export default function LoginClient({
   ssoProviderType,
   ssoProviderLabel,
 }: Props) {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -103,7 +101,8 @@ export default function LoginClient({
         setIsSubmitting(false);
         setIsSuccess(true);
         setTimeout(() => {
-          router.push(result?.url || callbackUrl);
+          // Use hard navigation to ensure session is properly picked up
+          window.location.href = result?.url || callbackUrl;
         }, 1200);
       }
     } catch {
