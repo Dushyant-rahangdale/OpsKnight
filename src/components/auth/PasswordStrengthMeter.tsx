@@ -1,6 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
+import {
+  calculatePasswordStrength,
+  getPasswordRequirements,
+  isPasswordStrong as checkPasswordStrong,
+  type PasswordStrengthResult,
+  type PasswordRequirement,
+} from '@/lib/password-strength';
 
 interface PasswordStrengthMeterProps {
   password: string;
@@ -8,132 +15,27 @@ interface PasswordStrengthMeterProps {
   minLength?: number;
 }
 
-interface StrengthResult {
-  score: number;
-  label: 'weak' | 'fair' | 'good' | 'strong' | 'very-strong';
-  color: string;
-  bgColor: string;
-  percentage: number;
-}
-
-interface Requirement {
-  label: string;
-  met: boolean;
-}
-
-function calculateStrength(password: string, minLength: number): StrengthResult {
-  if (!password) {
-    return {
-      score: 0,
-      label: 'weak',
-      color: 'text-slate-400',
-      bgColor: 'bg-slate-200',
-      percentage: 0,
-    };
-  }
-
-  let score = 0;
-
-  // Length scoring
-  if (password.length >= minLength) score += 1;
-  if (password.length >= minLength + 2) score += 1;
-  if (password.length >= minLength + 5) score += 1;
-
-  // Character diversity
-  if (/[a-z]/.test(password)) score += 1;
-  if (/[A-Z]/.test(password)) score += 1;
-  if (/[0-9]/.test(password)) score += 1;
-  if (/[^a-zA-Z0-9]/.test(password)) score += 1;
-
-  // Patterns (negative scoring)
-  if (/(.)\1{2,}/.test(password)) score -= 1; // Repeated characters
-  if (/^[a-z]+$/.test(password)) score -= 1; // Only lowercase
-  if (/^[0-9]+$/.test(password)) score -= 1; // Only numbers
-
-  // Normalize score 0-10
-  score = Math.max(0, Math.min(10, score));
-
-  if (score <= 2) {
-    return {
-      score,
-      label: 'weak',
-      color: 'text-red-600',
-      bgColor: 'bg-red-500',
-      percentage: 20,
-    };
-  }
-  if (score <= 4) {
-    return {
-      score,
-      label: 'fair',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-500',
-      percentage: 40,
-    };
-  }
-  if (score <= 6) {
-    return {
-      score,
-      label: 'good',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-500',
-      percentage: 60,
-    };
-  }
-  if (score <= 8) {
-    return {
-      score,
-      label: 'strong',
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-500',
-      percentage: 80,
-    };
-  }
-  return {
-    score,
-    label: 'very-strong',
-    color: 'text-emerald-700',
-    bgColor: 'bg-emerald-600',
-    percentage: 100,
-  };
-}
-
-function getRequirements(password: string, minLength: number): Requirement[] {
-  return [
-    {
-      label: `At least ${minLength} characters`,
-      met: password.length >= minLength,
-    },
-    {
-      label: 'Contains uppercase letter',
-      met: /[A-Z]/.test(password),
-    },
-    {
-      label: 'Contains lowercase letter',
-      met: /[a-z]/.test(password),
-    },
-    {
-      label: 'Contains number',
-      met: /[0-9]/.test(password),
-    },
-    {
-      label: 'Contains special character',
-      met: /[^a-zA-Z0-9]/.test(password),
-    },
-  ];
-}
-
 export default function PasswordStrengthMeter({
   password,
   showRequirements = true,
-  minLength = 10,
+  minLength = 8,
 }: PasswordStrengthMeterProps) {
-  const strength = useMemo(() => calculateStrength(password, minLength), [password, minLength]);
-  const requirements = useMemo(() => getRequirements(password, minLength), [password, minLength]);
+  const strength = useMemo(() => calculatePasswordStrength(password), [password]);
+  const requirements = useMemo(() => getPasswordRequirements(password), [password]);
 
   if (!password) {
     return null;
   }
+
+  // Map textColor to bgColor for progress bar
+  const getBgColor = (textColor: string): string => {
+    if (textColor.includes('rose')) return 'bg-rose-500';
+    if (textColor.includes('amber')) return 'bg-amber-500';
+    if (textColor.includes('yellow')) return 'bg-yellow-500';
+    if (textColor.includes('emerald')) return 'bg-emerald-500';
+    if (textColor.includes('cyan')) return 'bg-cyan-500';
+    return 'bg-slate-400';
+  };
 
   return (
     <div className="space-y-2">
@@ -141,13 +43,11 @@ export default function PasswordStrengthMeter({
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium text-slate-600">Password strength</span>
-          <span className={`font-semibold capitalize ${strength.color}`}>
-            {strength.label.replace('-', ' ')}
-          </span>
+          <span className={`font-semibold capitalize ${strength.textColor}`}>{strength.label}</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
           <div
-            className={`h-full transition-all duration-300 ${strength.bgColor}`}
+            className={`h-full transition-all duration-300 ${getBgColor(strength.textColor)}`}
             style={{ width: `${strength.percentage}%` }}
           />
         </div>
@@ -192,20 +92,11 @@ export default function PasswordStrengthMeter({
 }
 
 /**
- * Utility function to check if password meets minimum requirements
+ * Re-export utility functions from centralized module
  */
-export function isPasswordStrong(password: string, minLength: number = 10): boolean {
-  if (password.length < minLength) return false;
-  if (!/[a-z]/.test(password)) return false;
-  if (!/[A-Z]/.test(password)) return false;
-  if (!/[0-9]/.test(password)) return false;
-  return true;
-}
+export { checkPasswordStrong as isPasswordStrong };
 
-/**
- * Utility function to get password validation error
- */
-export function getPasswordError(password: string, minLength: number = 10): string | null {
+export function getPasswordError(password: string, minLength: number = 8): string | null {
   if (password.length < minLength) {
     return `Password must be at least ${minLength} characters`;
   }

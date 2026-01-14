@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     await prisma.userToken.deleteMany({
       where: {
         identifier,
-        type: 'ADMIN_RESET_LINK',
+        type: 'PASSWORD_RESET',
         usedAt: null,
       },
     });
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     await prisma.userToken.create({
       data: {
         identifier,
-        type: 'ADMIN_RESET_LINK',
+        type: 'PASSWORD_RESET',
         tokenHash,
         expiresAt: expires,
         metadata: { generatedBy: sessionUser.id },

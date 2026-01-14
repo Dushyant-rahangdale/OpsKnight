@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 const PUBLIC_PATH_PREFIXES = [
   '/login',
   '/forgot-password',
+  '/reset-password',
   '/set-password',
   '/api/auth',
   '/api/health',
@@ -20,6 +21,7 @@ const PUBLIC_PATH_PREFIXES = [
   '/logs',
   '/m/login',
   '/m/forgot-password',
+  '/m/reset-password',
 ];
 
 /**
@@ -195,6 +197,9 @@ export default async function middleware(req: NextRequest) {
     } else if (pathname === '/forgot-password') {
       // Special redirect for forgot password page
       mobileUrl.pathname = '/m/forgot-password';
+    } else if (pathname === '/reset-password') {
+      // Special redirect for reset password page
+      mobileUrl.pathname = '/m/reset-password';
     } else {
       mobileUrl.pathname = `/m${pathname}`;
     }

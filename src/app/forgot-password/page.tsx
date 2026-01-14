@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Spinner from '@/components/ui/Spinner';
+import { AuthLayout, AuthCard } from '@/components/auth/AuthLayout';
+import { Mail, ArrowLeft, Send, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -39,194 +42,154 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-slate-950 text-white">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(148,163,184,0.18),transparent_32%),radial-gradient(circle_at_78%_18%,rgba(100,116,139,0.16),transparent_30%),radial-gradient(circle_at_42%_78%,rgba(71,85,105,0.14),transparent_32%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:48px_48px] opacity-15" />
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950/92 to-slate-950" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(15,23,42,0.6),rgba(15,23,42,0.25),rgba(15,23,42,0.6))] opacity-50 mix-blend-overlay" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0.45),transparent_58%)]" />
-
-      <div className="relative mx-auto flex min-h-[100dvh] max-w-7xl flex-col items-center justify-center px-5 py-6">
-        {/* Header */}
-        <header className="absolute top-6 left-5 right-5 flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/5 px-4 py-2.5 backdrop-blur-sm max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 shadow-lg shadow-black/20">
-              <img src="/logo.svg" alt="OpsSentinal logo" className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/90">
-                OpsSentinal
-              </p>
-              <p className="text-sm text-slate-200/80">Incident control surface</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-100">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(74,222,128,0.8)] animate-pulse" />
-            Systems steady
-          </div>
-        </header>
-
-        {/* Main Card */}
-        <div className="relative w-full max-w-[460px] overflow-hidden rounded-2xl border border-white/10 bg-white/95 text-slate-900 shadow-2xl shadow-slate-900/30">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900" />
-          <div className="relative space-y-5 px-6 py-7 sm:px-8 sm:py-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Account recovery
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-900">Reset Password</h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Enter your email address and we&apos;ll send you instructions to reset your
-                  password.
-                </p>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-900/20">
-                <img src="/logo.svg" alt="OpsSentinal" className="h-6 w-6" />
-              </div>
-            </div>
-
+    <AuthLayout>
+      <AuthCard isSuccess={isSent}>
+        {/* Card Header */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             {isSent ? (
-              <div className="space-y-4">
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-6 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                    <svg
-                      className="h-6 w-6 text-emerald-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-base font-semibold text-emerald-800">Check your inbox</p>
-                    <p className="mt-1 text-sm text-emerald-700">{message}</p>
-                  </div>
-                </div>
-                <Link
-                  href="/login"
-                  className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-[1px] hover:bg-slate-800"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
-                  </svg>
-                  Return to Sign In
-                </Link>
-              </div>
+              <span className="text-emerald-400 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <CheckCircle2 className="w-6 h-6" />
+                Request Received
+              </span>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
-                    Email address
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 shadow-inner shadow-slate-200 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200"
-                    placeholder="name@company.com"
-                    autoComplete="email"
-                    required
-                    disabled={isSubmitting}
-                  />
+              <span className="flex items-center gap-3">
+                <span className="w-1.5 h-6 bg-white/20 rounded-full" />
+                Account Recovery
+              </span>
+            )}
+          </h2>
+          <p className="mt-2 text-sm text-white/50 pl-0.5">
+            {!isSent &&
+              "Enter your email address and we'll send you instructions to reset your password."}
+          </p>
+        </div>
+
+        {isSent ? (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center text-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-emerald-200/80 leading-relaxed max-w-xs">{message}</p>
+            </div>
+
+            <Link
+              href="/login"
+              className="relative w-full overflow-hidden rounded-lg py-3.5 text-sm font-bold shadow-lg transition-all duration-300 bg-white text-black hover:bg-white/95 hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(255,255,255,0.3)] focus:outline-none focus:ring-2 focus:ring-cyan-400/50 flex items-center justify-center gap-2 uppercase tracking-wide"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Return to Sign In</span>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-200 text-sm flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle className="h-5 w-5 shrink-0 text-rose-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-rose-400 mb-1">Request Failed</p>
+                  <p className="text-white/70">{error}</p>
                 </div>
+                <button
+                  onClick={() => setError('')}
+                  className="text-white/40 hover:text-white transition"
+                  aria-label="Dismiss error"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
-                {error && (
-                  <div className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-                    <svg
-                      className="h-4 w-4 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <span>{error}</span>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="group space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-white/60 transition-colors duration-300 group-focus-within:text-white/80">
+                  Email Address
+                </label>
+                <div className="relative group/input">
+                  <div className="absolute inset-0 bg-white/5 rounded-xl transition duration-300 group-hover/input:bg-white/10" />
+                  <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[11px]" />
+
+                  <div className="relative flex items-center pr-3 group-focus-within:border-white/30 group-focus-within:bg-white/5 rounded-xl border border-white/10 transition-colors duration-300">
+                    <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-white/10">
+                      <Mail className="h-5 w-5 text-white/40 transition-colors group-focus-within/input:text-white/70" />
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        if (error) setError('');
+                      }}
+                      className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                      required
+                      disabled={isSubmitting}
+                      autoFocus
+                    />
                   </div>
-                )}
+                </div>
+              </div>
 
+              <div className="space-y-4">
                 <button
                   type="submit"
                   disabled={isSubmitting || !email}
-                  className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 enabled:hover:-translate-y-[1px] enabled:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="relative w-full overflow-hidden rounded-lg py-3.5 text-sm font-bold shadow-lg transition-all duration-300 bg-white text-black hover:bg-white/95 hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(255,255,255,0.3)] focus:outline-none focus:ring-2 focus:ring-cyan-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg"
                 >
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition group-hover:animate-[shimmer_1.4s_ease_infinite]" />
-                  {isSubmitting ? (
-                    <>
-                      <Spinner size="sm" variant="white" />
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Send Instructions</span>
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.3}
-                          d="M5 12h14M12 5l7 7-7 7"
-                        />
-                      </svg>
-                    </>
-                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2 uppercase tracking-wide">
+                    {isSubmitting ? (
+                      <>
+                        <Spinner size="sm" variant="black" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Instructions</span>
+                        <Send className="h-4 w-4" />
+                      </>
+                    )}
+                  </span>
                 </button>
 
-                <div className="space-y-3 pt-2 text-center">
-                  <p className="text-xs text-slate-400">
-                    If you don&apos;t receive an email, please contact your administrator.
-                  </p>
+                <div className="text-center">
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 transition hover:text-slate-900"
+                    className="inline-flex items-center gap-2 text-xs font-semibold text-white/40 hover:text-white transition-colors"
                   >
-                    <svg
-                      className="h-3.5 w-3.5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                      />
-                    </svg>
+                    <ArrowLeft className="h-3 w-3" />
                     Back to Sign In
                   </Link>
                 </div>
-              </form>
-            )}
+              </div>
+            </form>
+          </>
+        )}
 
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-              <span>Audit-ready by default</span>
-              <span>Data stays in your cloud</span>
-            </div>
+        {/* Footer info */}
+        <div className="flex flex-col items-center justify-center gap-3 mt-8">
+          <p className="text-[10px] uppercase tracking-[0.05em] text-white/30 font-medium text-center">
+            If you don't receive an email or SMS, please contact your administrator.
+          </p>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-white/40 font-medium">
+            <svg
+              className="h-3.5 w-3.5 text-emerald-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span>Your Operations, Our Sentinel.</span>
           </div>
         </div>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthLayout>
   );
 }

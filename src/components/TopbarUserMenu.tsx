@@ -63,7 +63,7 @@ export default function TopbarUserMenu({ name, email, role, avatarUrl, gender, u
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-64 p-0 overflow-hidden border border-border shadow-2xl bg-white/98 backdrop-blur-xl z-[1050] animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200"
+        className="w-64 p-0 overflow-hidden border-2 border-border shadow-2xl bg-white/95 backdrop-blur-xl z-[1050] [zoom:0.8]"
         align="end"
         forceMount
       >
