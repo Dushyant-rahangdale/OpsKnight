@@ -165,8 +165,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 'ACCOUNT_LOCKED',
                 attemptCheck.lockoutDurationMs || undefined
               );
-              logger.warn('[Auth] Login blocked - account locked', {
-                component: 'auth:credentials',
+              console.warn('[Auth] Login blocked - account locked', {
                 email,
                 ip,
                 lockedUntil: attemptCheck.lockedUntil?.toISOString(),
@@ -203,8 +202,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               );
 
               if (result.locked) {
-                logger.warn('[Auth] Account locked after failed attempts', {
-                  component: 'auth:credentials',
+                console.warn('[Auth] Account locked after failed attempts', {
                   email,
                   attemptCount: result.attemptCount,
                   lockoutDurationMs: result.lockoutDurationMs,
