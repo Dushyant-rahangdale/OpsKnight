@@ -300,18 +300,15 @@ async function runOnce() {
         yesterday.setUTCHours(0, 0, 0, 0);
 
         const { generateAllDailyRollups, cleanupOldRollups } = await import('./metric-rollup');
-        const { cleanupOldData } = await import('./retention-policy');
 
         await generateAllDailyRollups(yesterday);
 
         // Cleanup old data based on retention policy
-        const cleanupStats = await cleanupOldData();
         const deletedRollups = await cleanupOldRollups();
 
         await updateState({ lastRollupDate: todayKey });
         logger.info('[Cron] Daily maintenance complete', {
           date: yesterday.toISOString().split('T')[0],
-          dataCleanup: cleanupStats,
           rollupsDeleted: deletedRollups,
           nextRun: 'tomorrow at 1 AM UTC',
         });

@@ -203,7 +203,7 @@ export async function sendIncidentNotifications(
 
     // Add service team members if team exists
     if (incident.service.team) {
-      const teamUserIds = incident.service.team.members.map(m => m.userId);
+      const teamUserIds = incident.service.team.members.map((m: { userId: string }) => m.userId);
       recipients.push(...teamUserIds);
     }
 

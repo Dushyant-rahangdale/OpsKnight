@@ -175,6 +175,13 @@ export function resetRateLimit(integrationId: string): void {
 }
 
 /**
+ * Reset all rate limits (for testing)
+ */
+export function resetAllMetrics(): void {
+  rateLimitStore.clear();
+}
+
+/**
  * Get all rate limit entries (for monitoring/debugging)
  */
 export function getAllRateLimits(): Map<string, RateLimitEntry> {
