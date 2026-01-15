@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from 'crypto';
+import { createHash, createHmac, randomBytes, scryptSync } from 'crypto';
 import { getNextAuthSecretSync } from '@/lib/secret-manager';
 
 function getDefaultSecret(): string {
@@ -16,13 +16,13 @@ export function generateApiKey() {
 }
 
 /**
- * Legacy hash function (SHA256 concatenation)
- * Vulnerable to length extension attacks and marked as weak by CodeQL
+ * Legacy hash function (upgraded to use scrypt for stronger, slower hashing)
+ * Kept only for backward-compatibility lookups and lazy migration.
  */
 export function hashTokenV1(token: string) {
-  const hash = createHash('sha256');
-  hash.update(`${getDefaultSecret()}:${token}`);
-  return hash.digest('hex');
+  const secret = getDefaultSecret();
+  const derivedKey = scryptSync(token, secret, 32);
+  return derivedKey.toString('hex');
 }
 
 /**
