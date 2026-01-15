@@ -20,7 +20,8 @@ import { ChevronLeft, Key, Terminal, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
 
 function getWebhookUrl(integrationType: IntegrationType, integrationId: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
   switch (integrationType) {
     case 'CLOUDWATCH':
@@ -57,9 +58,6 @@ export default async function ServiceIntegrationsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { logger } = await import('@/lib/logger');
-
-  logger.warn('[Integrations Page] Loading', { id });
 
   let service;
   let permissions;
@@ -70,19 +68,10 @@ export default async function ServiceIntegrationsPage({
         where: { id },
         include: { integrations: { orderBy: { createdAt: 'desc' } } },
       }),
-      getUserPermissions().then(p => {
-        logger.warn('[Integrations Page] Permissions fetched', { p });
-        return p;
-      }),
+      getUserPermissions(),
     ]);
-    logger.warn('[Integrations Page] Data load successful', {
-      hasService: !!service,
-      serviceId: service?.id,
-      permissions,
-    });
   } catch (error) {
     // If getUserPermissions fails (session invalid), redirect to login
-    logger.warn('[Integrations Page] Error loading data', { error });
     const { redirect } = await import('next/navigation');
     redirect('/login?error=SessionExpired');
   }
