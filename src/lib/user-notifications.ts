@@ -161,42 +161,51 @@ export async function sendUserNotification(
 export async function sendIncidentNotifications(
   incidentId: string,
   eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
-  excludeUserIds: string[] = []
+  excludeUserIds: string[] = [],
+  incident?: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<{ success: boolean; errors?: string[] }> {
   try {
-    const incident = await prisma.incident.findUnique({
-      where: { id: incidentId },
-      include: {
-        service: {
-          include: {
-            team: {
-              include: {
-                members: {
-                  include: { user: true },
+    const incidentData =
+      incident ||
+      (await prisma.incident.findUnique({
+        where: { id: incidentId },
+        include: {
+          service: {
+            include: {
+              team: {
+                include: {
+                  members: {
+                    include: { user: true },
+                  },
                 },
               },
             },
           },
+          assignee: true,
         },
-        assignee: true,
-      },
-    });
+      }));
 
-    if (!incident || !incident.service) {
+    if (!incidentData || !incidentData.service) {
+      // Use incidentData instead of incident
       return { success: false, errors: ['Incident or service not found'] };
     }
+
+    // Use incidentData for the rest of the function
+    const incidentRecord = incidentData;
 
     const errors: string[] = [];
     const recipients: string[] = [];
 
     // Add assignee if exists
-    if (incident.assigneeId) {
-      recipients.push(incident.assigneeId);
+    if (incidentRecord.assigneeId) {
+      recipients.push(incidentRecord.assigneeId);
     }
 
     // Add service team members if team exists
-    if (incident.service.team) {
-      const teamUserIds = incident.service.team.members.map(m => m.userId);
+    if (incidentRecord.service.team) {
+      const teamUserIds = incidentRecord.service.team.members.map(
+        (m: { userId: string }) => m.userId
+      );
       recipients.push(...teamUserIds);
     }
 
@@ -211,7 +220,7 @@ export async function sendIncidentNotifications(
           : eventType === 'resolved'
             ? 'Incident Resolved'
             : 'Incident Updated';
-    const eventMessage = `[${incident.service.name}] ${incident.title}`;
+    const eventMessage = `[${incidentRecord.service.name}] ${incidentRecord.title}`;
 
     if (uniqueRecipients.length > 0) {
       await createInAppNotifications({
@@ -220,7 +229,7 @@ export async function sendIncidentNotifications(
         title: eventTitle,
         message: eventMessage,
         entityType: 'INCIDENT',
-        entityId: incident.id,
+        entityId: incidentRecord.id,
       });
     }
 
@@ -256,7 +265,7 @@ export async function sendIncidentNotifications(
       const userMap = new Map(users.map(u => [u.id, u]));
 
       // Send notifications to each recipient based on their preferences
-      const message = `[${incident.service.name}] Incident ${eventType}: ${incident.title}`;
+      const message = `[${incidentRecord.service.name}] Incident ${eventType}: ${incidentRecord.title}`;
       const notificationPromises = uniqueRecipients.map(async userId => {
         const user = userMap.get(userId);
         if (!user) {
@@ -321,7 +330,7 @@ export async function sendIncidentNotifications(
     }
 
     // Send service-level Slack notification (if configured legacy way)
-    if (incident.service.slackWebhookUrl && eventType !== 'updated') {
+    if (incidentRecord.service.slackWebhookUrl && eventType !== 'updated') {
       await notifySlackForIncident(incidentId, eventType).catch(err => {
         errors.push(`Slack notification failed: ${err.message}`);
       });
@@ -337,8 +346,8 @@ export async function sendIncidentNotifications(
       logger.error('Failed to send service integration notifications', {
         component: 'user-notifications',
         error: err,
-        serviceId: incident.serviceId,
-        incidentId: incident.id,
+        serviceId: incidentRecord.serviceId,
+        incidentId: incidentRecord.id,
       });
       // Don't block the response, just log it
     }
