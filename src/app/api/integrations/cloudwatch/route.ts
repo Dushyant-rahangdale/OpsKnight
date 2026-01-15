@@ -64,7 +64,24 @@ export async function POST(req: NextRequest) {
 
         // Automatically confirm the subscription by visiting the SubscribeURL
         try {
-          const confirmResponse = await fetch(body.SubscribeURL);
+          const subscribeUrl = new URL(body.SubscribeURL);
+
+          // Basic SSRF protection: require HTTPS SNS endpoint on AWS
+          const isHttps = subscribeUrl.protocol === 'https:';
+          const hostname = subscribeUrl.hostname.toLowerCase();
+          const isAwsSnsHost =
+            hostname.endsWith('.amazonaws.com') && hostname.includes('.sns.');
+
+          if (!isHttps || !isAwsSnsHost) {
+            logger.error('api.integration.cloudwatch_subscription_invalid_subscribe_url', {
+              integrationId,
+              topicArn: body.TopicArn,
+              subscribeUrl: subscribeUrl.toString(),
+            });
+            return jsonError('Invalid subscription confirmation URL', 400);
+          }
+
+          const confirmResponse = await fetch(subscribeUrl.toString());
           if (confirmResponse.ok) {
             logger.info('api.integration.cloudwatch_subscription_confirmed', {
               integrationId,
