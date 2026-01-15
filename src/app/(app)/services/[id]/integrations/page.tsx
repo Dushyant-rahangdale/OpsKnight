@@ -5,6 +5,7 @@ import ServiceTabs from '@/components/service/ServiceTabs';
 import CopyButton from '@/components/service/CopyButton';
 import DeleteIntegrationButton from '@/components/service/DeleteIntegrationButton';
 import AddIntegrationGrid from '@/components/service/AddIntegrationGrid';
+import IntegrationSecretControl from '@/components/service/IntegrationSecretControl';
 import { getUserPermissions } from '@/lib/rbac';
 import { INTEGRATION_TYPES, IntegrationType } from '@/components/service/integration-types';
 import {
@@ -256,6 +257,11 @@ export default async function ServiceIntegrationsPage({
                                   <CopyButton text={webhookUrl} />
                                 </div>
                               </div>
+                              <IntegrationSecretControl
+                                integrationId={integration.id}
+                                serviceId={service.id}
+                                initialSecret={integration.signatureSecret}
+                              />
                             </div>
                           )}
                         </div>
