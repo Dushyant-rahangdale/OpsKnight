@@ -16,23 +16,27 @@ export function generateApiKey() {
 }
 
 /**
- * Legacy hash function (upgraded to use scrypt for stronger, slower hashing)
- * Kept only for backward-compatibility lookups and lazy migration.
+ * Legacy hash function (SHA256 concatenation)
+ * Used for old keys before migration.
+ * Low computational effort (fast), hence replaced by V2 for new keys.
  */
 export function hashTokenV1(token: string) {
-  const secret = getDefaultSecret();
-  const derivedKey = scryptSync(token, secret, 32);
-  return derivedKey.toString('hex');
+  const hash = createHash('sha256');
+  hash.update(`${getDefaultSecret()}:${token}`);
+  return hash.digest('hex');
 }
 
 /**
- * Secure hash function (HMAC-SHA256)
- * Recommended for authentication tokens
+ * Secure hash function (Scrypt)
+ * Used for all new keys and migrated keys.
+ * High computational effort prevents brute-force.
  */
 export function hashTokenV2(token: string) {
-  const hmac = createHmac('sha256', getDefaultSecret());
-  hmac.update(token);
-  return hmac.digest('hex');
+  // scryptSync(password, salt, keyLength, [options])
+  const secret = getDefaultSecret();
+  // Using the secret as salt is acceptable here as the secret is high-entropy
+  const derivedKey = scryptSync(token, secret, 32);
+  return derivedKey.toString('hex');
 }
 
 export const hashToken = hashTokenV2;
