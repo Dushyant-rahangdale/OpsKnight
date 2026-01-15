@@ -47,10 +47,17 @@ export async function POST(req: NextRequest) {
         return jsonError('Integration is disabled', 403);
       }
 
+      interface SNSMessage {
+        Type?: string;
+        SubscribeURL?: string;
+        TopicArn?: string;
+        Message?: string;
+      }
+
       // Parse request body
-      let body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      let body: SNSMessage;
       try {
-        body = await req.json();
+        body = (await req.json()) as SNSMessage;
       } catch (_error) {
         return jsonError('Invalid JSON in request body.', 400);
       }
