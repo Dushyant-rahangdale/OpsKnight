@@ -55,6 +55,38 @@ export async function POST(req: NextRequest) {
         return jsonError('Invalid JSON in request body.', 400);
       }
 
+      // Handle SNS SubscriptionConfirmation (auto-confirm)
+      if (body.Type === 'SubscriptionConfirmation' && body.SubscribeURL) {
+        logger.info('api.integration.cloudwatch_subscription_confirmation', {
+          integrationId,
+          topicArn: body.TopicArn,
+        });
+
+        // Automatically confirm the subscription by visiting the SubscribeURL
+        try {
+          const confirmResponse = await fetch(body.SubscribeURL);
+          if (confirmResponse.ok) {
+            logger.info('api.integration.cloudwatch_subscription_confirmed', {
+              integrationId,
+              topicArn: body.TopicArn,
+            });
+            return jsonOk({ status: 'subscription_confirmed' }, 200);
+          } else {
+            logger.error('api.integration.cloudwatch_subscription_failed', {
+              integrationId,
+              status: confirmResponse.status,
+            });
+            return jsonError('Failed to confirm subscription', 500);
+          }
+        } catch (error) {
+          logger.error('api.integration.cloudwatch_subscription_error', {
+            integrationId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return jsonError('Failed to confirm subscription', 500);
+        }
+      }
+
       // Handle SNS format vs direct CloudWatch format
       let alarmMessage: CloudWatchAlarmMessage;
 
