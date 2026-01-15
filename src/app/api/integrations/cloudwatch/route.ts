@@ -66,13 +66,35 @@ export async function POST(req: NextRequest) {
         try {
           const subscribeUrl = new URL(body.SubscribeURL);
 
-          // Basic SSRF protection: require HTTPS SNS endpoint on AWS
-          const isHttps = subscribeUrl.protocol === 'https:';
-          const hostname = subscribeUrl.hostname.toLowerCase();
-          const isAwsSnsHost =
-            hostname.endsWith('.amazonaws.com') && hostname.includes('.sns.');
+          // Strict SSRF protection: only allow well-formed AWS SNS HTTPS endpoints
+          const isValidSnsSubscribeUrl = (url: URL): boolean => {
+            if (url.protocol !== 'https:') {
+              return false;
+            }
 
-          if (!isHttps || !isAwsSnsHost) {
+            const hostname = url.hostname.toLowerCase();
+            // Match sns.<region>.amazonaws.com and sns.<region>.amazonaws.com.cn
+            const snsHostPattern = /^sns\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$/;
+            if (!snsHostPattern.test(hostname)) {
+              return false;
+            }
+
+            // Optional: require ConfirmSubscription action in query for extra assurance
+            try {
+              const params = new URLSearchParams(url.search);
+              const action = params.get('Action') || params.get('action');
+              if (action && action !== 'ConfirmSubscription') {
+                return false;
+              }
+            } catch {
+              // If parsing search params fails for some reason, be conservative
+              return false;
+            }
+
+            return true;
+          };
+
+          if (!isValidSnsSubscribeUrl(subscribeUrl)) {
             logger.error('api.integration.cloudwatch_subscription_invalid_subscribe_url', {
               integrationId,
               topicArn: body.TopicArn,
