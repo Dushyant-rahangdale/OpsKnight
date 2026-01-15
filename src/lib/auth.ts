@@ -138,6 +138,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : '0.0.0.0';
             const userAgent = (req?.headers?.['user-agent'] as string) || 'Unknown';
 
+            console.log('[Auth-Debug] Authorize started', { email, ip });
+
             // Server-side email validation
             if (!email || !isValidEmail(email)) {
               await logLoginFailed(email || 'unknown', ip, userAgent, 'INVALID_EMAIL_FORMAT');
@@ -159,8 +161,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 'ACCOUNT_LOCKED',
                 attemptCheck.lockoutDurationMs || undefined
               );
-              logger.warn('[Auth] Login blocked - account locked', {
-                component: 'auth:credentials',
+              console.warn('[Auth] Login blocked - account locked', {
                 email,
                 ip,
                 lockedUntil: attemptCheck.lockedUntil?.toISOString(),
@@ -172,6 +173,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             if (!user || !user.passwordHash) {
               recordFailedAttempt(email, ip);
               await logLoginFailed(email, ip, userAgent, 'USER_NOT_FOUND');
+              console.log('[Auth-Debug] User not found or no password hash', { email });
               return null;
             }
 
@@ -193,13 +195,13 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               );
 
               if (result.locked) {
-                logger.warn('[Auth] Account locked after failed attempts', {
-                  component: 'auth:credentials',
+                console.warn('[Auth] Account locked after failed attempts', {
                   email,
                   attemptCount: result.attemptCount,
                   lockoutDurationMs: result.lockoutDurationMs,
                 });
               }
+              console.log('[Auth-Debug] Invalid Password', { email });
               return null;
             }
 
@@ -224,6 +226,11 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               });
             }
 
+            console.log('[Auth-Debug] Authorize Success', {
+              id: user.id,
+              tokenVersion: user.tokenVersion,
+            });
+
             return {
               id: user.id,
               name: user.name,
@@ -241,17 +248,18 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       callbacks: {
         async jwt({ token, user, account, trigger, session }) {
           // Debug: Log incoming token state
-          logger.debug('[Auth] JWT callback started', {
-            component: 'auth:jwt',
+          console.log('[Auth-Debug] JWT callback started', {
             hasSub: !!token.sub,
-            hasUser: !!user,
-            hasAccount: !!account,
+            sub: token.sub,
             trigger: trigger || 'none',
-            provider: account?.provider,
           });
 
           // Initial sign in
           if (user && account) {
+            console.log('[Auth-Debug] Initial Sign In', {
+              userId: user.id,
+              provider: account.provider,
+            });
             // ... (keep existing initial sign-in logic)
             // For OIDC, we must look up the user in the DB to get the internal CUID and current role
             // The 'user' object from OIDC is just the profile, so 'user.id' is the OIDC 'sub' (not our DB ID)
@@ -282,13 +290,6 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                   token.email = dbUser.email;
                   // Include tokenVersion so we can revoke sessions later
                   (token as any).tokenVersion = (dbUser as any).tokenVersion ?? 0; // eslint-disable-line @typescript-eslint/no-explicit-any
-                  logger.info('[Auth] JWT callback - Mapped OIDC user to DB user', {
-                    component: 'auth:jwt',
-                    oidcSub: user.id,
-                    dbUserId: dbUser.id,
-                    email: user.email,
-                    hasIdentityLink: !!identity,
-                  });
                 } else {
                   // This should technically not happen if signIn passed, but just in case
                   logger.error('[Auth] JWT callback - OIDC user not found in DB', {
@@ -313,13 +314,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           // and `token.role` is set correctly.
           // This block handles the initial population of the token from the `user` object.
           else if (user) {
-            logger.debug('[Auth] JWT callback - initial sign in (credentials or OIDC fallback)', {
-              component: 'auth:jwt',
-              userId: (user as any).id,
-              hasRole: !!(user as any).role,
-              hasEmail: !!(user as any).email,
-            });
-
+            console.log('[Auth-Debug] Initial Sign In (Fallback)', { userId: (user as any).id });
             token.role = (user as any).role; // eslint-disable-line @typescript-eslint/no-explicit-any
             token.sub = (user as any).id ?? token.sub; // eslint-disable-line @typescript-eslint/no-explicit-any
             token.name = (user as any).name; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -331,12 +326,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           // OR simply force a refresh (which is safer/better).
           // We'll treat trigger="update" as a signal to bypass cache.
           if (trigger === 'update') {
-            logger.debug('[Auth] JWT callback - update triggered', {
-              component: 'auth:jwt',
-              userId: token.sub,
-              sessionUpdates: session,
-            });
-            // If the client passed data, we COULD update token here, but we prefer fetching fresh from DB.
+            // ...
           }
 
           // Fetch latest user data from database on each request to ensure name is up-to-date
@@ -349,18 +339,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
             // Skip DB fetch if cached AND NOT forced by update trigger
             if (trigger !== 'update' && lastFetchedAt && Date.now() - lastFetchedAt < ttlMs) {
-              logger.debug('[Auth] JWT callback - skipping user refresh (cached)', {
-                component: 'auth:jwt',
-                userId: token.sub,
-                ageMs: Date.now() - lastFetchedAt,
-              });
+              // Cached
             } else {
               try {
-                logger.debug('[Auth] JWT callback - fetching user data', {
-                  component: 'auth:jwt',
-                  userId: token.sub,
-                });
-
                 const dbUser = await prisma.user.findUnique({
                   where: { id: token.sub },
                   select: {
@@ -377,12 +358,14 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                 if (dbUser) {
                   const dbTokenVersion =
                     typeof dbUser.tokenVersion === 'number' ? dbUser.tokenVersion : 0;
+                  console.log('[Auth-Debug] User Check', {
+                    dbId: token.sub,
+                    dbVer: dbTokenVersion,
+                    tokenVer: currentTokenVersion,
+                  });
+
                   // If disabled, force logout.
                   if (dbUser.status === 'DISABLED') {
-                    logger.info('[Auth] Session revoked: user disabled', {
-                      component: 'auth:jwt',
-                      userId: token.sub,
-                    });
                     return clearSessionToken(token as any, 'USER_DISABLED');
                   }
 
@@ -390,11 +373,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                     typeof currentTokenVersion === 'number' &&
                     dbTokenVersion !== currentTokenVersion
                   ) {
-                    logger.info('[Auth] Session revoked: token version mismatch', {
-                      component: 'auth:jwt',
-                      userId: token.sub,
-                      tokenVersion: currentTokenVersion,
-                      dbTokenVersion,
+                    console.log('[Auth-Debug] REVOKING SESSION: Version Mismatch', {
+                      db: dbTokenVersion,
+                      token: currentTokenVersion,
                     });
                     return clearSessionToken(token as any, 'SESSION_REVOKED');
                   }
@@ -405,48 +386,31 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
                   token.avatarUrl = dbUser.avatarUrl;
                   token.gender = dbUser.gender;
                   (token as any).tokenVersion = dbTokenVersion; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-                  logger.debug('[Auth] JWT callback - user data updated', {
-                    component: 'auth:jwt',
-                    userId: token.sub,
-                    role: dbUser.role,
-                  });
                 } else {
-                  logger.warn('[Auth] JWT callback - user not found in database', {
-                    component: 'auth:jwt',
-                    userId: token.sub,
-                  });
+                  console.log('[Auth-Debug] User NOT FOUND in DB', { id: token.sub });
                 }
               } catch (error) {
-                // If database fetch fails, keep existing token data
-                logger.error('[Auth] Error fetching user data in JWT callback', {
-                  component: 'auth:jwt',
-                  error,
-                  errorMessage: error instanceof Error ? error.message : 'Unknown error',
-                });
+                console.error('[Auth-Debug] DB Fetch Error', error);
               }
               (token as any).userFetchedAt = Date.now(); // eslint-disable-line @typescript-eslint/no-explicit-any
             }
+          } else {
+            console.log('[Auth-Debug] No token.sub found!', token);
           }
-
-          logger.debug('[Auth] JWT callback complete', {
-            component: 'auth:jwt',
-            hasRole: !!token.role,
-            hasSub: !!token.sub,
-          });
 
           return token;
         },
         async session({ session, token }) {
-          logger.debug('[Auth] Session callback started', {
-            component: 'auth:session',
-            hasUser: !!session.user,
+          console.log('[Auth-Debug] Session callback', {
             hasToken: !!token,
+            sub: token?.sub,
+            error: (token as any)?.error,
           });
 
           if ((token as any)?.error || !token.sub) {
             // Force unauthenticated session shape.
             (session as any).user = undefined; // eslint-disable-line @typescript-eslint/no-explicit-any
+            console.log('[Auth-Debug] Session CLEARED due to error/missing sub');
             return session;
           }
 
@@ -460,18 +424,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             session.user.gender = token.gender;
             // Map to standard image field as well for compatibility
             session.user.image = token.avatarUrl || getDefaultAvatar(token.gender, token.sub);
-
-            logger.debug('[Auth] Session callback - user data set', {
-              component: 'auth:session',
-              userId: token.sub,
-              role: token.role,
-              hasEmail: !!session.user.email,
-            });
           }
-
-          logger.debug('[Auth] Session callback complete', {
-            component: 'auth:session',
-          });
 
           return session;
         },
