@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         // Automatically confirm the subscription by visiting the SubscribeURL
         try {
           // Strict SSRF protection: only allow well-formed AWS SNS HTTPS endpoints
-          const validateSnsUrl = (urlString: string): URL => {
+          const validateSnsUrl = (urlString: string): string => {
             let url: URL;
             try {
               url = new URL(urlString);
@@ -93,18 +93,19 @@ export async function POST(req: NextRequest) {
               throw new Error('Invalid SNS host');
             }
 
-            return url;
+            // Return reconstructed string to break taint chain
+            return `https://${hostname}${url.pathname}${url.search}`;
           };
 
-          const safeUrl = validateSnsUrl(body.SubscribeURL);
+          const safeUrlString = validateSnsUrl(body.SubscribeURL);
 
           // Log safety check pass
           logger.info('api.integration.cloudwatch_subscription_url_validated', {
             integrationId,
-            host: safeUrl.hostname,
+            host: new URL(safeUrlString).hostname,
           });
 
-          const confirmResponse = await fetch(safeUrl.toString());
+          const confirmResponse = await fetch(safeUrlString);
           if (confirmResponse.ok) {
             logger.info('api.integration.cloudwatch_subscription_confirmed', {
               integrationId,
