@@ -33,6 +33,13 @@ export const revalidate = 30;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(await getAuthOptions());
+
+  console.log('[App Layout Debug] Session State:', {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    email: session?.user?.email,
+  });
+
   if (!session?.user?.email) {
     logger.warn('[App Layout] No session or email found', {
       component: 'layout',
