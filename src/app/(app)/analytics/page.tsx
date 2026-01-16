@@ -288,7 +288,7 @@ export default async function AnalyticsV2Page({
   );
 
   return (
-    <main className="page-shell analytics-shell analytics-v2 pb-20 [zoom:0.8]">
+    <main className="page-shell analytics-shell analytics-v2 pb-16 sm:pb-20">
       <div className="analytics-header">
         <div className="analytics-header-left">
           <div className="analytics-header-pill-row">

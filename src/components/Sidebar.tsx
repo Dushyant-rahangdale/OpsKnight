@@ -230,7 +230,9 @@ export default function Sidebar(
         aria-label={isDesktopCollapsed ? item.label : undefined}
         title={isDesktopCollapsed ? item.label : undefined}
         className={cn(
-          'group relative flex items-center rounded-xl text-sm font-medium',
+          'group relative flex items-center rounded-xl font-medium',
+          // Larger text to compensate for 0.8 zoom (visible ~14px after zoom)
+          'text-[1.1rem]',
           'transition-all duration-200 ease-out motion-reduce:transition-none',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground/0',
           'text-white/85 hover:text-white hover:bg-white/12 hover:shadow-[0_0_12px_rgba(255,255,255,0.05)]',
@@ -246,7 +248,7 @@ export default function Sidebar(
           className={cn(
             'shrink-0 flex items-center justify-center opacity-85 group-hover:opacity-100',
             'transition-transform duration-200 group-hover:scale-110',
-            '[&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0'
+            '[&_svg]:h-6 [&_svg]:w-6 [&_svg]:shrink-0'
           )}
         >
           {item.icon}
@@ -298,10 +300,10 @@ export default function Sidebar(
       >
         {!isDesktopCollapsed && sectionName !== 'MAIN' && (
           <div className="flex items-center gap-2 mb-2.5 px-1">
-            <div className={cn('h-1 w-1 rounded-full', colors.dotClass)} />
+            <div className={cn('h-1.5 w-1.5 rounded-full', colors.dotClass)} />
             <span
               className={cn(
-                'text-[0.65rem] font-semibold tracking-wide uppercase',
+                'text-[0.85rem] font-semibold tracking-wide uppercase',
                 colors.textClass
               )}
             >
@@ -341,7 +343,8 @@ export default function Sidebar(
           isDesktopCollapsed && 'sidebar-collapsed',
           isMobile && 'sidebar-mobile',
           isMobileMenuOpen && 'sidebar-mobile-open',
-          !isMobile && '[zoom:0.8] h-[125vh]',
+          // Use zoom - the app-shell overflow:hidden will clip any excess
+          !isMobile && '[zoom:0.8]',
           !isMobile && !isDesktopCollapsed && '!w-72'
         )}
       >
@@ -501,7 +504,7 @@ export default function Sidebar(
 
             {!isDesktopCollapsed && (
               <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <div className="text-xs font-bold text-white truncate group-hover:text-indigo-200 transition-colors flex items-center gap-2">
+                <div className="text-sm font-bold text-white truncate group-hover:text-indigo-200 transition-colors flex items-center gap-2">
                   <span>{currentName || 'User'}</span>
                   {(() => {
                     const roleKey = (currentRole?.toLowerCase() || 'admin') as
@@ -529,7 +532,7 @@ export default function Sidebar(
                     );
                   })()}
                 </div>
-                <div className="text-[10px] text-white/40 font-medium truncate">
+                <div className="text-xs text-white/40 font-medium truncate">
                   {/* Display Email as requested */}
                   {currentEmail || 'user@example.com'}
                 </div>
@@ -542,31 +545,31 @@ export default function Sidebar(
             <div className="grid grid-cols-4 gap-1 mt-3">
               <Link
                 href="/docs"
-                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                className="flex items-center justify-center h-9 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
                 title="Documentation"
               >
-                <HelpCircle className="h-4 w-4" />
+                <HelpCircle className="h-5 w-5" />
               </Link>
               <Link
                 href="/shortcuts"
-                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                className="flex items-center justify-center h-9 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
                 title="Keyboard Shortcuts"
               >
-                <Keyboard className="h-4 w-4" />
+                <Keyboard className="h-5 w-5" />
               </Link>
               <Link
                 href="/settings"
-                className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
+                className="flex items-center justify-center h-9 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
                 title="Settings"
               >
-                <Settings className="h-4 w-4" />
+                <Settings className="h-5 w-5" />
               </Link>
               <Link
                 href="/auth/signout"
-                className="flex items-center justify-center h-8 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
+                className="flex items-center justify-center h-9 rounded-md hover:bg-rose-500/10 text-white/40 hover:text-rose-400 transition-colors"
                 title="Sign Out"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-5 w-5" />
               </Link>
             </div>
           )}
@@ -588,10 +591,10 @@ export default function Sidebar(
           {/* Footer Metadata */}
           {!isDesktopCollapsed && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-              <span className="text-[10px] text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
+              <span className="text-xs text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
                 opssentinal.com
               </span>
-              <span className="text-[10px] text-white/10 font-mono">v1.0.2</span>
+              <span className="text-xs text-white/10 font-mono">v1.0.2</span>
             </div>
           )}
         </div>

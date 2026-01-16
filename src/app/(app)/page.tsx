@@ -377,7 +377,7 @@ export default async function Dashboard({
 
   return (
     <DashboardRealtimeWrapper>
-      <div className="mx-auto w-full px-4 md:px-6 lg:px-8 py-6 min-h-screen space-y-6 [zoom:0.75]">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 min-h-screen space-y-4 sm:space-y-6">
         <DashboardCommandCenter
           systemStatus={systemStatus}
           allOpenIncidentsCount={allOpenIncidentsCount}

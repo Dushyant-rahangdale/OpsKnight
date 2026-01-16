@@ -58,7 +58,9 @@ select option {
 .app-shell {
     display: flex;
     min-height: 100dvh;
+    max-height: 100dvh;
     position: relative;
+    overflow: hidden;
 }
 
 .content-shell {
@@ -66,6 +68,9 @@ select option {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 100dvh;
 }
 
 .page-shell {

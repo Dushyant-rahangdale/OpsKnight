@@ -25,7 +25,7 @@ export default async function CreateTemplatePage({
   const errorCode = resolvedSearchParams?.error;
 
   return (
-    <main className="container max-w-4xl mx-auto py-8 [zoom:0.9]">
+    <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
       <Link
         href="/incidents/templates"
         className="inline-flex items-center text-sm text-muted-foreground mb-6 hover:text-foreground transition-colors"

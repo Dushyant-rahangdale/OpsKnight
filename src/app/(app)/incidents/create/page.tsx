@@ -102,7 +102,7 @@ export default async function CreateIncidentPage({
   }
 
   return (
-    <main className="container mx-auto py-8 max-w-4xl [zoom:0.85]">
+    <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8">
       <div className="mb-8">
         <Link
           href="/incidents"

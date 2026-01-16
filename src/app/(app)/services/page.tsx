@@ -198,7 +198,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
   const canCreateService = permissions.isAdminOrResponder;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 md:px-6 2xl:px-8 py-6 space-y-6 [zoom:0.8]">
+    <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Metric panel */}
       <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-lg p-4 md:p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
