@@ -2,12 +2,12 @@ import { normalizeSeverity, firstString } from './normalization';
 
 export type UptimeKumaEvent = {
   heartbeat?: {
-    status?: number;
+    status?: number | string;
     msg?: string;
-    monitorID?: number;
+    monitorID?: number | string;
   };
   monitor?: {
-    id?: number;
+    id?: number | string;
     name?: string;
     url?: string;
   };
@@ -16,9 +16,15 @@ export type UptimeKumaEvent = {
   [key: string]: unknown;
 };
 
-function mapAction(status?: number, statusText?: string): 'trigger' | 'resolve' {
+function mapAction(status?: number | string, statusText?: string): 'trigger' | 'resolve' {
   if (typeof status === 'number') {
     return status === 1 ? 'resolve' : 'trigger';
+  }
+  if (typeof status === 'string') {
+    const numeric = Number(status);
+    if (!Number.isNaN(numeric)) {
+      return numeric === 1 ? 'resolve' : 'trigger';
+    }
   }
   const normalized = statusText?.toLowerCase();
   if (normalized && (normalized.includes('up') || normalized.includes('resolved'))) {
