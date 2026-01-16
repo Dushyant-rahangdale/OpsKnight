@@ -108,7 +108,7 @@ export default async function ServiceIntegrationsPage({
   const canManageIntegrations = permissions?.isAdminOrResponder ?? false;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 md:px-6 2xl:px-8 py-6 space-y-6 [zoom:0.8]">
+    <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
         <Link
           href="/services"

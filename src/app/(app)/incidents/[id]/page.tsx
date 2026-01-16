@@ -192,7 +192,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     urgencyVariantMap[incident.urgency as 'HIGH' | 'MEDIUM' | 'LOW'] ?? 'success';
 
   return (
-    <div className="w-full px-4 py-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 [zoom:0.8]">
+    <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Premium Header - Glassmorphic with Accent Bar */}
       <div className="group relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white/80 shadow-xl backdrop-blur-xl transition-all hover:shadow-2xl">
         {/* Animated Accent Bar */}
