@@ -22,12 +22,14 @@ interface IntegrationSecretControlProps {
   integrationId: string;
   serviceId: string;
   initialSecret: string | null;
+  className?: string;
 }
 
 export default function IntegrationSecretControl({
   integrationId,
   serviceId,
   initialSecret,
+  className,
 }: IntegrationSecretControlProps) {
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
@@ -82,7 +84,7 @@ export default function IntegrationSecretControl({
   }
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${className || ''}`}>
       <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
         <Key className="h-3 w-3" /> Signature Secret
       </div>

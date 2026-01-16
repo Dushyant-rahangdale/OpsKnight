@@ -6,6 +6,7 @@ import CopyButton from '@/components/service/CopyButton';
 import DeleteIntegrationButton from '@/components/service/DeleteIntegrationButton';
 import AddIntegrationGrid from '@/components/service/AddIntegrationGrid';
 import IntegrationSecretControl from '@/components/service/IntegrationSecretControl';
+import IntegrationStatusToggle from '@/components/service/IntegrationStatusToggle';
 import { getUserPermissions } from '@/lib/rbac';
 import { INTEGRATION_TYPES, IntegrationType } from '@/components/service/integration-types';
 import {
@@ -184,17 +185,18 @@ export default async function ServiceIntegrationsPage({
           </CardHeader>
           <CardContent>
             {service.integrations.length === 0 ? (
-              <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                <div className="mx-auto h-12 w-12 text-slate-300 mb-3 bg-white rounded-full flex items-center justify-center shadow-sm">
-                  <Zap className="h-6 w-6" />
+              <div className="text-center py-16 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                <div className="mx-auto h-16 w-16 text-slate-300 mb-4 bg-white rounded-2xl flex items-center justify-center shadow-sm ring-1 ring-slate-100">
+                  <Zap className="h-8 w-8" />
                 </div>
-                <h3 className="text-lg font-medium text-slate-900">No Integrations Connected</h3>
-                <p className="text-slate-500 max-w-sm mx-auto mt-1">
+                <h3 className="text-xl font-semibold text-slate-900">No Integrations Connected</h3>
+                <p className="text-slate-500 max-w-md mx-auto mt-2 text-sm leading-relaxed">
                   Connect external tools to automatically trigger incidents for this service.
+                  Incoming alerts will be routed according to your service policies.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {service.integrations.map(integration => {
                   const integrationType = integration.type as IntegrationType;
                   const typeInfo =
@@ -205,95 +207,137 @@ export default async function ServiceIntegrationsPage({
                     integration.id,
                     integration.key
                   );
+                  const isActive = integration.enabled;
 
                   return (
                     <Card
                       key={integration.id}
-                      className="overflow-hidden flex flex-col border-slate-200"
+                      className="group flex flex-col border-slate-200 bg-white hover:border-primary/20 hover:shadow-lg transition-all duration-300"
                     >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
+                      <CardHeader className="pb-4 border-b border-slate-50 bg-slate-50/30">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-4">
                             <div
-                              className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/30 shadow-sm"
+                              className="w-12 h-12 flex items-center justify-center rounded-xl shadow-sm ring-1 ring-black/5"
                               style={{ backgroundColor: typeInfo.iconBg }}
                             >
                               {typeInfo.icon}
                             </div>
-                            <div>
-                              <div
-                                className="font-semibold text-sm text-slate-900 truncate max-w-[140px]"
+                            <div className="space-y-1">
+                              <h4
+                                className="font-semibold text-base text-slate-900 truncate max-w-[160px]"
                                 title={integration.name}
                               >
                                 {integration.name}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <IntegrationStatusToggle
+                                  integrationId={integration.id}
+                                  serviceId={service.id}
+                                  initialEnabled={isActive}
+                                  canManage={canManageIntegrations}
+                                />
+                                <span className="text-[10px] text-slate-400">
+                                  {new Date(integration.createdAt).toLocaleDateString()}
+                                </span>
                               </div>
-                              <Badge variant="neutral" size="xs">
-                                {typeInfo.label}
-                              </Badge>
                             </div>
                           </div>
+
                           {canManageIntegrations && (
-                            <DeleteIntegrationButton
-                              action={deleteIntegration.bind(null, integration.id, service.id)}
-                              integrationName={integration.name}
-                            />
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                asChild
+                              >
+                                <DeleteIntegrationButton
+                                  action={deleteIntegration.bind(null, integration.id, service.id)}
+                                  integrationName={integration.name}
+                                  variant="icon"
+                                />
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <p className="text-xs text-slate-500 mb-4 line-clamp-2 min-h-[2.5em]">
-                          {typeInfo.description}
-                        </p>
-                        <div className="bg-slate-50 rounded border p-3 space-y-3">
-                          {integrationType === 'EVENTS_API_V2' ? (
-                            <div className="space-y-3">
-                              <div>
-                                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+
+                      <CardContent className="pt-5 pb-6 flex-1 flex flex-col gap-5">
+                        <div>
+                          <span className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2 block">
+                            Details
+                          </span>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                              <span className="text-slate-500 block mb-0.5">Type</span>
+                              <span className="font-medium text-slate-700">{typeInfo.label}</span>
+                            </div>
+                            <div className="bg-slate-50 p-2.5 rounded border border-slate-100">
+                              <span className="text-slate-500 block mb-0.5">Category</span>
+                              <span className="font-medium text-slate-700">
+                                {typeInfo.category}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {integrationType === 'EVENTS_API_V2' ? (
+                          <div className="space-y-3 mt-auto">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                                   <Key className="h-3 w-3" /> API Key
                                 </div>
-                                <div className="bg-white border rounded px-2 py-1.5 font-mono text-xs break-all shadow-sm">
-                                  {integration.key}
-                                </div>
+                                <CopyButton text={integration.key} />
                               </div>
-                              <div>
-                                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                  <Terminal className="h-3 w-3" /> Usage Example
-                                </div>
-                                <pre className="bg-slate-900 text-slate-50 p-3 rounded-md overflow-x-auto text-[10px] font-mono leading-relaxed">
-                                  {`curl -X POST ${webhookUrl} \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Token token=${integration.key}" \
-  -d '{
-    "event_action": "trigger",
-    "dedup_key": "alert_123",
-    "payload": {
-      "summary": "High CPU Load",
-      "source": "monitoring-tool",
-      "severity": "critical"
-    }
-  }'`}
-                                </pre>
+                              <div className="bg-slate-50 border border-slate-200 rounded-md px-3 py-2 font-mono text-xs break-all shadow-sm text-slate-600">
+                                {integration.key}
                               </div>
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <div>
-                                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+
+                            <div className="pt-2">
+                              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                <Terminal className="h-3 w-3" /> Quick Test
+                              </div>
+                              <pre className="bg-slate-900 text-slate-300 p-3 rounded-lg overflow-x-auto text-[10px] font-mono leading-relaxed border border-slate-800 shadow-inner custom-scrollbar">
+                                <span className="text-purple-400">curl</span> -X POST {webhookUrl} \
+                                <br />
+                                &nbsp; -H{' '}
+                                <span className="text-green-400">
+                                  "Authorization: Token token={integration.key.substring(0, 8)}..."
+                                </span>{' '}
+                                \<br />
+                                &nbsp; -d{' '}
+                                <span className="text-yellow-400">
+                                  '{`{ "event_action": "trigger", ... }`}'
+                                </span>
+                              </pre>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4 mt-auto">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                                   Webhook URL
                                 </div>
-                                <div className="bg-white border rounded px-2 py-1.5 font-mono text-xs flex items-center justify-between gap-2 shadow-sm">
-                                  <span className="truncate">{webhookUrl}</span>
-                                  <CopyButton text={webhookUrl} />
-                                </div>
+                                <CopyButton text={webhookUrl} />
                               </div>
+                              <div className="bg-slate-50 border border-slate-200 rounded-md px-3 py-2.5 font-mono text-xs shadow-sm group/url hover:bg-white hover:border-primary/30 transition-colors break-all leading-relaxed text-slate-600">
+                                {webhookUrl}
+                              </div>
+                            </div>
+                            <div className="pt-1 border-t border-dashed border-slate-100">
                               <IntegrationSecretControl
                                 integrationId={integration.id}
                                 serviceId={service.id}
                                 initialSecret={integration.signatureSecret}
+                                className="w-full"
                               />
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );

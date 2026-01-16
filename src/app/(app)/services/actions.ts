@@ -201,6 +201,33 @@ export async function clearIntegrationSecret(integrationId: string, serviceId: s
   revalidatePath(`/services/${serviceId}/integrations`);
 }
 
+export async function toggleIntegrationStatus(
+  integrationId: string,
+  serviceId: string,
+  enabled: boolean
+) {
+  try {
+    await assertAdminOrResponder();
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+  }
+
+  await prisma.integration.update({
+    where: { id: integrationId },
+    data: { enabled },
+  });
+
+  await logAudit({
+    action: 'integration.status_updated',
+    entityType: 'SERVICE',
+    entityId: serviceId,
+    actorId: await getDefaultActorId(),
+    details: { integrationId, enabled },
+  });
+
+  revalidatePath(`/services/${serviceId}/integrations`);
+}
+
 export async function deleteService(serviceId: string) {
   try {
     await assertAdmin();

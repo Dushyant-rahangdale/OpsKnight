@@ -160,12 +160,22 @@ const BRAND_PATHS = {
   },
 } as const;
 
+export type IntegrationCategory =
+  | 'Cloud & Infrastructure'
+  | 'Monitoring & APM'
+  | 'CI/CD & Version Control'
+  | 'Uptime & Status'
+  | 'Incident Management'
+  | 'Communication'
+  | 'Other';
+
 export const INTEGRATION_TYPES: Array<{
   value: IntegrationType;
   label: string;
   description: string;
   icon: ReactNode;
   iconBg: string;
+  category: IntegrationCategory;
 }> = [
   {
     value: 'EVENTS_API_V2',
@@ -173,6 +183,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Standard API integration using authentication tokens',
     icon: <Terminal className="h-5 w-5 text-white" />,
     iconBg: '#0f172a',
+    category: 'Other',
   },
   {
     value: 'CLOUDWATCH',
@@ -180,6 +191,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive alerts from AWS CloudWatch alarms via SNS',
     icon: <BrandIcon {...BRAND_PATHS.aws} color="#ffffff" />,
     iconBg: BRAND_PATHS.aws.color,
+    category: 'Cloud & Infrastructure',
   },
   {
     value: 'AZURE',
@@ -187,48 +199,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive alerts from Azure Monitor alert rules',
     icon: <BrandIcon {...BRAND_PATHS.azure} color="#ffffff" />,
     iconBg: BRAND_PATHS.azure.color,
-  },
-  {
-    value: 'DATADOG',
-    label: 'Datadog',
-    description: 'Receive alerts from Datadog monitors and events',
-    icon: <BrandIcon {...BRAND_PATHS.datadog} color="#ffffff" />,
-    iconBg: BRAND_PATHS.datadog.color,
-  },
-  {
-    value: 'GRAFANA',
-    label: 'Grafana',
-    description: 'Receive alerts from Grafana alerting rules',
-    icon: <BrandIcon {...BRAND_PATHS.grafana} color="#ffffff" />,
-    iconBg: BRAND_PATHS.grafana.color,
-  },
-  {
-    value: 'PROMETHEUS',
-    label: 'Prometheus Alertmanager',
-    description: 'Receive alerts from Prometheus Alertmanager webhooks',
-    icon: <BrandIcon {...BRAND_PATHS.prometheus} color="#ffffff" />,
-    iconBg: BRAND_PATHS.prometheus.color,
-  },
-  {
-    value: 'NEWRELIC',
-    label: 'New Relic',
-    description: 'Receive alerts from New Relic APM and infrastructure',
-    icon: <BrandIcon {...BRAND_PATHS.newrelic} color="#ffffff" />,
-    iconBg: BRAND_PATHS.newrelic.color,
-  },
-  {
-    value: 'SENTRY',
-    label: 'Sentry',
-    description: 'Receive error events from Sentry issue tracking',
-    icon: <BrandIcon {...BRAND_PATHS.sentry} color="#ffffff" />,
-    iconBg: BRAND_PATHS.sentry.color,
-  },
-  {
-    value: 'GITHUB',
-    label: 'GitHub/GitLab',
-    description: 'Receive alerts from GitHub Actions and GitLab CI/CD pipelines',
-    icon: <BrandIcon {...BRAND_PATHS.github} color="#ffffff" />,
-    iconBg: BRAND_PATHS.github.color,
+    category: 'Cloud & Infrastructure',
   },
   {
     value: 'GOOGLE_CLOUD_MONITORING',
@@ -236,20 +207,39 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive alerts from GCP Monitoring via Pub/Sub push',
     icon: <BrandIcon {...BRAND_PATHS.googlecloud} color="#ffffff" />,
     iconBg: BRAND_PATHS.googlecloud.color,
+    category: 'Cloud & Infrastructure',
   },
   {
-    value: 'SPLUNK_ONCALL',
-    label: 'Splunk On-Call',
-    description: 'Receive alerts from Splunk On-Call webhooks',
-    icon: <BrandIcon {...BRAND_PATHS.splunk} color="#ffffff" />,
-    iconBg: BRAND_PATHS.splunk.color,
+    value: 'DATADOG',
+    label: 'Datadog',
+    description: 'Receive alerts from Datadog monitors and events',
+    icon: <BrandIcon {...BRAND_PATHS.datadog} color="#ffffff" />,
+    iconBg: BRAND_PATHS.datadog.color,
+    category: 'Monitoring & APM',
   },
   {
-    value: 'SPLUNK_OBSERVABILITY',
-    label: 'Splunk Observability',
-    description: 'Receive alerts from Splunk Observability Cloud',
-    icon: <BrandIcon {...BRAND_PATHS.splunk} color="#ffffff" />,
-    iconBg: BRAND_PATHS.splunk.color,
+    value: 'GRAFANA',
+    label: 'Grafana',
+    description: 'Receive alerts from Grafana alerting rules',
+    icon: <BrandIcon {...BRAND_PATHS.grafana} color="#ffffff" />,
+    iconBg: BRAND_PATHS.grafana.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'PROMETHEUS',
+    label: 'Prometheus Alertmanager',
+    description: 'Receive alerts from Prometheus Alertmanager webhooks',
+    icon: <BrandIcon {...BRAND_PATHS.prometheus} color="#ffffff" />,
+    iconBg: BRAND_PATHS.prometheus.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'NEWRELIC',
+    label: 'New Relic',
+    description: 'Receive alerts from New Relic APM and infrastructure',
+    icon: <BrandIcon {...BRAND_PATHS.newrelic} color="#ffffff" />,
+    iconBg: BRAND_PATHS.newrelic.color,
+    category: 'Monitoring & APM',
   },
   {
     value: 'DYNATRACE',
@@ -257,6 +247,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive problem notifications from Dynatrace',
     icon: <BrandIcon {...BRAND_PATHS.dynatrace} color="#ffffff" />,
     iconBg: BRAND_PATHS.dynatrace.color,
+    category: 'Monitoring & APM',
   },
   {
     value: 'APPDYNAMICS',
@@ -264,6 +255,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive health rule violations from AppDynamics',
     icon: <BrandIcon {...BRAND_PATHS.appdynamics} color="#ffffff" />,
     iconBg: BRAND_PATHS.appdynamics.color,
+    category: 'Monitoring & APM',
   },
   {
     value: 'ELASTIC',
@@ -271,6 +263,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive alerts from Elastic/Kibana alerting',
     icon: <BrandIcon {...BRAND_PATHS.elastic} color="#ffffff" />,
     iconBg: BRAND_PATHS.elastic.color,
+    category: 'Monitoring & APM',
   },
   {
     value: 'HONEYCOMB',
@@ -278,6 +271,31 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive alerts from Honeycomb triggers',
     icon: <BrandIcon {...BRAND_PATHS.honeycomb} color="#ffffff" />,
     iconBg: BRAND_PATHS.honeycomb.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'SPLUNK_OBSERVABILITY',
+    label: 'Splunk Observability',
+    description: 'Receive alerts from Splunk Observability Cloud',
+    icon: <BrandIcon {...BRAND_PATHS.splunk} color="#ffffff" />,
+    iconBg: BRAND_PATHS.splunk.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'SENTRY',
+    label: 'Sentry',
+    description: 'Receive error events from Sentry issue tracking',
+    icon: <BrandIcon {...BRAND_PATHS.sentry} color="#ffffff" />,
+    iconBg: BRAND_PATHS.sentry.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'GITHUB',
+    label: 'GitHub/GitLab',
+    description: 'Receive alerts from GitHub Actions and GitLab CI/CD pipelines',
+    icon: <BrandIcon {...BRAND_PATHS.github} color="#ffffff" />,
+    iconBg: BRAND_PATHS.github.color,
+    category: 'CI/CD & Version Control',
   },
   {
     value: 'BITBUCKET',
@@ -285,6 +303,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive pipeline and build status alerts from Bitbucket',
     icon: <BrandIcon {...BRAND_PATHS.bitbucket} color="#ffffff" />,
     iconBg: BRAND_PATHS.bitbucket.color,
+    category: 'CI/CD & Version Control',
   },
   {
     value: 'UPTIMEROBOT',
@@ -292,6 +311,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive uptime alerts from UptimeRobot webhooks',
     icon: <BrandIcon {...BRAND_PATHS.uptimerobot} color="#ffffff" />,
     iconBg: BRAND_PATHS.uptimerobot.color,
+    category: 'Uptime & Status',
   },
   {
     value: 'PINGDOM',
@@ -299,6 +319,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive check alerts from Pingdom',
     icon: <BrandIcon {...BRAND_PATHS.pingdom} color="#0f172a" />,
     iconBg: BRAND_PATHS.pingdom.color,
+    category: 'Uptime & Status',
   },
   {
     value: 'BETTER_UPTIME',
@@ -306,6 +327,7 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive uptime alerts from Better Uptime',
     icon: <BrandIcon {...BRAND_PATHS.betterstack} color="#ffffff" />,
     iconBg: BRAND_PATHS.betterstack.color,
+    category: 'Uptime & Status',
   },
   {
     value: 'UPTIME_KUMA',
@@ -313,6 +335,15 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive status alerts from Uptime Kuma webhooks',
     icon: <BrandIcon {...BRAND_PATHS.uptimekuma} color="#ffffff" />,
     iconBg: BRAND_PATHS.uptimekuma.color,
+    category: 'Uptime & Status',
+  },
+  {
+    value: 'SPLUNK_ONCALL',
+    label: 'Splunk On-Call',
+    description: 'Receive alerts from Splunk On-Call webhooks',
+    icon: <BrandIcon {...BRAND_PATHS.splunk} color="#ffffff" />,
+    iconBg: BRAND_PATHS.splunk.color,
+    category: 'Incident Management',
   },
   {
     value: 'WEBHOOK',
@@ -320,5 +351,6 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Custom webhook integration for any monitoring tool',
     icon: <Webhook className="h-5 w-5 text-white" />,
     iconBg: '#475569',
+    category: 'Other',
   },
 ];
