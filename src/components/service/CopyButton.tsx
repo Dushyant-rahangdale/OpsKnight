@@ -5,9 +5,10 @@ import { useState } from 'react';
 
 type CopyButtonProps = {
   text: string;
+  className?: string; // Add className prop
 };
 
-export default function CopyButton({ text }: CopyButtonProps) {
+export default function CopyButton({ text, className }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -27,6 +28,7 @@ export default function CopyButton({ text }: CopyButtonProps) {
   return (
     <button
       onClick={handleCopy}
+      className={className} // Apply className
       style={{
         padding: '0.5rem 0.75rem',
         background: copied ? 'var(--success)' : 'var(--primary-color)',

@@ -59,7 +59,7 @@ export default function Toast({ message, type, onClose, duration = 3000, icon }:
         'toast flex items-center gap-3 px-5 py-3 min-w-[300px] max-w-[500px]',
         'rounded-md border shadow-lg pointer-events-auto',
         'animate-in slide-in-from-top-5 duration-300',
-        typeClasses[type].container
+        (typeClasses[type] || typeClasses.info).container
       )}
       role="alert"
       aria-live="polite"
@@ -67,7 +67,7 @@ export default function Toast({ message, type, onClose, duration = 3000, icon }:
       <div
         className={cn(
           'w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white',
-          typeClasses[type].iconBg
+          (typeClasses[type] || typeClasses.info).iconBg
         )}
       >
         {defaultIcon}
