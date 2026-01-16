@@ -29,7 +29,7 @@ type BrandIconProps = {
   title: string;
   color?: string;
   path?: string;
-  paths?: string[];
+  paths?: readonly string[];
   viewBox?: string;
 };
 
