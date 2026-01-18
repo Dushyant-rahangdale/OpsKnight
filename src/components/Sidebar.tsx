@@ -381,7 +381,7 @@ export default function Sidebar(
 
             {!isDesktopCollapsed && (
               <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                <h1 className="text-xl font-bold text-white m-0 leading-tight tracking-[0.2em] font-display">
+                <h1 className="text-xl font-bold text-white m-0 leading-tight tracking-tight font-display">
                   OpsKnight
                 </h1>
                 <span className="text-xs text-white/50 font-medium uppercase tracking-wide">
