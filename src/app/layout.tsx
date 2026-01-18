@@ -1,7 +1,15 @@
 import type { Metadata, Viewport } from 'next';
+import { Manrope } from 'next/font/google'; // [NEW]
 import '@/styles/index.css';
 import { Providers } from './providers';
 import VersionCheck from '@/components/VersionCheck';
+
+// Initialize fonts
+const manrope = Manrope({
+  variable: '--font-manrope',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'OpsKnight | Enterprise Incident Management',
@@ -36,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="color-scheme" content="light only" />
         <meta name="darkreader-lock" />
       </head>
-      <body className="antialiased">
+      <body className={`${manrope.variable} antialiased`}>
         <Providers>
           <VersionCheck />
           {children}
