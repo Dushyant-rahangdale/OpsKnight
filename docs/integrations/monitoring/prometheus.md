@@ -1,3 +1,7 @@
+---
+order: 2
+---
+
 # Prometheus/Alertmanager Integration
 
 Send Prometheus alerts to OpsKnight via Alertmanager.

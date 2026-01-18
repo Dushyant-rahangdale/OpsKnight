@@ -1,3 +1,7 @@
+---
+order: 1
+---
+
 # Datadog Integration
 
 Send Datadog alerts to OpsKnight.

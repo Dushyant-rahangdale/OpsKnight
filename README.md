@@ -12,6 +12,14 @@
 [![Website](https://img.shields.io/badge/Website-opsknight.com-10b981?style=for-the-badge&logo=google-chrome&logoColor=white)](https://opsknight.com)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)](LICENSE)
 
+<div align="center">
+  <h3>
+    <a href="https://opsknight.com" target="_blank">
+      🌐 Visit Website: opsknight.com
+    </a>
+  </h3>
+</div>
+
 [**Documentation**](docs/) • [**Quick Start**](#-quick-start) • [**Features**](#-features) • [**API**](docs/api/)
 
 </div>

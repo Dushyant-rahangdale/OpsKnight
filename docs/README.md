@@ -1,17 +1,24 @@
-# 📚 OpsKnight Documentation
+---
+order: 0
+---
 
-Welcome to the OpsKnight documentation! This guide will help you get started with the platform and explore all its features.
+# OpsKnight Documentation
 
-## Quick Navigation
+Welcome to the OpsKnight documentation. This guide helps you launch, operate, and extend the platform.
 
-| Section                               | Description                                       |
-| ------------------------------------- | ------------------------------------------------- |
-| [Getting Started](./getting-started/) | Installation, first steps, configuration          |
-| [Core Concepts](./core-concepts/)     | Services, Incidents, Teams, Schedules, Escalation |
-| [Administration](./administration/)   | Authentication, Notifications, Data Retention     |
-| [Integrations](./integrations/)       | Slack, Webhooks, Monitoring Tools                 |
-| [API Reference](./api/)               | REST API documentation                            |
-| [Deployment](./deployment/)           | Docker, Kubernetes, Mobile PWA                    |
+## Documentation Structure
+
+| Section                               | Description                                              |
+| ------------------------------------- | -------------------------------------------------------- |
+| [Getting Started](./getting-started/) | Install, configure, and verify your first incident flow  |
+| [Core Concepts](./core-concepts/)     | Services, incidents, on-call schedules, and escalation   |
+| [Administration](./administration/)   | Auth, notifications, audit logs, and data retention      |
+| [Integrations](./integrations/)       | Slack, webhooks, monitoring, and alert sources           |
+| [API Reference](./api/)               | Events, incident APIs, and CLI tooling                   |
+| [Deployment](./deployment/)           | Docker, Kubernetes, and PWA delivery                     |
+| [Security](./security/)               | Encryption, SSO, and identity provider setup             |
+| [Architecture](./architecture/)       | System architecture notes and operational considerations |
+| [Mobile](./mobile/)                   | Mobile UX notes and PWA development guide                |
 
 ## What is OpsKnight?
 

@@ -1,14 +1,19 @@
+---
+order: 4
+---
+
 # Integrations
 
 Connect OpsKnight with your existing tools and workflows.
 
 ## In This Section
 
-| Integration                       | Description         |
-| --------------------------------- | ------------------- |
-| [Slack](./slack.md)               | Team notifications  |
-| [Webhooks](./webhooks.md)         | Custom integrations |
-| [Monitoring Tools](./monitoring/) | Alert sources       |
+| Integration                                 | Description         |
+| ------------------------------------------- | ------------------- |
+| [Slack](./slack.md)                         | Team notifications  |
+| [Slack OAuth Setup](./slack-oauth-setup.md) | OAuth configuration |
+| [Webhooks](./webhooks.md)                   | Custom integrations |
+| [Monitoring Tools](./monitoring/)           | Alert sources       |
 
 ## Supported Integrations
 
@@ -61,4 +66,5 @@ Connect OpsKnight with your existing tools and workflows.
 
 - [Events API](../api/events.md) - Receive alerts
 - [Slack Setup](./slack.md) - Team notifications
+- [Slack OAuth Setup](./slack-oauth-setup.md) - OAuth configuration
 - [Webhook Configuration](./webhooks.md) - Custom integrations

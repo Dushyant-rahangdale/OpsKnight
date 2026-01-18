@@ -1,3 +1,7 @@
+---
+order: 6
+---
+
 # Deployment
 
 Guides for deploying OpsKnight in production.
@@ -8,6 +12,7 @@ Guides for deploying OpsKnight in production.
 | ----------------------------- | ------------------------- |
 | [Docker](./docker.md)         | Docker Compose deployment |
 | [Kubernetes](./kubernetes.md) | Kubernetes deployment     |
+| [Helm](./helm.md)             | Helm chart deployment     |
 | [Mobile PWA](./mobile-pwa.md) | Progressive Web App       |
 
 ## Deployment Options
@@ -16,6 +21,7 @@ Guides for deploying OpsKnight in production.
 | ------------------ | ------------------------------- |
 | **Docker Compose** | Simple deployments, dev/staging |
 | **Kubernetes**     | Production, scaling, HA         |
+| **Helm**           | Repeatable, templated releases  |
 
 ## Quick Comparison
 

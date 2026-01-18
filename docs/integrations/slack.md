@@ -1,3 +1,7 @@
+---
+order: 1
+---
+
 # Slack Integration
 
 Send incident notifications to Slack channels.
@@ -10,6 +14,8 @@ Send incident notifications to Slack channels.
 - 📊 Incident details in messages
 
 ## Setup
+
+For detailed OAuth configuration and environment variables, see [Slack OAuth Setup](./slack-oauth-setup.md).
 
 ### Step 1: Create Slack App
 

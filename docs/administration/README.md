@@ -1,3 +1,7 @@
+---
+order: 3
+---
+
 # Administration
 
 Settings and configuration for OpsKnight administrators.
@@ -6,7 +10,7 @@ Settings and configuration for OpsKnight administrators.
 
 | Guide                                 | Description                |
 | ------------------------------------- | -------------------------- |
-| [Authentication](./authentication.md) | SSO, OIDC, encryption      |
+| [Authentication](./authentication.md) | Admin auth and access      |
 | [Notifications](./notifications.md)   | Email, SMS, Push, WhatsApp |
 | [Data Retention](./data-retention.md) | Cleanup policies           |
 | [Custom Fields](./custom-fields.md)   | Incident metadata          |
@@ -26,3 +30,5 @@ Settings and configuration for OpsKnight administrators.
 | SSO/OIDC               | Enterprise authentication |
 | Audit Logs             | Security event tracking   |
 | Data Retention         | Cleanup policies          |
+
+For SSO configuration and encryption details, see [Security](../security/).

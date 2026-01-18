@@ -1,3 +1,7 @@
+---
+order: 1
+---
+
 # Getting Started
 
 This section covers everything you need to get OpsKnight up and running.
@@ -7,8 +11,8 @@ This section covers everything you need to get OpsKnight up and running.
 | Guide                               | Description                                         |
 | ----------------------------------- | --------------------------------------------------- |
 | [Installation](./installation.md)   | Deploy with Docker, Docker Compose, or Kubernetes   |
-| [First Steps](./first-steps.md)     | Create your first admin user, service, and incident |
 | [Configuration](./configuration.md) | Environment variables reference                     |
+| [First Steps](./first-steps.md)     | Create your first admin user, service, and incident |
 
 ## Prerequisites
 
