@@ -34,7 +34,7 @@ export function AuthLayout({ children, showAnimation = true }: AuthLayoutProps) 
               />
             </Link>
             <div>
-              <h1 className="text-xl font-bold tracking-[0.2em] text-white">OpsKnight</h1>
+              <h1 className="text-xl font-extrabold tracking-[0.2em] text-white">OpsKnight</h1>
             </div>
           </div>
 
