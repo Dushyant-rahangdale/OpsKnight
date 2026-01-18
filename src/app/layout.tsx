@@ -1,7 +1,21 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter, Outfit } from 'next/font/google'; // [NEW]
 import '@/styles/index.css';
 import { Providers } from './providers';
 import VersionCheck from '@/components/VersionCheck';
+
+// Initialize fonts
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+  display: 'swap',
+});
+
+const outfit = Outfit({
+  variable: '--font-outfit',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'OpsKnight | Enterprise Incident Management',
@@ -36,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="color-scheme" content="light only" />
         <meta name="darkreader-lock" />
       </head>
-      <body>
+      <body className={`${inter.variable} ${outfit.variable} antialiased`}>
         <Providers>
           <VersionCheck />
           {children}
