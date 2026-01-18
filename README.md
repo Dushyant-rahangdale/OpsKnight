@@ -11,6 +11,11 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docs/deployment/docker-compose.md)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](docs/deployment/helm.md)
 
+> [!CAUTION]
+> **🚧 Under Active Development**
+> OpsKnight is currently in **Beta**. A stable V1 release is scheduled for **February 2026**.
+> Expect rapid updates and potential breaking changes until then.
+
 <div align="center">
   <h3>
     <a href="https://opsknight.com" target="_blank">
