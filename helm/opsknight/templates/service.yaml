@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "opssentinal.fullname" . }}
+  name: {{ include "opsknight.fullname" . }}
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
+    {{- include "opsknight.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,4 +12,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "opssentinal.selectorLabels" . | nindent 4 }}
+    {{- include "opsknight.selectorLabels" . | nindent 4 }}

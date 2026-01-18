@@ -1,6 +1,6 @@
 # Events API
 
-The Events API is the primary way to send alerts to OpsSentinal.
+The Events API is the primary way to send alerts to OpsKnight.
 
 ## Endpoint
 

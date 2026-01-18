@@ -1,6 +1,6 @@
 # Configuration Reference
 
-All environment variables used by OpsSentinal.
+All environment variables used by OpsKnight.
 
 ## Required Variables
 
@@ -56,11 +56,11 @@ Configure via **Settings → Notifications** UI, or set these variables:
 
 ### PostgreSQL (Docker Compose)
 
-| Variable            | Description       | Default          |
-| ------------------- | ----------------- | ---------------- |
-| `POSTGRES_USER`     | Database user     | `opssentinal`    |
-| `POSTGRES_PASSWORD` | Database password | -                |
-| `POSTGRES_DB`       | Database name     | `opssentinal_db` |
+| Variable            | Description       | Default        |
+| ------------------- | ----------------- | -------------- |
+| `POSTGRES_USER`     | Database user     | `opsknight`    |
+| `POSTGRES_PASSWORD` | Database password | -              |
+| `POSTGRES_DB`       | Database name     | `opsknight_db` |
 
 ## Security Best Practices
 
@@ -76,7 +76,7 @@ Configure via **Settings → Notifications** UI, or set these variables:
 
 ```bash
 # Database
-DATABASE_URL=postgresql://opssentinal:secure_password@localhost:5432/opssentinal_db
+DATABASE_URL=postgresql://opsknight:secure_password@localhost:5432/opsknight_db
 
 # NextAuth
 NEXTAUTH_URL=https://ops.yourcompany.com

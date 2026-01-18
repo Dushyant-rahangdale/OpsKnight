@@ -1,10 +1,10 @@
 # Services
 
-Services are the foundation of OpsSentinal. They represent the systems, applications, or infrastructure components you want to monitor.
+Services are the foundation of OpsKnight. They represent the systems, applications, or infrastructure components you want to monitor.
 
 ## What is a Service?
 
-A Service in OpsSentinal represents any component that can have incidents:
+A Service in OpsKnight represents any component that can have incidents:
 
 - APIs and microservices
 - Databases

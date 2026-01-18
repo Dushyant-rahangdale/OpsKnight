@@ -189,7 +189,7 @@ export default function LoginClient({
                     }}
                     onBlur={() => setEmailTouched(true)}
                     className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
-                    placeholder="you@opssentinal.com"
+                    placeholder="you@opsknight.com"
                     disabled={isSubmitting || isSuccess}
                   />
                   {emailTouched && email && !isEmailValid && (

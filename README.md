@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="public/banner.png" alt="OpsSentinal Banner" width="100%">
+<img src="public/banner.png" alt="OpsKnight Banner" width="100%">
 
-# 🛡️ OpsSentinal
+# 🛡️ OpsKnight
 
 **Open-Source Incident Management Platform**
 
@@ -36,15 +36,15 @@
 
 ```bash
 # Clone and configure
-git clone https://github.com/dushyant-rahangdale/opssentinal.git
-cd opssentinal
+git clone https://github.com/dushyant-rahangdale/opsknight.git
+cd opsknight
 cp env.example .env
 
 # Start services
 docker compose up -d
 
 # Create admin user
-docker exec -it opssentinal_app npm run opssentinal -- \
+docker exec -it opsknight_app npm run opsknight -- \
   --user "Admin" \
   --email admin@example.com \
   --password SecurePass123! \
@@ -87,7 +87,7 @@ See [Integrations Documentation](docs/integrations/) for setup guides.
 
 ```bash
 # Create/update users
-npm run opssentinal -- --user "Name" --email user@example.com --password Pass123! --role responder
+npm run opsknight -- --user "Name" --email user@example.com --password Pass123! --role responder
 ```
 
 See [CLI Documentation](docs/api/cli.md) for full usage.
@@ -108,7 +108,7 @@ For reporting security vulnerabilities or reviewing our security policy, please 
 
 ## 📄 License
 
-OpsSentinal is licensed under the [Apache License 2.0](LICENSE).
+OpsKnight is licensed under the [Apache License 2.0](LICENSE).
 
 ---
 

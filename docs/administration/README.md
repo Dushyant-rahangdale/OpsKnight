@@ -1,6 +1,6 @@
 # Administration
 
-Settings and configuration for OpsSentinal administrators.
+Settings and configuration for OpsKnight administrators.
 
 ## In This Section
 

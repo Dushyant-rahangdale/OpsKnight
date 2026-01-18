@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Create Escalation Policy | OpsSentinel',
+  title: 'Create Escalation Policy | OpsKnight',
 };
 
 export default async function CreatePolicyPage() {

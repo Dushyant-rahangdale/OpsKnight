@@ -1,10 +1,10 @@
 # Users
 
-User management and role-based access control in OpsSentinal.
+User management and role-based access control in OpsKnight.
 
 ## User Roles
 
-OpsSentinal has three built-in roles:
+OpsKnight has three built-in roles:
 
 | Role          | Description        | Capabilities                    |
 | ------------- | ------------------ | ------------------------------- |
@@ -17,7 +17,7 @@ OpsSentinal has three built-in roles:
 ### Via CLI (Recommended for Initial Setup)
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "John Doe" \
   --email john@company.com \
   --password SecurePass123! \

@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "opssentinal.fullname" . }}
+  name: {{ include "opsknight.fullname" . }}
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
+    {{- include "opsknight.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "opssentinal.selectorLabels" . | nindent 6 }}
+      {{- include "opsknight.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,13 +18,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "opssentinal.selectorLabels" . | nindent 8 }}
+        {{- include "opsknight.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "opssentinal.serviceAccountName" . }}
+      serviceAccountName: {{ include "opsknight.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -39,12 +39,12 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "opssentinal.fullname" . }}-config
+                name: {{ include "opsknight.fullname" . }}-config
             - secretRef:
-                name: {{ include "opssentinal.fullname" . }}-secrets
+                name: {{ include "opsknight.fullname" . }}-secrets
           env:
             - name: DATABASE_URL
-              value: {{ include "opssentinal.databaseUrl" . | quote }}
+              value: {{ include "opsknight.databaseUrl" . | quote }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:

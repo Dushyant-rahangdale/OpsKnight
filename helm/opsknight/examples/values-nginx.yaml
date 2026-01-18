@@ -7,11 +7,11 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-body-size: '10m'
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: opssentinal.yourdomain.com
+    - host: opsknight.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: opssentinal-tls
+    - secretName: opsknight-tls
       hosts:
-        - opssentinal.yourdomain.com
+        - opsknight.yourdomain.com

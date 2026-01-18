@@ -1,6 +1,6 @@
 # Incidents
 
-Incidents are the core of OpsSentinal. They represent issues that require attention and tracking through resolution.
+Incidents are the core of OpsKnight. They represent issues that require attention and tracking through resolution.
 
 ## Incident Lifecycle
 
@@ -62,7 +62,7 @@ curl -X POST https://your-ops.com/api/events \
 
 ## Deduplication
 
-OpsSentinal uses `dedup_key` to group related alerts:
+OpsKnight uses `dedup_key` to group related alerts:
 
 - Same `dedup_key` = Same incident
 - Different `dedup_key` = New incident

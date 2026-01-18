@@ -4,7 +4,7 @@ import { Providers } from './providers';
 import VersionCheck from '@/components/VersionCheck';
 
 export const metadata: Metadata = {
-  title: 'OpsSentinal | Enterprise Incident Management',
+  title: 'OpsKnight | Enterprise Incident Management',
   description: 'Enterprise incident management and response platform',
   icons: {
     icon: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'OpsSentinel',
+    title: 'OpsKnight',
   },
   manifest: '/manifest.json',
 };

@@ -1,6 +1,6 @@
 # Authentication Security
 
-OpsSentinal implements enterprise-grade authentication security features to protect your incident management platform. Our security architecture implements a defense-in-depth strategy covering the network, application, and data layers.
+OpsKnight implements enterprise-grade authentication security features to protect your incident management platform. Our security architecture implements a defense-in-depth strategy covering the network, application, and data layers.
 
 ## Defense Depth Matrix
 
@@ -86,7 +86,7 @@ Logs are stored in the `AuditLog` database table with `entityType: AUTH_SESSION`
 
 ## Password Requirements
 
-OpsSentinal enforces strong password policies consistent across UI and API:
+OpsKnight enforces strong password policies consistent across UI and API:
 
 ### Requirements
 

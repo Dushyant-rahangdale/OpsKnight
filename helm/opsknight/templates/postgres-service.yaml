@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "opssentinal.postgresql.serviceName" . }}
+  name: {{ include "opsknight.postgresql.serviceName" . }}
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
-    app.kubernetes.io/name: {{ include "opssentinal.name" . }}-postgresql
+    {{- include "opsknight.labels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "opsknight.name" . }}-postgresql
 spec:
   type: ClusterIP
   clusterIP: None
@@ -15,6 +15,6 @@ spec:
       protocol: TCP
       name: postgres
   selector:
-    app.kubernetes.io/name: {{ include "opssentinal.name" . }}-postgresql
+    app.kubernetes.io/name: {{ include "opsknight.name" . }}-postgresql
     app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

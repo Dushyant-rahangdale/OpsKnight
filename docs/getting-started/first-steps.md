@@ -1,13 +1,13 @@
 # First Steps
 
-After installing OpsSentinal, follow these steps to set up your incident management workflow.
+After installing OpsKnight, follow these steps to set up your incident management workflow.
 
 ## 1. Create Admin User
 
 If you haven't already, create your first admin user:
 
 ```bash
-docker exec -it opssentinal_app npm run opssentinal -- \
+docker exec -it opsknight_app npm run opsknight -- \
   --user "Your Name" \
   --email admin@yourcompany.com \
   --password SecurePassword123! \

@@ -369,7 +369,7 @@ export default function Sidebar(
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)] pointer-events-none" />
               <Image
                 src="/logo.svg"
-                alt="OpsSentinal logo"
+                alt="OpsKnight logo"
                 width={40}
                 height={40}
                 className={cn(
@@ -382,7 +382,7 @@ export default function Sidebar(
             {!isDesktopCollapsed && (
               <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                 <h1 className="text-lg font-bold text-white m-0 leading-tight tracking-tight">
-                  OpsSentinel
+                  OpsKnight
                 </h1>
                 <span className="text-xs text-white/50 font-medium uppercase tracking-wide">
                   Incident Response
@@ -544,7 +544,7 @@ export default function Sidebar(
           {!isDesktopCollapsed && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
               <span className="text-xs text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
-                opssentinal.com
+                opsknight.com
               </span>
               <span className="text-xs text-white/10 font-mono">v1.0.2</span>
             </div>

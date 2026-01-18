@@ -29,12 +29,12 @@ export function AuthLayout({ children, showAnimation = true }: AuthLayoutProps) 
             >
               <img
                 src="/logo.svg"
-                alt="OpsSentinal"
+                alt="OpsKnight"
                 className="h-7 w-7 opacity-90 group-hover:opacity-100 transition-opacity"
               />
             </Link>
             <div>
-              <h1 className="text-xl font-bold tracking-[0.2em] text-white">OpsSentinal</h1>
+              <h1 className="text-xl font-bold tracking-[0.2em] text-white">OpsKnight</h1>
             </div>
           </div>
 

@@ -3,13 +3,13 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "opssentinal.fullname" . }}-app
+  name: {{ include "opsknight.fullname" . }}-app
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
+    {{- include "opsknight.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "opssentinal.selectorLabels" . | nindent 6 }}
+      {{- include "opsknight.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress
@@ -26,7 +26,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              {{- include "opssentinal.selectorLabels" . | nindent 14 }}
+              {{- include "opsknight.selectorLabels" . | nindent 14 }}
       ports:
         - protocol: TCP
           port: {{ .Values.service.targetPort }}
@@ -36,7 +36,7 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              app.kubernetes.io/name: {{ include "opssentinal.name" . }}-postgresql
+              app.kubernetes.io/name: {{ include "opsknight.name" . }}-postgresql
       ports:
         - protocol: TCP
           port: 5432

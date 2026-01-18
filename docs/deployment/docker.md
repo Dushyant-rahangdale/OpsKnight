@@ -1,13 +1,13 @@
 # Docker Deployment
 
-Deploy OpsSentinal with Docker Compose.
+Deploy OpsKnight with Docker Compose.
 
 ## Quick Start
 
 ```bash
 # Clone repository
-git clone https://github.com/dushyant-rahangdale/opssentinal.git
-cd opssentinal
+git clone https://github.com/dushyant-rahangdale/opsknight.git
+cd opsknight
 
 # Configure
 cp env.example .env
@@ -17,7 +17,7 @@ cp env.example .env
 docker compose up -d
 
 # Create admin
-docker exec -it opssentinal_app npm run opssentinal -- \
+docker exec -it opsknight_app npm run opsknight -- \
   --user "Admin" --email admin@example.com \
   --password SecurePass123! --role admin
 ```
@@ -27,7 +27,7 @@ docker exec -it opssentinal_app npm run opssentinal -- \
 ### Required Environment Variables
 
 ```bash
-DATABASE_URL=postgresql://opssentinal:password@postgres:5432/opssentinal_db
+DATABASE_URL=postgresql://opsknight:password@postgres:5432/opsknight_db
 NEXTAUTH_URL=https://your-domain.com
 NEXTAUTH_SECRET=your-32-char-secret
 ```
@@ -57,7 +57,7 @@ cp env.example .env
 Edit `.env`:
 
 ```bash
-DATABASE_URL=postgresql://opssentinal:STRONG_PASSWORD@postgres:5432/opssentinal_db
+DATABASE_URL=postgresql://opsknight:STRONG_PASSWORD@postgres:5432/opsknight_db
 NEXTAUTH_URL=https://ops.yourcompany.com
 NEXTAUTH_SECRET=<generated-secret>
 POSTGRES_PASSWORD=STRONG_PASSWORD
@@ -108,10 +108,10 @@ docker compose up -d
 
 ```bash
 # Database backup
-docker exec opssentinal_postgres pg_dump -U opssentinal opssentinal_db > backup.sql
+docker exec opsknight_postgres pg_dump -U opsknight opsknight_db > backup.sql
 
 # Restore
-cat backup.sql | docker exec -i opssentinal_postgres psql -U opssentinal opssentinal_db
+cat backup.sql | docker exec -i opsknight_postgres psql -U opsknight opsknight_db
 ```
 
 ## Troubleshooting

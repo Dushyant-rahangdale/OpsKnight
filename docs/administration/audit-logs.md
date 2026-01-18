@@ -1,6 +1,6 @@
 # Audit Logs
 
-Track security-relevant events across your OpsSentinal workspace.
+Track security-relevant events across your OpsKnight workspace.
 
 ## What are Audit Logs?
 

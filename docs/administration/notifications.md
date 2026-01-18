@@ -1,6 +1,6 @@
 # Notifications
 
-Configure how OpsSentinal alerts users about incidents.
+Configure how OpsKnight alerts users about incidents.
 
 ## Notification Channels
 

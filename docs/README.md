@@ -1,6 +1,6 @@
-# 📚 OpsSentinal Documentation
+# 📚 OpsKnight Documentation
 
-Welcome to the OpsSentinal documentation! This guide will help you get started with the platform and explore all its features.
+Welcome to the OpsKnight documentation! This guide will help you get started with the platform and explore all its features.
 
 ## Quick Navigation
 
@@ -13,9 +13,9 @@ Welcome to the OpsSentinal documentation! This guide will help you get started w
 | [API Reference](./api/)               | REST API documentation                            |
 | [Deployment](./deployment/)           | Docker, Kubernetes, Mobile PWA                    |
 
-## What is OpsSentinal?
+## What is OpsKnight?
 
-OpsSentinal is an open-source incident management platform designed for DevOps and SRE teams. It provides:
+OpsKnight is an open-source incident management platform designed for DevOps and SRE teams. It provides:
 
 - 🚨 **Incident Management** - Complete lifecycle from trigger to resolution
 - 📅 **On-Call Scheduling** - Flexible rotations and overrides
@@ -27,5 +27,5 @@ OpsSentinal is an open-source incident management platform designed for DevOps a
 ## Getting Help
 
 - 📖 Browse the documentation sections above
-- 🐛 [Report issues on GitHub](https://github.com/dushyant-rahangdale/opssentinal/issues)
+- 🐛 [Report issues on GitHub](https://github.com/dushyant-rahangdale/opsknight/issues)
 - 💬 Join our community discussions

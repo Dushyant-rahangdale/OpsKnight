@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide covers all deployment options for OpsSentinal.
+This guide covers all deployment options for OpsKnight.
 
 ## Deployment Options
 
@@ -14,13 +14,13 @@ This guide covers all deployment options for OpsSentinal.
 
 ## Docker Compose
 
-The recommended way to run OpsSentinal.
+The recommended way to run OpsKnight.
 
 ### Step 1: Clone and Configure
 
 ```bash
-git clone https://github.com/dushyant-rahangdale/opssentinal.git
-cd opssentinal
+git clone https://github.com/dushyant-rahangdale/opsknight.git
+cd opsknight
 cp env.example .env
 ```
 
@@ -30,7 +30,7 @@ Edit `.env` with your settings:
 
 ```bash
 # Required
-DATABASE_URL=postgresql://opssentinal:your_password@postgres:5432/opssentinal_db
+DATABASE_URL=postgresql://opsknight:your_password@postgres:5432/opsknight_db
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here  # Generate with: openssl rand -base64 32
 
@@ -47,7 +47,7 @@ docker compose up -d
 ### Step 4: Create Admin User
 
 ```bash
-docker exec -it opssentinal_app npm run opssentinal -- \
+docker exec -it opsknight_app npm run opsknight -- \
   --user "Admin" \
   --email admin@example.com \
   --password SecurePass123! \

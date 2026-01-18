@@ -1,6 +1,6 @@
 # Authentication
 
-Configure how users authenticate with OpsSentinal.
+Configure how users authenticate with OpsKnight.
 
 ## Authentication Methods
 
@@ -16,7 +16,7 @@ Default authentication using email and password.
 ### Creating Users
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "John Doe" \
   --email john@company.com \
   --password SecurePass123! \
@@ -58,10 +58,10 @@ Enterprise single sign-on via OpenID Connect.
 
 ### Role Mapping
 
-Map provider roles to OpsSentinal roles:
+Map provider roles to OpsKnight roles:
 
 ```
-Provider Role    → OpsSentinal Role
+Provider Role    → OpsKnight Role
 admin            → Admin
 engineer         → Responder
 viewer           → User
@@ -71,7 +71,7 @@ Configure in **Settings → Authentication → Role Mapping**
 
 ## Encryption Keys
 
-OpsSentinal encrypts sensitive data:
+OpsKnight encrypts sensitive data:
 
 - API tokens
 - Integration secrets

@@ -3,10 +3,10 @@ ingress:
   enabled: true
   className: gce
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: opssentinal-ip
-    networking.gke.io/managed-certificates: opssentinal-cert
+    kubernetes.io/ingress.global-static-ip-name: opsknight-ip
+    networking.gke.io/managed-certificates: opsknight-cert
   hosts:
-    - host: opssentinal.yourdomain.com
+    - host: opsknight.yourdomain.com
       paths:
         - path: /
           pathType: Prefix

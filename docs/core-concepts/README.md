@@ -1,6 +1,6 @@
 # Core Concepts
 
-Understanding the fundamental building blocks of OpsSentinal.
+Understanding the fundamental building blocks of OpsKnight.
 
 ## In This Section
 

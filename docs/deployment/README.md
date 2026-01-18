@@ -1,6 +1,6 @@
 # Deployment
 
-Guides for deploying OpsSentinal in production.
+Guides for deploying OpsKnight in production.
 
 ## In This Section
 

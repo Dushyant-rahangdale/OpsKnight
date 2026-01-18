@@ -1,6 +1,6 @@
 # Urgency & Severity Mapping
 
-OpsSentinal normalizes alerts from different monitoring tools into a standard **Severity** and **Urgency** model. This ensures consistent notification behavior regardless of whether the alert comes from AWS, Datadog, or GitHub.
+OpsKnight normalizes alerts from different monitoring tools into a standard **Severity** and **Urgency** model. This ensures consistent notification behavior regardless of whether the alert comes from AWS, Datadog, or GitHub.
 
 ## Core Concepts
 
@@ -29,15 +29,15 @@ Urgency determines how the user is notified based on the incident created from t
 
 ## Integration Mapping Tables
 
-How specific tools map to OpsSentinal Severity & Urgency.
+How specific tools map to OpsKnight Severity & Urgency.
 
 ### Cloud Providers
 
 #### AWS CloudWatch & SNS
 
-OpsSentinal supports both direct CloudWatch Alarms and via **SNS** notifications.
+OpsKnight supports both direct CloudWatch Alarms and via **SNS** notifications.
 
-| State/Type          | OpsSentinal Severity          | Urgency |
+| State/Type          | OpsKnight Severity            | Urgency |
 | ------------------- | ----------------------------- | ------- |
 | `ALARM`             | **Critical**                  | 🔴 HIGH |
 | `OK`                | Info                          | 🟢 LOW  |
@@ -46,67 +46,67 @@ OpsSentinal supports both direct CloudWatch Alarms and via **SNS** notifications
 
 #### Azure Monitor
 
-| Azure Severity | OpsSentinal Severity | Urgency   |
-| -------------- | -------------------- | --------- |
-| `Sev0`         | **Critical**         | 🔴 HIGH   |
-| `Sev1`         | **Error**            | 🟠 MEDIUM |
-| `Sev2`         | Warning              | 🟡 LOW    |
-| `Sev3`         | Info                 | 🟢 LOW    |
-| `Sev4`         | Info                 | 🟢 LOW    |
+| Azure Severity | OpsKnight Severity | Urgency   |
+| -------------- | ------------------ | --------- |
+| `Sev0`         | **Critical**       | 🔴 HIGH   |
+| `Sev1`         | **Error**          | 🟠 MEDIUM |
+| `Sev2`         | Warning            | 🟡 LOW    |
+| `Sev3`         | Info               | 🟢 LOW    |
+| `Sev4`         | Info               | 🟢 LOW    |
 
 ### Infrastructure Monitoring
 
 #### Datadog
 
-| Alert Type | OpsSentinal Severity | Urgency |
-| ---------- | -------------------- | ------- |
-| `error`    | **Critical**         | 🔴 HIGH |
-| `warning`  | Warning              | 🟡 LOW  |
-| `info`     | Info                 | 🟢 LOW  |
-| `success`  | Info                 | 🟢 LOW  |
+| Alert Type | OpsKnight Severity | Urgency |
+| ---------- | ------------------ | ------- |
+| `error`    | **Critical**       | 🔴 HIGH |
+| `warning`  | Warning            | 🟡 LOW  |
+| `info`     | Info               | 🟢 LOW  |
+| `success`  | Info               | 🟢 LOW  |
 
 #### Prometheus / Alertmanager
 
-| Label (`severity`)   | OpsSentinal Severity | Urgency   |
-| -------------------- | -------------------- | --------- |
-| `critical` OR `page` | **Critical**         | 🔴 HIGH   |
-| `error`              | **Error**            | 🟠 MEDIUM |
-| `warning`            | Warning              | 🟡 LOW    |
-| _other_              | Warning              | 🟡 LOW    |
+| Label (`severity`)   | OpsKnight Severity | Urgency   |
+| -------------------- | ------------------ | --------- |
+| `critical` OR `page` | **Critical**       | 🔴 HIGH   |
+| `error`              | **Error**          | 🟠 MEDIUM |
+| `warning`            | Warning            | 🟡 LOW    |
+| _other_              | Warning            | 🟡 LOW    |
 
 #### New Relic
 
-| Severity   | OpsSentinal Severity | Urgency |
-| ---------- | -------------------- | ------- |
-| `critical` | **Critical**         | 🔴 HIGH |
-| `warning`  | Warning              | 🟡 LOW  |
-| `info`     | Info                 | 🟢 LOW  |
+| Severity   | OpsKnight Severity | Urgency |
+| ---------- | ------------------ | ------- |
+| `critical` | **Critical**       | 🔴 HIGH |
+| `warning`  | Warning            | 🟡 LOW  |
+| `info`     | Info               | 🟢 LOW  |
 
 #### Grafana
 
-| State      | OpsSentinal Severity | Urgency |
-| ---------- | -------------------- | ------- |
-| `alerting` | **Critical**         | 🔴 HIGH |
-| `no_data`  | Warning              | 🟡 LOW  |
-| `pending`  | Info                 | 🟢 LOW  |
-| `ok`       | Info                 | 🟢 LOW  |
+| State      | OpsKnight Severity | Urgency |
+| ---------- | ------------------ | ------- |
+| `alerting` | **Critical**       | 🔴 HIGH |
+| `no_data`  | Warning            | 🟡 LOW  |
+| `pending`  | Info               | 🟢 LOW  |
+| `ok`       | Info               | 🟢 LOW  |
 
 ### Error Tracking
 
 #### Sentry
 
-| Level            | OpsSentinal Severity | Urgency   |
-| ---------------- | -------------------- | --------- |
-| `fatal`          | **Critical**         | 🔴 HIGH   |
-| `error`          | **Error**            | 🟠 MEDIUM |
-| `warning`        | Warning              | 🟡 LOW    |
-| `info` / `debug` | Info                 | 🟢 LOW    |
+| Level            | OpsKnight Severity | Urgency   |
+| ---------------- | ------------------ | --------- |
+| `fatal`          | **Critical**       | 🔴 HIGH   |
+| `error`          | **Error**          | 🟠 MEDIUM |
+| `warning`        | Warning            | 🟡 LOW    |
+| `info` / `debug` | Info               | 🟢 LOW    |
 
 ### CI/CD & Code
 
 #### GitHub / GitLab
 
-| Status                 | OpsSentinal Severity    | Urgency   |
+| Status                 | OpsKnight Severity      | Urgency   |
 | ---------------------- | ----------------------- | --------- |
 | `failure` (Workflow)   | **Error**               | 🟠 MEDIUM |
 | `failure` (Deployment) | **Error**               | 🟠 MEDIUM |
@@ -127,21 +127,21 @@ The following integrations map severity using standard keywords (`critical`, `er
 
 #### UptimeRobot / Pingdom / Better Uptime / Uptime Kuma
 
-| Status            | OpsSentinal Severity | Urgency |
-| ----------------- | -------------------- | ------- |
-| `down` / `open`   | **Critical**         | 🔴 HIGH |
-| `up` / `resolved` | Info                 | 🟢 LOW  |
+| Status            | OpsKnight Severity | Urgency |
+| ----------------- | ------------------ | ------- |
+| `down` / `open`   | **Critical**       | 🔴 HIGH |
+| `up` / `resolved` | Info               | 🟢 LOW  |
 
 ### Custom Webhooks
 
 You can control mapping directly in your JSON payload using standard fields.
 
-| Field Value         | OpsSentinal Severity | Urgency   |
-| ------------------- | -------------------- | --------- |
-| `critical`, `high`  | **Critical**         | 🔴 HIGH   |
-| `error`             | **Error**            | 🟠 MEDIUM |
-| `warning`, `medium` | Warning              | 🟡 LOW    |
-| `info`, `low`       | Info                 | 🟢 LOW    |
+| Field Value         | OpsKnight Severity | Urgency   |
+| ------------------- | ------------------ | --------- |
+| `critical`, `high`  | **Critical**       | 🔴 HIGH   |
+| `error`             | **Error**          | 🟠 MEDIUM |
+| `warning`, `medium` | Warning            | 🟡 LOW    |
+| `info`, `low`       | Info               | 🟢 LOW    |
 
 **Example Configurable Payload:**
 

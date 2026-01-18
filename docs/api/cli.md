@@ -1,13 +1,13 @@
 # CLI Tool
 
-The OpsSentinalCLI for user management and automation.
+The OpsKnightCLI for user management and automation.
 
 ## Installation
 
-The CLI is included with OpsSentinal:
+The CLI is included with OpsKnight:
 
 ```bash
-npm run opssentinal -- [options]
+npm run opsknight -- [options]
 ```
 
 ## User Management
@@ -15,7 +15,7 @@ npm run opssentinal -- [options]
 ### Create User
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "John Doe" \
   --email john@company.com \
   --password SecurePass123! \
@@ -35,7 +35,7 @@ npm run opssentinal -- \
 ### Update User
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "John Doe" \
   --email john@company.com \
   --password NewPassword123! \
@@ -48,7 +48,7 @@ npm run opssentinal -- \
 When running in Docker:
 
 ```bash
-docker exec -it opssentinal_app npm run opssentinal -- \
+docker exec -it opsknight_app npm run opsknight -- \
   --user "Admin" \
   --email admin@example.com \
   --password SecurePass123! \
@@ -58,7 +58,7 @@ docker exec -it opssentinal_app npm run opssentinal -- \
 ## Kubernetes Usage
 
 ```bash
-kubectl exec -it deploy/opssentinal -- npm run opssentinal -- \
+kubectl exec -it deploy/opsknight -- npm run opsknight -- \
   --user "Admin" \
   --email admin@example.com \
   --password SecurePass123! \
@@ -72,7 +72,7 @@ kubectl exec -it deploy/opssentinal -- npm run opssentinal -- \
 Create the first admin user after deployment:
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "System Admin" \
   --email admin@yourcompany.com \
   --password "$(openssl rand -base64 16)" \
@@ -82,7 +82,7 @@ npm run opssentinal -- \
 ### Reset Password
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --user "John Doe" \
   --email john@company.com \
   --password NewSecurePass! \
@@ -93,7 +93,7 @@ npm run opssentinal -- \
 ### Promote User
 
 ```bash
-npm run opssentinal -- \
+npm run opsknight -- \
   --email john@company.com \
   --role admin \
   --update

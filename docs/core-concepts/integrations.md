@@ -1,10 +1,10 @@
 # Integrations End-to-End
 
-This document explains how integrations work in OpsSentinal, from receiving a webhook to creating an incident.
+This document explains how integrations work in OpsKnight, from receiving a webhook to creating an incident.
 
 ## Overview
 
-OpsSentinal supports 21 external monitoring and alerting services that can send webhooks to automatically create and manage incidents.
+OpsKnight supports 21 external monitoring and alerting services that can send webhooks to automatically create and manage incidents.
 
 ```mermaid
 flowchart LR
@@ -191,7 +191,7 @@ Check integration health at `/api/integrations/health`:
 
 ## Severity Mapping
 
-Each integration maps its native severity to OpsSentinal levels:
+Each integration maps its native severity to OpsKnight levels:
 
 | Integration | Critical      | Error | Warning | Info         |
 | ----------- | ------------- | ----- | ------- | ------------ |
@@ -269,7 +269,7 @@ graph TB
 
 ## Real World Testing (Localhost)
 
-To test integrations with **real** external services (like GitHub, AWS, Datadog) while running OpsSentinal locally, you need to expose your local server to the internet.
+To test integrations with **real** external services (like GitHub, AWS, Datadog) while running OpsKnight locally, you need to expose your local server to the internet.
 
 ### 1. Expose Localhost via ngrok
 
@@ -293,14 +293,14 @@ For example, to test **GitHub**:
 2.  Click **Add webhook**.
 3.  **Payload URL**: `{NGROK_URL}/api/integrations/github?integrationId={YOUR_INTEGRATION_ID}`
 4.  **Content type**: `application/json`
-5.  **Secret**: _(Optional) Set this if you configured `signatureSecret` in OpsSentinal_
+5.  **Secret**: _(Optional) Set this if you configured `signatureSecret` in OpsKnight_
 6.  **Which events?**: Select "Workflow runs" or "Pushes".
 7.  Click **Add webhook**.
 
 ### 3. Trigger an Event
 
 1.  Trigger the event in the external service (e.g., push code to GitHub).
-2.  Watch your local OpsSentinal logs (`npm run dev` terminal).
+2.  Watch your local OpsKnight logs (`npm run dev` terminal).
 3.  Check `http://localhost:3000/incidents` to see the new incident!
 
 > **Note:** The integration must be `enabled` and have a valid `signatureSecret` (if configured on the external service).

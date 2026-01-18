@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "opssentinal.fullname" . }}
+  name: {{ include "opsknight.fullname" . }}
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
+    {{- include "opsknight.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -33,7 +33,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "opssentinal.fullname" $ }}
+                name: {{ include "opsknight.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
           {{- end }}

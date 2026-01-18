@@ -2,12 +2,12 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "opssentinal.fullname" . }}
+  name: {{ include "opsknight.fullname" . }}
   labels:
-    {{- include "opssentinal.labels" . | nindent 4 }}
+    {{- include "opsknight.labels" . | nindent 4 }}
 spec:
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   selector:
     matchLabels:
-      {{- include "opssentinal.selectorLabels" . | nindent 6 }}
+      {{- include "opsknight.selectorLabels" . | nindent 6 }}
 {{- end }}

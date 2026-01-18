@@ -1,4 +1,4 @@
-# Default values for opssentinal
+# Default values for opsknight
 # This is a YAML-formatted file.
 
 # -- Number of replicas for the application deployment
@@ -6,7 +6,7 @@ replicaCount: 2
 
 # -- Image configuration
 image:
-  repository: ghcr.io/dushyant-rahangdale/opssentinal
+  repository: ghcr.io/dushyant-rahangdale/opsknight
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion
   tag: ''
@@ -63,15 +63,15 @@ ingress:
   annotations: {}
   # -- Ingress hosts configuration
   hosts:
-    - host: opssentinal.example.com
+    - host: opsknight.example.com
       paths:
         - path: /
           pathType: Prefix
   # -- Ingress TLS configuration
   tls: []
-  #  - secretName: opssentinal-tls
+  #  - secretName: opsknight-tls
   #    hosts:
-  #      - opssentinal.example.com
+  #      - opsknight.example.com
 
 # -- Resource requests and limits
 resources:
@@ -155,15 +155,15 @@ postgresql:
   # -- Enable built-in PostgreSQL. Set to false to use an external database
   enabled: true
   # -- Database name
-  database: opssentinal_db
+  database: opsknight_db
   # -- Database host (only used when postgresql.enabled=false)
   host: ''
   # -- Database port
   port: '5432'
   # -- Database user
-  username: opssentinal
+  username: opsknight
   # -- Database password (generate a secure password for production)
-  password: 'opssentinal_secure_password_change_me'
+  password: 'opsknight_secure_password_change_me'
   # -- Storage size for PostgreSQL PVC
   storage: 10Gi
   # -- Storage class for PostgreSQL PVC (leave empty for default)
