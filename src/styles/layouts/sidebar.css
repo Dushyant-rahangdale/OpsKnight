@@ -180,9 +180,10 @@
 
 .sidebar-section-title {
   font-size: 0.6875rem; /* 11px - fixed size */
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .sidebar .nav-item:focus-visible {
@@ -200,9 +201,10 @@
   border-radius: 7px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   background: transparent;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
-  font-size: 0.875rem; /* Fixed: 14px */
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  font-size: 0.8125rem; /* 13px - compact */
+  letter-spacing: -0.005em;
   border: 1px solid transparent;
   min-width: 0;
   position: relative;
@@ -223,7 +225,8 @@
 .sidebar .nav-item.active {
   background: rgba(255, 255, 255, 0.18);
   color: white;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: none;
 }

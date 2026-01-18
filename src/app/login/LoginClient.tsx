@@ -116,7 +116,7 @@ export default function LoginClient({
       <AuthCard isSuccess={isSuccess}>
         {/* Card Header */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h2 className="text-2xl font-extrabold tracking-tight text-white tracking-tight flex items-center gap-3">
             {isSuccess ? (
               <span className="text-emerald-400 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <CheckCircle2 className="w-6 h-6" />

@@ -4,10 +4,11 @@ import '@/styles/index.css';
 import { Providers } from './providers';
 import VersionCheck from '@/components/VersionCheck';
 
-// Initialize fonts
+// Initialize fonts with explicit weights for better control
 const manrope = Manrope({
   variable: '--font-manrope',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
 });
 
