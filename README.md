@@ -27,7 +27,15 @@
 
 ## 🚀 Overview
 
-**OpsKnight** is the open-source alternative to PagerDuty and OpsGenie. We help engineering teams manage on-call rotations, escalate alerts, and communicate incidents effectively—without the enterprise price tag.
+**OpsKnight** is the open-source alternative to PagerDuty and OpsGenie. We help engineering teams manage on-call rotations, escalate alerts, and communicate incidents effectively—without the enterprise price tag or data lock-in.
+
+| Feature                      | OpsKnight (Open Source) | PagerDuty / OpsGenie |
+| :--------------------------- | :---------------------: | :------------------: |
+| **Self-Hosted Data Privacy** |           ✅            |          ❌          |
+| **Unlimited Seats**          |           ✅            |    ❌ ($$$/user)     |
+| **Customizable Escalations** |           ✅            |          ✅          |
+| **Public Status Pages**      |           ✅            |     ✅ (Add-on)      |
+| **No Vendor Lock-in**        |           ✅            |          ❌          |
 
 ### ✨ Key Features
 
@@ -118,13 +126,19 @@ Native support for your favorite observability tools:
 
 ---
 
+## 🌏 Community & Support
+
+Join the conversation and help build the future of incident management.
+
+- [**Discord**](https://discord.gg/opsknight) - Chat with the team and other users.
+- [**GitHub Discussions**](https://github.com/dushyant-rahangdale/opsknight/discussions) - Ask questions and share ideas.
+- [**Twitter / X**](https://twitter.com/opsknight) - Follow for updates and announcements.
+
+---
+
 ## 🤝 Contributing
 
-We love contributions! OpsKnight is built by the community, for the community.
-
-1.  Read our [**Contributing Guide**](CONTRIBUTING.md).
-2.  Join our [Discord](https://discord.gg/opsknight) to discuss ideas.
-3.  Open a Pull Request!
+We love contributions! OpsKnight is built by the community, for the community. Please read our [**Contributing Guide**](CONTRIBUTING.md) to get started.
 
 ## 📄 License
 
