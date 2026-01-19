@@ -47,17 +47,6 @@ export default function ProviderCard({
         )
       : existing?.enabled || false;
 
-  // Check if provider has required configuration
-  const hasRequiredConfig =
-    existing?.config &&
-    Object.keys(existing.config).length > 0 &&
-    providerConfig.fields
-      .filter(f => f.required)
-      .every(f => {
-        const value = (existing.config as Record<string, unknown>)[f.name];
-        return value && String(value).trim() !== '';
-      });
-
   const [enabled, setEnabled] = useState(initialEnabled);
   const [config, setConfig] = useState<Record<string, unknown>>(
     (existing?.config as Record<string, unknown>) || {}
@@ -65,6 +54,18 @@ export default function ProviderCard({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateNotice, setGenerateNotice] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const hasRequiredConfig =
+    Object.keys(config).length > 0 &&
+    providerConfig.fields
+      .filter(f => f.required)
+      .every(f => {
+        const value = config[f.name];
+        return value && String(value).trim() !== '';
+      });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,6 +204,50 @@ export default function ProviderCard({
     }
   };
 
+  const isWebPush = providerConfig.key === 'web-push';
+  const hasVapidKeys =
+    typeof config.vapidPublicKey === 'string' &&
+    config.vapidPublicKey.trim() !== '' &&
+    typeof config.vapidPrivateKey === 'string' &&
+    config.vapidPrivateKey.trim() !== '';
+  const legacyKeyCount = Array.isArray(config.vapidKeyHistory) ? config.vapidKeyHistory.length : 0;
+
+  const handleGenerateVapid = async () => {
+    setIsGenerating(true);
+    setGenerateNotice(null);
+    setGenerateError(null);
+    setError(null);
+
+    try {
+      const { generateVapidKeys } = await import('@/app/(app)/settings/system/actions');
+      const subjectValue = typeof config.vapidSubject === 'string' ? config.vapidSubject : '';
+      const result = await generateVapidKeys({
+        subject: subjectValue,
+        rotate: hasVapidKeys,
+        keepPrevious: true,
+      });
+
+      setConfig(prev => ({
+        ...prev,
+        vapidPublicKey: result.publicKey,
+        vapidPrivateKey: result.privateKey,
+        vapidSubject: result.subject,
+      }));
+
+      setGenerateNotice(
+        hasVapidKeys
+          ? 'Keys rotated. Existing devices continue to work; new devices use the latest key.'
+          : 'VAPID keys generated and saved.'
+      );
+    } catch (err) {
+      setGenerateError(
+        err instanceof Error ? err.message : 'Failed to generate VAPID keys. Please try again.'
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -261,6 +306,48 @@ export default function ProviderCard({
                 Enable {providerConfig.name}
               </Label>
             </div>
+
+            {isWebPush && (
+              <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">VAPID keys</p>
+                    <p className="text-xs text-muted-foreground">
+                      Generate or rotate the key pair for web push. Rotations keep existing devices
+                      working by retaining previous keys.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateVapid}
+                    disabled={isGenerating}
+                    className="gap-2"
+                  >
+                    {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {hasVapidKeys ? 'Rotate keys' : 'Generate keys'}
+                  </Button>
+                </div>
+                {hasVapidKeys && (
+                  <div className="text-xs text-muted-foreground">
+                    Legacy keys retained: {legacyKeyCount}
+                  </div>
+                )}
+                {generateNotice && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-700">{generateNotice}</AlertDescription>
+                  </Alert>
+                )}
+                {generateError && (
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>{generateError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
 
             {enabled && (
               <div className="space-y-4 border-t pt-4">

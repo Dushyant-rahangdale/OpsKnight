@@ -134,6 +134,11 @@ describeIfRealDB('Database Resilience Integration Tests', { timeout: 30000 }, ()
       expect(incAfterStep0?.escalationStatus).toBe('ESCALATING');
       expect(incAfterStep0?.nextEscalationAt).not.toBeNull();
 
+      await testPrisma.incident.update({
+        where: { id: incident.id },
+        data: { nextEscalationAt: new Date(Date.now() - 1000) },
+      });
+
       // 2. Run Step 1 (Manually trigger it to simulate job execution)
       const res2 = await executeEscalation(incident.id, 1);
       expect(res2.stepIndex).toBe(1);
