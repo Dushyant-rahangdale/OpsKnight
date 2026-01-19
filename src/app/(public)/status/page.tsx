@@ -1,5 +1,17 @@
 import prisma from '@/lib/prisma';
 import { Metadata } from 'next';
+import {
+  Shield,
+  AlertTriangle,
+  Globe,
+  Key,
+  UserCheck,
+  Database,
+  Activity,
+  Info,
+  ArrowRight,
+  Mail,
+} from 'lucide-react';
 import { getBaseUrl } from '@/lib/env-validation';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
@@ -1313,9 +1325,7 @@ async function renderStatusPage(statusPage: any) {
                         }}
                         aria-label={`Email ${statusPage.contactEmail}`}
                       >
-                        <span aria-hidden="true" style={{ fontSize: '0.9rem' }}>
-                          ?
-                        </span>
+                        <Mail size={14} />
                         {statusPage.contactEmail}
                       </a>
                     )}
@@ -1336,9 +1346,7 @@ async function renderStatusPage(statusPage: any) {
                         }}
                         aria-label={`Open ${contactUrlLabel || statusPage.contactUrl}`}
                       >
-                        <span aria-hidden="true" style={{ fontSize: '0.9rem' }}>
-                          ?
-                        </span>
+                        <Globe size={14} />
                         {contactUrlLabel || statusPage.contactUrl}
                       </a>
                     )}
