@@ -81,6 +81,55 @@ export async function updateNotificationProvider(
 }
 
 /**
+ * Generate and persist VAPID keys for Web Push
+ */
+export async function generateVapidKeys(existingSubject?: string) {
+  try {
+    await assertAdmin();
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? error.message : 'Unauthorized. Admin access required.'
+    );
+  }
+
+  const { generateVAPIDKeys } = await import('web-push');
+  const { publicKey, privateKey } = generateVAPIDKeys();
+  const subject = existingSubject?.trim() || 'mailto:admin@example.com';
+
+  const user = await getCurrentUser();
+  const existing = await prisma.notificationProvider.findUnique({
+    where: { provider: 'web-push' },
+  });
+  const existingConfig = (existing?.config as Record<string, unknown>) || {};
+
+  const nextConfig = {
+    ...existingConfig,
+    vapidPublicKey: publicKey,
+    vapidPrivateKey: privateKey,
+    vapidSubject: subject,
+  };
+
+  await prisma.notificationProvider.upsert({
+    where: { provider: 'web-push' },
+    create: {
+      provider: 'web-push',
+      enabled: existing?.enabled ?? false,
+      config: nextConfig,
+      updatedBy: user.id,
+    },
+    update: {
+      config: nextConfig,
+      updatedBy: user.id,
+    },
+  });
+
+  revalidatePath('/settings/notifications');
+  revalidatePath('/settings/system');
+
+  return { publicKey, privateKey, subject };
+}
+
+/**
  * Save OIDC/SSO configuration
  */
 function normalizeDomains(value: string) {
