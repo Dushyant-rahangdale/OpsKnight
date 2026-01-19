@@ -41,6 +41,7 @@ export interface EmailConfig {
   enabled: boolean;
   provider: EmailProvider;
   apiKey?: string;
+  password?: string;
   fromEmail?: string;
   source?: string;
   host?: string;
@@ -104,6 +105,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
           enabled: true,
           provider: 'smtp',
           apiKey: config.password,
+          password: config.password,
           fromEmail: config.fromEmail || defaultFromEmail,
           source: 'smtp',
           host: config.host,
@@ -194,6 +196,7 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             enabled: true,
             provider: 'smtp',
             apiKey: config.password,
+            password: config.password,
             fromEmail: config.fromEmail || defaultFromEmail,
             source: 'status-page-smtp',
             host: config.host,
