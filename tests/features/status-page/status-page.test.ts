@@ -91,23 +91,41 @@ describe('Status Page Features', () => {
       `;
 
       const sanitizeCSS = (css: string) => {
-        // Remove potentially dangerous CSS
-        return css.replace(/<script>/gi, '').replace(/javascript:/gi, '');
+        // Remove potentially dangerous CSS (CodeQL fix: added data: and vbscript:)
+        return css
+          .replace(/<script>/gi, '')
+          .replace(/javascript:/gi, '')
+          .replace(/vbscript:/gi, '')
+          .replace(/data:/gi, '');
       };
 
       const sanitized = sanitizeCSS(customCSS);
 
       expect(sanitized).not.toContain('<script>');
       expect(sanitized).toContain('.status-page');
+
+      // Verify CodeQL fix
+      expect(sanitizeCSS('expression(javascript:alert(1))')).not.toContain('javascript:');
+      expect(sanitizeCSS('background: url(data:image/svg+xml;base64,PHN2Zy...)')).not.toContain(
+        'data:'
+      );
+      expect(sanitizeCSS('behavior: url(vbscript:msgbox(1))')).not.toContain('vbscript:');
     });
 
     it('should validate CSS syntax', () => {
       const isValidCSS = (css: string) => {
-        // Basic validation
-        return !css.includes('<script>') && !css.includes('javascript:');
+        // Basic validation (CodeQL fix: added data: and vbscript:)
+        const lower = css.toLowerCase();
+        return (
+          !lower.includes('<script>') &&
+          !lower.includes('javascript:') &&
+          !lower.includes('vbscript:') &&
+          !lower.includes('data:')
+        );
       };
 
       expect(isValidCSS('.class { color: red; }')).toBe(true);
+      expect(isValidCSS('background: url(data:...)')).toBe(false);
       expect(isValidCSS('<script>alert("xss")</script>')).toBe(false);
     });
   });
