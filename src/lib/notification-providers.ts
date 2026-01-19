@@ -191,7 +191,7 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             fromEmail: config.fromEmail || defaultFromEmail,
             source: 'status-page-sendgrid',
           };
-        } else if (preferredProvider === 'smtp' && config.host) {
+        } else if (preferredProvider === 'smtp' && config.host && config.user && config.password) {
           return {
             enabled: true,
             provider: 'smtp',
@@ -204,7 +204,7 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             port: config.port,
             secure: config.secure === true,
           };
-        } else if (preferredProvider === 'ses' && config.accessKeyId) {
+        } else if (preferredProvider === 'ses' && config.accessKeyId && config.secretAccessKey) {
           return {
             enabled: true,
             provider: 'ses',
