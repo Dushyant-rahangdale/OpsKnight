@@ -85,10 +85,10 @@ export default async function PublicStatusPage() {
       announcements: {
         where: {
           isActive: true,
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+          OR: [{ type: 'UPDATE' }, { endDate: null }, { endDate: { gte: new Date() } }],
         },
         orderBy: { startDate: 'desc' },
-        take: 10,
+        take: 3,
       },
     },
   });
