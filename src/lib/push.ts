@@ -14,6 +14,14 @@ import webpush from 'web-push';
 // Configure Web Push if keys are present
 // We will configure VAPID details per-request based on DB config or Env variables
 
+function normalizeVapidKey(rawKey?: string | null) {
+  if (!rawKey) return undefined;
+  const trimmed = rawKey.trim();
+  if (!trimmed) return undefined;
+  const cleaned = trimmed.replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
+  return cleaned.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
 export type PushOptions = {
   userId: string;
   title: string;
@@ -68,18 +76,28 @@ export async function sendPush(
         pushConfig.vapidPublicKey &&
         pushConfig.vapidPrivateKey
       ) {
+        const publicKey = normalizeVapidKey(pushConfig.vapidPublicKey);
+        const privateKey = normalizeVapidKey(pushConfig.vapidPrivateKey);
+        if (!publicKey || !privateKey) {
+          return undefined;
+        }
         return {
           subject: pushConfig.vapidSubject || 'mailto:admin@localhost',
-          publicKey: pushConfig.vapidPublicKey,
-          privateKey: pushConfig.vapidPrivateKey,
+          publicKey,
+          privateKey,
         };
       }
 
       if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        const publicKey = normalizeVapidKey(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+        const privateKey = normalizeVapidKey(process.env.VAPID_PRIVATE_KEY);
+        if (!publicKey || !privateKey) {
+          return undefined;
+        }
         return {
           subject: process.env.VAPID_SUBJECT || 'mailto:admin@localhost',
-          publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-          privateKey: process.env.VAPID_PRIVATE_KEY,
+          publicKey,
+          privateKey,
         };
       }
 
