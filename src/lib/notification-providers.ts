@@ -41,6 +41,7 @@ export interface EmailConfig {
   enabled: boolean;
   provider: EmailProvider;
   apiKey?: string;
+  password?: string;
   fromEmail?: string;
   source?: string;
   host?: string;
@@ -104,6 +105,7 @@ export async function getEmailConfig(): Promise<EmailConfig> {
           enabled: true,
           provider: 'smtp',
           apiKey: config.password,
+          password: config.password,
           fromEmail: config.fromEmail || defaultFromEmail,
           source: 'smtp',
           host: config.host,
@@ -189,11 +191,12 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             fromEmail: config.fromEmail || defaultFromEmail,
             source: 'status-page-sendgrid',
           };
-        } else if (preferredProvider === 'smtp' && config.host) {
+        } else if (preferredProvider === 'smtp' && config.host && config.user && config.password) {
           return {
             enabled: true,
             provider: 'smtp',
             apiKey: config.password,
+            password: config.password,
             fromEmail: config.fromEmail || defaultFromEmail,
             source: 'status-page-smtp',
             host: config.host,
@@ -201,7 +204,7 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
             port: config.port,
             secure: config.secure === true,
           };
-        } else if (preferredProvider === 'ses' && config.accessKeyId) {
+        } else if (preferredProvider === 'ses' && config.accessKeyId && config.secretAccessKey) {
           return {
             enabled: true,
             provider: 'ses',

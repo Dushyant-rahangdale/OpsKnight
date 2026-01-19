@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
+      'Cache-Control': 'no-store',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no', // Disable nginx buffering
     },

@@ -372,7 +372,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="analytics-report-${new Date().toISOString().split('T')[0]}.csv"`,
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

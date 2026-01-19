@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-store',
       Connection: 'keep-alive',
     },
   });
