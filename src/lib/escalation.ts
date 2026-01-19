@@ -234,39 +234,44 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
 
   const stepDelayMs = (step.delayMinutes || 0) * 60 * 1000;
   if (stepDelayMs > 0) {
-    if (incident.nextEscalationAt && incident.nextEscalationAt.getTime() > now.getTime()) {
+    const scheduledAt = incident.nextEscalationAt;
+    if (!scheduledAt) {
+      const nextRunAt = new Date(now.getTime() + stepDelayMs);
+      await prisma.incident.update({
+        where: { id: incidentId },
+        data: {
+          escalationStatus: 'ESCALATING',
+          currentEscalationStep: currentStepIndex,
+          nextEscalationAt: nextRunAt,
+          escalationProcessingAt: null,
+        },
+      });
+
+      await prisma.incidentEvent.create({
+        data: {
+          incidentId,
+          message: `Escalation scheduled for [[scheduledAt=${nextRunAt.toISOString()}]] (${step.delayMinutes} minute delay)`,
+        },
+      });
+
+      try {
+        const { scheduleEscalation } = await import('./jobs/queue');
+        await scheduleEscalation(incidentId, currentStepIndex, stepDelayMs);
+      } catch (error) {
+        logger.error('Failed to schedule initial escalation job', {
+          incidentId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
       return { escalated: false, reason: 'Escalation scheduled' };
     }
 
-    const scheduledAt = new Date(now.getTime() + stepDelayMs);
-    await prisma.incident.update({
-      where: { id: incidentId },
-      data: {
-        escalationStatus: 'ESCALATING',
-        currentEscalationStep: currentStepIndex,
-        nextEscalationAt: scheduledAt,
-        escalationProcessingAt: null,
-      },
-    });
-
-    await prisma.incidentEvent.create({
-      data: {
-        incidentId,
-        message: `Escalation scheduled for [[scheduledAt=${scheduledAt.toISOString()}]] (${step.delayMinutes} minute delay)`,
-      },
-    });
-
-    try {
-      const { scheduleEscalation } = await import('./jobs/queue');
-      await scheduleEscalation(incidentId, currentStepIndex, stepDelayMs);
-    } catch (error) {
-      logger.error('Failed to schedule initial escalation job', {
-        incidentId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+    if (scheduledAt.getTime() > now.getTime()) {
+      return { escalated: false, reason: 'Escalation scheduled' };
     }
 
-    return { escalated: false, reason: 'Escalation scheduled' };
+    // scheduledAt is due; continue to execute without rescheduling.
   }
 
   const lockCutoff = new Date(now.getTime() - lockTimeoutMs);
