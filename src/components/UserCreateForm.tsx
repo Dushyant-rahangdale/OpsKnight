@@ -30,6 +30,7 @@ type FormState = {
   error?: string | null;
   success?: boolean;
   inviteUrl?: string | null;
+  emailSent?: boolean;
 };
 
 type Props = {
@@ -70,7 +71,11 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 }
 
 export default function UserCreateForm({ action, className = '', disabled = false }: Props) {
-  const [state, formAction] = useActionState(action, { error: null, success: false });
+  const [state, formAction] = useActionState(action, {
+    error: null,
+    success: false,
+    emailSent: false,
+  });
   const formRef = useRef<HTMLFormElement | null>(null);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -255,6 +260,11 @@ export default function UserCreateForm({ action, className = '', disabled = fals
             <div className="flex items-center gap-2 text-green-700 font-semibold text-sm">
               <CheckCircle2 className="h-4 w-4" /> User Invited Successfully!
             </div>
+            {state.emailSent && (
+              <p className="text-[11px] text-green-700/80 leading-relaxed pl-6">
+                Invitation email sent to the user.
+              </p>
+            )}
 
             <div className="bg-white border rounded-lg p-2 flex items-center gap-2 shadow-sm">
               <code className="text-xs flex-1 truncate font-mono bg-muted/30 p-1 rounded px-2 text-muted-foreground">

@@ -186,6 +186,8 @@ export default async function middleware(req: NextRequest) {
     !pathname.startsWith('/m') &&
     !pathname.startsWith('/api') &&
     !pathname.startsWith('/setup') &&
+    !pathname.startsWith('/set-password') &&
+    !pathname.startsWith('/reset-password') &&
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/favicon') &&
     !/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);

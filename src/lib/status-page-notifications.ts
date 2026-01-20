@@ -2,12 +2,15 @@ import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email';
 import { getStatusPageEmailConfig } from '@/lib/notification-providers';
 import { logger } from '@/lib/logger';
+import { getBaseUrl } from '@/lib/env-validation';
+import { getStatusPagePublicUrl } from '@/lib/status-page-url';
 import {
   EmailContainer,
   EmailContent,
   SubscriberEmailHeader,
   SubscriberEmailFooter,
   EmailButton,
+  escapeHtml,
 } from '@/lib/email-components';
 
 export async function notifyStatusPageSubscribers(
@@ -68,6 +71,8 @@ export async function notifyStatusPageSubscribers(
 
     logger.info(`Found ${statusPages.length} status pages for incident ${incidentId}`);
 
+    const appBaseUrl = getBaseUrl();
+
     // 3. Send notifications for each status page
     for (const page of statusPages) {
       if (page.subscriptions.length === 0) continue;
@@ -86,17 +91,20 @@ export async function notifyStatusPageSubscribers(
         page.branding && typeof page.branding === 'object' && !Array.isArray(page.branding)
           ? (page.branding as Record<string, unknown>)
           : {};
+      const statusPageUrl = getStatusPagePublicUrl(page, appBaseUrl);
       const brandLogoUrl = resolveBrandLogoUrl(
         typeof branding.logoUrl === 'string' ? branding.logoUrl : undefined,
-        process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ''
+        statusPageUrl
       );
+      const safeBrandLogoUrl = brandLogoUrl ? escapeHtml(brandLogoUrl) : undefined;
       const subject = formatSubject(displayName, incident.title, eventType);
       const html = formatEmailBody(
         displayName,
         incident,
         eventType,
-        page.contactUrl || '#',
-        brandLogoUrl
+        statusPageUrl,
+        page.contactUrl,
+        safeBrandLogoUrl
       );
 
       // Send to all subscribers
@@ -112,7 +120,7 @@ export async function notifyStatusPageSubscribers(
               subject,
               html: html.replace(
                 '{{unsubscribe_url}}',
-                `${process.env.NEXT_PUBLIC_APP_URL}/status/unsubscribe/${sub.token}`
+                `${appBaseUrl}/status/unsubscribe/${sub.token}`
               ),
             },
             {
@@ -162,11 +170,26 @@ function resolveBrandLogoUrl(logoUrl: string | undefined, baseUrl: string): stri
   return `${normalizedBase}${normalizedPath}`;
 }
 
+function normalizeSupportUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('mailto:')
+  ) {
+    return trimmed;
+  }
+  return undefined;
+}
+
 function formatEmailBody(
   pageName: string,
   incident: any,
   eventType: string,
-  contactUrl: string,
+  statusPageUrl: string,
+  contactUrl?: string | null,
   logoUrl?: string
 ): string {
   const statusMap: Record<
@@ -185,6 +208,16 @@ function formatEmailBody(
   };
 
   const statusInfo = statusMap[eventType] || { label: 'Update', badge: 'info' };
+  const safePageName = escapeHtml(pageName);
+  const safeIncidentTitle = escapeHtml(incident.title || 'Incident Update');
+  const safeServiceName = escapeHtml(incident.service?.name || 'Service');
+  const safeDescription = incident.description
+    ? escapeHtml(incident.description)
+    : 'No additional details provided.';
+  const safeStatusPageUrl = escapeHtml(statusPageUrl);
+  const supportUrl = normalizeSupportUrl(contactUrl);
+  const safeSupportUrl = supportUrl ? escapeHtml(supportUrl) : '';
+  const safeStatusLabel = escapeHtml(statusInfo.label);
 
   // Build the email content using components
   const headerGradients: Record<string, string> = {
@@ -212,10 +245,10 @@ function formatEmailBody(
     },
   };
 
-  const header = SubscriberEmailHeader(pageName, statusInfo.label, incident.title, {
+  const header = SubscriberEmailHeader(safePageName, safeStatusLabel, safeIncidentTitle, {
     headerGradient: headerGradients[statusInfo.badge] || headerGradients.info,
     logoUrl,
-    brandName: pageName,
+    brandName: safePageName,
   });
 
   // Main content body
@@ -225,7 +258,7 @@ function formatEmailBody(
                 Affecting Service:
             </p>
             <h2 style="font-size: 20px; color: #1f2937; margin: 0; font-weight: 700;">
-                ${incident.service.name}
+                ${safeServiceName}
             </h2>
         </div>
 
@@ -234,7 +267,7 @@ function formatEmailBody(
                 Update Details
             </h3>
             <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0; white-space: pre-wrap;">
-                ${incident.description || 'No additional details provided.'}
+                ${safeDescription}
             </p>
             <p style="font-size: 14px; color: #9ca3af; margin-top: 16px; font-style: italic;">
                 Posted on ${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
@@ -243,31 +276,28 @@ function formatEmailBody(
     `;
 
   // Add CTA Button
-  // We assume the contactUrl is the status page URL, or we should construct it.
-  // Ideally we pass the status page URL, but contactUrl is often "mailto:" or "support page".
-  // For now, let's use contactUrl if it's a web link, otherwise hide button or use generic text.
-  if (contactUrl && contactUrl.startsWith('http')) {
-    const buttonTheme = buttonThemes[statusInfo.badge] || buttonThemes.info;
-    contentBody += EmailButton('View Status Page', contactUrl, {
-      buttonBackground: buttonTheme.background,
-      buttonShadow: buttonTheme.shadow,
-    });
+  const buttonTheme = buttonThemes[statusInfo.badge] || buttonThemes.info;
+  contentBody += EmailButton('View Status Page', safeStatusPageUrl, {
+    buttonBackground: buttonTheme.background,
+    buttonShadow: buttonTheme.shadow,
+  });
+
+  if (supportUrl) {
     contentBody += `
         <div style="text-align: center; margin-top: 24px;">
-            <a href="${contactUrl}" style="color: #6b7280; font-size: 14px; text-decoration: none;">Contact Support</a>
+            <a href="${safeSupportUrl}" style="color: #6b7280; font-size: 14px; text-decoration: none;">Contact Support</a>
         </div>`;
   } else {
-    // Fallback if no valid URL for button
     contentBody += `
         <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-            <a href="${contactUrl}" style="color: #d32f2f; font-weight: 600; text-decoration: none;">Contact Support</a>
+            <span style="color: #9ca3af; font-weight: 600;">Contact support via your usual channels.</span>
         </div>`;
   }
 
   const body = EmailContent(contentBody);
 
   // We need to inject the unsubscribe URL at send time, so we keep the placeholder
-  const footer = SubscriberEmailFooter('{{unsubscribe_url}}', pageName);
+  const footer = SubscriberEmailFooter('{{unsubscribe_url}}', safePageName);
 
   return EmailContainer(header + body + footer);
 }
@@ -310,6 +340,8 @@ export async function notifyStatusPageSubscribersAnnouncement(
       return;
     }
 
+    const appBaseUrl = getBaseUrl();
+
     // 3. Get email config
     const emailConfig = await getStatusPageEmailConfig(page.id);
     if (!emailConfig.enabled) {
@@ -324,10 +356,15 @@ export async function notifyStatusPageSubscribersAnnouncement(
       page.branding && typeof page.branding === 'object' && !Array.isArray(page.branding)
         ? (page.branding as Record<string, unknown>)
         : {};
+    const statusPageUrl = getStatusPagePublicUrl(page, appBaseUrl);
     const brandLogoUrl = resolveBrandLogoUrl(
       typeof branding.logoUrl === 'string' ? branding.logoUrl : undefined,
-      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ''
+      statusPageUrl
     );
+    const safeBrandLogoUrl = brandLogoUrl ? escapeHtml(brandLogoUrl) : undefined;
+    const safeDisplayName = escapeHtml(displayName);
+    const safeAnnouncementTitle = escapeHtml(announcement.title || 'Announcement');
+    const safeAnnouncementMessage = escapeHtml(announcement.message || '');
 
     // Define theme based on announcement type
     const themes: Record<
@@ -353,29 +390,34 @@ export async function notifyStatusPageSubscribersAnnouncement(
 
     // Build the email content using components
     // We pass the theme label (e.g., "Maintenance") as the badge text
-    const announcementHeader = SubscriberEmailHeader(displayName, theme.label, announcement.title, {
-      headerGradient:
-        announcement.type === 'INCIDENT'
-          ? 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%)'
-          : announcement.type === 'MAINTENANCE'
-            ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)'
-            : announcement.type === 'UPDATE'
-              ? 'linear-gradient(135deg, #166534 0%, #16a34a 45%, #22c55e 100%)'
-              : announcement.type === 'WARNING'
-                ? 'linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%)'
-                : 'linear-gradient(135deg, #8b1a1a 0%, #b91c1c 40%, #c92a2a 70%, #dc2626 100%)',
-      logoUrl: brandLogoUrl,
-      brandName: displayName,
-    });
+    const announcementHeader = SubscriberEmailHeader(
+      safeDisplayName,
+      escapeHtml(theme.label),
+      safeAnnouncementTitle,
+      {
+        headerGradient:
+          announcement.type === 'INCIDENT'
+            ? 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%)'
+            : announcement.type === 'MAINTENANCE'
+              ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)'
+              : announcement.type === 'UPDATE'
+                ? 'linear-gradient(135deg, #166534 0%, #16a34a 45%, #22c55e 100%)'
+                : announcement.type === 'WARNING'
+                  ? 'linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%)'
+                  : 'linear-gradient(135deg, #8b1a1a 0%, #b91c1c 40%, #c92a2a 70%, #dc2626 100%)',
+        logoUrl: safeBrandLogoUrl,
+        brandName: safeDisplayName,
+      }
+    );
 
     // Main content body with themed styles
     const contentBody = `
             <div style="background: ${theme.bg}; border-radius: 12px; padding: 24px; border: 1px solid ${theme.borderColor}; margin-bottom: 32px;">
                 <h3 style="font-size: 14px; text-transform: uppercase; color: ${theme.color}; margin: 0 0 12px 0; letter-spacing: 0.05em; font-weight: 700;">
-                    ${theme.label} Details
+                    ${escapeHtml(theme.label)} Details
                 </h3>
                 <p style="font-size: 16px; line-height: 1.6; color: #374151; margin: 0; white-space: pre-wrap;">
-                    ${announcement.message}
+                    ${safeAnnouncementMessage}
                 </p>
                 <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid ${theme.borderColor}; display: flex; gap: 24px; color: #6b7280; font-size: 14px;">
                     <div>
@@ -396,12 +438,12 @@ export async function notifyStatusPageSubscribersAnnouncement(
                 </p>
             </div>
             <div style="text-align: center; margin-top: 32px;">
-                <a href="${page.contactUrl || '#'}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">View Status Page</a>
+                <a href="${escapeHtml(statusPageUrl)}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">View Status Page</a>
             </div>
         `;
 
     const body = EmailContent(contentBody);
-    const footer = SubscriberEmailFooter('{{unsubscribe_url}}', displayName);
+    const footer = SubscriberEmailFooter('{{unsubscribe_url}}', safeDisplayName);
 
     html = EmailContainer(announcementHeader + body + footer);
 
@@ -418,7 +460,7 @@ export async function notifyStatusPageSubscribersAnnouncement(
             subject,
             html: html.replace(
               '{{unsubscribe_url}}',
-              `${process.env.NEXT_PUBLIC_APP_URL}/status/unsubscribe/${sub.token}`
+              `${appBaseUrl}/status/unsubscribe/${sub.token}`
             ),
           },
           {

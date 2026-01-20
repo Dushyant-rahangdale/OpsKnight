@@ -26,6 +26,7 @@ import {
   EmailHeader,
   InfoCard,
   StatusBadge,
+  escapeHtml,
 } from './email-components';
 
 export type EmailOptions = {
@@ -405,7 +406,8 @@ export function generateIncidentEmailHTML(
     status: string;
     urgency: string;
     service: { name: string };
-    assignee?: { name: string; email: string } | null;
+    assignee?: { name?: string | null; email?: string | null } | null;
+    team?: { name?: string | null } | null;
     createdAt: Date;
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
@@ -416,6 +418,18 @@ export function generateIncidentEmailHTML(
 ): string {
   const baseUrl = getBaseUrl();
   const incidentUrl = incident.incidentUrl || `${baseUrl}/incidents/${incident.id}`;
+  const safeIncidentUrl = escapeHtml(incidentUrl);
+  const safeServiceName = escapeHtml(incident.service?.name || 'Service');
+  const safeIncidentTitle = escapeHtml(incident.title || 'Incident');
+  const safeDescription = incident.description ? escapeHtml(incident.description) : '';
+  const safeStatus = escapeHtml(incident.status);
+  const safeUrgency = escapeHtml(incident.urgency);
+  const assigneeName =
+    incident.assignee?.name ||
+    incident.assignee?.email ||
+    (incident.team?.name ? `${incident.team.name} (Team)` : '') ||
+    'Unassigned';
+  const safeAssigneeName = escapeHtml(assigneeName);
 
   const normalizedEventType =
     eventType ||
@@ -435,7 +449,7 @@ export function generateIncidentEmailHTML(
           : incident.urgency === 'MEDIUM'
             ? 'Elevated Incident Alert'
             : 'Incident Notification';
-  const headerSubtitle = `Service: ${incident.service.name}`;
+  const headerSubtitle = `Service: ${safeServiceName}`;
 
   const updateTitle =
     normalizedEventType === 'resolved'
@@ -531,10 +545,10 @@ export function generateIncidentEmailHTML(
   };
 
   const infoItems = [
-    { label: 'Service', value: incident.service.name, highlight: true },
-    { label: 'Status', value: incident.status },
-    { label: 'Urgency', value: incident.urgency },
-    { label: 'Assignee', value: incident.assignee?.name || 'Unassigned' },
+    { label: 'Service', value: safeServiceName, highlight: true },
+    { label: 'Status', value: safeStatus },
+    { label: 'Urgency', value: safeUrgency },
+    { label: 'Assignee', value: safeAssigneeName },
     {
       label: 'Created',
       value: formatDateTime(incident.createdAt, timeZone, { format: 'datetime' }),
@@ -574,7 +588,7 @@ export function generateIncidentEmailHTML(
             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 22px;">
                 ${StatusBadge(updateTitle.toUpperCase(), theme.badgeType)}
                 <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: ${urgencyTheme.bg}; border: 1px solid ${urgencyTheme.border}; color: ${urgencyTheme.text}; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
-                    ${incident.urgency}
+                    ${safeUrgency}
                 </span>
             </div>
 
@@ -588,7 +602,7 @@ export function generateIncidentEmailHTML(
             </div>
 
             <h2 style="margin: 0 0 16px 0; color: #0f172a; font-size: 22px; font-weight: 700; line-height: 1.35;">
-                ${incident.title}
+                ${safeIncidentTitle}
             </h2>
 
             <h3 style="margin: 26px 0 12px 0; color: #111827; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
@@ -597,14 +611,14 @@ export function generateIncidentEmailHTML(
             ${InfoCard(infoItems, { accentColor: theme.accent })}
 
             ${
-              incident.description
+              safeDescription
                 ? `
             <h3 style="margin: 26px 0 12px 0; color: #111827; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
                 Overview
             </h3>
             <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px;">
                 <p style="margin: 0; color: #4b5563; font-size: 14px; line-height: 1.7; white-space: pre-wrap;">
-                    ${incident.description}
+                    ${safeDescription}
                 </p>
             </div>
             `
@@ -628,7 +642,7 @@ export function generateIncidentEmailHTML(
 
             ${EmailButton(
               normalizedEventType === 'resolved' ? 'View Resolution' : 'View Incident',
-              incidentUrl,
+              safeIncidentUrl,
               {
                 buttonBackground: theme.buttonBackground,
                 buttonShadow: theme.buttonShadow,
@@ -658,6 +672,7 @@ export async function sendIncidentEmail(
         include: {
           service: true,
           assignee: true,
+          team: true,
         },
       }),
     ]);
