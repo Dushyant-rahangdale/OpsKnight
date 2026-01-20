@@ -3,7 +3,6 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getUserPermissions } from '@/lib/rbac';
-import { getServiceDynamicStatus } from '@/lib/service-status';
 import { deleteService } from '../actions';
 
 // UI Components
@@ -166,7 +165,10 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
       : { status: 'RESOLVED' as const };
 
   // Parallelize data fetching
-  const [serviceRaw, totalIncidentCount, openIncidentCounts] = await Promise.all([
+  const { calculateSLAMetrics } = await import('@/lib/sla-server');
+  const slaWindowDays = 30;
+
+  const [serviceRaw, totalIncidentCount, slaMetrics] = await Promise.all([
     // 1. Service Data (with filtering for the list)
     prisma.service.findUnique({
       where: { id },
@@ -181,6 +183,9 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
             assignee: {
               select: { id: true, name: true, email: true, avatarUrl: true, gender: true },
             },
+            team: {
+              select: { id: true, name: true },
+            },
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -192,13 +197,10 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
       },
     }),
     prisma.incident.count({ where: { serviceId: id } }),
-    prisma.incident.groupBy({
-      by: ['urgency'],
-      where: {
-        serviceId: id,
-        status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
-      },
-      _count: { _all: true },
+    calculateSLAMetrics({
+      serviceId: id,
+      windowDays: slaWindowDays,
+      includeActiveIncidents: true,
     }),
   ]);
 
@@ -209,14 +211,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const service = serviceRaw as any;
 
-  const openIncidentCount = openIncidentCounts.reduce((sum, entry) => sum + entry._count._all, 0);
-  const highUrgencyOpenCount =
-    openIncidentCounts.find(entry => entry.urgency === 'HIGH')?._count._all ?? 0;
-
-  const dynamicStatus = getServiceDynamicStatus({
-    openIncidentCount,
-    hasCritical: highUrgencyOpenCount > 0,
-  });
+  const dynamicStatus = slaMetrics.dynamicStatus;
 
   // Use the filtered count for pagination
   const filteredTotalIncidents = service._count.incidents;
@@ -225,7 +220,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
   const permissions = await getUserPermissions();
   const canDeleteService = permissions.isAdmin;
 
-  const activeIncidentsCount = openIncidentCount;
+  const activeIncidentsCount = slaMetrics.activeIncidents;
   const allTimeTotalIncidents = totalIncidentCount;
 
   const deleteServiceWithId = deleteService.bind(null, service.id);
@@ -371,6 +366,7 @@ export default async function ServiceDetailPage({ params, searchParams }: Servic
                 createdAt: i.createdAt,
                 resolvedAt: i.resolvedAt,
                 assignee: i.assignee,
+                team: i.team,
               }))}
               serviceId={id}
             />
