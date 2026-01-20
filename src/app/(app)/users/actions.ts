@@ -9,6 +9,46 @@ import { getBaseUrl } from '@/lib/env-validation';
 import { logger } from '@/lib/logger';
 import { revokeUserSessions } from '@/lib/auth';
 
+async function sendInviteEmailIfConfigured(data: {
+  email: string;
+  name: string;
+  inviteUrl: string;
+  invitedBy?: string;
+}) {
+  try {
+    const { getEmailConfig } = await import('@/lib/notification-providers');
+    const emailConfig = await getEmailConfig();
+
+    if (!emailConfig.enabled || !emailConfig.provider) {
+      return;
+    }
+
+    const { sendEmail } = await import('@/lib/email');
+    const { getUserInviteEmailTemplate } = await import('@/lib/user-invite-email-template');
+    const template = getUserInviteEmailTemplate({
+      userName: data.name,
+      inviteUrl: data.inviteUrl,
+      invitedBy: data.invitedBy,
+    });
+
+    await sendEmail(
+      {
+        to: data.email,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      },
+      emailConfig
+    );
+  } catch (error) {
+    logger.warn('Failed to send invite email', {
+      component: 'users-actions',
+      error,
+      email: data.email,
+    });
+  }
+}
+
 async function assertUserIsNotSoleOwner(userId: string) {
   const ownedMemberships = await prisma.teamMember.findMany({
     where: { userId, role: 'OWNER' },
@@ -116,8 +156,9 @@ export async function addUser(
   _prevState: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
+  let admin: { id: string; email: string; name: string | null } | null = null;
   try {
-    await assertAdmin();
+    admin = await assertAdmin();
   } catch {
     return { error: 'Unauthorized. Admin access required.' };
   }
@@ -150,7 +191,9 @@ export async function addUser(
 
     const { checkRateLimit } = await import('@/lib/password-reset');
     // Limit admin creating users
-    await checkRateLimit((await assertAdmin()).email, realIp, 'ADMIN_ADD_USER');
+    if (admin) {
+      await checkRateLimit(admin.email, realIp, 'ADMIN_ADD_USER');
+    }
 
     if (existing?.status === 'DISABLED') {
       return { error: 'User is disabled. Reactivate before adding again.' };
@@ -209,6 +252,13 @@ export async function addUser(
 
     revalidatePath('/users');
     revalidatePath('/audit');
+
+    await sendInviteEmailIfConfigured({
+      email,
+      name,
+      inviteUrl,
+      invitedBy: admin?.name || admin?.email || undefined,
+    });
 
     return { success: true, inviteUrl };
   } catch (error) {
@@ -369,8 +419,9 @@ export async function generateInvite(
   _prevState: UserFormState,
   _formData: FormData
 ): Promise<UserFormState> {
+  let admin: { id: string; email: string; name: string | null } | null = null;
   try {
-    await assertAdmin();
+    admin = await assertAdmin();
   } catch {
     return { error: 'Unauthorized. Admin access required.' };
   }
@@ -386,7 +437,9 @@ export async function generateInvite(
 
   const { checkRateLimit } = await import('@/lib/password-reset');
   // Limit resend invites
-  await checkRateLimit((await assertAdmin()).email, realIp, 'ADMIN_RESEND_INVITE');
+  if (admin) {
+    await checkRateLimit(admin.email, realIp, 'ADMIN_RESEND_INVITE');
+  }
 
   if (!user) {
     return { error: 'User not found.' };
@@ -416,6 +469,13 @@ export async function generateInvite(
 
   revalidatePath('/users');
   revalidatePath('/audit');
+
+  await sendInviteEmailIfConfigured({
+    email: user.email,
+    name: user.name || user.email,
+    inviteUrl,
+    invitedBy: admin?.name || admin?.email || undefined,
+  });
 
   return { success: true, inviteUrl };
 }
