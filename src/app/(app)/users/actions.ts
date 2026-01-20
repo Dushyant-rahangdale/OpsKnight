@@ -14,13 +14,13 @@ async function sendInviteEmailIfConfigured(data: {
   name: string;
   inviteUrl: string;
   invitedBy?: string;
-}) {
+}): Promise<boolean> {
   try {
     const { getEmailConfig } = await import('@/lib/notification-providers');
     const emailConfig = await getEmailConfig();
 
     if (!emailConfig.enabled || !emailConfig.provider) {
-      return;
+      return false;
     }
 
     const { sendEmail } = await import('@/lib/email');
@@ -31,7 +31,7 @@ async function sendInviteEmailIfConfigured(data: {
       invitedBy: data.invitedBy,
     });
 
-    await sendEmail(
+    const result = await sendEmail(
       {
         to: data.email,
         subject: template.subject,
@@ -40,12 +40,14 @@ async function sendInviteEmailIfConfigured(data: {
       },
       emailConfig
     );
+    return result.success;
   } catch (error) {
     logger.warn('Failed to send invite email', {
       component: 'users-actions',
       error,
       email: data.email,
     });
+    return false;
   }
 }
 
@@ -124,6 +126,7 @@ export type UserFormState = {
   error?: string | null;
   success?: boolean;
   inviteUrl?: string | null;
+  emailSent?: boolean;
 };
 
 async function createInviteToken(email: string) {
@@ -253,14 +256,14 @@ export async function addUser(
     revalidatePath('/users');
     revalidatePath('/audit');
 
-    await sendInviteEmailIfConfigured({
+    const emailSent = await sendInviteEmailIfConfigured({
       email,
       name,
       inviteUrl,
       invitedBy: admin?.name || admin?.email || undefined,
     });
 
-    return { success: true, inviteUrl };
+    return { success: true, inviteUrl, emailSent };
   } catch (error) {
     logger.error('Failed to add user', { component: 'users-actions', error, email, name, role });
     return {
@@ -470,14 +473,14 @@ export async function generateInvite(
   revalidatePath('/users');
   revalidatePath('/audit');
 
-  await sendInviteEmailIfConfigured({
+  const emailSent = await sendInviteEmailIfConfigured({
     email: user.email,
     name: user.name || user.email,
     inviteUrl,
     invitedBy: admin?.name || admin?.email || undefined,
   });
 
-  return { success: true, inviteUrl };
+  return { success: true, inviteUrl, emailSent };
 }
 
 export async function deleteUser(

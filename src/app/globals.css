@@ -3681,6 +3681,12 @@ select option {
   font-size: 0.8rem;
 }
 
+.invite-link-note {
+  color: #059669;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .bulk-actions-form {
   width: 100%;
 }

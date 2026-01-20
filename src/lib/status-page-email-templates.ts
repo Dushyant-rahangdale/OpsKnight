@@ -12,6 +12,7 @@ import {
   SubscriberEmailHeader,
   SubscriberEmailFooter,
   EmailFooter,
+  escapeHtml,
 } from '@/lib/email-components';
 
 export interface EmailTemplateData {
@@ -43,6 +44,17 @@ function resolveBrandLogoUrl(
   }
 }
 
+function resolveStatusPageLink(statusPageUrl: string, incidentUrl?: string): string {
+  if (!incidentUrl) return statusPageUrl;
+  try {
+    const statusOrigin = new URL(statusPageUrl).origin;
+    const incidentOrigin = new URL(incidentUrl).origin;
+    return statusOrigin === incidentOrigin ? incidentUrl : statusPageUrl;
+  } catch {
+    return statusPageUrl;
+  }
+}
+
 /**
  * Verification Email Template
  */
@@ -50,18 +62,21 @@ export function getVerificationEmailTemplate(
   data: EmailTemplateData & { verificationUrl: string }
 ): { subject: string; html: string; text: string } {
   const displayName = data.organizationName || data.statusPageName;
+  const safeDisplayName = escapeHtml(displayName);
   const resolvedLogoUrl = resolveBrandLogoUrl(data.logoUrl, data.statusPageUrl);
+  const safeLogoUrl = resolvedLogoUrl ? escapeHtml(resolvedLogoUrl) : undefined;
+  const safeVerificationUrl = escapeHtml(data.verificationUrl);
   const subject = `[${displayName}] 🔐 Verify your subscription`;
 
   const content = `
         ${SubscriberEmailHeader(
-          displayName,
+          safeDisplayName,
           'Email Verification',
           'Confirm your subscription to receive status updates',
           {
             headerGradient: 'linear-gradient(135deg, #0b0b0f 0%, #111827 45%, #0f172a 100%)',
-            logoUrl: resolvedLogoUrl,
-            brandName: displayName,
+            logoUrl: safeLogoUrl,
+            brandName: safeDisplayName,
           }
         )}
         ${EmailContent(`
@@ -74,7 +89,7 @@ export function getVerificationEmailTemplate(
                     Welcome to Status Updates!
                 </h2>
                 <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.6;">
-                    You're one click away from receiving important updates about <strong style="color: #10b981;">${displayName}</strong>
+                    You're one click away from receiving important updates about <strong style="color: #10b981;">${safeDisplayName}</strong>
                 </p>
             </div>
             
@@ -84,7 +99,7 @@ export function getVerificationEmailTemplate(
                     To complete your subscription and start receiving notifications about incidents and status changes, please verify your email address:
                 </p>
                 
-                ${EmailButton('Verify Email Address →', data.verificationUrl, {
+                ${EmailButton('Verify Email Address →', safeVerificationUrl, {
                   buttonBackground: 'linear-gradient(135deg, #10b981 0%, #22c55e 100%)',
                   buttonShadow: '0 10px 24px rgba(16, 185, 129, 0.35)',
                 })}
@@ -100,7 +115,7 @@ export function getVerificationEmailTemplate(
                     Button not working?
                 </p>
                 <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6; word-break: break-all;">
-                    Copy and paste this link: <a href="${data.verificationUrl}" style="color: #10b981; text-decoration: none;">${data.verificationUrl}</a>
+                    Copy and paste this link: <a href="${safeVerificationUrl}" style="color: #10b981; text-decoration: none;">${safeVerificationUrl}</a>
                 </p>
             </div>
             
@@ -111,7 +126,11 @@ export function getVerificationEmailTemplate(
                 </p>
             </div>
         `)}
-        ${data.unsubscribeUrl ? SubscriberEmailFooter(data.unsubscribeUrl, displayName) : EmailFooter()}
+        ${
+          data.unsubscribeUrl
+            ? SubscriberEmailFooter(escapeHtml(data.unsubscribeUrl), safeDisplayName)
+            : EmailFooter()
+        }
     `;
 
   const html = EmailContainer(content);
@@ -141,20 +160,24 @@ export function getIncidentCreatedTemplate(data: EmailTemplateData): {
   text: string;
 } {
   const displayName = data.organizationName || data.statusPageName;
+  const safeDisplayName = escapeHtml(displayName);
   const resolvedLogoUrl = resolveBrandLogoUrl(data.logoUrl, data.statusPageUrl);
+  const safeLogoUrl = resolvedLogoUrl ? escapeHtml(resolvedLogoUrl) : undefined;
+  const safeIncidentTitle = escapeHtml(data.incidentTitle || 'New Incident');
+  const safeIncidentDescription = data.incidentDescription
+    ? escapeHtml(data.incidentDescription)
+    : '';
+  const resolvedIncidentUrl = resolveStatusPageLink(data.statusPageUrl, data.incidentUrl);
+  const safeIncidentUrl = escapeHtml(resolvedIncidentUrl);
+  const safeAffectedServices = data.affectedServices?.map(service => escapeHtml(service)) || [];
   const subject = `[${displayName}] 🚨 Incident: ${data.incidentTitle || 'New Incident'}`;
 
   const content = `
-        ${SubscriberEmailHeader(
-          displayName,
-          'Incident Reported',
-          data.incidentTitle || 'New Incident',
-          {
-            headerGradient: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%)',
-            logoUrl: resolvedLogoUrl,
-            brandName: displayName,
-          }
-        )}
+        ${SubscriberEmailHeader(safeDisplayName, 'Incident Reported', safeIncidentTitle, {
+          headerGradient: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%)',
+          logoUrl: safeLogoUrl,
+          brandName: safeDisplayName,
+        })}
         ${EmailContent(`
             <!-- Status Badge -->
             <div style="text-align: center; margin-bottom: 32px;">
@@ -163,14 +186,14 @@ export function getIncidentCreatedTemplate(data: EmailTemplateData): {
             
             <!-- Alert Box -->
             ${AlertBox(
-              data.incidentTitle || 'New Incident',
-              data.incidentDescription ||
+              safeIncidentTitle,
+              safeIncidentDescription ||
                 'An incident has been reported and our team is investigating.',
               'error'
             )}
             
             ${
-              data.affectedServices && data.affectedServices.length > 0
+              safeAffectedServices.length > 0
                 ? `
             <!-- Affected Services -->
             <div style="margin: 32px 0;">
@@ -178,7 +201,7 @@ export function getIncidentCreatedTemplate(data: EmailTemplateData): {
                     Affected Services
                 </h3>
                 <div style="background: linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%); border: 1px solid #fecaca; border-radius: 12px; padding: 24px;">
-                    ${data.affectedServices
+                    ${safeAffectedServices
                       .map(
                         service => `
                         <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(239, 68, 68, 0.1); last-child:border-bottom: none;">
@@ -195,7 +218,7 @@ export function getIncidentCreatedTemplate(data: EmailTemplateData): {
             }
             
             <!-- Call to Action -->
-            ${EmailButton('View Incident Details →', data.incidentUrl || data.statusPageUrl, {
+            ${EmailButton('View Incident Details →', safeIncidentUrl, {
               buttonBackground: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
               buttonShadow: '0 10px 22px rgba(185, 28, 28, 0.35)',
             })}
@@ -207,7 +230,11 @@ export function getIncidentCreatedTemplate(data: EmailTemplateData): {
                 </p>
             </div>
         `)}
-        ${data.unsubscribeUrl ? SubscriberEmailFooter(data.unsubscribeUrl, displayName) : EmailFooter()}
+        ${
+          data.unsubscribeUrl
+            ? SubscriberEmailFooter(escapeHtml(data.unsubscribeUrl), safeDisplayName)
+            : EmailFooter()
+        }
     `;
 
   const html = EmailContainer(content);
@@ -220,7 +247,7 @@ ${data.incidentTitle || 'New Incident'}
 ${data.incidentDescription || ''}
 
 ${data.affectedServices && data.affectedServices.length > 0 ? `Affected Services:\n${data.affectedServices.map(s => `- ${s}`).join('\n')}\n\n` : ''}
-View incident details: ${data.incidentUrl || data.statusPageUrl}
+View incident details: ${resolvedIncidentUrl}
 
 ---
 You're receiving this because you subscribed to ${displayName} status updates.
@@ -239,20 +266,23 @@ export function getIncidentResolvedTemplate(data: EmailTemplateData): {
   text: string;
 } {
   const displayName = data.organizationName || data.statusPageName;
+  const safeDisplayName = escapeHtml(displayName);
   const resolvedLogoUrl = resolveBrandLogoUrl(data.logoUrl, data.statusPageUrl);
+  const safeLogoUrl = resolvedLogoUrl ? escapeHtml(resolvedLogoUrl) : undefined;
+  const safeIncidentTitle = escapeHtml(data.incidentTitle || 'Incident');
+  const safeIncidentDescription = data.incidentDescription
+    ? escapeHtml(data.incidentDescription)
+    : '';
+  const safeStatusPageUrl = escapeHtml(data.statusPageUrl);
+  const resolvedIncidentUrl = resolveStatusPageLink(data.statusPageUrl, data.incidentUrl);
   const subject = `[${displayName}] ✅ Resolved: ${data.incidentTitle || 'Incident'}`;
 
   const content = `
-        ${SubscriberEmailHeader(
-          displayName,
-          'Incident Resolved',
-          data.incidentTitle || 'Incident',
-          {
-            headerGradient: 'linear-gradient(135deg, #166534 0%, #16a34a 45%, #22c55e 100%)',
-            logoUrl: resolvedLogoUrl,
-            brandName: displayName,
-          }
-        )}
+        ${SubscriberEmailHeader(safeDisplayName, 'Incident Resolved', safeIncidentTitle, {
+          headerGradient: 'linear-gradient(135deg, #166534 0%, #16a34a 45%, #22c55e 100%)',
+          logoUrl: safeLogoUrl,
+          brandName: safeDisplayName,
+        })}
         ${EmailContent(`
             <!-- Status Badge -->
             <div style="text-align: center; margin-bottom: 32px;">
@@ -268,8 +298,8 @@ export function getIncidentResolvedTemplate(data: EmailTemplateData): {
             
             <!-- Alert Box -->
             ${AlertBox(
-              data.incidentTitle || 'All Systems Operational',
-              data.incidentDescription ||
+              safeIncidentTitle || 'All Systems Operational',
+              safeIncidentDescription ||
                 'The incident has been resolved and all systems are back to normal operation.',
               'success'
             )}
@@ -284,12 +314,16 @@ export function getIncidentResolvedTemplate(data: EmailTemplateData): {
                 </p>
             </div>
             
-            ${EmailButton('View Status Page →', data.statusPageUrl, {
+            ${EmailButton('View Status Page →', safeStatusPageUrl, {
               buttonBackground: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
               buttonShadow: '0 10px 22px rgba(22, 163, 74, 0.35)',
             })}
         `)}
-        ${data.unsubscribeUrl ? SubscriberEmailFooter(data.unsubscribeUrl, displayName) : EmailFooter()}
+        ${
+          data.unsubscribeUrl
+            ? SubscriberEmailFooter(escapeHtml(data.unsubscribeUrl), safeDisplayName)
+            : EmailFooter()
+        }
     `;
 
   const html = EmailContainer(content);
@@ -303,7 +337,7 @@ ${data.incidentDescription || ''}
 
 All systems are back to normal operation. Thank you for your patience.
 
-View status page: ${data.incidentUrl || data.statusPageUrl}
+View status page: ${resolvedIncidentUrl}
 
 ---
 You're receiving this because you subscribed to ${displayName} status updates.
@@ -322,14 +356,21 @@ export function getStatusChangeTemplate(data: EmailTemplateData): {
   text: string;
 } {
   const displayName = data.organizationName || data.statusPageName;
+  const safeDisplayName = escapeHtml(displayName);
   const resolvedLogoUrl = resolveBrandLogoUrl(data.logoUrl, data.statusPageUrl);
+  const safeLogoUrl = resolvedLogoUrl ? escapeHtml(resolvedLogoUrl) : undefined;
+  const safeIncidentStatus = escapeHtml(data.incidentStatus || 'Updated');
+  const safeIncidentDescription = data.incidentDescription
+    ? escapeHtml(data.incidentDescription)
+    : '';
+  const safeStatusPageUrl = escapeHtml(data.statusPageUrl);
   const subject = `[${displayName}] 🔄 Status Update`;
 
   const content = `
-        ${SubscriberEmailHeader(displayName, 'Status Update', data.incidentStatus || 'Updated', {
+        ${SubscriberEmailHeader(safeDisplayName, 'Status Update', safeIncidentStatus, {
           headerGradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)',
-          logoUrl: resolvedLogoUrl,
-          brandName: displayName,
+          logoUrl: safeLogoUrl,
+          brandName: safeDisplayName,
         })}
         ${EmailContent(`
             <h2 style="margin: 0 0 24px 0; color: #111827; font-size: 24px; font-weight: 700;">
@@ -337,7 +378,7 @@ export function getStatusChangeTemplate(data: EmailTemplateData): {
             </h2>
 
             <div style="text-align: left; margin-bottom: 16px;">
-                ${StatusBadge((data.incidentStatus || 'Updated').toUpperCase(), 'info')}
+                ${StatusBadge(safeIncidentStatus.toUpperCase(), 'info')}
             </div>
             
             <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 24px; margin: 24px 0; border-radius: 12px; border-left: 4px solid #2563eb;">
@@ -345,28 +386,32 @@ export function getStatusChangeTemplate(data: EmailTemplateData): {
                     Current Status
                 </p>
                 <p style="margin: 0; color: #111827; font-size: 18px; font-weight: 700;">
-                    ${data.incidentStatus || 'Updated'}
+                    ${safeIncidentStatus}
                 </p>
             </div>
             
             ${
-              data.incidentDescription
+              safeIncidentDescription
                 ? `
             <div style="margin: 24px 0;">
                 <p style="margin: 0; color: #374151; font-size: 15px; line-height: 1.7;">
-                    ${data.incidentDescription}
+                    ${safeIncidentDescription}
                 </p>
             </div>
             `
                 : ''
             }
             
-            ${EmailButton('View Full Status →', data.statusPageUrl, {
+            ${EmailButton('View Full Status →', safeStatusPageUrl, {
               buttonBackground: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
               buttonShadow: '0 10px 22px rgba(37, 99, 235, 0.35)',
             })}
         `)}
-        ${data.unsubscribeUrl ? SubscriberEmailFooter(data.unsubscribeUrl, displayName) : EmailFooter()}
+        ${
+          data.unsubscribeUrl
+            ? SubscriberEmailFooter(escapeHtml(data.unsubscribeUrl), safeDisplayName)
+            : EmailFooter()
+        }
     `;
 
   const html = EmailContainer(content);

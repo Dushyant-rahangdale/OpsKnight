@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email';
 import { getVerificationEmailTemplate } from '@/lib/status-page-email-templates';
 import { getBaseUrl } from '@/lib/env-validation';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { getStatusPagePublicUrl, getStatusPageVerificationUrl } from '@/lib/status-page-url';
 
 /**
  * Subscribe to Status Page Updates
@@ -97,8 +98,13 @@ export async function POST(req: NextRequest) {
         logger.warn('api.status_page.subscription.no_email_provider', { statusPageId });
         // Continue - subscription created but no email sent
       } else {
-        const baseUrl = getBaseUrl();
-        const verificationUrl = `${baseUrl}/status/verify/${verificationToken}`;
+        const appBaseUrl = getBaseUrl();
+        const statusPageUrl = getStatusPagePublicUrl(statusPage, appBaseUrl);
+        const verificationUrl = getStatusPageVerificationUrl(
+          statusPage,
+          verificationToken,
+          appBaseUrl
+        );
 
         const branding =
           statusPage.branding &&
@@ -111,7 +117,7 @@ export async function POST(req: NextRequest) {
         const emailTemplate = getVerificationEmailTemplate({
           statusPageName: statusPage.name,
           organizationName: statusPage.organizationName || undefined,
-          statusPageUrl: `${baseUrl}/status`,
+          statusPageUrl,
           verificationUrl,
           logoUrl,
         });

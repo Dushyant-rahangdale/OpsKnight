@@ -16,6 +16,15 @@ export interface EmailStyles {
   buttonShadow?: string;
 }
 
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Email container with responsive layout and OpsKnight branding
  * Fully optimized for mobile devices
@@ -31,6 +40,8 @@ export function EmailContainer(content: string, styles: EmailStyles = {}): strin
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>OpsKnight Notification</title>
     <!--[if gte mso 9]>
@@ -42,6 +53,7 @@ export function EmailContainer(content: string, styles: EmailStyles = {}): strin
     </xml>
     <![endif]-->
     <style type="text/css">
+        :root { color-scheme: light; supported-color-schemes: light; }
         @media only screen and (max-width: 600px) {
             .mobile-padding { padding: 20px !important; }
             .mobile-text-center { text-align: center !important; }
@@ -112,7 +124,7 @@ export function EmailHeader(title: string, subtitle?: string, styles: EmailStyle
                             ${getOpsKnightLogo(56, styles)}
                         </td>
                         <td style="vertical-align: middle;">
-                            <span class="mobile-logo-name" style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">${brandName}</span>
+                            <span class="mobile-logo-name" style="font-size: 24px; font-weight: 700; color: #ffffff !important; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">${brandName}</span>
                         </td>
                     </tr>
                 </table>
@@ -123,7 +135,7 @@ export function EmailHeader(title: string, subtitle?: string, styles: EmailStyle
             </div>
             
             <!-- Title -->
-            <h1 class="mobile-font-large" style="margin: 0 0 ${subtitle ? '10px' : '0'} 0; color: #ffffff; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;">
+            <h1 class="mobile-font-large" style="margin: 0 0 ${subtitle ? '10px' : '0'} 0; color: #ffffff !important; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;">
                 ${title}
             </h1>
             
@@ -131,7 +143,7 @@ export function EmailHeader(title: string, subtitle?: string, styles: EmailStyle
               subtitle
                 ? `
             <!-- Subtitle -->
-            <p class="mobile-font-small" style="margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 15px; font-weight: 500;">
+            <p class="mobile-font-small" style="margin: 0; color: rgba(255, 255, 255, 0.85) !important; font-size: 15px; font-weight: 500;">
                 ${subtitle}
             </p>
             `
@@ -213,7 +225,7 @@ export function EmailButton(text: string, url: string, _styles: EmailStyles = {}
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" class="mobile-full-width mobile-spacing" style="margin: 32px auto; width: auto;">
     <tr>
         <td class="mobile-button" style="border-radius: 10px; background: ${buttonBackground}; text-align: center; box-shadow: ${buttonShadow};">
-            <a href="${url}" target="_blank" style="display: inline-block; padding: 14px 32px; color: ${buttonTextColor}; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.5; border-radius: 10px; min-width: 220px; text-align: center;">
+            <a href="${url}" target="_blank" style="display: inline-block; padding: 14px 32px; color: ${buttonTextColor} !important; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.5; border-radius: 10px; min-width: 220px; text-align: center;">
                 ${text}
             </a>
         </td>
@@ -341,7 +353,7 @@ export function SubscriberEmailHeader(
                                     ${brandLogo}
                                 </td>
                                 <td style="vertical-align: middle;">
-                                    <span class="mobile-logo-name" style="font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">
+                                    <span class="mobile-logo-name" style="font-size: 22px; font-weight: 700; color: #ffffff !important; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">
                                         ${displayName}
                                     </span>
                                 </td>
@@ -355,13 +367,13 @@ export function SubscriberEmailHeader(
             </table>
 
             <!-- Organization Name (The Sender) -->
-            <h1 class="mobile-font-large" style="margin: 0 0 14px 0; color: #ffffff; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;">
+            <h1 class="mobile-font-large" style="margin: 0 0 14px 0; color: #ffffff !important; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;">
                 ${displayName}
             </h1>
             
             <!-- Update Type Badge -->
             <div style="margin-bottom: 24px;">
-                <span style="display: inline-block; padding: 6px 14px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; color: #ffffff; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">
+                <span style="display: inline-block; padding: 6px 14px; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; color: #ffffff !important; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">
                     ${title}
                 </span>
             </div>
@@ -369,7 +381,7 @@ export function SubscriberEmailHeader(
             ${
               subtitle
                 ? `
-            <p class="mobile-font-medium" style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 16px; font-weight: 500; line-height: 1.5;">
+            <p class="mobile-font-medium" style="margin: 0; color: rgba(255, 255, 255, 0.9) !important; font-size: 16px; font-weight: 500; line-height: 1.5;">
                 ${subtitle}
             </p>
             `
@@ -443,7 +455,12 @@ function getOpsKnightLogo(width: number, styles: EmailStyles = {}): string {
 function getDefaultLogoUrl(): string | null {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
   if (!baseUrl || !baseUrl.startsWith('http')) return null;
-  return `${baseUrl.replace(/\/$/, '')}/logo-compressed.png`;
+  try {
+    const parsed = new URL(baseUrl);
+    return `${parsed.origin}/logo-compressed.png`;
+  } catch {
+    return `${baseUrl.replace(/\/$/, '')}/logo-compressed.png`;
+  }
 }
 
 function getCheckIcon(size: number, color: string): string {

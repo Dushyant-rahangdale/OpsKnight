@@ -11,6 +11,7 @@ import {
   AlertBox,
   EmailFooter,
 } from '@/lib/email-components';
+import { getBaseUrl } from '@/lib/env-validation';
 
 export interface UserInviteEmailData {
   userName: string;
@@ -27,10 +28,19 @@ export function getUserInviteEmailTemplate(data: UserInviteEmailData): {
   const subject = 'You are invited to OpsKnight';
   const expiresText = data.expiresInDays ? `${data.expiresInDays} days` : '7 days';
   const greetingName = data.userName || 'there';
+  let logoUrl: string | undefined;
+  try {
+    const baseUrl = getBaseUrl();
+    const parsed = new URL(baseUrl);
+    logoUrl = `${parsed.origin}/logo-compressed.png`;
+  } catch {
+    logoUrl = undefined;
+  }
 
   const content = `
         ${EmailHeader('You are invited', 'Activate your OpsKnight account', {
           headerGradient: 'linear-gradient(135deg, #0b0b0f 0%, #111827 45%, #0f172a 100%)',
+          logoUrl,
         })}
         ${EmailContent(`
             <div style="text-align: center; margin-bottom: 28px;">
@@ -46,14 +56,14 @@ export function getUserInviteEmailTemplate(data: UserInviteEmailData): {
             </div>
 
             <div style="background: linear-gradient(135deg, #0b0b0f 0%, #111827 100%); border: 1px solid #1f2937; border-radius: 16px; padding: 28px; margin: 28px 0; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.35);">
-                <p style="margin: 0 0 20px 0; color: #e2e8f0; font-size: 15px; line-height: 1.7; text-align: center;">
+                <p style="margin: 0 0 20px 0; color: #e2e8f0 !important; font-size: 15px; line-height: 1.7; text-align: center;">
                     Set your password to activate your account and access the OpsKnight console.
                 </p>
                 ${EmailButton('Set up your account →', data.inviteUrl, {
                   buttonBackground: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
                   buttonShadow: '0 10px 24px rgba(37, 99, 235, 0.35)',
                 })}
-                <p style="margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8; font-size: 13px; text-align: center;">
+                <p style="margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8 !important; font-size: 13px; text-align: center;">
                     ⏱️ This invite link expires in ${expiresText}
                 </p>
             </div>
