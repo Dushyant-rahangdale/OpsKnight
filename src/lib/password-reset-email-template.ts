@@ -30,12 +30,14 @@ export function getPasswordResetEmailTemplate(data: PasswordResetEmailData): {
   const expiryText = data.expiryMinutes ? `${data.expiryMinutes} minutes` : '1 hour';
 
   const content = `
-        ${EmailHeader('Password Reset Request', 'OpsKnight Account Security')}
+        ${EmailHeader('Password Reset Request', 'OpsKnight Account Security', {
+          headerGradient: 'linear-gradient(135deg, #0b0b0f 0%, #111827 45%, #0f172a 100%)',
+        })}
         ${EmailContent(`
             <!-- Security Icon -->
             <div style="text-align: center; margin-bottom: 32px;">
-                <div style="display: inline-block; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 40%, #fca5a5 100%); border-radius: 999px; padding: 16px 24px; margin-bottom: 20px;">
-                    <span style="font-size: 42px; filter: drop-shadow(0 2px 4px rgba(211, 47, 47, 0.2));">🔐</span>
+                <div style="display: inline-block; background: rgba(16, 185, 129, 0.12); border-radius: 999px; padding: 12px 22px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.35);">
+                    <span style="font-size: 38px; filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.25));">🔐</span>
                 </div>
                 <h2 style="margin: 0 0 12px 0; color: #111827; font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">
                     Reset Your Password
@@ -46,25 +48,28 @@ export function getPasswordResetEmailTemplate(data: PasswordResetEmailData): {
             </div>
             
             <!-- Reset Instructions -->
-            <div style="background: linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%); border: 2px solid #fecaca; border-radius: 16px; padding: 32px; margin: 32px 0; box-shadow: 0 8px 18px rgba(220, 38, 38, 0.12);">
-                <p style="margin: 0 0 24px 0; color: #374151; font-size: 15px; line-height: 1.7; text-align: center;">
+            <div style="background: linear-gradient(135deg, #0b0b0f 0%, #111827 100%); border: 1px solid #1f2937; border-radius: 16px; padding: 32px; margin: 32px 0; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.35);">
+                <p style="margin: 0 0 24px 0; color: #e2e8f0; font-size: 15px; line-height: 1.7; text-align: center;">
                     Click the button below to create a new password for your account:
                 </p>
                 
-                ${EmailButton('Reset Password →', data.resetLink)}
+                ${EmailButton('Reset Password →', data.resetLink, {
+                  buttonBackground: 'linear-gradient(135deg, #10b981 0%, #22c55e 100%)',
+                  buttonShadow: '0 10px 24px rgba(16, 185, 129, 0.35)',
+                })}
                 
-                <p style="margin: 24px 0 0 0; padding-top: 24px; border-top: 1px solid #fecaca; color: #9ca3af; font-size: 13px; text-align: center;">
+                <p style="margin: 24px 0 0 0; padding-top: 24px; border-top: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8; font-size: 13px; text-align: center;">
                     ⏱️ This link expires in ${expiryText}
                 </p>
             </div>
             
             <!-- Alternative Link -->
-            <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #e2e8f0;">
                 <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px; font-weight: 600;">
                     Button not working?
                 </p>
                 <p style="margin: 0; color: #9ca3af; font-size: 13px; line-height: 1.6; word-break: break-all;">
-                    Copy and paste this link: <a href="${data.resetLink}" style="color: #d32f2f; text-decoration: none;">${data.resetLink}</a>
+                    Copy and paste this link: <a href="${data.resetLink}" style="color: #10b981; text-decoration: none;">${data.resetLink}</a>
                 </p>
             </div>
             

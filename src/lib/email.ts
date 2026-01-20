@@ -463,6 +463,9 @@ export function generateIncidentEmailHTML(
           border: '#d1fae5',
           title: '#064e3b',
           text: '#065f46',
+          headerGradient: 'linear-gradient(135deg, #064e3b 0%, #16a34a 50%, #22c55e 100%)',
+          buttonBackground: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+          buttonShadow: '0 10px 22px rgba(16, 185, 129, 0.35)',
         }
       : normalizedEventType === 'acknowledged'
         ? {
@@ -472,6 +475,9 @@ export function generateIncidentEmailHTML(
             border: '#fde68a',
             title: '#78350f',
             text: '#92400e',
+            headerGradient: 'linear-gradient(135deg, #78350f 0%, #d97706 50%, #f59e0b 100%)',
+            buttonBackground: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+            buttonShadow: '0 10px 22px rgba(217, 119, 6, 0.35)',
           }
         : incident.urgency === 'HIGH'
           ? {
@@ -481,6 +487,9 @@ export function generateIncidentEmailHTML(
               border: '#fecaca',
               title: '#881337',
               text: '#991b1b',
+              headerGradient: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 50%, #dc2626 100%)',
+              buttonBackground: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
+              buttonShadow: '0 10px 22px rgba(185, 28, 28, 0.35)',
             }
           : incident.urgency === 'MEDIUM'
             ? {
@@ -490,6 +499,9 @@ export function generateIncidentEmailHTML(
                 border: '#fde68a',
                 title: '#78350f',
                 text: '#92400e',
+                headerGradient: 'linear-gradient(135deg, #78350f 0%, #d97706 50%, #f59e0b 100%)',
+                buttonBackground: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+                buttonShadow: '0 10px 22px rgba(217, 119, 6, 0.35)',
               }
             : {
                 badgeType: 'info' as const,
@@ -498,6 +510,9 @@ export function generateIncidentEmailHTML(
                 border: '#bfdbfe',
                 title: '#1e3a8a',
                 text: '#1d4ed8',
+                headerGradient: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)',
+                buttonBackground: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                buttonShadow: '0 10px 22px rgba(37, 99, 235, 0.35)',
               };
 
   const formatDuration = (start: Date, end?: Date | null) => {
@@ -544,12 +559,23 @@ export function generateIncidentEmailHTML(
     });
   }
 
+  const urgencyColors: Record<string, { bg: string; text: string; border: string }> = {
+    HIGH: { bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' },
+    MEDIUM: { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+    LOW: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
+  };
+  const urgencyKey = incident.urgency?.toUpperCase() || 'LOW';
+  const urgencyTheme = urgencyColors[urgencyKey] || urgencyColors.LOW;
+
   const content = `
-        ${EmailHeader(headerTitle, headerSubtitle)}
+        ${EmailHeader(headerTitle, headerSubtitle, { headerGradient: theme.headerGradient })}
         
         ${EmailContent(`
-            <div style="text-align: left; margin-bottom: 20px;">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 22px;">
                 ${StatusBadge(updateTitle.toUpperCase(), theme.badgeType)}
+                <span style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: ${urgencyTheme.bg}; border: 1px solid ${urgencyTheme.border}; color: ${urgencyTheme.text}; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
+                    ${incident.urgency}
+                </span>
             </div>
 
             <div style="background: ${theme.background}; border: 1px solid ${theme.border}; border-left: 4px solid ${theme.accent}; padding: 16px 18px; border-radius: 12px; margin-bottom: 26px;">
@@ -568,7 +594,7 @@ export function generateIncidentEmailHTML(
             <h3 style="margin: 26px 0 12px 0; color: #111827; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
                 Incident Summary
             </h3>
-            ${InfoCard(infoItems)}
+            ${InfoCard(infoItems, { accentColor: theme.accent })}
 
             ${
               incident.description
@@ -600,7 +626,14 @@ export function generateIncidentEmailHTML(
                 : ''
             }
 
-            ${EmailButton(normalizedEventType === 'resolved' ? 'View Resolution' : 'View Incident', incidentUrl)}
+            ${EmailButton(
+              normalizedEventType === 'resolved' ? 'View Resolution' : 'View Incident',
+              incidentUrl,
+              {
+                buttonBackground: theme.buttonBackground,
+                buttonShadow: theme.buttonShadow,
+              }
+            )}
         `)}
         
         ${EmailFooter()}
