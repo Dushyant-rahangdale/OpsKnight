@@ -100,11 +100,20 @@ export async function POST(req: NextRequest) {
         const baseUrl = getBaseUrl();
         const verificationUrl = `${baseUrl}/status/verify/${verificationToken}`;
 
+        const branding =
+          statusPage.branding &&
+          typeof statusPage.branding === 'object' &&
+          !Array.isArray(statusPage.branding)
+            ? (statusPage.branding as Record<string, unknown>)
+            : {};
+        const logoUrl = typeof branding.logoUrl === 'string' ? branding.logoUrl : undefined;
+
         const emailTemplate = getVerificationEmailTemplate({
           statusPageName: statusPage.name,
           organizationName: statusPage.organizationName || undefined,
           statusPageUrl: `${baseUrl}/status`,
           verificationUrl,
+          logoUrl,
         });
 
         await sendEmail(
@@ -124,7 +133,6 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (emailError: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       // Log error but don't fail the subscription - email can be resent later
       logger.error('api.status_page.subscription.verification_email_failed', {
         statusPageId,
@@ -140,7 +148,6 @@ export async function POST(req: NextRequest) {
       200
     );
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('api.status_page.subscription.error', {
       error: error instanceof Error ? error.message : String(error),
     });

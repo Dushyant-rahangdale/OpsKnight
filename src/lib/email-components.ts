@@ -8,6 +8,12 @@ export interface EmailStyles {
   backgroundColor?: string;
   textColor?: string;
   headerGradient?: string;
+  logoUrl?: string;
+  logoAlt?: string;
+  brandName?: string;
+  buttonBackground?: string;
+  buttonTextColor?: string;
+  buttonShadow?: string;
 }
 
 /**
@@ -89,6 +95,7 @@ export function EmailContainer(content: string, styles: EmailStyles = {}): strin
 export function EmailHeader(title: string, subtitle?: string, styles: EmailStyles = {}): string {
   const headerGradient =
     styles.headerGradient || 'linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%)';
+  const brandName = styles.brandName || 'OpsKnight';
 
   return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
@@ -102,10 +109,10 @@ export function EmailHeader(title: string, subtitle?: string, styles: EmailStyle
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin: 0;">
                     <tr>
                         <td style="padding-right: 12px; vertical-align: middle;">
-                            ${getOpsKnightLogo(56)}
+                            ${getOpsKnightLogo(56, styles)}
                         </td>
                         <td style="vertical-align: middle;">
-                            <span class="mobile-logo-name" style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">OpsKnight</span>
+                            <span class="mobile-logo-name" style="font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">${brandName}</span>
                         </td>
                     </tr>
                 </table>
@@ -197,11 +204,16 @@ export function StatusBadge(
  * Optimized for mobile with large touch targets
  */
 export function EmailButton(text: string, url: string, _styles: EmailStyles = {}): string {
+  const buttonBackground =
+    _styles.buttonBackground || 'linear-gradient(135deg, #1e293b 0%, #334155 100%)';
+  const buttonShadow = _styles.buttonShadow || '0 8px 20px rgba(30, 41, 59, 0.25)';
+  const buttonTextColor = _styles.buttonTextColor || '#ffffff';
+
   return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" class="mobile-full-width mobile-spacing" style="margin: 32px auto; width: auto;">
     <tr>
-        <td class="mobile-button" style="border-radius: 10px; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); text-align: center; box-shadow: 0 8px 20px rgba(30, 41, 59, 0.25);">
-            <a href="${url}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.5; border-radius: 10px; min-width: 220px; text-align: center;">
+        <td class="mobile-button" style="border-radius: 10px; background: ${buttonBackground}; text-align: center; box-shadow: ${buttonShadow};">
+            <a href="${url}" target="_blank" style="display: inline-block; padding: 14px 32px; color: ${buttonTextColor}; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.5; border-radius: 10px; min-width: 220px; text-align: center;">
                 ${text}
             </a>
         </td>
@@ -213,8 +225,10 @@ export function EmailButton(text: string, url: string, _styles: EmailStyles = {}
  * Information card with label and value
  */
 export function InfoCard(
-  items: Array<{ label: string; value: string; highlight?: boolean }>
+  items: Array<{ label: string; value: string; highlight?: boolean }>,
+  styles: { accentColor?: string } = {}
 ): string {
+  const accentColor = styles.accentColor || '#e5e7eb';
   const rows = items
     .map(
       item => `
@@ -231,7 +245,7 @@ export function InfoCard(
     .join('');
 
   return `
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #e5e7eb; border-left: 4px solid ${accentColor};">
     ${rows}
 </table>`.trim();
 }
@@ -306,35 +320,43 @@ export function SubscriberEmailHeader(
 ): string {
   const headerGradient =
     styles.headerGradient || 'linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%)';
+  const displayName = styles.brandName || pageName;
+  const logoAlt = styles.logoAlt || displayName;
+  const brandLogo = getOpsKnightLogo(52, {
+    ...styles,
+    logoAlt,
+  });
 
   return `
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
     <tr>
         <td class="mobile-header-padding" style="background: ${headerGradient}; padding: 48px 44px; text-align: left; position: relative;">
-            <!-- OpsKnight Logo -->
-            <div style="margin-bottom: 32px;">
-                <!--[if mso]>
-                <table role="presentation" align="left"><tr><td>
-                <![endif]-->
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="left" style="margin: 0;">
-                    <tr>
-                        <td style="padding-right: 12px; vertical-align: middle;">
-                            ${getOpsKnightLogo(44)}
-                        </td>
-                        <td style="vertical-align: middle;">
-                            <span class="mobile-logo-name" style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">OpsKnight</span>
-                        </td>
-                    </tr>
-                </table>
-                <!--[if mso]>
-                </td></tr></table>
-                <![endif]-->
-                <div style="clear: both;"></div>
-            </div>
+            <!-- Brand Header -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
+                <tr>
+                    <td align="left" valign="middle">
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                                <td style="padding-right: 12px; vertical-align: middle;">
+                                    ${brandLogo}
+                                </td>
+                                <td style="vertical-align: middle;">
+                                    <span class="mobile-logo-name" style="font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: -0.01em; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;">
+                                        ${displayName}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td align="right" valign="middle" class="mobile-hide" style="color: rgba(255, 255, 255, 0.6); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;">
+                        Powered by OpsKnight
+                    </td>
+                </tr>
+            </table>
 
             <!-- Organization Name (The Sender) -->
             <h1 class="mobile-font-large" style="margin: 0 0 14px 0; color: #ffffff; font-size: 30px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;">
-                ${pageName}
+                ${displayName}
             </h1>
             
             <!-- Update Type Badge -->
@@ -395,8 +417,14 @@ export function SubscriberEmailFooter(unsubscribeUrl: string, pageName: string):
  * SVG Icons (inline for email compatibility)
  */
 
-function getOpsKnightLogo(width: number): string {
-  // Inline SVG logo for email compatibility - works in all email clients without external dependencies
+function getOpsKnightLogo(width: number, styles: EmailStyles = {}): string {
+  const logoUrl = styles.logoUrl || getDefaultLogoUrl();
+  const logoAlt = styles.logoAlt || 'OpsKnight';
+  if (logoUrl) {
+    return `<img src="${logoUrl}" width="${width}" height="${width}" alt="${logoAlt}" style="display: block; border-radius: 12px;" />`;
+  }
+
+  // Inline SVG logo fallback for email compatibility
   return `<svg width="${width}" height="${width}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="display: block;">
         <!-- Shield background -->
         <path d="M50 5 L85 20 L85 45 Q85 75 50 95 Q15 75 15 45 L15 20 Z" fill="url(#grad)" stroke="#0f172a" stroke-width="2"/>
@@ -410,6 +438,12 @@ function getOpsKnightLogo(width: number): string {
         <!-- OS Text -->
         <text x="50" y="58" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#ffffff" text-anchor="middle">OS</text>
     </svg>`;
+}
+
+function getDefaultLogoUrl(): string | null {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+  if (!baseUrl || !baseUrl.startsWith('http')) return null;
+  return `${baseUrl.replace(/\/$/, '')}/logo-compressed.png`;
 }
 
 function getCheckIcon(size: number, color: string): string {
