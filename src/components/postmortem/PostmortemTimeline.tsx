@@ -6,6 +6,7 @@ import { formatDateTime } from '@/lib/timezone';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { cn } from '@/lib/utils';
 import { Search, Megaphone, Wrench, CheckCircle2 } from 'lucide-react';
+import { TIMELINE_EVENT_TYPE_CONFIG } from './shared';
 export type { TimelineEvent };
 
 interface PostmortemTimelineProps {
@@ -13,37 +14,6 @@ interface PostmortemTimelineProps {
   incidentStartTime?: Date;
   incidentEndTime?: Date;
 }
-
-const EVENT_TYPE_CONFIG = {
-  DETECTION: {
-    color: 'text-blue-500',
-    bg: 'bg-blue-500',
-    border: 'border-blue-500/40',
-    label: 'Detection',
-    Icon: Search,
-  },
-  ESCALATION: {
-    color: 'text-amber-500',
-    bg: 'bg-amber-500',
-    border: 'border-amber-500/40',
-    label: 'Escalation',
-    Icon: Megaphone,
-  },
-  MITIGATION: {
-    color: 'text-purple-500',
-    bg: 'bg-purple-500',
-    border: 'border-purple-500/40',
-    label: 'Mitigation',
-    Icon: Wrench,
-  },
-  RESOLUTION: {
-    color: 'text-green-500',
-    bg: 'bg-green-500',
-    border: 'border-green-500/40',
-    label: 'Resolution',
-    Icon: CheckCircle2,
-  },
-};
 
 export default function PostmortemTimeline({
   events,
@@ -92,7 +62,9 @@ export default function PostmortemTimeline({
 
           {sortedEvents.map((event, index) => {
             const eventTime = new Date(event.timestamp);
-            const config = EVENT_TYPE_CONFIG[event.type];
+            const config =
+              TIMELINE_EVENT_TYPE_CONFIG[event.type as keyof typeof TIMELINE_EVENT_TYPE_CONFIG] ||
+              TIMELINE_EVENT_TYPE_CONFIG.DETECTION;
             const EventIcon = config.Icon;
 
             return (
@@ -105,7 +77,7 @@ export default function PostmortemTimeline({
                   className={cn(
                     'absolute -left-[1.75rem] top-2 w-8 h-8 rounded-full flex items-center justify-center z-10',
                     'border-[3px] border-white shadow-md',
-                    config.bg
+                    config.solidBg
                   )}
                 >
                   <EventIcon className="w-4 h-4 text-white" />
@@ -124,7 +96,7 @@ export default function PostmortemTimeline({
                       <span
                         className={cn(
                           'px-2 py-0.5 rounded text-xs font-semibold',
-                          config.bg + '/20',
+                          config.bg,
                           config.color
                         )}
                       >

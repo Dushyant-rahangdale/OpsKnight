@@ -17,6 +17,7 @@ import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { TIMELINE_EVENT_TYPE_CONFIG } from './shared';
 
 export type TimelineEvent = {
   id: string;
@@ -31,33 +32,6 @@ interface PostmortemTimelineBuilderProps {
   events: TimelineEvent[];
   onChange: (events: TimelineEvent[]) => void;
 }
-
-const EVENT_TYPE_CONFIG = {
-  DETECTION: {
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/20',
-    border: 'border-l-blue-500',
-    label: 'Detection',
-  },
-  ESCALATION: {
-    color: 'text-amber-500',
-    bg: 'bg-amber-500/20',
-    border: 'border-l-amber-500',
-    label: 'Escalation',
-  },
-  MITIGATION: {
-    color: 'text-purple-500',
-    bg: 'bg-purple-500/20',
-    border: 'border-l-purple-500',
-    label: 'Mitigation',
-  },
-  RESOLUTION: {
-    color: 'text-green-500',
-    bg: 'bg-green-500/20',
-    border: 'border-l-green-500',
-    label: 'Resolution',
-  },
-};
 
 export default function PostmortemTimelineBuilder({
   events,
@@ -122,7 +96,7 @@ export default function PostmortemTimelineBuilder({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(EVENT_TYPE_CONFIG).map(([value, config]) => (
+                  {Object.entries(TIMELINE_EVENT_TYPE_CONFIG).map(([value, config]) => (
                     <SelectItem key={value} value={value}>
                       {config.label}
                     </SelectItem>
@@ -180,7 +154,9 @@ export default function PostmortemTimelineBuilder({
         <div className="flex flex-col gap-2">
           <h3 className="text-lg font-semibold mb-2">Timeline Events ({events.length})</h3>
           {events.map(event => {
-            const config = EVENT_TYPE_CONFIG[event.type];
+            const config =
+              TIMELINE_EVENT_TYPE_CONFIG[event.type as keyof typeof TIMELINE_EVENT_TYPE_CONFIG] ||
+              TIMELINE_EVENT_TYPE_CONFIG.DETECTION;
             return (
               <Card key={event.id} className={cn('bg-white border-l-4', config.border)}>
                 <CardContent className="p-4">
@@ -237,7 +213,7 @@ export default function PostmortemTimelineBuilder({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(EVENT_TYPE_CONFIG).map(([value, cfg]) => (
+                            {Object.entries(TIMELINE_EVENT_TYPE_CONFIG).map(([value, cfg]) => (
                               <SelectItem key={value} value={value}>
                                 {cfg.label}
                               </SelectItem>

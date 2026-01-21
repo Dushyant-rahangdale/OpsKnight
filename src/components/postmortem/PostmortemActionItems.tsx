@@ -42,42 +42,7 @@ interface PostmortemActionItemsProps {
   }>;
 }
 
-const STATUS_CONFIG = {
-  OPEN: {
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/20',
-    border: 'border-blue-500/40',
-    label: 'Open',
-    variant: 'info' as const,
-  },
-  IN_PROGRESS: {
-    color: 'text-amber-500',
-    bg: 'bg-amber-500/20',
-    border: 'border-amber-500/40',
-    label: 'In Progress',
-    variant: 'warning' as const,
-  },
-  COMPLETED: {
-    color: 'text-green-500',
-    bg: 'bg-green-500/20',
-    border: 'border-green-500/40',
-    label: 'Completed',
-    variant: 'success' as const,
-  },
-  BLOCKED: {
-    color: 'text-red-500',
-    bg: 'bg-red-500/20',
-    border: 'border-red-500/40',
-    label: 'Blocked',
-    variant: 'danger' as const,
-  },
-};
-
-const PRIORITY_CONFIG = {
-  HIGH: { color: 'text-red-500', bg: 'bg-red-500/20', label: 'High' },
-  MEDIUM: { color: 'text-amber-500', bg: 'bg-amber-500/20', label: 'Medium' },
-  LOW: { color: 'text-gray-500', bg: 'bg-gray-500/20', label: 'Low' },
-};
+import { ACTION_ITEM_STATUS_CONFIG, ACTION_ITEM_PRIORITY_CONFIG } from './shared';
 
 export default function PostmortemActionItems({
   actionItems,
@@ -169,7 +134,7 @@ export default function PostmortemActionItems({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(PRIORITY_CONFIG).map(([value, config]) => (
+                  {Object.entries(ACTION_ITEM_PRIORITY_CONFIG).map(([value, config]) => (
                     <SelectItem key={value} value={value}>
                       {config.label}
                     </SelectItem>
@@ -189,7 +154,7 @@ export default function PostmortemActionItems({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                  {Object.entries(ACTION_ITEM_STATUS_CONFIG).map(([value, config]) => (
                     <SelectItem key={value} value={value}>
                       {config.label}
                     </SelectItem>
@@ -254,8 +219,13 @@ export default function PostmortemActionItems({
             const isOverdue =
               item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'COMPLETED';
             const owner = users.find(u => u.id === item.owner);
-            const statusConfig = STATUS_CONFIG[item.status];
-            const priorityConfig = PRIORITY_CONFIG[item.priority];
+            const statusConfig =
+              ACTION_ITEM_STATUS_CONFIG[item.status as keyof typeof ACTION_ITEM_STATUS_CONFIG] ||
+              ACTION_ITEM_STATUS_CONFIG.OPEN;
+            const priorityConfig =
+              ACTION_ITEM_PRIORITY_CONFIG[
+                item.priority as keyof typeof ACTION_ITEM_PRIORITY_CONFIG
+              ] || ACTION_ITEM_PRIORITY_CONFIG.MEDIUM;
 
             return (
               <Card
@@ -353,7 +323,7 @@ export default function PostmortemActionItems({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {Object.entries(STATUS_CONFIG).map(([value, config]) => (
+                              {Object.entries(ACTION_ITEM_STATUS_CONFIG).map(([value, config]) => (
                                 <SelectItem key={value} value={value}>
                                   {config.label}
                                 </SelectItem>
@@ -373,11 +343,13 @@ export default function PostmortemActionItems({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {Object.entries(PRIORITY_CONFIG).map(([value, config]) => (
-                                <SelectItem key={value} value={value}>
-                                  {config.label}
-                                </SelectItem>
-                              ))}
+                              {Object.entries(ACTION_ITEM_PRIORITY_CONFIG).map(
+                                ([value, config]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {config.label}
+                                  </SelectItem>
+                                )
+                              )}
                             </SelectContent>
                           </Select>
                         </div>

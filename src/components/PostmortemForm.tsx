@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { upsertPostmortem, type PostmortemData } from '@/app/(app)/postmortems/actions';
+import {
+  upsertPostmortem,
+  type PostmortemData,
+  type TimelineEvent,
+  type ImpactMetrics,
+  type ActionItem,
+} from '@/app/(app)/postmortems/actions';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Textarea } from '@/components/ui/shadcn/textarea';
@@ -15,15 +21,38 @@ import {
   SelectValue,
 } from '@/components/ui/shadcn/select';
 import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/shadcn/form';
 import { useRouter } from 'next/navigation';
-import PostmortemTimelineBuilder, {
-  type TimelineEvent,
-} from './postmortem/PostmortemTimelineBuilder';
-import PostmortemImpactInput, { type ImpactMetrics } from './postmortem/PostmortemImpactInput';
-import PostmortemActionItems, { type ActionItem } from './postmortem/PostmortemActionItems';
+import PostmortemTimelineBuilder from './postmortem/PostmortemTimelineBuilder';
+import PostmortemImpactInput from './postmortem/PostmortemImpactInput';
+import PostmortemActionItems from './postmortem/PostmortemActionItems';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { POSTMORTEM_STATUS_CONFIG } from './postmortem/shared';
+
+const postmortemSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(100, 'Title must be less than 100 characters'),
+  summary: z.string().optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
+  isPublic: z.boolean(),
+  rootCause: z.string().optional(),
+  resolution: z.string().optional(),
+  lessons: z.string().optional(),
+});
+
+type PostmortemFormValues = z.infer<typeof postmortemSchema>;
 
 type PostmortemFormProps = {
   incidentId: string;
@@ -60,11 +89,11 @@ export default function PostmortemForm({
   const router = useRouter();
   const { userTimeZone } = useTimezone();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>(incidentId || '');
 
   // Parse initial data with proper types
-  const parseTimeline = (timeline: any): TimelineEvent[] => {
+  const parseTimeline = (timeline: unknown): TimelineEvent[] => {
     if (!timeline || !Array.isArray(timeline)) return [];
     return timeline.map((e: any) => ({
       id: e.id || `event-${Date.now()}-${Math.random()}`,
@@ -76,21 +105,22 @@ export default function PostmortemForm({
     }));
   };
 
-  const parseImpact = (impact: any): ImpactMetrics => {
+  const parseImpact = (impact: unknown): ImpactMetrics => {
     if (!impact || typeof impact !== 'object') return {};
+    const imp = impact as any;
     return {
-      usersAffected: impact.usersAffected,
-      downtimeMinutes: impact.downtimeMinutes,
-      errorRate: impact.errorRate,
-      servicesAffected: Array.isArray(impact.servicesAffected) ? impact.servicesAffected : [],
-      slaBreaches: impact.slaBreaches,
-      revenueImpact: impact.revenueImpact,
-      apiErrors: impact.apiErrors,
-      performanceDegradation: impact.performanceDegradation,
+      usersAffected: imp.usersAffected,
+      downtimeMinutes: imp.downtimeMinutes,
+      errorRate: imp.errorRate,
+      servicesAffected: Array.isArray(imp.servicesAffected) ? imp.servicesAffected : [],
+      slaBreaches: imp.slaBreaches,
+      revenueImpact: imp.revenueImpact,
+      apiErrors: imp.apiErrors,
+      performanceDegradation: imp.performanceDegradation,
     };
   };
 
-  const parseActionItems = (actionItems: any): ActionItem[] => {
+  const parseActionItems = (actionItems: unknown): ActionItem[] => {
     if (!actionItems || !Array.isArray(actionItems)) return [];
     return actionItems.map((item: any) => ({
       id: item.id || `action-${Date.now()}-${Math.random()}`,
@@ -103,19 +133,21 @@ export default function PostmortemForm({
     }));
   };
 
-  const [formData, setFormData] = useState<PostmortemData>({
-    title: initialData?.title || '',
-    summary: initialData?.summary || '',
-    rootCause: initialData?.rootCause || '',
-    resolution: initialData?.resolution || '',
-    lessons: initialData?.lessons || '',
-    status: (initialData?.status as any) || 'DRAFT', // eslint-disable-line @typescript-eslint/no-explicit-any
-    isPublic: initialData?.isPublic ?? true,
-    timeline: initialData?.timeline || [],
-    impact: initialData?.impact || {},
-    actionItems: initialData?.actionItems || [],
+  // Setup React Hook Form
+  const form = useForm<PostmortemFormValues>({
+    resolver: zodResolver(postmortemSchema),
+    defaultValues: {
+      title: initialData?.title || '',
+      summary: initialData?.summary || '',
+      status: (initialData?.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED') || 'DRAFT',
+      isPublic: initialData?.isPublic ?? true,
+      rootCause: initialData?.rootCause || '',
+      resolution: initialData?.resolution || '',
+      lessons: initialData?.lessons || '',
+    },
   });
 
+  // Complex state managed separately
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(
     parseTimeline(initialData?.timeline)
   );
@@ -126,25 +158,18 @@ export default function PostmortemForm({
     parseActionItems(initialData?.actionItems)
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const onSubmit = (data: PostmortemFormValues) => {
+    setGeneralError(null);
 
     const targetIncidentId = selectedIncidentId || incidentId;
 
     if (!targetIncidentId) {
-      setError('Please select an incident');
+      setGeneralError('Please select an incident');
       return;
     }
 
-    if (!formData.title.trim()) {
-      setError('Title is required');
-      return;
-    }
-
-    // Combine all data before submitting
     const submitData: PostmortemData = {
-      ...formData,
+      ...data,
       timeline: timelineEvents,
       impact: impactMetrics,
       actionItems: actionItems,
@@ -157,10 +182,10 @@ export default function PostmortemForm({
           router.push(`/postmortems/${targetIncidentId}`);
           router.refresh();
         } else {
-          setError('Failed to save postmortem');
+          setGeneralError('Failed to save postmortem');
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to save postmortem');
+        setGeneralError(err.message || 'Failed to save postmortem');
       }
     });
   };
@@ -168,9 +193,9 @@ export default function PostmortemForm({
   const selectedIncident = resolvedIncidents.find(inc => inc.id === selectedIncidentId);
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="flex flex-col gap-6">
-        {/* Incident Selection - Only show if no incidentId provided and we have resolved incidents */}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Incident Selection */}
         {!incidentId && resolvedIncidents.length > 0 && (
           <Card className="bg-gradient-to-br from-white to-slate-50 shadow-md">
             <CardHeader>
@@ -223,67 +248,92 @@ export default function PostmortemForm({
             <CardTitle className="text-xl">Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="space-y-1.5">
-              <Label>Title *</Label>
-              <Input
-                required
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Database Connection Pool Exhaustion"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Database Connection Pool Exhaustion" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="space-y-1.5">
-              <Label>Executive Summary</Label>
-              <Textarea
-                rows={4}
-                value={formData.summary || ''}
-                onChange={e => setFormData({ ...formData, summary: e.target.value })}
-                placeholder="Provide a high-level summary for stakeholders..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Brief overview of the incident and its impact
-              </p>
-            </div>
+            <FormField
+              control={form.control}
+              name="summary"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Executive Summary</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={4}
+                      placeholder="Provide a high-level summary for stakeholders..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>Brief overview of the incident and its impact</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select
-                  value={formData.status || 'DRAFT'}
-                  onValueChange={value => setFormData({ ...formData, status: value as any })} // eslint-disable-line @typescript-eslint/no-explicit-any
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="PUBLISHED">Published</SelectItem>
-                    <SelectItem value="ARCHIVED">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(POSTMORTEM_STATUS_CONFIG).map(([key, config]) => (
+                          <SelectItem key={key} value={key}>
+                            {config.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-1.5">
-                <Label>Visibility</Label>
-                <Select
-                  value={formData.isPublic ? 'public' : 'private'}
-                  onValueChange={value =>
-                    setFormData({ ...formData, isPublic: value === 'public' })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public (shown on status page)</SelectItem>
-                    <SelectItem value="private">Private (internal only)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Private postmortems are not shown on the public status page.
-                </p>
-              </div>
+              <FormField
+                control={form.control}
+                name="isPublic"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select
+                      onValueChange={value => field.onChange(value === 'public')}
+                      defaultValue={field.value ? 'public' : 'private'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="public">Public (shown on status page)</SelectItem>
+                        <SelectItem value="private">Private (internal only)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Private postmortems are not shown on the public status page.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </CardContent>
         </Card>
@@ -307,29 +357,43 @@ export default function PostmortemForm({
             <CardTitle className="text-xl">Analysis</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="space-y-1.5">
-              <Label>Root Cause Analysis</Label>
-              <Textarea
-                rows={6}
-                value={formData.rootCause || ''}
-                onChange={e => setFormData({ ...formData, rootCause: e.target.value })}
-                placeholder="Describe the root cause in detail..."
-              />
-              <p className="text-xs text-muted-foreground">
-                What was the underlying cause of this incident?
-              </p>
-            </div>
+            <FormField
+              control={form.control}
+              name="rootCause"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Root Cause Analysis</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={6}
+                      placeholder="Describe the root cause in detail..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>What was the underlying cause of this incident?</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="space-y-1.5">
-              <Label>Resolution</Label>
-              <Textarea
-                rows={4}
-                value={formData.resolution || ''}
-                onChange={e => setFormData({ ...formData, resolution: e.target.value })}
-                placeholder="Describe the steps taken to resolve the incident..."
-              />
-              <p className="text-xs text-muted-foreground">How was the incident resolved?</p>
-            </div>
+            <FormField
+              control={form.control}
+              name="resolution"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Resolution</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={4}
+                      placeholder="Describe the steps taken to resolve the incident..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>How was the incident resolved?</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
@@ -342,25 +406,33 @@ export default function PostmortemForm({
             <CardTitle className="text-xl">Lessons Learned</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1.5">
-              <Label>Lessons Learned</Label>
-              <Textarea
-                rows={6}
-                value={formData.lessons || ''}
-                onChange={e => setFormData({ ...formData, lessons: e.target.value })}
-                placeholder="Document key learnings and preventive measures..."
-              />
-              <p className="text-xs text-muted-foreground">
-                What did we learn? How can we prevent this in the future?
-              </p>
-            </div>
+            <FormField
+              control={form.control}
+              name="lessons"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lessons Learned</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={6}
+                      placeholder="Document key learnings and preventive measures..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    What did we learn? How can we prevent this in the future?
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
-        {error && (
+        {generalError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{generalError}</AlertDescription>
           </Alert>
         )}
 
@@ -378,7 +450,7 @@ export default function PostmortemForm({
             {initialData ? 'Update' : 'Create'} Postmortem
           </Button>
         </div>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 }

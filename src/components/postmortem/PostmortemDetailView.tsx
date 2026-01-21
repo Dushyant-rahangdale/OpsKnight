@@ -1,10 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import PostmortemTimeline, { type TimelineEvent } from './PostmortemTimeline';
+import PostmortemTimeline from './PostmortemTimeline';
 import PostmortemImpactMetrics from './PostmortemImpactMetrics';
-import type { ImpactMetrics } from './PostmortemImpactInput';
-import type { ActionItem } from './PostmortemActionItems';
 import { Badge } from '@/components/ui/shadcn/badge';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
@@ -13,17 +11,27 @@ import { formatDateTime } from '@/lib/timezone';
 import UserAvatar from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { Calendar, Pencil } from 'lucide-react';
+import {
+  POSTMORTEM_STATUS_CONFIG,
+  ACTION_ITEM_STATUS_CONFIG,
+  ACTION_ITEM_PRIORITY_CONFIG,
+} from './shared';
+import {
+  type TimelineEvent,
+  type ImpactMetrics,
+  type ActionItem,
+} from '@/app/(app)/postmortems/actions';
 
 interface PostmortemDetailViewProps {
   postmortem: {
     id: string;
     title: string;
     summary?: string | null;
-    timeline?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    impact?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    timeline?: unknown; // JSON from database
+    impact?: unknown; // JSON from database
     rootCause?: string | null;
     resolution?: string | null;
-    actionItems?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    actionItems?: unknown; // JSON from database
     lessons?: string | null;
     status?: string;
     createdAt: Date;
@@ -50,37 +58,20 @@ interface PostmortemDetailViewProps {
   }>;
   canEdit?: boolean;
   incidentId: string;
+  isPublicView?: boolean;
 }
-
-const STATUS_CONFIG = {
-  DRAFT: { label: 'Draft', variant: 'warning' as const },
-  PUBLISHED: { label: 'Published', variant: 'success' as const },
-  ARCHIVED: { label: 'Archived', variant: 'neutral' as const },
-};
-
-const ACTION_STATUS_CONFIG = {
-  OPEN: { color: 'text-blue-500', bg: 'bg-blue-500/20', border: 'border-blue-500/40' },
-  IN_PROGRESS: { color: 'text-amber-500', bg: 'bg-amber-500/20', border: 'border-amber-500/40' },
-  COMPLETED: { color: 'text-green-500', bg: 'bg-green-500/20', border: 'border-green-500/40' },
-  BLOCKED: { color: 'text-red-500', bg: 'bg-red-500/20', border: 'border-red-500/40' },
-};
-
-const PRIORITY_CONFIG = {
-  HIGH: { color: 'text-red-500', bg: 'bg-red-500/20' },
-  MEDIUM: { color: 'text-amber-500', bg: 'bg-amber-500/20' },
-  LOW: { color: 'text-gray-500', bg: 'bg-gray-500/20' },
-};
 
 export default function PostmortemDetailView({
   postmortem,
   users = [],
   canEdit = false,
   incidentId,
+  isPublicView = false,
 }: PostmortemDetailViewProps) {
   const { userTimeZone } = useTimezone();
 
   // Parse data
-  const parseTimeline = (timeline: any): TimelineEvent[] => {
+  const parseTimeline = (timeline: unknown): TimelineEvent[] => {
     if (!timeline || !Array.isArray(timeline)) return [];
     return timeline.map((e: any) => ({
       id: e.id || `event-${Date.now()}`,
@@ -88,25 +79,29 @@ export default function PostmortemDetailView({
       type: e.type || 'DETECTION',
       title: e.title || '',
       description: e.description || '',
-      actor: e.actor,
+      actor: isPublicView ? undefined : e.actor, // Anonymize actor in public view
     }));
   };
 
-  const parseImpact = (impact: any): ImpactMetrics => {
+  const parseImpact = (impact: unknown): ImpactMetrics => {
     if (!impact || typeof impact !== 'object') return {};
+    const imp = impact as any;
     return {
-      usersAffected: impact.usersAffected,
-      downtimeMinutes: impact.downtimeMinutes,
-      errorRate: impact.errorRate,
-      servicesAffected: Array.isArray(impact.servicesAffected) ? impact.servicesAffected : [],
-      slaBreaches: impact.slaBreaches,
-      revenueImpact: impact.revenueImpact,
-      apiErrors: impact.apiErrors,
-      performanceDegradation: impact.performanceDegradation,
+      usersAffected: imp.usersAffected,
+      downtimeMinutes: imp.downtimeMinutes,
+      errorRate: imp.errorRate,
+      servicesAffected: Array.isArray(imp.servicesAffected) ? imp.servicesAffected : [],
+      slaBreaches: isPublicView ? undefined : imp.slaBreaches, // Hide SLA details in public view
+      revenueImpact: isPublicView ? undefined : imp.revenueImpact, // Hide revenue in public view
+      apiErrors: imp.apiErrors,
+      performanceDegradation: imp.performanceDegradation,
     };
   };
 
-  const parseActionItems = (actionItems: any): ActionItem[] => {
+  const parseActionItems = (actionItems: unknown): ActionItem[] => {
+    // Hide action items completely in public view as they often contain internal context
+    if (isPublicView) return [];
+
     if (!actionItems || !Array.isArray(actionItems)) return [];
     return actionItems.map((item: any) => ({
       id: item.id || `action-${Date.now()}`,
@@ -128,7 +123,8 @@ export default function PostmortemDetailView({
   const completionRate = totalActions > 0 ? (completedActions / totalActions) * 100 : 0;
 
   const statusConfig =
-    STATUS_CONFIG[postmortem.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.DRAFT;
+    POSTMORTEM_STATUS_CONFIG[postmortem.status as keyof typeof POSTMORTEM_STATUS_CONFIG] ||
+    POSTMORTEM_STATUS_CONFIG.DRAFT;
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,8 +142,11 @@ export default function PostmortemDetailView({
               <p className="text-muted-foreground">
                 Postmortem for{' '}
                 <Link
-                  href={`/incidents/${postmortem.incident.id}`}
-                  className="text-primary no-underline font-medium hover:underline"
+                  href={isPublicView ? '#' : `/incidents/${postmortem.incident.id}`}
+                  className={cn(
+                    'text-primary font-medium',
+                    isPublicView ? 'cursor-default text-muted-foreground' : 'hover:underline'
+                  )}
                 >
                   {postmortem.incident.title}
                 </Link>
@@ -155,7 +154,7 @@ export default function PostmortemDetailView({
             </div>
             <div className="flex items-center gap-3">
               <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-              {canEdit && (
+              {canEdit && !isPublicView && (
                 <Link href={`/postmortems/${incidentId}?edit=true`}>
                   <Button>
                     <Pencil className="w-4 h-4 mr-2" />
@@ -167,13 +166,16 @@ export default function PostmortemDetailView({
           </div>
           <div className="flex gap-4 pt-4 border-t border-slate-200 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
-              <UserAvatar
-                userId={postmortem.createdBy.id}
-                name={postmortem.createdBy.name}
-                gender={postmortem.createdBy.gender}
-                size="xs"
-              />
-              Created by <strong>{postmortem.createdBy.name}</strong>
+              {!isPublicView && (
+                <UserAvatar
+                  userId={postmortem.createdBy.id}
+                  name={postmortem.createdBy.name}
+                  gender={postmortem.createdBy.gender}
+                  size="xs"
+                />
+              )}
+              Created by{' '}
+              <strong>{isPublicView ? 'OpsKnight Team' : postmortem.createdBy.name}</strong>
             </span>
             <span>•</span>
             <span>{formatDateTime(postmortem.createdAt, userTimeZone, { format: 'date' })}</span>
@@ -284,8 +286,12 @@ export default function PostmortemDetailView({
               const owner = users.find(u => u.id === item.owner);
               const isOverdue =
                 item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'COMPLETED';
-              const statusCfg = ACTION_STATUS_CONFIG[item.status];
-              const priorityCfg = PRIORITY_CONFIG[item.priority];
+              const statusCfg =
+                ACTION_ITEM_STATUS_CONFIG[item.status as keyof typeof ACTION_ITEM_STATUS_CONFIG];
+              const priorityCfg =
+                ACTION_ITEM_PRIORITY_CONFIG[
+                  item.priority as keyof typeof ACTION_ITEM_PRIORITY_CONFIG
+                ];
 
               return (
                 <div
