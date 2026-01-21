@@ -171,3 +171,107 @@ export async function deletePostmortem(incidentId: string) {
   revalidatePath('/postmortems');
   return { success: true };
 }
+
+/**
+ * Generate a draft postmortem using heuristics (Template Engine)
+ */
+export async function generatePostmortemDraft(incidentId: string) {
+  try {
+    await assertResponderOrAbove();
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+  }
+
+  const incident = await prisma.incident.findUnique({
+    where: { id: incidentId },
+    include: {
+      service: true,
+      events: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  });
+
+  if (!incident) {
+    throw new Error('Incident not found');
+  }
+
+  // 1. Calculate Duration & Impact
+  const start = new Date(incident.createdAt);
+  const end = incident.resolvedAt ? new Date(incident.resolvedAt) : new Date();
+  const durationMs = end.getTime() - start.getTime();
+  const durationMinutes = Math.floor(durationMs / 60000);
+  const durationHours = Math.floor(durationMinutes / 60);
+  const durationString =
+    durationHours > 0 ? `${durationHours}h ${durationMinutes % 60}m` : `${durationMinutes}m`;
+
+  const impact: ImpactMetrics = {
+    downtimeMinutes: durationMinutes,
+    servicesAffected: [incident.service.name],
+  };
+
+  // 2. Generate Summary
+  const date = start.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const startTime = start.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+  const endTime = incident.resolvedAt
+    ? end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
+    : 'ongoing';
+
+  const summary = `On ${date}, the ${incident.service.name} service experienced an incident${incident.urgency === 'HIGH' ? ' (High Urgency)' : ''}. The incident began at ${startTime} and was resolved at ${endTime}. The total duration of impact was ${durationString}.`;
+
+  // 3. Generate Timeline from Incident Events
+  const timeline: TimelineEvent[] = incident.events.map(event => {
+    let type: TimelineEvent['type'] = 'DETECTION';
+    const msg = event.message.toLowerCase();
+    if (msg.includes('resolved') || msg.includes('fixed')) type = 'RESOLUTION';
+    else if (msg.includes('escalated') || msg.includes('notified') || msg.includes('acknowledg'))
+      type = 'ESCALATION';
+    else if (msg.includes('mitigated') || msg.includes('stabilized')) type = 'MITIGATION';
+
+    return {
+      id: `draft-${event.id}`,
+      timestamp: event.createdAt.toISOString(),
+      type,
+      title: event.message.length > 50 ? event.message.substring(0, 50) + '...' : event.message,
+      description: event.message,
+      actor: 'System',
+    };
+  });
+
+  // Add explicit start/end events if missing
+  if (!timeline.some(e => e.type === 'DETECTION')) {
+    timeline.unshift({
+      id: `draft-start`,
+      timestamp: incident.createdAt.toISOString(),
+      type: 'DETECTION',
+      title: 'Incident Started',
+      description: `Incident created for ${incident.service.name}`,
+    });
+  }
+  if (incident.resolvedAt && !timeline.some(e => e.type === 'RESOLUTION')) {
+    timeline.push({
+      id: `draft-end`,
+      timestamp: incident.resolvedAt.toISOString(),
+      type: 'RESOLUTION',
+      title: 'Incident Resolved',
+      description: 'Incident marked as resolved.',
+    });
+  }
+
+  return {
+    summary,
+    impact,
+    timeline,
+    rootCause: 'To be determined. Preliminary analysis suggests...',
+    resolution: 'Service was restored by...',
+    lessons: '1. Improve monitoring for...\n2. Update runbooks for...',
+  };
+}

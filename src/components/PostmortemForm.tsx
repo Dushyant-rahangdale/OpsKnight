@@ -7,7 +7,10 @@ import {
   type TimelineEvent,
   type ImpactMetrics,
   type ActionItem,
+  generatePostmortemDraft,
 } from '@/app/(app)/postmortems/actions';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Textarea } from '@/components/ui/shadcn/textarea';
@@ -36,7 +39,7 @@ import PostmortemImpactInput from './postmortem/PostmortemImpactInput';
 import PostmortemActionItems from './postmortem/PostmortemActionItems';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Loader2, Wand2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -190,6 +193,37 @@ export default function PostmortemForm({
     });
   };
 
+  const [isDrafting, setIsDrafting] = useState(false);
+
+  const handleAutoDraft = async () => {
+    const targetId = incidentId || selectedIncidentId;
+    if (!targetId) {
+      toast.error('Please select an incident first');
+      return;
+    }
+
+    setIsDrafting(true);
+    try {
+      const draft = await generatePostmortemDraft(targetId);
+
+      // Update Form Fields
+      if (draft.summary) form.setValue('summary', draft.summary, { shouldDirty: true });
+      if (draft.rootCause) form.setValue('rootCause', draft.rootCause, { shouldDirty: true });
+      if (draft.resolution) form.setValue('resolution', draft.resolution, { shouldDirty: true });
+      if (draft.lessons) form.setValue('lessons', draft.lessons, { shouldDirty: true });
+
+      // Update Complex State
+      if (draft.timeline) setTimelineEvents(draft.timeline);
+      if (draft.impact) setImpactMetrics(draft.impact);
+
+      toast.success('Draft generated successfully');
+    } catch (err: any) {
+      toast.error('Failed to generate draft: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsDrafting(false);
+    }
+  };
+
   const selectedIncident = resolvedIncidents.find(inc => inc.id === selectedIncidentId);
 
   return (
@@ -244,8 +278,23 @@ export default function PostmortemForm({
 
         {/* Basic Information */}
         <Card className="bg-gradient-to-br from-white to-slate-50 shadow-md">
-          <CardHeader>
+          <CardHeader className="flex flex-row justify-between items-center space-y-0 pb-4">
             <CardTitle className="text-xl">Basic Information</CardTitle>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAutoDraft}
+              disabled={isDrafting || (!incidentId && !selectedIncidentId)}
+              className="bg-white hover:bg-purple-50 hover:text-purple-700 transition-colors border-purple-200"
+            >
+              {isDrafting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4 mr-2 text-purple-600" />
+              )}
+              Auto-Draft
+            </Button>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <FormField
@@ -327,10 +376,11 @@ export default function PostmortemForm({
                         <SelectItem value="private">Private (internal only)</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      Private postmortems are not shown on the public status page.
-                    </FormDescription>
                     <FormMessage />
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded flex items-start gap-2 text-sm text-yellow-800">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>Private postmortems are not shown on the public status page.</span>
+                    </div>
                   </FormItem>
                 )}
               />
