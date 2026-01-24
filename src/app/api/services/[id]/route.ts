@@ -42,7 +42,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return jsonOk({ service });
-  } catch (error: any) {
-    return jsonError(error.message || 'Internal Server Error', 500);
+  } catch (_error) {
+    return jsonError('Internal Server Error', 500);
   }
 }

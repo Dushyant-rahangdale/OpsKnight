@@ -165,6 +165,6 @@ export async function POST(req: NextRequest) {
     logger.error('api.status_page.subscription.error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return jsonError(error.message || 'Failed to create subscription', 500);
+    return jsonError('Failed to create subscription', 500);
   }
 }

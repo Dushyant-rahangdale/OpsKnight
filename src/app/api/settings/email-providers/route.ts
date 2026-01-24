@@ -8,64 +8,65 @@ import prisma from '@/lib/prisma';
  * Get available email providers (for status page subscription config)
  */
 export async function GET(_req: NextRequest) {
-    try {
-        const user = await getCurrentUser();
-        if (!user || user.role !== 'ADMIN') {
-            return jsonError('Unauthorized. Admin access required.', 403);
-        }
-
-        // Fetch all email providers from database
-        const [resendProvider, sendgridProvider, smtpProvider, sesProvider] = await Promise.all([
-            prisma.notificationProvider.findUnique({ where: { provider: 'resend' } }),
-            prisma.notificationProvider.findUnique({ where: { provider: 'sendgrid' } }),
-            prisma.notificationProvider.findUnique({ where: { provider: 'smtp' } }),
-            prisma.notificationProvider.findUnique({ where: { provider: 'ses' } }),
-        ]);
-
-        const providers = [];
-
-        if (resendProvider && resendProvider.enabled) {
-            const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-            if (config?.apiKey) {
-                providers.push({
-                    provider: 'resend',
-                    enabled: true,
-                });
-            }
-        }
-
-        if (sendgridProvider && sendgridProvider.enabled) {
-            const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-            if (config?.apiKey) {
-                providers.push({
-                    provider: 'sendgrid',
-                    enabled: true,
-                });
-            }
-        }
-
-        if (smtpProvider && smtpProvider.enabled) {
-            const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-            if (config?.host && config?.user && config?.password) {
-                providers.push({
-                    provider: 'smtp',
-                    enabled: true,
-                });
-            }
-        }
-
-        if (sesProvider && sesProvider.enabled) {
-            const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-            if (config?.accessKeyId && config?.secretAccessKey) {
-                providers.push({
-                    provider: 'ses',
-                    enabled: true,
-                });
-            }
-        }
-
-        return jsonOk({ providers });
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        return jsonError(error.message || 'Failed to fetch email providers', 500);
+  try {
+    const user = await getCurrentUser();
+    if (!user || user.role !== 'ADMIN') {
+      return jsonError('Unauthorized. Admin access required.', 403);
     }
+
+    // Fetch all email providers from database
+    const [resendProvider, sendgridProvider, smtpProvider, sesProvider] = await Promise.all([
+      prisma.notificationProvider.findUnique({ where: { provider: 'resend' } }),
+      prisma.notificationProvider.findUnique({ where: { provider: 'sendgrid' } }),
+      prisma.notificationProvider.findUnique({ where: { provider: 'smtp' } }),
+      prisma.notificationProvider.findUnique({ where: { provider: 'ses' } }),
+    ]);
+
+    const providers = [];
+
+    if (resendProvider && resendProvider.enabled) {
+      const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (config?.apiKey) {
+        providers.push({
+          provider: 'resend',
+          enabled: true,
+        });
+      }
+    }
+
+    if (sendgridProvider && sendgridProvider.enabled) {
+      const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (config?.apiKey) {
+        providers.push({
+          provider: 'sendgrid',
+          enabled: true,
+        });
+      }
+    }
+
+    if (smtpProvider && smtpProvider.enabled) {
+      const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (config?.host && config?.user && config?.password) {
+        providers.push({
+          provider: 'smtp',
+          enabled: true,
+        });
+      }
+    }
+
+    if (sesProvider && sesProvider.enabled) {
+      const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (config?.accessKeyId && config?.secretAccessKey) {
+        providers.push({
+          provider: 'ses',
+          enabled: true,
+        });
+      }
+    }
+
+    return jsonOk({ providers });
+  } catch (error: any) {
+    // eslint-disable-line @typescript-eslint/no-explicit-any
+    return jsonError('Failed to fetch email providers', 500);
+  }
 }

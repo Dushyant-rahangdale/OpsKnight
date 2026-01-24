@@ -179,8 +179,8 @@ export async function GET(req: NextRequest) {
               send(updateData);
             }
           }
-        } catch (error: any) {
-          send({ type: 'error', message: error.message });
+        } catch (_error) {
+          send({ type: 'error', message: 'Failed to fetch updates' });
         }
       }, 5000); // Check every 5 seconds
 

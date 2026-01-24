@@ -18,6 +18,18 @@ import {
   type RetentionPolicy,
 } from './retention-policy';
 
+// UUID validation regex - prevents SQL injection in dynamic CASE statements
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CUID_REGEX = /^c[a-z0-9]{24,}$/i;
+
+/**
+ * Validates that an ID is a safe identifier (UUID or CUID format)
+ * Used to prevent SQL injection when building dynamic CASE statements
+ */
+function isValidSafeId(id: string): boolean {
+  return UUID_REGEX.test(id) || CUID_REGEX.test(id);
+}
+
 /**
  * SLA Server - World-Class SLA Metrics Calculation
  *
@@ -121,7 +133,8 @@ async function calculateDbAggregateMetrics(
 
   // Build service-specific target case expressions for SQL
   // This handles per-service SLA targets in the aggregate query
-  const serviceIds = Array.from(serviceTargetMap.keys());
+  // SECURITY: Filter to only valid UUIDs/CUIDs to prevent SQL injection
+  const serviceIds = Array.from(serviceTargetMap.keys()).filter(isValidSafeId);
   let ackTargetCase = `${defaultAckMs}`;
   let resolveTargetCase = `${defaultResolveMs}`;
 
@@ -129,6 +142,7 @@ async function calculateDbAggregateMetrics(
     const ackCases = serviceIds
       .map(id => {
         const target = serviceTargetMap.get(id);
+        // Safe: id is validated as UUID/CUID format above
         return `WHEN "serviceId" = '${id}' THEN ${(target?.ackMinutes ?? DEFAULT_ACK_TARGET_MINUTES) * 60 * 1000}`;
       })
       .join(' ');
@@ -137,6 +151,7 @@ async function calculateDbAggregateMetrics(
     const resolveCases = serviceIds
       .map(id => {
         const target = serviceTargetMap.get(id);
+        // Safe: id is validated as UUID/CUID format above
         return `WHEN "serviceId" = '${id}' THEN ${(target?.resolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES) * 60 * 1000}`;
       })
       .join(' ');

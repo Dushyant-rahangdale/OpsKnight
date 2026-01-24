@@ -15,20 +15,34 @@ export async function GET(req: NextRequest) {
   }
   try {
     await assertResponderOrAbove();
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unauthorized' },
-      { status: 403 }
-    );
+  } catch (_error) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   const { searchParams, origin } = new URL(req.url);
-  const filter = searchParams.get('filter') || 'all';
-  const search = searchParams.get('search') || '';
-  const priority = searchParams.get('priority') || 'all';
-  const urgency = searchParams.get('urgency') || 'all';
+
+  // Validate and sanitize input parameters to prevent abuse
+  const VALID_FILTERS = ['all', 'mine', 'all_open', 'resolved', 'snoozed', 'suppressed'];
+  const VALID_FORMATS = ['csv', 'xlsx'];
+  const VALID_URGENCIES = ['all', 'HIGH', 'MEDIUM', 'LOW'];
+  const VALID_PRIORITIES = ['all', 'P1', 'P2', 'P3', 'P4', 'P5'];
+
+  const filterParam = searchParams.get('filter') || 'all';
+  const filter = VALID_FILTERS.includes(filterParam) ? filterParam : 'all';
+
+  // Limit search string length to prevent abuse
+  const search = (searchParams.get('search') || '').slice(0, 200);
+
+  const priorityParam = searchParams.get('priority') || 'all';
+  const priority = VALID_PRIORITIES.includes(priorityParam) ? priorityParam : 'all';
+
+  const urgencyParam = searchParams.get('urgency') || 'all';
+  const urgency = VALID_URGENCIES.includes(urgencyParam) ? urgencyParam : 'all';
+
   const teamId = searchParams.get('teamId') || 'all';
-  const format = searchParams.get('format') || 'csv';
+
+  const formatParam = searchParams.get('format') || 'csv';
+  const format = VALID_FORMATS.includes(formatParam) ? formatParam : 'csv';
 
   let where: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (filter === 'mine') {

@@ -33,12 +33,17 @@ export async function GET() {
     const teamIds = user.teamMemberships.map(m => m.teamId);
 
     // Fetch user's own dashboards, team dashboards, and templates
+    // Apply reasonable limits to prevent memory exhaustion
+    const MAX_DASHBOARDS_PER_QUERY = 100;
+    const MAX_WIDGETS_PER_DASHBOARD = 50;
+
     const [userDashboards, teamDashboards, publicDashboards] = await Promise.all([
       // User's private dashboards
       prisma.dashboard.findMany({
         where: { userId: user.id, isTemplate: false },
-        include: { widgets: { orderBy: { createdAt: 'asc' } } },
+        include: { widgets: { orderBy: { createdAt: 'asc' }, take: MAX_WIDGETS_PER_DASHBOARD } },
         orderBy: { updatedAt: 'desc' },
+        take: MAX_DASHBOARDS_PER_QUERY,
       }),
       // Team shared dashboards
       prisma.dashboard.findMany({
@@ -47,16 +52,24 @@ export async function GET() {
           teamId: { in: teamIds },
           isTemplate: false,
         },
-        include: { widgets: { orderBy: { createdAt: 'asc' } }, user: { select: { name: true } } },
+        include: {
+          widgets: { orderBy: { createdAt: 'asc' }, take: MAX_WIDGETS_PER_DASHBOARD },
+          user: { select: { name: true } },
+        },
         orderBy: { updatedAt: 'desc' },
+        take: MAX_DASHBOARDS_PER_QUERY,
       }),
       // Public templates and dashboards
       prisma.dashboard.findMany({
         where: {
           OR: [{ isTemplate: true }, { visibility: 'PUBLIC' }],
         },
-        include: { widgets: { orderBy: { createdAt: 'asc' } }, user: { select: { name: true } } },
+        include: {
+          widgets: { orderBy: { createdAt: 'asc' }, take: MAX_WIDGETS_PER_DASHBOARD },
+          user: { select: { name: true } },
+        },
         orderBy: { name: 'asc' },
+        take: MAX_DASHBOARDS_PER_QUERY,
       }),
     ]);
 

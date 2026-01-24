@@ -133,10 +133,11 @@ export async function GET(req: NextRequest) {
           )
         );
         controller.close();
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      } catch (_error) {
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: 'error', message: errorMessage })}\n\n`)
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'error', message: 'Failed to stream SLA data' })}\n\n`
+          )
         );
         controller.close();
       }

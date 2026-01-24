@@ -252,6 +252,6 @@ export async function POST(req: NextRequest) {
       return jsonError('A record with this value already exists.', 400);
     }
 
-    return jsonError(error.message || 'Failed to update status page', 500);
+    return jsonError('Failed to update status page', 500);
   }
 }

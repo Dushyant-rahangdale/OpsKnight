@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     });
 
     return jsonOk({ services });
-  } catch (error: any) {
-    return jsonError(error.message || 'Internal Server Error', 500);
+  } catch (_error) {
+    return jsonError('Internal Server Error', 500);
   }
 }
