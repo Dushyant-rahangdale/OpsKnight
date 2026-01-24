@@ -19,7 +19,9 @@ export type GrafanaAlert = {
   dashboardId?: number;
   panelId?: number;
   orgId?: number;
-  // Legacy format
+  // Alertmanager format fields
+  receiver?: string;
+  groupKey?: string;
   alerts?: Array<{
     status: string;
     labels: Record<string, string>;
@@ -47,7 +49,11 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
   if (payload.state !== undefined || payload.ruleName) {
     const isResolved = payload.state === 'ok';
     const summary = payload.title || payload.ruleName || payload.message || 'Grafana Alert';
-    const dedupKey = `grafana-${payload.ruleId || Date.now()}`;
+    // Use ruleId if available, otherwise create stable key from ruleName/title
+    // Avoids Date.now() which defeats deduplication
+    const dedupKey = payload.ruleId
+      ? `grafana-${payload.ruleId}`
+      : `grafana-${(payload.ruleName || payload.title || 'unknown').replace(/\s+/g, '-').toLowerCase()}`;
 
     const severity =
       payload.state === 'alerting' ? 'critical' : payload.state === 'no_data' ? 'warning' : 'info';
@@ -79,9 +85,10 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
     const alert = payload.alerts[0];
     if (!alert) {
       // Return acknowledge for empty alerts array instead of throwing
+      // Use receiver or groupKey for stable dedup key (avoids Date.now() which defeats dedup)
       return {
         event_action: 'acknowledge' as const,
-        dedup_key: `grafana-empty-${Date.now()}`,
+        dedup_key: `grafana-empty-${payload.receiver || payload.groupKey || 'unknown'}`,
         payload: {
           summary: 'Grafana alert received: empty alerts array',
           source: 'Grafana',
@@ -98,7 +105,10 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
       alert.labels?.alertname ||
       'Grafana Alert';
 
-    const dedupKey = `grafana-${alert.labels?.alertname || Date.now()}`;
+    // Use alertname + instance for stable dedup key (avoids Date.now() which defeats dedup)
+    const alertName = alert.labels?.alertname || 'alert';
+    const instance = alert.labels?.instance || 'default';
+    const dedupKey = `grafana-${alertName}-${instance}`.slice(0, 512);
 
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
@@ -121,9 +131,10 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
     };
   }
   // Fallback for unsupported payload formats - return acknowledge instead of throwing
+  // Use title or ruleName for stable dedup key (avoids Date.now() which defeats dedup)
   return {
     event_action: 'acknowledge' as const,
-    dedup_key: `grafana-unknown-${Date.now()}`,
+    dedup_key: `grafana-unknown-${payload.title || payload.ruleName || 'fallback'}`,
     payload: {
       summary: 'Grafana event received: unknown format',
       source: 'Grafana',

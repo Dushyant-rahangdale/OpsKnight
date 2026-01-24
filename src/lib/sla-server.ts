@@ -143,20 +143,37 @@ async function calculateDbAggregateMetrics(
     resolveTargetCase = `CASE ${resolveCases} ELSE ${defaultResolveMs} END`;
   }
 
-  // Build filter conditions for raw SQL
-  // Note: This is a simplified version - complex filters should use parameterized queries
+  // Build filter conditions for raw SQL using parameterized queries
+  // Using Prisma.sql for proper parameterization to prevent SQL injection and enable query plan caching
   const serviceIdFilter = (whereClause as { serviceId?: string | { in: string[] } }).serviceId;
   const serviceFilterSql = serviceIdFilter
     ? typeof serviceIdFilter === 'string'
-      ? `AND "serviceId" = '${serviceIdFilter}'`
-      : `AND "serviceId" IN (${(serviceIdFilter.in || []).map(id => `'${id}'`).join(', ')})`
-    : '';
+      ? Prisma.sql`AND "serviceId" = ${serviceIdFilter}`
+      : Prisma.sql`AND "serviceId" = ANY(${serviceIdFilter.in || []}::text[])`
+    : Prisma.empty;
 
   const urgencyFilter = (whereClause as { urgency?: string }).urgency;
-  const urgencyFilterSql = urgencyFilter ? `AND "urgency" = '${urgencyFilter}'` : '';
+  const urgencyFilterSql = urgencyFilter
+    ? Prisma.sql`AND "urgency" = ${urgencyFilter}`
+    : Prisma.empty;
 
   const statusFilter = (whereClause as { status?: string }).status;
-  const statusFilterSql = statusFilter ? `AND "status" = '${statusFilter}'` : '';
+  const statusFilterSql = statusFilter ? Prisma.sql`AND "status" = ${statusFilter}` : Prisma.empty;
+
+  // Build aliased filter conditions for JOIN queries (using i. prefix for incident table)
+  const serviceFilterSqlAliased = serviceIdFilter
+    ? typeof serviceIdFilter === 'string'
+      ? Prisma.sql`AND i."serviceId" = ${serviceIdFilter}`
+      : Prisma.sql`AND i."serviceId" = ANY(${serviceIdFilter.in || []}::text[])`
+    : Prisma.empty;
+
+  const urgencyFilterSqlAliased = urgencyFilter
+    ? Prisma.sql`AND i."urgency" = ${urgencyFilter}`
+    : Prisma.empty;
+
+  const statusFilterSqlAliased = statusFilter
+    ? Prisma.sql`AND i."status" = ${statusFilter}`
+    : Prisma.empty;
 
   // Calculate business hours for after-hours detection
   // Business hours: Monday-Friday 8am-6pm in user's timezone
@@ -221,9 +238,9 @@ async function calculateDbAggregateMetrics(
       FROM "Incident"
       WHERE "createdAt" >= ${start}
         AND "createdAt" <= ${end}
-        ${Prisma.raw(serviceFilterSql)}
-        ${Prisma.raw(urgencyFilterSql)}
-        ${Prisma.raw(statusFilterSql)}
+        ${serviceFilterSql}
+        ${urgencyFilterSql}
+        ${statusFilterSql}
     `;
 
     // Percentile query - separate for cleaner code and optional optimization
@@ -251,9 +268,9 @@ async function calculateDbAggregateMetrics(
       FROM "Incident"
       WHERE "createdAt" >= ${start}
         AND "createdAt" <= ${end}
-        ${Prisma.raw(serviceFilterSql)}
-        ${Prisma.raw(urgencyFilterSql)}
-        ${Prisma.raw(statusFilterSql)}
+        ${serviceFilterSql}
+        ${urgencyFilterSql}
+        ${statusFilterSql}
     `;
 
     // Event counts query - for escalation, reopen, auto-resolve rates
@@ -272,9 +289,9 @@ async function calculateDbAggregateMetrics(
       INNER JOIN "Incident" i ON e."incidentId" = i."id"
       WHERE i."createdAt" >= ${start}
         AND i."createdAt" <= ${end}
-        ${Prisma.raw(serviceFilterSql.replace(/"serviceId"/g, 'i."serviceId"'))}
-        ${Prisma.raw(urgencyFilterSql.replace(/"urgency"/g, 'i."urgency"'))}
-        ${Prisma.raw(statusFilterSql.replace(/"status"/g, 'i."status"'))}
+        ${serviceFilterSqlAliased}
+        ${urgencyFilterSqlAliased}
+        ${statusFilterSqlAliased}
     `;
 
     const agg = aggregateResult[0];

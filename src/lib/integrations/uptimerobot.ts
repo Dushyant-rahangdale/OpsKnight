@@ -34,7 +34,10 @@ export function transformUptimeRobotToEvent(data: UptimeRobotEvent): {
     firstString(data.monitorFriendlyName, data.alertTypeFriendlyName) || 'UptimeRobot Alert';
   const severity =
     status === 'resolved' ? normalizeSeverity('info', 'info') : normalizeSeverity('critical');
-  const dedupKey = firstString(data.monitorID) || `uptimerobot-${Date.now()}`;
+  // Use monitorID or create stable key from monitor name (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(data.monitorID) ||
+    `uptimerobot-${(data.monitorFriendlyName || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

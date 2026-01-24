@@ -51,8 +51,10 @@ export function transformUptimeKumaToEvent(data: UptimeKumaEvent): {
   const action = mapAction(data.heartbeat?.status, data.status);
   const severity =
     action === 'resolve' ? normalizeSeverity('info', 'info') : normalizeSeverity('critical');
+  // Use monitor ID or create stable key from monitor name (avoids Date.now() which defeats dedup)
   const dedupKey =
-    firstString(data.heartbeat?.monitorID, data.monitor?.id) || `uptime-kuma-${Date.now()}`;
+    firstString(data.heartbeat?.monitorID, data.monitor?.id) ||
+    `uptime-kuma-${(data.monitor?.name || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: action,

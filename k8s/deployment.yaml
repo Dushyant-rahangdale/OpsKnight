@@ -33,8 +33,10 @@ spec:
             - secretRef:
                 name: opsknight-secrets
           env:
+            # Database connection pool settings for scale (40 connections, 30s timeout)
+            # See coreconcepts/SCALABILITY.md for capacity details
             - name: DATABASE_URL
-              value: 'postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?schema=public&connection_limit=40'
+              value: 'postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?schema=public&connection_limit=40&pool_timeout=30'
 
           resources:
             requests:

@@ -1,9 +1,11 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, IncidentUrgency } from '@prisma/client';
 import prisma from './prisma';
 import { executeEscalation } from './notifications';
 import { notifySlackForIncident } from './slack';
 import { logger } from './logger';
 import { EVENT_TRANSACTION_MAX_ATTEMPTS } from './config';
+
+export type EventSeverity = 'critical' | 'error' | 'warning' | 'info';
 
 export type EventPayload = {
   event_action: 'trigger' | 'resolve' | 'acknowledge';
@@ -11,7 +13,7 @@ export type EventPayload = {
   payload: {
     summary: string;
     source: string;
-    severity: 'critical' | 'error' | 'warning' | 'info';
+    severity: EventSeverity;
     custom_details?: unknown;
   };
 };
@@ -19,6 +21,48 @@ export type EventPayload = {
 import { runSerializableTransaction } from './db-utils';
 
 const MAX_DEDUP_KEY_LENGTH = 512;
+
+// Centralized severity → urgency mapping for consistency
+// Critical = HIGH (P1 - immediate response needed)
+// Error/Warning = MEDIUM (P2 - respond within SLA)
+// Info = LOW (P3 - informational, no immediate action)
+const SEVERITY_TO_URGENCY: Record<EventSeverity, IncidentUrgency> = {
+  critical: 'HIGH',
+  error: 'MEDIUM',
+  warning: 'MEDIUM', // Warning is MEDIUM, not LOW - important alerts shouldn't be missed
+  info: 'LOW',
+};
+
+function mapSeverityToUrgency(severity: EventSeverity): IncidentUrgency {
+  return SEVERITY_TO_URGENCY[severity] ?? 'MEDIUM'; // Default to MEDIUM if unknown
+}
+
+// Maximum description length to prevent DB insert failures
+const MAX_DESCRIPTION_LENGTH = 10000;
+
+// Sanitize text to prevent XSS and remove control characters
+function sanitizeText(text: string): string {
+  return (
+    text
+      // Remove null bytes and control characters (except newlines/tabs)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+      // Basic HTML entity encoding for XSS prevention
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+  );
+}
+
+// Truncate long strings safely (handles unicode)
+function truncateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  // Use Array.from to handle unicode properly
+  const chars = Array.from(str);
+  if (chars.length <= maxLength) return str;
+  return chars.slice(0, maxLength - 3).join('') + '...';
+}
 
 function truncateDedupKey(key: string): string {
   if (key.length <= MAX_DEDUP_KEY_LENGTH) return key;
@@ -30,28 +74,70 @@ function truncateDedupKey(key: string): string {
 export async function processEvent(
   payload: EventPayload,
   serviceId: string,
-  _integrationId: string
+  integrationId: string
 ) {
   const { event_action, dedup_key: rawDedupKey, payload: eventData } = payload;
   const dedup_key = truncateDedupKey(rawDedupKey);
 
+  // Validate summary is not empty (prevents generic incident titles)
+  if (!eventData.summary || eventData.summary.trim().length === 0) {
+    logger.warn('event.empty_summary', {
+      source: eventData.source,
+      dedupKey: dedup_key,
+      integrationId,
+    });
+    // Use source as fallback title instead of failing
+    eventData.summary = `Alert from ${eventData.source}`;
+  }
+
   const result = await runSerializableTransaction(async tx => {
-    // 1. Log the raw alert
+    // 1. Validate serviceId exists (prevents orphaned incidents)
+    const service = await tx.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true, name: true },
+    });
+
+    if (!service) {
+      logger.error('event.service_not_found', {
+        serviceId,
+        integrationId,
+        dedupKey: dedup_key,
+      });
+      throw new Error(`Service not found: ${serviceId}. Integration may be misconfigured.`);
+    }
+
+    // 2. Find existing open incident with this dedup_key BEFORE creating alert
+    // This prevents alert orphaning when resolve/acknowledge has no matching incident
+    const existingIncident = await tx.incident.findFirst({
+      where: {
+        dedupKey: dedup_key,
+        serviceId,
+        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
+      },
+    });
+
+    // 3. For resolve/acknowledge, skip alert creation if no matching incident
+    // This prevents orphaned alerts in the database
+    if ((event_action === 'resolve' || event_action === 'acknowledge') && !existingIncident) {
+      logger.warn(`event.${event_action}_no_match`, {
+        dedupKey: dedup_key,
+        serviceId,
+        source: eventData.source,
+      });
+      return {
+        action: 'ignored',
+        reason: `No matching incident to ${event_action}`,
+        dedupKey: dedup_key,
+      };
+    }
+
+    // 4. Log the raw alert (only create if we'll use it)
     const alert = await tx.alert.create({
       data: {
         dedupKey: dedup_key,
         status: event_action === 'resolve' ? 'RESOLVED' : 'TRIGGERED',
         payload: eventData as object,
         serviceId,
-      },
-    });
-
-    // 2. Find existing open incident with this dedup_key
-    const existingIncident = await tx.incident.findFirst({
-      where: {
-        dedupKey: dedup_key,
-        serviceId,
-        status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] },
       },
     });
 
@@ -71,26 +157,47 @@ export async function processEvent(
           },
         });
 
+        logger.info('event.deduplicated', {
+          incidentId: existingIncident.id,
+          dedupKey: dedup_key,
+          source: eventData.source,
+          alertCount: 'appended',
+        });
+
         return { action: 'deduplicated', incident: existingIncident };
       }
 
-      // Create New Incident
+      // Create New Incident with proper severity → urgency mapping
+      const urgency = mapSeverityToUrgency(eventData.severity);
+
+      // Sanitize title to prevent XSS and truncate to reasonable length
+      const sanitizedTitle = truncateString(sanitizeText(eventData.summary.trim()), 500);
+
+      // Truncate description to prevent DB insert failures on very long payloads
+      const rawDescription = eventData.custom_details
+        ? JSON.stringify(eventData.custom_details, null, 2)
+        : null;
+      const truncatedDescription = rawDescription
+        ? truncateString(rawDescription, MAX_DESCRIPTION_LENGTH)
+        : null;
+
       const newIncident = await tx.incident.create({
         data: {
-          title: eventData.summary,
-          description: eventData.custom_details
-            ? JSON.stringify(eventData.custom_details, null, 2)
-            : null,
+          title: sanitizedTitle,
+          description: truncatedDescription,
           status: 'OPEN',
-          urgency:
-            eventData.severity === 'critical'
-              ? 'HIGH'
-              : eventData.severity === 'error'
-                ? 'MEDIUM'
-                : 'LOW',
+          urgency,
           dedupKey: dedup_key,
           serviceId,
         },
+      });
+
+      logger.info('event.incident_created', {
+        incidentId: newIncident.id,
+        dedupKey: dedup_key,
+        source: eventData.source,
+        severity: eventData.severity,
+        urgency,
       });
 
       // Connect alert to incident
@@ -111,59 +218,79 @@ export async function processEvent(
       return { action: 'triggered', incident: newIncident };
     }
 
-    if (event_action === 'resolve' && existingIncident) {
+    if (event_action === 'resolve') {
+      // existingIncident is guaranteed to exist here (checked above before alert creation)
       await tx.alert.update({
         where: { id: alert.id },
-        data: { incidentId: existingIncident.id },
+        data: { incidentId: existingIncident!.id },
       });
 
       const resolvedIncident = await tx.incident.update({
-        where: { id: existingIncident.id },
+        where: { id: existingIncident!.id },
         data: {
           status: 'RESOLVED',
           escalationStatus: 'COMPLETED',
           nextEscalationAt: null,
-          resolvedAt: existingIncident.resolvedAt ?? new Date(),
+          resolvedAt: existingIncident!.resolvedAt ?? new Date(),
         },
       });
 
       await tx.incidentEvent.create({
         data: {
-          incidentId: existingIncident.id,
+          incidentId: existingIncident!.id,
           message: `Auto-resolved by event from ${eventData.source}.`,
         },
+      });
+
+      logger.info('event.incident_resolved', {
+        incidentId: resolvedIncident.id,
+        dedupKey: dedup_key,
+        source: eventData.source,
       });
 
       return { action: 'resolved', incident: resolvedIncident };
     }
 
-    if (event_action === 'acknowledge' && existingIncident) {
+    if (event_action === 'acknowledge') {
+      // existingIncident is guaranteed to exist here (checked above before alert creation)
       await tx.alert.update({
         where: { id: alert.id },
-        data: { incidentId: existingIncident.id },
+        data: { incidentId: existingIncident!.id },
       });
 
       const ackIncident = await tx.incident.update({
-        where: { id: existingIncident.id },
+        where: { id: existingIncident!.id },
         data: {
           status: 'ACKNOWLEDGED',
           escalationStatus: 'COMPLETED',
           nextEscalationAt: null,
-          acknowledgedAt: existingIncident.acknowledgedAt ?? new Date(),
+          acknowledgedAt: existingIncident!.acknowledgedAt ?? new Date(),
         },
       });
 
       await tx.incidentEvent.create({
         data: {
-          incidentId: existingIncident.id,
+          incidentId: existingIncident!.id,
           message: `Acknowledged via API event.`,
         },
+      });
+
+      logger.info('event.incident_acknowledged', {
+        incidentId: ackIncident.id,
+        dedupKey: dedup_key,
+        source: eventData.source,
       });
 
       return { action: 'acknowledged', incident: ackIncident };
     }
 
-    return { action: 'ignored', reason: 'No matching incident to resolve/ack' };
+    // Unknown event_action
+    logger.warn('event.unknown_action', {
+      eventAction: event_action,
+      dedupKey: dedup_key,
+      source: eventData.source,
+    });
+    return { action: 'ignored', reason: `Unknown event action: ${event_action}` };
   });
 
   if (result.action === 'triggered' && result.incident) {

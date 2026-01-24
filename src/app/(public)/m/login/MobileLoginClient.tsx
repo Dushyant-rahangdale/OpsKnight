@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 
 type Props = {
@@ -259,7 +258,7 @@ export default function MobileLoginClient({
                 animation: 'pulse-glow 3s ease-in-out infinite',
               }}
             >
-              <Image src="/logo.svg" alt="OpsKnight" width={44} height={44} />
+              <img src="/logo.svg" alt="OpsKnight" width={44} height={44} />
             </div>
             <h1
               style={{

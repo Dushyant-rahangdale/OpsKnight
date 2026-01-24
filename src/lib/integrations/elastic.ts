@@ -42,7 +42,10 @@ export function transformElasticToEvent(data: ElasticEvent): {
     firstString(data.alert?.severity, data.context?.severity, data.severity),
     'warning'
   );
-  const dedupKey = firstString(data.alert?.id, data.rule?.id) || `elastic-${Date.now()}`;
+  // Use alert.id or rule.id, fallback to rule name for stable dedup
+  const dedupKey =
+    firstString(data.alert?.id, data.rule?.id) ||
+    `elastic-${(data.rule?.name || summary).replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

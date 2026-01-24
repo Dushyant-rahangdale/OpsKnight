@@ -46,13 +46,15 @@ export function transformDatadogToEvent(data: DatadogEvent): {
   const status = data.alert?.status || data.monitor?.status || 'triggered';
 
   const isResolved = status === 'resolved' || status === 'ok' || alertType === 'success';
+  // Build stable dedup key - avoid Date.now() which defeats deduplication
+  // Priority: aggregation_key > alert.id > monitor.id > title-based hash
   const dedupKey =
     data.aggregation_key ||
     (data.alert?.id
       ? `datadog-alert-${data.alert.id}`
       : data.monitor?.id
         ? `datadog-monitor-${data.monitor.id}`
-        : `datadog-${Date.now()}`);
+        : `datadog-${(title || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`);
 
   // Map Datadog alert type to our severity
   let mappedSeverity: 'critical' | 'error' | 'warning' | 'info' = 'warning';

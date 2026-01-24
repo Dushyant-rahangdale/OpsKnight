@@ -36,8 +36,10 @@ export function transformSplunkOnCallToEvent(data: SplunkOnCallEvent): {
     firstString(data.severity, data.message_type, data.alert?.severity),
     'warning'
   );
+  // Use incident/entity/alert ID or create stable key from entity name (avoids Date.now() which defeats dedup)
   const dedupKey =
-    firstString(data.incident_id, data.entity_id, data.alert?.id) || `splunk-oncall-${Date.now()}`;
+    firstString(data.incident_id, data.entity_id, data.alert?.id) ||
+    `splunk-oncall-${(data.entity_display_name || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

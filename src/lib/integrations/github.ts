@@ -226,9 +226,10 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
     // For GitLab, pending states are handled as acknowledge
     const isPending = !isResolved && !isFailure;
     if (isPending) {
+      // Use ref or project path for stable dedup key (avoids Date.now() which defeats dedup)
       return {
         event_action: 'acknowledge',
-        dedup_key: `gitlab-${payload.ref || Date.now()}`,
+        dedup_key: `gitlab-${payload.ref || payload.project?.path_with_namespace || 'unknown'}`,
         payload: {
           summary: `Build ${payload.build_status || payload.status}: ${payload.ref || 'unknown'}`,
           source: `GitLab${payload.project ? ` - ${payload.project.path_with_namespace}` : ''}`,
@@ -245,9 +246,10 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
       };
     }
 
+    // Use ref or project path for stable dedup key (avoids Date.now() which defeats dedup)
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: `gitlab-${payload.ref || Date.now()}`,
+      dedup_key: `gitlab-${payload.ref || payload.project?.path_with_namespace || 'unknown'}`,
       payload: {
         summary: `Build ${payload.build_status || payload.status}: ${payload.ref || 'unknown'}`,
         source: `GitLab${payload.project ? ` - ${payload.project.path_with_namespace}` : ''}`,
@@ -266,9 +268,10 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
 
   // Fallback for unsupported event types - return acknowledge instead of throwing
   // This handles events like push, pull_request, issues, etc. that we don't process
+  // Use repo/project name for stable dedup key (avoids Date.now() which defeats dedup)
   return {
     event_action: 'acknowledge',
-    dedup_key: `github-unknown-${Date.now()}`,
+    dedup_key: `github-unknown-${payload.repository?.full_name || payload.project?.path_with_namespace || 'fallback'}`,
     payload: {
       summary: `GitHub event received: ${payload.action || payload.object_kind || 'unknown'}`,
       source: `GitHub${payload.repository ? ` - ${payload.repository.full_name}` : payload.project ? ` - ${payload.project.path_with_namespace}` : ''}`,

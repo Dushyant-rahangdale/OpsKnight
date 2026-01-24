@@ -27,8 +27,10 @@ export function transformSplunkObservabilityToEvent(data: SplunkObservabilityEve
     firstString(data.title, data.detectorName, data.description) || 'Splunk Observability Alert';
   const status = firstString(data.status, data.eventType);
   const severity = normalizeSeverity(data.severity, 'warning');
+  // Use incidentId/detectorId or create stable key from detector name (avoids Date.now() which defeats dedup)
   const dedupKey =
-    firstString(data.incidentId, data.detectorId) || `splunk-observability-${Date.now()}`;
+    firstString(data.incidentId, data.detectorId) ||
+    `splunk-observability-${(data.detectorName || data.title || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
       ...(assigneeWhere ?? {}),
     };
 
-    // Fetch data
+    // Fetch data with limits to prevent memory issues on large datasets
     const [metrics, recentIncidents, services, teams, users] = await Promise.all([
       calculateSLAMetrics({
         startDate: effectiveStart,
@@ -141,14 +141,27 @@ export async function GET(req: NextRequest) {
           assignee: true,
         },
         orderBy: { createdAt: 'desc' },
+        take: 10000, // Limit to prevent OOM on large datasets
       }),
       prisma.service.findMany({
         where: teamId ? { teamId } : undefined,
-        include: { team: true },
+        select: { id: true, name: true, teamId: true },
+        take: 500, // Reasonable limit for services
       }),
-      prisma.team.findMany(),
-      prisma.user.findMany(),
+      prisma.team.findMany({
+        select: { id: true, name: true },
+        take: 200, // Reasonable limit for teams
+      }),
+      prisma.user.findMany({
+        select: { id: true, name: true, email: true },
+        take: 2000, // Reasonable limit for users
+      }),
     ]);
+
+    // Build lookup maps for O(1) access instead of O(n) array.find()
+    const teamMap = new Map(teams.map(t => [t.id, t]));
+    const serviceMap = new Map(services.map(s => [s.id, s]));
+    const userMap = new Map(users.map(u => [u.id, u]));
 
     // Calculate metrics
     const totalIncidents = metrics.totalIncidents;
@@ -193,19 +206,19 @@ export async function GET(req: NextRequest) {
       teamId || serviceId || assigneeId || statusFilter !== 'ALL' || urgencyFilter !== 'ALL';
     if (hasFilters) {
       if (teamId) {
-        const team = teams.find(t => t.id === teamId);
+        const team = teamMap.get(teamId);
         csvRows.push(['Team:', team?.name || teamId]);
       } else {
         csvRows.push(['Team:', 'All Teams']);
       }
       if (serviceId) {
-        const service = services.find(s => s.id === serviceId);
+        const service = serviceMap.get(serviceId);
         csvRows.push(['Service:', service?.name || serviceId]);
       } else {
         csvRows.push(['Service:', 'All Services']);
       }
       if (assigneeId) {
-        const user = users.find(u => u.id === assigneeId);
+        const user = userMap.get(assigneeId);
         csvRows.push(['Assignee:', user?.name || user?.email || assigneeId]);
       } else {
         csvRows.push(['Assignee:', 'All Assignees']);

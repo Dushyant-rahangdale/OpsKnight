@@ -95,8 +95,10 @@ Content-Type: application/json
 | ---------- | ----------------- |
 | `critical` | HIGH              |
 | `error`    | MEDIUM            |
-| `warning`  | LOW               |
+| `warning`  | MEDIUM            |
 | `info`     | LOW               |
+
+> **Note**: Warning maps to MEDIUM (not LOW) to ensure important alerts requiring attention are not missed. This aligns with industry best practices where warnings often indicate issues that need attention before they become critical.
 
 ---
 
@@ -287,7 +289,11 @@ api-latency-p99-exceeded        # service + specific metric
 alert-123456                    # Random, not meaningful
 cpu-high                        # Too generic
 2024-01-15-alert               # Date-based, creates duplicates
+alert-{timestamp}               # Timestamp defeats deduplication
+alert-{uuid}                    # Random UUID defeats deduplication
 ```
+
+> **Warning**: Never use `Date.now()`, timestamps, or random UUIDs in dedup keys. Each event will create a new incident instead of being deduplicated, potentially causing alert storms.
 
 ---
 

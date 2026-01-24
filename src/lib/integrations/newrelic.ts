@@ -140,9 +140,14 @@ export function transformNewRelicToEvent(payload: NewRelicEvent): {
     };
     const severity = severityMap[payload.alertSeverity?.toLowerCase() || 'warning'] || 'warning';
 
+    // Use alertTitle for stable dedup key (avoids Date.now() which defeats dedup)
+    const dedupKey = payload.alertTitle
+      ? `newrelic-apm-${payload.alertTitle.replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`
+      : `newrelic-apm-${(payload.alertType || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
+
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: `newrelic-${payload.alertTimestamp || Date.now()}`,
+      dedup_key: dedupKey,
       payload: {
         summary: payload.alertTitle || 'New Relic Alert',
         source: 'New Relic',
@@ -160,9 +165,10 @@ export function transformNewRelicToEvent(payload: NewRelicEvent): {
     };
   }
   // Fallback for unsupported payload formats - return acknowledge instead of throwing
+  // Use account info for stable dedup key (avoids Date.now() which defeats dedup)
   return {
     event_action: 'acknowledge' as const,
-    dedup_key: `newrelic-unknown-${Date.now()}`,
+    dedup_key: `newrelic-unknown-${payload.account_id || payload.account_name || 'fallback'}`,
     payload: {
       summary: 'New Relic event received: unknown format',
       source: `New Relic${payload.account_name ? ` - ${payload.account_name}` : ''}`,

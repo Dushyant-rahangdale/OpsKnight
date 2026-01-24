@@ -25,7 +25,10 @@ export function transformHoneycombToEvent(data: HoneycombEvent): {
   const summary = firstString(data.alert_name, data.trigger_reason) || 'Honeycomb Alert';
   const status = firstString(data.status, data.event_type);
   const severity = normalizeSeverity(data.alert_severity, 'warning');
-  const dedupKey = firstString(data.alert_id) || `honeycomb-${Date.now()}`;
+  // Use alert_id or create stable key from alert_name (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(data.alert_id) ||
+    `honeycomb-${(data.alert_name || 'alert').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

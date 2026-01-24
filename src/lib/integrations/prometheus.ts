@@ -37,9 +37,10 @@ export function transformPrometheusToEvent(payload: PrometheusAlert): {
 } {
   if (!payload.alerts || payload.alerts.length === 0) {
     // Return acknowledge for empty alerts array instead of throwing
+    // Use groupKey or receiver for stable dedup key
     return {
       event_action: 'acknowledge',
-      dedup_key: `prometheus-empty-${Date.now()}`,
+      dedup_key: `prometheus-empty-${payload.groupKey || payload.receiver || 'unknown'}`,
       payload: {
         summary: 'Prometheus alert received: empty alerts array',
         source: 'Prometheus Alertmanager',
@@ -73,7 +74,8 @@ export function transformPrometheusToEvent(payload: PrometheusAlert): {
       const hash = crypto.createHash('sha256').update(signature).digest('hex').slice(0, 16);
       dedupKey = `prometheus-${hash}`;
     } else {
-      dedupKey = `prometheus-${Date.now()}`;
+      // Fallback: use alertname or summary for stable key
+      dedupKey = `prometheus-${(alert.labels?.alertname || summary).replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
     }
   }
 
