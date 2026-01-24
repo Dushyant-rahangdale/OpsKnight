@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,14 +61,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
   } catch (error) {
-    console.error('[Dashboard API] GET Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch dashboard',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.dashboard.get.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to fetch dashboard' }, { status: 500 });
   }
 }
 
@@ -145,14 +142,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({ success: true, dashboard });
   } catch (error) {
-    console.error('[Dashboard API] PUT Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to update dashboard',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.dashboard.put.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to update dashboard' }, { status: 500 });
   }
 }
 
@@ -202,13 +195,9 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'Dashboard deleted' });
   } catch (error) {
-    console.error('[Dashboard API] DELETE Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to delete dashboard',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.dashboard.delete.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to delete dashboard' }, { status: 500 });
   }
 }

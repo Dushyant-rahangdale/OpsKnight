@@ -1,4 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+// Whitelist allowed styles and formats to prevent injection attacks
+const ALLOWED_STYLES = [
+  'big-smile',
+  'avataaars',
+  'bottts',
+  'identicon',
+  'initials',
+  'lorelei',
+  'micah',
+  'miniavs',
+  'notionists',
+  'open-peeps',
+  'personas',
+  'pixel-art',
+  'shapes',
+  'thumbs',
+] as const;
+
+const ALLOWED_FORMATS = ['png', 'svg', 'jpg'] as const;
 
 /**
  * Avatar Proxy API Route
@@ -11,14 +32,30 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const style = searchParams.get('style') || 'big-smile';
+  const styleParam = searchParams.get('style') || 'big-smile';
   const seed = searchParams.get('seed') || 'default';
   const backgroundColor = searchParams.get('backgroundColor') || '84cc16';
-  const radius = searchParams.get('radius') || '50';
-  const format = searchParams.get('format') || 'png';
+  const radiusParam = searchParams.get('radius') || '50';
+  const formatParam = searchParams.get('format') || 'png';
 
-  // Construct the DiceBear URL
-  const dicebearUrl = `https://api.dicebear.com/9.x/${style}/${format}?seed=${encodeURIComponent(seed)}&backgroundColor=${backgroundColor}&radius=${radius}`;
+  // Validate style against whitelist
+  const style = ALLOWED_STYLES.includes(styleParam as (typeof ALLOWED_STYLES)[number])
+    ? styleParam
+    : 'big-smile';
+
+  // Validate format against whitelist
+  const format = ALLOWED_FORMATS.includes(formatParam as (typeof ALLOWED_FORMATS)[number])
+    ? formatParam
+    : 'png';
+
+  // Validate radius is a number between 0-50
+  const radius = Math.min(50, Math.max(0, parseInt(radiusParam, 10) || 50)).toString();
+
+  // Validate backgroundColor is a valid hex color (6 chars, alphanumeric only)
+  const bgColor = /^[a-fA-F0-9]{6}$/.test(backgroundColor) ? backgroundColor : '84cc16';
+
+  // Construct the DiceBear URL with validated parameters
+  const dicebearUrl = `https://api.dicebear.com/9.x/${style}/${format}?seed=${encodeURIComponent(seed)}&backgroundColor=${bgColor}&radius=${radius}`;
 
   try {
     const response = await fetch(dicebearUrl, {
@@ -39,11 +76,14 @@ export async function GET(request: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'no-store',
+        // Cache avatars for 1 year - URL changes (via seed param) handle cache invalidation
+        'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
   } catch (error) {
-    console.error('Avatar proxy error:', error);
+    logger.error('Avatar proxy error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Failed to proxy avatar' }, { status: 500 });
   }
 }

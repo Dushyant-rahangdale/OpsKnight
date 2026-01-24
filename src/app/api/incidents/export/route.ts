@@ -77,6 +77,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Limit export to 10,000 incidents to prevent memory exhaustion
+  // For larger exports, use pagination or streaming
+  const MAX_EXPORT_LIMIT = 10000;
   const incidents = await prisma.incident.findMany({
     where,
     include: {
@@ -84,6 +87,7 @@ export async function GET(req: NextRequest) {
       assignee: true,
     },
     orderBy: { createdAt: 'desc' },
+    take: MAX_EXPORT_LIMIT,
   });
 
   const formatUtc = (date: Date | null) => {

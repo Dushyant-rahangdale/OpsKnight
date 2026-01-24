@@ -144,7 +144,9 @@ export async function initiatePasswordReset(
         'If an account exists with this email, you will receive password reset instructions.',
     };
   } catch (error) {
-    console.error('Error in initiatePasswordReset', error);
+    logger.error('password.reset.initiate.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { success: false, message: 'An internal error occurred.' };
   }
 }
@@ -204,7 +206,9 @@ async function logAttempt(
       },
     });
   } catch (e) {
-    console.error('Failed to write audit log', e);
+    logger.error('password.reset.audit.error', {
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 
@@ -272,7 +276,9 @@ export async function completePasswordReset(
 
     return { success: true, message: 'Password reset successfully' };
   } catch (e) {
-    console.error('Error completing reset', e);
+    logger.error('password.reset.complete.error', {
+      error: e instanceof Error ? e.message : String(e),
+    });
     return { success: false, error: 'Internal error' };
   }
 }

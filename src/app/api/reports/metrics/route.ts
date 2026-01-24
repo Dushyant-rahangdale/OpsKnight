@@ -3,6 +3,7 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { serializeSlaMetrics } from '@/lib/sla';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,13 +70,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Reports Metrics API] Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch metrics',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.reports.metrics.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't expose internal error details to clients
+    return NextResponse.json({ error: 'Failed to fetch metrics' }, { status: 500 });
   }
 }

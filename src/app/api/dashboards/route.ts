@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,14 +72,10 @@ export async function GET() {
       templates,
     });
   } catch (error) {
-    console.error('[Dashboards API] GET Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch dashboards',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.dashboards.get.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to fetch dashboards' }, { status: 500 });
   }
 }
 
@@ -149,13 +146,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, dashboard }, { status: 201 });
   } catch (error) {
-    console.error('[Dashboards API] POST Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to create dashboard',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    logger.error('api.dashboards.post.error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json({ error: 'Failed to create dashboard' }, { status: 500 });
   }
 }
