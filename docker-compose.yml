@@ -25,10 +25,11 @@ services:
       - opsknight-network
 
   opsknight-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Use the pre-built image from GitHub Container Registry (Test Channel)
+    # This avoids building from source locally and speeds up startup.
+    image: ghcr.io/dushyant-rahangdale/opsknight-test:latest
     container_name: opsknight_app
+    pull_policy: always
     restart: unless-stopped
     ports:
       - '${APP_PORT:-3000}:3000'
