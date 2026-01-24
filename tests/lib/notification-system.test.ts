@@ -184,11 +184,12 @@ describe('Notification System Tests', () => {
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: teamId,
         teamLeadId: teamLeadId,
-      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+        members: [{ userId: teamLeadId }],
+      } as any);
 
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
         userId: teamLeadId,
-      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+      } as any);
 
       const users = await resolveEscalationTarget('TEAM', teamId, new Date(), true);
 
@@ -203,7 +204,8 @@ describe('Notification System Tests', () => {
       vi.mocked(prisma.team.findUnique).mockResolvedValue({
         id: teamId,
         teamLeadId: teamLeadId,
-      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+        members: [], // Empty members means lead has disabled notifications (filtered in query)
+      } as any);
 
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue(null);
 
@@ -218,11 +220,12 @@ describe('Notification System Tests', () => {
       const member2Id = 'member-2';
       const teamId = 'team-1';
 
-      vi.mocked(prisma.teamMember.findMany).mockResolvedValue([
-        { userId: teamLeadId },
-        { userId: member1Id },
-        { userId: member2Id },
-      ] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+      // Mock return with members included
+      vi.mocked(prisma.team.findUnique).mockResolvedValue({
+        id: teamId,
+        teamLeadId: teamLeadId,
+        members: [{ userId: teamLeadId }, { userId: member1Id }, { userId: member2Id }],
+      } as any);
 
       const users = await resolveEscalationTarget('TEAM', teamId, new Date(), false);
 

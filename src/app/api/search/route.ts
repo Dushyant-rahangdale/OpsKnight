@@ -85,11 +85,21 @@ export async function GET(req: NextRequest) {
     }
 
     const searchTerm = query.trim();
-    const searchTermLower = searchTerm.toLowerCase();
 
-    // Enhanced search with full-text search support
-    // For PostgreSQL, we can use full-text search for better results
-    const searchWords = searchTerm.split(/\s+/).filter(w => w.length > 0);
+    // Performance: Skip very short queries that would match too many results
+    if (searchTerm.length < 2) {
+      return jsonOk({ results: [] }, 200);
+    }
+
+    // Performance: Limit query length to prevent regex DoS
+    const sanitizedTerm = searchTerm.slice(0, 100);
+    const searchTermLower = sanitizedTerm.toLowerCase();
+
+    // Performance: Limit word-based search to reduce OR conditions
+    const searchWords = sanitizedTerm
+      .split(/\s+/)
+      .filter(w => w.length > 1)
+      .slice(0, 5);
     // Run all searches in parallel for better performance
     // Note: Postmortem search is wrapped to handle missing model gracefully
     const searchPromises = [
@@ -98,13 +108,13 @@ export async function GET(req: NextRequest) {
         where: {
           OR: [
             // Exact match (highest priority)
-            { title: { equals: searchTerm, mode: INSENSITIVE_MODE } },
+            { title: { equals: sanitizedTerm, mode: INSENSITIVE_MODE } },
             // Contains match
-            { title: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            { description: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            // Word boundary matches (if multiple words)
+            { title: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            { description: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            // Word boundary matches (if multiple words, max 3 for performance)
             ...(searchWords.length > 1
-              ? searchWords.map(word => ({
+              ? searchWords.slice(0, 3).map(word => ({
                   OR: [
                     { title: { contains: word, mode: INSENSITIVE_MODE } },
                     { description: { contains: word, mode: INSENSITIVE_MODE } },
@@ -112,10 +122,10 @@ export async function GET(req: NextRequest) {
                 }))
               : []),
             // ID search
-            { id: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+            { id: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
           ],
         },
-        take: 10, // Increased from 5
+        take: 8, // Reduced for faster response on small systems
         orderBy: [{ createdAt: 'desc' }],
         select: {
           id: true,
@@ -130,8 +140,8 @@ export async function GET(req: NextRequest) {
       prisma.service.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            { description: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+            { name: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            { description: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
           ],
         },
         take: 5,
@@ -148,8 +158,8 @@ export async function GET(req: NextRequest) {
       prisma.team.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            { description: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+            { name: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            { description: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
           ],
         },
         take: 5,
@@ -165,8 +175,8 @@ export async function GET(req: NextRequest) {
       prisma.user.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            { email: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+            { name: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            { email: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
           ],
         },
         take: 5,
@@ -185,8 +195,8 @@ export async function GET(req: NextRequest) {
       prisma.escalationPolicy.findMany({
         where: {
           OR: [
-            { name: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-            { description: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+            { name: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+            { description: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
           ],
         },
         take: 5,
@@ -208,10 +218,10 @@ export async function GET(req: NextRequest) {
           return await prisma.postmortem.findMany({
             where: {
               OR: [
-                { title: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-                { summary: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-                { rootCause: { contains: searchTerm, mode: INSENSITIVE_MODE } },
-                { lessons: { contains: searchTerm, mode: INSENSITIVE_MODE } },
+                { title: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+                { summary: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+                { rootCause: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
+                { lessons: { contains: sanitizedTerm, mode: INSENSITIVE_MODE } },
               ],
               status: { not: 'ARCHIVED' }, // Don't show archived postmortems
             },

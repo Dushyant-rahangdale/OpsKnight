@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
 }
 
 enum Role {
@@ -644,6 +644,9 @@ model OnCallOverride {
   schedule     OnCallSchedule @relation(fields: [scheduleId], references: [id])
   user         User           @relation("OverrideUser", fields: [userId], references: [id])
   replacesUser User?          @relation("OverrideReplacesUser", fields: [replacesUserId], references: [id])
+
+  @@index([scheduleId, start, end]) // For finding active overrides in date range
+  @@index([userId, start, end]) // For user's override schedule queries
 }
 
 model OnCallShift {
@@ -680,8 +683,10 @@ model Notification {
 
   @@index([incidentId]) // For querying notifications by incident
   @@index([userId]) // For querying notifications by user
+  @@index([userId, createdAt]) // For user notification history queries (performance)
   @@index([status, createdAt]) // For querying pending/failed notifications
   @@index([channel, status]) // For querying by channel and status
+  @@index([userId, status, createdAt]) // For user's pending notification queries
 }
 
 model InAppNotification {
@@ -1145,13 +1150,15 @@ model LogEntry {
   level     String   // 'info', 'error', 'warn', etc.
   message   String
   timestamp DateTime
-  serviceId String?  
+  serviceId String?
   context   Json?    // Structured log context
 
   createdAt DateTime @default(now())
 
   @@index([timestamp])
   @@index([serviceId, timestamp])
+  @@index([level, timestamp]) // For filtering logs by level (error logs, etc.)
+  @@index([serviceId, level, timestamp]) // For service-specific log level queries
 }
 
 // SLA Management
@@ -1205,16 +1212,19 @@ model SLASnapshot {
 model SLAPerformanceLog {
   id              String   @id @default(cuid())
   timestamp       DateTime @default(now())
-  
+
   serviceId       String?
   teamId          String?
   windowDays      Int
-  
+
   durationMs      Int
   incidentCount   Int
-  
+
   @@index([timestamp])
   @@index([durationMs])
+  @@index([serviceId, timestamp]) // For service-scoped performance queries
+  @@index([teamId, timestamp]) // For team-scoped performance queries
+  @@index([timestamp, durationMs]) // For time-range performance analysis
   @@map("sla_performance_logs")
 }
 

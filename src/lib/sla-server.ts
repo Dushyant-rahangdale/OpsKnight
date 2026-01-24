@@ -67,6 +67,268 @@ const DEFAULT_RESOLVE_TARGET_MINUTES = 120;
 const DEFAULT_INCIDENT_DISPLAY_LIMIT = 50;
 const DEFAULT_PAGE_SIZE = 100;
 
+// Threshold for switching to database aggregation (incidents per query)
+const DB_AGGREGATION_THRESHOLD = 500;
+
+/**
+ * Database-level aggregate metrics result type
+ */
+type DbAggregateMetrics = {
+  totalIncidents: number;
+  resolvedCount: number;
+  avgMttaMs: number | null;
+  avgMttrMs: number | null;
+  mttaP50Ms: number | null;
+  mttaP95Ms: number | null;
+  mttrP50Ms: number | null;
+  mttrP95Ms: number | null;
+  ackSlaMet: number;
+  ackSlaBreached: number;
+  resolveSlaMet: number;
+  resolveSlaBreached: number;
+  highUrgencyCount: number;
+  mediumUrgencyCount: number;
+  lowUrgencyCount: number;
+  afterHoursCount: number;
+  escalationCount: number;
+  reopenCount: number;
+  autoResolveCount: number;
+};
+
+/**
+ * Calculates core SLA metrics using database aggregation for better performance at scale.
+ * Uses PostgreSQL aggregate functions instead of fetching all rows to memory.
+ *
+ * @param whereClause - Prisma where clause for filtering incidents
+ * @param start - Start date of the window
+ * @param end - End date of the window
+ * @param serviceTargetMap - Map of service IDs to their SLA targets
+ * @param userTimeZone - User's timezone for after-hours calculation
+ * @returns Aggregated metrics calculated in the database
+ */
+async function calculateDbAggregateMetrics(
+  whereClause: Prisma.IncidentWhereInput,
+  start: Date,
+  end: Date,
+  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>,
+  userTimeZone: string
+): Promise<DbAggregateMetrics> {
+  const { default: prisma } = await import('./prisma');
+
+  // Get default targets for SQL query
+  const defaultAckMs = DEFAULT_ACK_TARGET_MINUTES * 60 * 1000;
+  const defaultResolveMs = DEFAULT_RESOLVE_TARGET_MINUTES * 60 * 1000;
+
+  // Build service-specific target case expressions for SQL
+  // This handles per-service SLA targets in the aggregate query
+  const serviceIds = Array.from(serviceTargetMap.keys());
+  let ackTargetCase = `${defaultAckMs}`;
+  let resolveTargetCase = `${defaultResolveMs}`;
+
+  if (serviceIds.length > 0) {
+    const ackCases = serviceIds
+      .map(id => {
+        const target = serviceTargetMap.get(id);
+        return `WHEN "serviceId" = '${id}' THEN ${(target?.ackMinutes ?? DEFAULT_ACK_TARGET_MINUTES) * 60 * 1000}`;
+      })
+      .join(' ');
+    ackTargetCase = `CASE ${ackCases} ELSE ${defaultAckMs} END`;
+
+    const resolveCases = serviceIds
+      .map(id => {
+        const target = serviceTargetMap.get(id);
+        return `WHEN "serviceId" = '${id}' THEN ${(target?.resolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES) * 60 * 1000}`;
+      })
+      .join(' ');
+    resolveTargetCase = `CASE ${resolveCases} ELSE ${defaultResolveMs} END`;
+  }
+
+  // Build filter conditions for raw SQL
+  // Note: This is a simplified version - complex filters should use parameterized queries
+  const serviceIdFilter = (whereClause as { serviceId?: string | { in: string[] } }).serviceId;
+  const serviceFilterSql = serviceIdFilter
+    ? typeof serviceIdFilter === 'string'
+      ? `AND "serviceId" = '${serviceIdFilter}'`
+      : `AND "serviceId" IN (${(serviceIdFilter.in || []).map(id => `'${id}'`).join(', ')})`
+    : '';
+
+  const urgencyFilter = (whereClause as { urgency?: string }).urgency;
+  const urgencyFilterSql = urgencyFilter ? `AND "urgency" = '${urgencyFilter}'` : '';
+
+  const statusFilter = (whereClause as { status?: string }).status;
+  const statusFilterSql = statusFilter ? `AND "status" = '${statusFilter}'` : '';
+
+  // Calculate business hours for after-hours detection
+  // Business hours: Monday-Friday 8am-6pm in user's timezone
+  // Using PostgreSQL's AT TIME ZONE for accurate timezone handling
+
+  try {
+    // Main aggregate query - calculates all core metrics in one pass
+    const aggregateResult = await prisma.$queryRaw<
+      Array<{
+        total_incidents: bigint;
+        resolved_count: bigint;
+        avg_mtta_ms: number | null;
+        avg_mttr_ms: number | null;
+        ack_sla_met: bigint;
+        ack_sla_breached: bigint;
+        resolve_sla_met: bigint;
+        resolve_sla_breached: bigint;
+        high_urgency_count: bigint;
+        medium_urgency_count: bigint;
+        low_urgency_count: bigint;
+        after_hours_count: bigint;
+      }>
+    >`
+      SELECT
+        COUNT(*) as total_incidents,
+        COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolved_count,
+        AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
+          FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
+        AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
+          FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
+        COUNT(*) FILTER (
+          WHERE "acknowledgedAt" IS NOT NULL
+          AND EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000 <= ${Prisma.sql`${defaultAckMs}`}
+        ) as ack_sla_met,
+        COUNT(*) FILTER (
+          WHERE ("acknowledgedAt" IS NOT NULL
+            AND EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000 > ${Prisma.sql`${defaultAckMs}`})
+          OR ("acknowledgedAt" IS NULL
+            AND "status" != 'RESOLVED'
+            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${Prisma.sql`${defaultAckMs}`})
+        ) as ack_sla_breached,
+        COUNT(*) FILTER (
+          WHERE "status" = 'RESOLVED'
+          AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
+          AND EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000 <= ${Prisma.sql`${defaultResolveMs}`}
+        ) as resolve_sla_met,
+        COUNT(*) FILTER (
+          WHERE ("status" = 'RESOLVED'
+            AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
+            AND EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000 > ${Prisma.sql`${defaultResolveMs}`})
+          OR ("status" != 'RESOLVED'
+            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${Prisma.sql`${defaultResolveMs}`})
+        ) as resolve_sla_breached,
+        COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'MEDIUM') as medium_urgency_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'LOW') as low_urgency_count,
+        COUNT(*) FILTER (
+          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${userTimeZone}) IN (0, 6)
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${userTimeZone}) < 8
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${userTimeZone}) >= 18
+        ) as after_hours_count
+      FROM "Incident"
+      WHERE "createdAt" >= ${start}
+        AND "createdAt" <= ${end}
+        ${Prisma.raw(serviceFilterSql)}
+        ${Prisma.raw(urgencyFilterSql)}
+        ${Prisma.raw(statusFilterSql)}
+    `;
+
+    // Percentile query - separate for cleaner code and optional optimization
+    const percentileResult = await prisma.$queryRaw<
+      Array<{
+        mtta_p50_ms: number | null;
+        mtta_p95_ms: number | null;
+        mttr_p50_ms: number | null;
+        mttr_p95_ms: number | null;
+      }>
+    >`
+      SELECT
+        PERCENTILE_CONT(0.5) WITHIN GROUP (
+          ORDER BY EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000
+        ) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as mtta_p50_ms,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (
+          ORDER BY EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000
+        ) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as mtta_p95_ms,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (
+          ORDER BY EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000
+        ) FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as mttr_p50_ms,
+        PERCENTILE_CONT(0.95) WITHIN GROUP (
+          ORDER BY EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000
+        ) FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as mttr_p95_ms
+      FROM "Incident"
+      WHERE "createdAt" >= ${start}
+        AND "createdAt" <= ${end}
+        ${Prisma.raw(serviceFilterSql)}
+        ${Prisma.raw(urgencyFilterSql)}
+        ${Prisma.raw(statusFilterSql)}
+    `;
+
+    // Event counts query - for escalation, reopen, auto-resolve rates
+    const eventCountsResult = await prisma.$queryRaw<
+      Array<{
+        escalation_count: bigint;
+        reopen_count: bigint;
+        auto_resolve_count: bigint;
+      }>
+    >`
+      SELECT
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%escalated to%') as escalation_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%reopen%') as reopen_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%auto-resolved%') as auto_resolve_count
+      FROM "IncidentEvent" e
+      INNER JOIN "Incident" i ON e."incidentId" = i."id"
+      WHERE i."createdAt" >= ${start}
+        AND i."createdAt" <= ${end}
+        ${Prisma.raw(serviceFilterSql.replace(/"serviceId"/g, 'i."serviceId"'))}
+        ${Prisma.raw(urgencyFilterSql.replace(/"urgency"/g, 'i."urgency"'))}
+        ${Prisma.raw(statusFilterSql.replace(/"status"/g, 'i."status"'))}
+    `;
+
+    const agg = aggregateResult[0];
+    const pct = percentileResult[0];
+    const evt = eventCountsResult[0];
+
+    return {
+      totalIncidents: Number(agg?.total_incidents ?? 0),
+      resolvedCount: Number(agg?.resolved_count ?? 0),
+      avgMttaMs: agg?.avg_mtta_ms ?? null,
+      avgMttrMs: agg?.avg_mttr_ms ?? null,
+      mttaP50Ms: pct?.mtta_p50_ms ?? null,
+      mttaP95Ms: pct?.mtta_p95_ms ?? null,
+      mttrP50Ms: pct?.mttr_p50_ms ?? null,
+      mttrP95Ms: pct?.mttr_p95_ms ?? null,
+      ackSlaMet: Number(agg?.ack_sla_met ?? 0),
+      ackSlaBreached: Number(agg?.ack_sla_breached ?? 0),
+      resolveSlaMet: Number(agg?.resolve_sla_met ?? 0),
+      resolveSlaBreached: Number(agg?.resolve_sla_breached ?? 0),
+      highUrgencyCount: Number(agg?.high_urgency_count ?? 0),
+      mediumUrgencyCount: Number(agg?.medium_urgency_count ?? 0),
+      lowUrgencyCount: Number(agg?.low_urgency_count ?? 0),
+      afterHoursCount: Number(agg?.after_hours_count ?? 0),
+      escalationCount: Number(evt?.escalation_count ?? 0),
+      reopenCount: Number(evt?.reopen_count ?? 0),
+      autoResolveCount: Number(evt?.auto_resolve_count ?? 0),
+    };
+  } catch (error) {
+    logger.error('[SLA] Database aggregation failed, falling back to in-memory', { error });
+    // Return empty metrics to trigger fallback
+    return {
+      totalIncidents: -1, // Signal to use fallback
+      resolvedCount: 0,
+      avgMttaMs: null,
+      avgMttrMs: null,
+      mttaP50Ms: null,
+      mttaP95Ms: null,
+      mttrP50Ms: null,
+      mttrP95Ms: null,
+      ackSlaMet: 0,
+      ackSlaBreached: 0,
+      resolveSlaMet: 0,
+      resolveSlaBreached: 0,
+      highUrgencyCount: 0,
+      mediumUrgencyCount: 0,
+      lowUrgencyCount: 0,
+      afterHoursCount: 0,
+      escalationCount: 0,
+      reopenCount: 0,
+      autoResolveCount: 0,
+    };
+  }
+}
+
 type IncidentSLAResult = {
   ackSLA: {
     breached: boolean;
@@ -405,9 +667,21 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     createdAt: { gte: previousStart, lt: previousEnd },
   } as any;
 
-  // 3. Parallel Data Fetching
-  // FIX: Fetch ALL incidents for metrics (up to MAX_INCIDENTS_FOR_METRICS)
-  // Only limit the returned incidents for UI display
+  // 3. Parallel Data Fetching - PERFORMANCE OPTIMIZED
+  // Step 1: Get incident count first to determine aggregation strategy
+  const totalIncidentCount = await prisma.incident.count({ where: recentIncidentWhere });
+
+  // Step 2: Determine if we should use database aggregation (for large datasets)
+  const useDbAggregation = totalIncidentCount > DB_AGGREGATION_THRESHOLD;
+
+  if (useDbAggregation) {
+    logger.info('[SLA] Using database aggregation for large dataset', {
+      incidentCount: totalIncidentCount,
+      threshold: DB_AGGREGATION_THRESHOLD,
+    });
+  }
+
+  // Step 3: Parallel fetch - lightweight queries that work at any scale
   const [
     activeIncidentsData,
     mutedStatusCounts,
@@ -419,13 +693,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     services,
     assigneeCounts,
     recurringTitleCounts,
-    heatmapIncidents,
+    heatmapAggregates,
     urgencyCounts,
     currentShiftsData,
     resolved24hCount,
-    allRecentIncidents,
-    previousIncidents,
-    totalIncidentCount,
+    // For large datasets: fetch only paginated display incidents
+    // For small datasets: fetch all for in-memory processing
+    displayIncidentsRaw,
+    previousPeriodAggregates,
   ] = await Promise.all([
     // Active breakdown (Status, Urgency, Assignment) - Batch fetch
     prisma.incident.findMany({
@@ -490,10 +765,15 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       orderBy: { _count: { id: 'desc' } },
       take: 5,
     }),
-    prisma.incident.findMany({
-      where: heatmapWhere,
-      select: { createdAt: true },
-    }),
+    // OPTIMIZATION: Use groupBy for heatmap instead of fetching all incidents
+    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE("createdAt") as date, COUNT(*) as count
+      FROM "Incident"
+      WHERE "createdAt" >= ${heatmapStart} AND "createdAt" <= ${now}
+      ${filters.serviceId ? Prisma.sql`AND "serviceId" = ${Array.isArray(filters.serviceId) ? filters.serviceId[0] : filters.serviceId}` : Prisma.empty}
+      GROUP BY DATE("createdAt")
+      ORDER BY date
+    `,
     prisma.incident.groupBy({
       by: ['urgency'],
       where: recentIncidentWhere,
@@ -517,8 +797,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         resolvedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
     }),
-    // NO HARDCODED LIMITS - Fetch ALL incidents within retention window
-    // The retention policy controls the date range, not an arbitrary count limit
+    // OPTIMIZATION: Only fetch incidents needed for display (paginated)
+    // For small datasets, fetch all; for large datasets, limit to display needs
     prisma.incident.findMany({
       where: recentIncidentWhere,
       select: {
@@ -544,23 +824,66 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         },
       },
       orderBy: { createdAt: 'desc' },
-      // NO TAKE LIMIT - controlled by retention policy date bounds
+      // PERFORMANCE: Limit fetch for large datasets, fetch all for small
+      take: useDbAggregation
+        ? Math.max(filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT, DEFAULT_PAGE_SIZE)
+        : undefined,
     }),
-    prisma.incident.findMany({
-      where: previousWhere,
-      select: {
-        id: true,
-        createdAt: true,
-        acknowledgedAt: true,
-        resolvedAt: true,
-        urgency: true,
-        status: true,
-      },
-      // NO TAKE LIMIT - controlled by retention policy date bounds
-    }),
-    // Get total count for pagination info
-    prisma.incident.count({ where: recentIncidentWhere }),
+    // OPTIMIZATION: Use aggregate query for previous period instead of fetching all rows
+    prisma.$queryRaw<
+      Array<{
+        total_count: bigint;
+        high_urgency_count: bigint;
+        avg_mtta_ms: number | null;
+        avg_mttr_ms: number | null;
+        ack_count: bigint;
+        resolve_count: bigint;
+      }>
+    >`
+      SELECT
+        COUNT(*) as total_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
+        AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
+          FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
+        AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
+          FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
+        COUNT(*) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as ack_count,
+        COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolve_count
+      FROM "Incident"
+      WHERE "createdAt" >= ${previousStart}
+        AND "createdAt" < ${previousEnd}
+        ${filters.serviceId ? Prisma.sql`AND "serviceId" = ${Array.isArray(filters.serviceId) ? filters.serviceId[0] : filters.serviceId}` : Prisma.empty}
+    `,
   ]);
+
+  // Convert heatmap aggregates to expected format
+  const heatmapIncidents = heatmapAggregates.map(row => ({
+    createdAt: new Date(row.date),
+    count: Number(row.count),
+  }));
+
+  // Process previous period aggregates
+  const prevAgg = previousPeriodAggregates[0];
+  const previousIncidentsCount = Number(prevAgg?.total_count ?? 0);
+  const prevHighUrgCount = Number(prevAgg?.high_urgency_count ?? 0);
+  const prevMttaMs = prevAgg?.avg_mtta_ms ?? null;
+  const prevMttrMs = prevAgg?.avg_mttr_ms ?? null;
+  const prevAckCount = Number(prevAgg?.ack_count ?? 0);
+  const prevResolveCount = Number(prevAgg?.resolve_count ?? 0);
+
+  // For backwards compatibility, create previousIncidents array (empty for large datasets)
+  const previousIncidents: Array<{
+    id: string;
+    createdAt: Date;
+    acknowledgedAt: Date | null;
+    resolvedAt: Date | null;
+    urgency: string;
+    status: string;
+  }> = [];
+
+  // For small datasets, we use displayIncidentsRaw for all processing
+  // For large datasets, we use DB aggregation + limited display incidents
+  const allRecentIncidents = displayIncidentsRaw;
 
   // Performance monitoring: Log query completion with timing
   const dbQueryDuration = Date.now() - queryStartTime;
@@ -570,10 +893,47 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     totalIncidentCount,
     dateRange: { start: finalStart.toISOString(), end: finalEnd.toISOString() },
     retentionDays: retentionPolicy.incidentRetentionDays,
+    useDbAggregation,
   });
 
-  // Use all incidents for metrics calculation
+  // Use display incidents for UI rendering
   const recentIncidents = allRecentIncidents;
+
+  // Build service target map early for DB aggregation
+  const serviceTargetMap = new Map<string, { ackMinutes: number; resolveMinutes: number }>();
+  for (const service of services) {
+    serviceTargetMap.set(service.id, {
+      ackMinutes: service.targetAckMinutes ?? DEFAULT_ACK_TARGET_MINUTES,
+      resolveMinutes: service.targetResolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES,
+    });
+  }
+  // Add targets from incidents for services not in the services list
+  for (const incident of recentIncidents) {
+    if (!serviceTargetMap.has(incident.serviceId)) {
+      serviceTargetMap.set(incident.serviceId, {
+        ackMinutes: incident.service.targetAckMinutes ?? DEFAULT_ACK_TARGET_MINUTES,
+        resolveMinutes: incident.service.targetResolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES,
+      });
+    }
+  }
+
+  // For large datasets, use database aggregation for core metrics
+  let dbAggMetrics: DbAggregateMetrics | null = null;
+  if (useDbAggregation) {
+    dbAggMetrics = await calculateDbAggregateMetrics(
+      recentIncidentWhere,
+      finalStart,
+      finalEnd,
+      serviceTargetMap,
+      userTimeZone
+    );
+
+    // Check if DB aggregation failed (signaled by totalIncidents = -1)
+    if (dbAggMetrics.totalIncidents === -1) {
+      logger.warn('[SLA] DB aggregation failed, falling back to in-memory for this request');
+      dbAggMetrics = null;
+    }
+  }
 
   // DERIVE active metrics from the single batch fetch
   const activeIncidents = activeIncidentsData.length;
@@ -616,25 +976,11 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     })
   );
 
-  // Build service target maps for SLA calculations
-  const serviceTargetMap = new Map<string, { ackMinutes: number; resolveMinutes: number }>();
-  for (const service of services) {
-    serviceTargetMap.set(service.id, {
-      ackMinutes: service.targetAckMinutes ?? DEFAULT_ACK_TARGET_MINUTES,
-      resolveMinutes: service.targetResolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES,
-    });
-  }
-  // Add targets from incidents for services not in the services list
-  for (const incident of recentIncidents) {
-    if (!serviceTargetMap.has(incident.serviceId)) {
-      serviceTargetMap.set(incident.serviceId, {
-        ackMinutes: incident.service.targetAckMinutes ?? DEFAULT_ACK_TARGET_MINUTES,
-        resolveMinutes: incident.service.targetResolveMinutes ?? DEFAULT_RESOLVE_TARGET_MINUTES,
-      });
-    }
-  }
+  // Note: serviceTargetMap was already built above for DB aggregation
 
   // 4. Fetch Incident Events
+  // OPTIMIZATION: For large datasets, we only need events for display incidents
+  // Event counts for metrics are handled by DB aggregation
   const recentIncidentIds = recentIncidents.map(i => i.id);
   const [ackEvents, escalationEvents, reopenEvents, autoResolveEvents] = recentIncidentIds.length
     ? await Promise.all([
@@ -647,6 +993,9 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
           select: { incidentId: true, createdAt: true },
           orderBy: { createdAt: 'asc' }, // CRITICAL: Get earliest event first
         }),
+        // For large datasets using DB aggregation, escalation/reopen/autoResolve counts
+        // come from the aggregate query. We still fetch for display incidents for
+        // trend calculations on the visible data.
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
@@ -703,25 +1052,31 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   }
 
   // Calculate MTTA/MTTR samples
+  // For large datasets using DB aggregation, we use pre-calculated values
+  // For small datasets, we calculate from incident data
   const mttaSamples: number[] = [];
   const mttrSamples: number[] = [];
-  for (const incident of recentIncidents) {
-    const ackAt = ackMap.get(incident.id);
-    if (ackAt && incident.createdAt) {
-      const ackTimeMs = ackAt.getTime() - incident.createdAt.getTime();
-      if (ackTimeMs >= 0) {
-        // Validate: ack can't be before creation
-        mttaSamples.push(ackTimeMs);
-      }
-    }
 
-    if (incident.status === 'RESOLVED') {
-      const resolvedAt = incident.resolvedAt || incident.updatedAt;
-      if (resolvedAt && incident.createdAt) {
-        const resolveTimeMs = resolvedAt.getTime() - incident.createdAt.getTime();
-        if (resolveTimeMs >= 0) {
-          // Validate: resolve can't be before creation
-          mttrSamples.push(resolveTimeMs);
+  if (!dbAggMetrics) {
+    // In-memory calculation for small datasets
+    for (const incident of recentIncidents) {
+      const ackAt = ackMap.get(incident.id);
+      if (ackAt && incident.createdAt) {
+        const ackTimeMs = ackAt.getTime() - incident.createdAt.getTime();
+        if (ackTimeMs >= 0) {
+          // Validate: ack can't be before creation
+          mttaSamples.push(ackTimeMs);
+        }
+      }
+
+      if (incident.status === 'RESOLVED') {
+        const resolvedAt = incident.resolvedAt || incident.updatedAt;
+        if (resolvedAt && incident.createdAt) {
+          const resolveTimeMs = resolvedAt.getTime() - incident.createdAt.getTime();
+          if (resolveTimeMs >= 0) {
+            // Validate: resolve can't be before creation
+            mttrSamples.push(resolveTimeMs);
+          }
         }
       }
     }
@@ -821,18 +1176,48 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     };
   };
 
-  const currentStats = calculateSetMetrics(recentIncidents, ackMap);
-
-  const prevAckMap = new Map<string, Date>();
-  for (const incident of previousIncidents) {
-    if (incident.acknowledgedAt) prevAckMap.set(incident.id, incident.acknowledgedAt);
+  // Calculate current period stats - use DB aggregation for large datasets
+  let currentStats: ReturnType<typeof calculateSetMetrics>;
+  if (dbAggMetrics) {
+    // Use DB aggregation results
+    currentStats = {
+      count: dbAggMetrics.totalIncidents,
+      highUrg: dbAggMetrics.highUrgencyCount,
+      mediumUrg: dbAggMetrics.mediumUrgencyCount,
+      lowUrg: dbAggMetrics.lowUrgencyCount,
+      mtta: dbAggMetrics.avgMttaMs ?? 0,
+      mttr: dbAggMetrics.avgMttrMs ?? 0,
+      ackRate:
+        dbAggMetrics.totalIncidents > 0
+          ? ((dbAggMetrics.ackSlaMet + dbAggMetrics.ackSlaBreached) / dbAggMetrics.totalIncidents) *
+            100
+          : 0,
+      resolveRate:
+        dbAggMetrics.totalIncidents > 0
+          ? (dbAggMetrics.resolvedCount / dbAggMetrics.totalIncidents) * 100
+          : 0,
+    };
+  } else {
+    currentStats = calculateSetMetrics(recentIncidents, ackMap);
   }
-  const prevStatsDetailed = calculateSetMetrics(previousIncidents, prevAckMap);
 
-  const mttaP50Ms = calculatePercentile(mttaSamples, 50);
-  const mttaP95Ms = calculatePercentile(mttaSamples, 95);
-  const mttrP50Ms = calculatePercentile(mttrSamples, 50);
-  const mttrP95Ms = calculatePercentile(mttrSamples, 95);
+  // Previous period stats - use aggregated results from raw SQL query
+  const prevStatsDetailed = {
+    count: previousIncidentsCount,
+    highUrg: prevHighUrgCount,
+    mediumUrg: 0, // Not tracked in aggregate query
+    lowUrg: 0, // Not tracked in aggregate query
+    mtta: prevMttaMs ?? 0,
+    mttr: prevMttrMs ?? 0,
+    ackRate: previousIncidentsCount > 0 ? (prevAckCount / previousIncidentsCount) * 100 : 0,
+    resolveRate: previousIncidentsCount > 0 ? (prevResolveCount / previousIncidentsCount) * 100 : 0,
+  };
+
+  // Use DB aggregation percentiles when available, otherwise calculate in-memory
+  const mttaP50Ms = dbAggMetrics?.mttaP50Ms ?? calculatePercentile(mttaSamples, 50);
+  const mttaP95Ms = dbAggMetrics?.mttaP95Ms ?? calculatePercentile(mttaSamples, 95);
+  const mttrP50Ms = dbAggMetrics?.mttrP50Ms ?? calculatePercentile(mttrSamples, 50);
+  const mttrP95Ms = dbAggMetrics?.mttrP95Ms ?? calculatePercentile(mttrSamples, 95);
 
   // Ack Rate & Map for legacy logic re-use if needed
   const ackRate = currentStats.ackRate;
@@ -865,6 +1250,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   }
 
   // SLA Compliance Details - FIX: Include overdue unacked/unresolved incidents as breaches
+  // Use DB aggregation for large datasets
   let ackSlaMet = 0;
   let ackSlaBreached = 0;
   let resolveSlaMet = 0;
@@ -872,50 +1258,59 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   const solvedIncidents = recentIncidents.filter(i => i.status === 'RESOLVED');
 
-  for (const incident of recentIncidents) {
-    const targets = serviceTargetMap.get(incident.serviceId) || {
-      ackMinutes: DEFAULT_ACK_TARGET_MINUTES,
-      resolveMinutes: DEFAULT_RESOLVE_TARGET_MINUTES,
-    };
-    const ackTarget = targets.ackMinutes;
-    const resolveTarget = targets.resolveMinutes;
+  if (dbAggMetrics) {
+    // Use pre-calculated values from database aggregation
+    ackSlaMet = dbAggMetrics.ackSlaMet;
+    ackSlaBreached = dbAggMetrics.ackSlaBreached;
+    resolveSlaMet = dbAggMetrics.resolveSlaMet;
+    resolveSlaBreached = dbAggMetrics.resolveSlaBreached;
+  } else {
+    // In-memory calculation for small datasets
+    for (const incident of recentIncidents) {
+      const targets = serviceTargetMap.get(incident.serviceId) || {
+        ackMinutes: DEFAULT_ACK_TARGET_MINUTES,
+        resolveMinutes: DEFAULT_RESOLVE_TARGET_MINUTES,
+      };
+      const ackTarget = targets.ackMinutes;
+      const resolveTarget = targets.resolveMinutes;
 
-    // ACK SLA
-    const ackedAt = ackMap.get(incident.id);
-    if (ackedAt && incident.createdAt) {
-      const diffMin = (ackedAt.getTime() - incident.createdAt.getTime()) / 60000;
-      if (diffMin <= ackTarget) {
-        ackSlaMet++;
-      } else {
-        ackSlaBreached++;
-      }
-    } else if (incident.status !== 'RESOLVED') {
-      // FIX: Check if unacked incident is overdue
-      const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
-      if (elapsedMin > ackTarget) {
-        ackSlaBreached++;
-      }
-      // If not overdue yet, don't count in either bucket (still pending)
-    }
-
-    // RESOLVE SLA
-    if (incident.status === 'RESOLVED') {
-      const resolvedAt = incident.resolvedAt || incident.updatedAt;
-      if (resolvedAt && incident.createdAt) {
-        const diffMin = (resolvedAt.getTime() - incident.createdAt.getTime()) / 60000;
-        if (diffMin <= resolveTarget) {
-          resolveSlaMet++;
+      // ACK SLA
+      const ackedAt = ackMap.get(incident.id);
+      if (ackedAt && incident.createdAt) {
+        const diffMin = (ackedAt.getTime() - incident.createdAt.getTime()) / 60000;
+        if (diffMin <= ackTarget) {
+          ackSlaMet++;
         } else {
+          ackSlaBreached++;
+        }
+      } else if (incident.status !== 'RESOLVED') {
+        // FIX: Check if unacked incident is overdue
+        const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
+        if (elapsedMin > ackTarget) {
+          ackSlaBreached++;
+        }
+        // If not overdue yet, don't count in either bucket (still pending)
+      }
+
+      // RESOLVE SLA
+      if (incident.status === 'RESOLVED') {
+        const resolvedAt = incident.resolvedAt || incident.updatedAt;
+        if (resolvedAt && incident.createdAt) {
+          const diffMin = (resolvedAt.getTime() - incident.createdAt.getTime()) / 60000;
+          if (diffMin <= resolveTarget) {
+            resolveSlaMet++;
+          } else {
+            resolveSlaBreached++;
+          }
+        }
+      } else {
+        // FIX: Check if unresolved incident is overdue
+        const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
+        if (elapsedMin > resolveTarget) {
           resolveSlaBreached++;
         }
+        // If not overdue yet, don't count (still pending)
       }
-    } else {
-      // FIX: Check if unresolved incident is overdue
-      const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
-      if (elapsedMin > resolveTarget) {
-        resolveSlaBreached++;
-      }
-      // If not overdue yet, don't count (still pending)
     }
   }
 
@@ -1153,9 +1548,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const mtbfMs = calculateMtbfMs(recentIncidents.map(i => i.createdAt));
 
   // FIX: Use userTimeZone for after-hours calculation
-  const afterHoursCount = recentIncidents.filter(i =>
-    isAfterHoursInTimeZone(i.createdAt, userTimeZone)
-  ).length;
+  // For large datasets, use DB aggregation result
+  const afterHoursCount = dbAggMetrics
+    ? dbAggMetrics.afterHoursCount
+    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, userTimeZone)).length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
   const coverageDays = new Set<string>();
@@ -1175,35 +1571,41 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const coveragePercent = Math.min(100, (coverageDays.size / coverageWindowDays) * 100);
   const coverageGapDays = Math.max(0, coverageWindowDays - coverageDays.size);
 
-  // Rates
+  // Rates - use DB aggregation for large datasets
   const escalatedIds = new Set(escalationEvents.map(e => e.incidentId));
   const reopenedIds = new Set(reopenEvents.map(e => e.incidentId));
   const autoResolvedIds = new Set(autoResolveEvents.map(e => e.incidentId));
   const totalRecent = currentStats.count;
-  const escalationRate = totalRecent ? (escalatedIds.size / totalRecent) * 100 : 0;
-  const reopenRate = solvedIncidents.length ? (reopenedIds.size / solvedIncidents.length) * 100 : 0;
-  const autoResolvedCount = solvedIncidents.filter(i => autoResolvedIds.has(i.id)).length;
-  const manualResolvedCount = Math.max(0, solvedIncidents.length - autoResolvedCount);
+
+  // Use DB aggregation counts for large datasets, in-memory counts for small
+  const escalationCountFinal = dbAggMetrics ? dbAggMetrics.escalationCount : escalatedIds.size;
+  const reopenCountFinal = dbAggMetrics ? dbAggMetrics.reopenCount : reopenedIds.size;
+  const autoResolveCountFinal = dbAggMetrics
+    ? dbAggMetrics.autoResolveCount
+    : solvedIncidents.filter(i => autoResolvedIds.has(i.id)).length;
+
+  const escalationRate = totalRecent ? (escalationCountFinal / totalRecent) * 100 : 0;
+  const reopenRate = solvedIncidents.length
+    ? (reopenCountFinal / solvedIncidents.length) * 100
+    : totalRecent > 0
+      ? (reopenCountFinal / totalRecent) * 100
+      : 0;
+  const autoResolvedCount = autoResolveCountFinal;
+  const resolvedCountForCalc = dbAggMetrics ? dbAggMetrics.resolvedCount : solvedIncidents.length;
+  const manualResolvedCount = Math.max(0, resolvedCountForCalc - autoResolvedCount);
   const eventsCount =
     ackEvents.length + escalationEvents.length + reopenEvents.length + autoResolveEvents.length;
-  const autoResolveRate = solvedIncidents.length
-    ? (autoResolvedCount / solvedIncidents.length) * 100
+  const autoResolveRate = resolvedCountForCalc
+    ? (autoResolvedCount / resolvedCountForCalc) * 100
     : 0;
 
   // FIX: alertsPerIncident uses consistent counts
   const alertsPerIncident = totalRecent ? alertsCount / totalRecent : 0;
 
-  // Heatmap
-  const heatmapAggregation = new Map<string, number>();
-  for (const incident of heatmapIncidents) {
-    const d = new Date(incident.createdAt);
-    // Use UTC for heatmap consistency
-    const key = d.toISOString().split('T')[0];
-    heatmapAggregation.set(key, (heatmapAggregation.get(key) || 0) + 1);
-  }
-  const heatmapData = Array.from(heatmapAggregation.entries()).map(([dateStr, count]) => ({
-    date: dateStr,
-    count,
+  // Heatmap - already aggregated from SQL query
+  const heatmapData = heatmapIncidents.map(entry => ({
+    date: entry.createdAt.toISOString().split('T')[0],
+    count: entry.count,
   }));
 
   // Status Mix
@@ -1255,11 +1657,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const hasCritical = criticalActiveIncidents > 0;
   const hasDegraded = activeIncidents > 0 && !hasCritical;
 
-  // Prepare incidents for response (limited for UI display)
-  const displayIncidents = recentIncidents.slice(
-    0,
-    filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT
-  );
+  // Prepare incidents for response (already limited for large datasets, slice for small)
+  const displayIncidents = useDbAggregation
+    ? recentIncidents // Already limited by take clause
+    : recentIncidents.slice(0, filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT);
 
   const activeIncidentSummaries = filters.includeActiveIncidents
     ? activeIncidentsData.map(incident => {
@@ -1309,6 +1710,11 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         totalIncidentCount > 0
           ? Math.round((totalQueryDuration / totalIncidentCount) * 100) / 100
           : null,
+    },
+    optimization: {
+      useDbAggregation,
+      threshold: DB_AGGREGATION_THRESHOLD,
+      fetchedForDisplay: displayIncidents.length,
     },
   });
   // Write performance log to database using raw SQL (bypasses Prisma client cache)

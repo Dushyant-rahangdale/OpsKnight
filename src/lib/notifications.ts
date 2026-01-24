@@ -1,6 +1,7 @@
 import { Incident, Service } from '@prisma/client';
 import prisma from './prisma';
 import { sendIncidentEmail } from './email';
+import { CircuitBreakers, CircuitBreakerError } from './circuit-breaker';
 
 export type NotificationChannel = 'EMAIL' | 'SMS' | 'PUSH' | 'SLACK' | 'WEBHOOK' | 'WHATSAPP';
 
@@ -33,7 +34,8 @@ export async function sendNotification(
   try {
     let result: { success: boolean; error?: string };
 
-    // Route to appropriate notification service
+    // Route to appropriate notification service with circuit breaker protection
+    // Circuit breakers prevent cascade failures when external services are slow/down
     switch (channel) {
       case 'EMAIL':
         // Determine event type from message or incident status
@@ -46,7 +48,10 @@ export async function sendNotification(
             : incidentData?.status === 'ACKNOWLEDGED'
               ? 'acknowledged'
               : 'triggered';
-        result = await sendIncidentEmail(userId, incidentId, eventType);
+        // Use circuit breaker to prevent cascade failures
+        result = await CircuitBreakers.email().execute(() =>
+          sendIncidentEmail(userId, incidentId, eventType)
+        );
         break;
 
       case 'SMS':
@@ -59,7 +64,9 @@ export async function sendNotification(
             : incidentForSMS?.status === 'ACKNOWLEDGED'
               ? 'acknowledged'
               : 'triggered';
-        result = await sendIncidentSMS(userId, incidentId, eventTypeSMS);
+        result = await CircuitBreakers.sms().execute(() =>
+          sendIncidentSMS(userId, incidentId, eventTypeSMS)
+        );
         break;
 
       case 'PUSH':
@@ -72,7 +79,9 @@ export async function sendNotification(
             : incidentForPush?.status === 'ACKNOWLEDGED'
               ? 'acknowledged'
               : 'triggered';
-        result = await sendIncidentPush(userId, incidentId, eventTypePush);
+        result = await CircuitBreakers.push().execute(() =>
+          sendIncidentPush(userId, incidentId, eventTypePush)
+        );
         break;
 
       case 'SLACK':
@@ -162,17 +171,29 @@ export async function sendNotification(
       throw new Error(result.error || 'Notification delivery failed');
     }
   } catch (error: any) {
+    // Handle circuit breaker errors specially - don't count as attempt failure
+    const isCircuitOpen = error instanceof CircuitBreakerError;
+    const errorMessage = isCircuitOpen
+      ? `Service unavailable (circuit open): ${error.serviceName}`
+      : error.message;
+
     await prisma.notification.update({
       where: { id: notification.id },
       data: {
         status: 'FAILED',
         failedAt: new Date(),
-        errorMsg: error.message,
-        attempts: (notification.attempts || 0) + 1,
+        errorMsg: errorMessage,
+        // Don't increment attempts for circuit breaker failures (will retry when circuit closes)
+        attempts: isCircuitOpen ? notification.attempts : (notification.attempts || 0) + 1,
       },
     });
 
-    return { success: false, error: error.message, notificationId: notification.id };
+    return {
+      success: false,
+      error: errorMessage,
+      notificationId: notification.id,
+      circuitOpen: isCircuitOpen,
+    };
   }
 }
 

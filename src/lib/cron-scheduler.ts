@@ -256,35 +256,37 @@ async function runOnce() {
   });
 
   try {
-    // Process all scheduled tasks
-    const escalationResult = await processPendingEscalations();
-    logger.info('[Cron] Escalations processed', {
-      processed: escalationResult.processed,
-      total: escalationResult.total,
-      errors: escalationResult.errors,
+    // Process tasks in parallel groups for better throughput
+    // Group 1: Critical real-time tasks (escalations + jobs)
+    const [escalationResult, jobResult] = await Promise.all([
+      processPendingEscalations(),
+      processPendingJobs(100, 15), // Increased limit and concurrency for scale
+    ]);
+
+    logger.info('[Cron] Critical tasks processed', {
+      escalations: { processed: escalationResult.processed, total: escalationResult.total },
+      jobs: { processed: jobResult.processed, failed: jobResult.failed, total: jobResult.total },
     });
 
-    const jobResult = await processPendingJobs(50);
-    logger.info('[Cron] Background jobs processed', {
-      processed: jobResult.processed,
-      failed: jobResult.failed,
-      total: jobResult.total,
+    // Group 2: Secondary tasks (can run in parallel)
+    const [retryResult, autoUnsnoozeResult, breachResult] = await Promise.all([
+      retryFailedNotifications(),
+      processAutoUnsnooze(),
+      checkSLABreaches(),
+    ]);
+
+    logger.info('[Cron] Secondary tasks processed', {
+      retries: retryResult,
+      autoUnsnooze: autoUnsnoozeResult,
+      slaBreaches: {
+        activeIncidents: breachResult.activeIncidentCount,
+        warnings: breachResult.warningCount,
+      },
     });
 
-    const retryResult = await retryFailedNotifications();
-    logger.info('[Cron] Notification retries processed', retryResult);
-
-    const autoUnsnoozeResult = await processAutoUnsnooze();
-    logger.info('[Cron] Auto-unsnooze processed', autoUnsnoozeResult);
-
+    // Group 3: Maintenance tasks (low priority, run last)
     const tokenCleanup = await cleanupUserTokens();
-    logger.info('[Cron] User tokens cleaned up', tokenCleanup);
-
-    const breachResult = await checkSLABreaches();
-    logger.info('[Cron] SLA breaches checked', {
-      activeIncidents: breachResult.activeIncidentCount,
-      warnings: breachResult.warningCount,
-    });
+    logger.info('[Cron] Maintenance tasks processed', { tokenCleanup });
 
     // Daily rollup generation (once per day at/after 1 AM UTC)
     const state = await getState();

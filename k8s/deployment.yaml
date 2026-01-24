@@ -34,7 +34,7 @@ spec:
                 name: opsknight-secrets
           env:
             - name: DATABASE_URL
-              value: 'postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?schema=public'
+              value: 'postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?schema=public&connection_limit=40'
 
           resources:
             requests:
