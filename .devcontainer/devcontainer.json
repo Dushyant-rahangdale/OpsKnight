@@ -1,7 +1,7 @@
 {
   "name": "OpsKnight Dev",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-18-bullseye",
-  "dockerComposeFile": ["../docker-compose.yml"],
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "dev",
   "workspaceFolder": "/workspaces/OpsKnight",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -16,5 +16,5 @@
   },
   "postCreateCommand": "npm install",
   "remoteUser": "node",
-  "forwardPorts": [3000]
+  "forwardPorts": [3000, 5432]
 }
