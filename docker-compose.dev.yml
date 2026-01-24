@@ -30,7 +30,7 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://opsknight:opsknight_secure_password_change_me@opsknight-db:5432/opsknight_db
+      - DATABASE_URL=postgresql://opsknight:opsknight_secure_password_change_me@opsknight-db:5432/opsknight_db?connection_limit=40
       - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=dev-secret-key-for-development-only
       - NEXTAUTH_SECRET=dev-secret-key-for-development-only

@@ -91,43 +91,39 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
 /**
  * Get all users in a team
  * If notifyOnlyTeamLead is true, returns only the team lead
+ *
+ * OPTIMIZED: Single query instead of 2-3 separate queries
  */
 async function getTeamUsers(
   teamId: string,
   notifyOnlyTeamLead: boolean = false
 ): Promise<string[]> {
-  if (notifyOnlyTeamLead) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: { teamLeadId: true },
-    });
-
-    if (team?.teamLeadId) {
-      const leadMembership = await prisma.teamMember.findFirst({
-        where: {
-          teamId,
-          userId: team.teamLeadId,
-          receiveTeamNotifications: true,
-        },
+  // Single optimized query that gets team + lead + members in one roundtrip
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      teamLeadId: true,
+      members: {
+        where: { receiveTeamNotifications: true },
         select: { userId: true },
-      });
+      },
+    },
+  });
 
-      if (leadMembership) {
+  if (!team) return [];
+
+  if (notifyOnlyTeamLead) {
+    // Check if team lead exists and has notifications enabled
+    if (team.teamLeadId) {
+      const leadHasNotifications = team.members.some(m => m.userId === team.teamLeadId);
+      if (leadHasNotifications) {
         return [team.teamLeadId];
       }
     }
-    // If team has no lead but notifyOnlyTeamLead is true, return empty array
     return [];
   }
 
-  const members = await prisma.teamMember.findMany({
-    where: {
-      teamId,
-      receiveTeamNotifications: true,
-    },
-    select: { userId: true },
-  });
-  return members.map(m => m.userId);
+  return team.members.map(m => m.userId);
 }
 
 /**
@@ -628,106 +624,107 @@ export async function processPendingEscalations(
   let processed = 0;
   const errors: string[] = [];
 
-  for (const incident of incidentsToEscalate) {
-    try {
-      // Get the current step index (default to 0 if not set)
-      const currentStepIndex = incident.currentEscalationStep ?? 0;
+  // Process escalations in parallel batches for better throughput
+  // Concurrency of 5 balances speed vs database load
+  const CONCURRENCY = 5;
 
-      // Execute the next escalation step
-      const result = await executor(incident.id, currentStepIndex);
+  for (let i = 0; i < incidentsToEscalate.length; i += CONCURRENCY) {
+    const batch = incidentsToEscalate.slice(i, i + CONCURRENCY);
 
-      if (result.escalated) {
-        processed++;
-      } else {
-        // Benign reasons that shouldn't change escalation status
-        const benignReason = (result.reason || '').toLowerCase();
-        const isBenign =
-          benignReason.includes('already in progress') ||
-          benignReason.includes('scheduled') ||
-          benignReason.includes('already completed');
+    const results = await Promise.allSettled(
+      batch.map(async incident => {
+        const currentStepIndex = incident.currentEscalationStep ?? 0;
+        const result = await executor(incident.id, currentStepIndex);
+        return { incident, result };
+      })
+    );
 
-        if (isBenign) {
-          // Don't modify incident state - another process is handling it or it's already done
-          continue;
-        }
-
-        // If escalation failed or completed, update status
-        await prisma.incident.update({
-          where: { id: incident.id },
-          data: {
-            escalationStatus:
-              benignReason.includes('exhausted') ||
-              benignReason.includes('completed') ||
-              benignReason.includes('no escalation policy') ||
-              benignReason.includes('no users to notify') ||
-              benignReason.includes('invalid target')
-                ? 'COMPLETED'
-                : 'ESCALATING',
-            nextEscalationAt: null,
-            escalationProcessingAt: null,
-          },
-        });
+    for (const settledResult of results) {
+      if (settledResult.status === 'rejected') {
+        const error = settledResult.reason;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`Batch error: ${errorMessage}`);
+        continue;
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
-      const isRetryable =
-        errorMessage.includes('Serialization') ||
-        errorMessage.includes('deadlock') ||
-        errorMessage.includes('Connection');
 
-      logger.error('Error processing escalation', {
-        incidentId: incident.id,
-        error: errorMessage,
-        stack: errorStack,
-        currentStep: incident.currentEscalationStep,
-        escalationStatus: incident.escalationStatus,
-        isRetryable,
-      });
-      errors.push(`Incident ${incident.id}: ${errorMessage}`);
+      const { incident, result } = settledResult.value;
 
-      // Update incident to prevent infinite retries on same error
       try {
-        if (!isRetryable) {
-          // Only stop escalation for non-retryable errors
+        if (result.escalated) {
+          processed++;
+        } else {
+          const benignReason = (result.reason || '').toLowerCase();
+          const isBenign =
+            benignReason.includes('already in progress') ||
+            benignReason.includes('scheduled') ||
+            benignReason.includes('already completed');
+
+          if (isBenign) continue;
+
           await prisma.incident.update({
             where: { id: incident.id },
             data: {
-              escalationStatus: 'COMPLETED',
+              escalationStatus:
+                benignReason.includes('exhausted') ||
+                benignReason.includes('completed') ||
+                benignReason.includes('no escalation policy') ||
+                benignReason.includes('no users to notify') ||
+                benignReason.includes('invalid target')
+                  ? 'COMPLETED'
+                  : 'ESCALATING',
               nextEscalationAt: null,
               escalationProcessingAt: null,
             },
           });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isRetryable =
+          errorMessage.includes('Serialization') ||
+          errorMessage.includes('deadlock') ||
+          errorMessage.includes('Connection');
 
-          // Log error event
-          await prisma.incidentEvent
-            .create({
+        logger.error('Error processing escalation', {
+          incidentId: incident.id,
+          error: errorMessage,
+          isRetryable,
+        });
+        errors.push(`Incident ${incident.id}: ${errorMessage}`);
+
+        try {
+          if (!isRetryable) {
+            await prisma.incident.update({
+              where: { id: incident.id },
               data: {
-                incidentId: incident.id,
-                message: `Escalation processing failed (FATAL): ${errorMessage}`,
+                escalationStatus: 'COMPLETED',
+                nextEscalationAt: null,
+                escalationProcessingAt: null,
               },
-            })
-            .catch(() => {
-              // Ignore event creation errors
             });
-        } else {
-          // For retryable errors, just clear the processing lock so it picks up again
-          await prisma.incident.update({
-            where: { id: incident.id },
-            data: {
-              escalationProcessingAt: null, // Release lock
-              // We don't change nextEscalationAt, so it will be picked up immediately in next run
-            },
-          });
-          logger.warn('Escalation failed with retryable error, releasing lock', {
+
+            await prisma.incidentEvent
+              .create({
+                data: {
+                  incidentId: incident.id,
+                  message: `Escalation processing failed (FATAL): ${errorMessage}`,
+                },
+              })
+              .catch(() => {});
+          } else {
+            await prisma.incident.update({
+              where: { id: incident.id },
+              data: { escalationProcessingAt: null },
+            });
+            logger.warn('Escalation failed with retryable error, releasing lock', {
+              incidentId: incident.id,
+            });
+          }
+        } catch (updateError) {
+          logger.error('Failed to update incident after escalation error', {
             incidentId: incident.id,
+            updateError: updateError instanceof Error ? updateError.message : 'Unknown error',
           });
         }
-      } catch (updateError) {
-        logger.error('Failed to update incident after escalation error', {
-          incidentId: incident.id,
-          updateError: updateError instanceof Error ? updateError.message : 'Unknown error',
-        });
       }
     }
   }

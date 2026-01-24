@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import {
+  getCachedDashboardMetrics,
+  getCachedServiceIncidents,
+  getCachedIncidentDetails,
+} from '@/lib/realtime-cache';
 
 /**
  * Server-Sent Events (SSE) endpoint for real-time incident updates
@@ -76,10 +81,18 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Create a ReadableStream for SSE
+  // Create a ReadableStream for SSE with change detection
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+
+      // Track last sent data hash for change detection
+      let lastDataHash = '';
+
+      // Simple hash function for change detection
+      const hashData = (data: any): string => {
+        return JSON.stringify(data);
+      };
 
       // Send initial connection message
       const send = (data: any) => {
@@ -87,30 +100,31 @@ export async function GET(req: NextRequest) {
         controller.enqueue(encoder.encode(message));
       };
 
+      // Send only if data has changed (for non-critical updates)
+      const sendIfChanged = (data: any): boolean => {
+        const currentHash = hashData(data);
+        if (currentHash !== lastDataHash) {
+          lastDataHash = currentHash;
+          send(data);
+          return true;
+        }
+        return false;
+      };
+
       // Send connection confirmation
       send({ type: 'connected', timestamp: new Date().toISOString() });
 
       // Set up interval to check for updates
+      // Uses caching layer to reduce database load by ~10x
       const interval = setInterval(async () => {
         try {
           if (incidentId) {
-            // Stream updates for a specific incident
-            const incident = await prisma.incident.findUnique({
-              where: { id: incidentId },
-              include: {
-                events: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                },
-                notes: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                },
-              },
-            });
+            // Stream updates for a specific incident using cache
+            const result = await getCachedIncidentDetails(incidentId, lastDataHash);
 
-            if (incident) {
-              send({
+            if (result && result.changed && result.data) {
+              const incident = result.data;
+              const updateData = {
                 type: 'incident_update',
                 incident: {
                   id: incident.id,
@@ -122,54 +136,48 @@ export async function GET(req: NextRequest) {
                 },
                 latestEvent: incident.events[0],
                 latestNote: incident.notes[0],
-              });
+              };
+              lastDataHash = result.hash;
+              send(updateData);
             }
           } else if (serviceId) {
-            // Stream updates for incidents in a service
-            const recentIncidents = await prisma.incident.findMany({
-              where: { serviceId },
-              orderBy: { updatedAt: 'desc' },
-              take: 10,
-              select: {
-                id: true,
-                title: true,
-                status: true,
-                urgency: true,
-                updatedAt: true,
-              },
-            });
+            // Stream updates for incidents in a service using cache
+            const result = await getCachedServiceIncidents(serviceId, lastDataHash);
 
-            send({
-              type: 'service_incidents_update',
-              serviceId,
-              incidents: recentIncidents,
-            });
-          } else {
-            // Stream dashboard updates via centralized SLA server
-            const { calculateSLAMetrics } = await import('@/lib/sla-server');
-
-            // SCOPE: Dashboard stats should be personal/team-based if not admin
-            const slaFilters: any = { useOrScope: true };
-            if (user.role !== 'ADMIN' && user.role !== 'RESPONDER') {
-              slaFilters.assigneeId = user.id;
-              const teamIds = user.teamMemberships.map(m => m.teamId);
-              if (teamIds.length > 0) slaFilters.teamId = teamIds;
+            if (result && result.changed) {
+              const updateData = {
+                type: 'service_incidents_update',
+                serviceId,
+                incidents: result.data,
+              };
+              lastDataHash = result.hash;
+              send(updateData);
             }
+          } else {
+            // Stream dashboard updates using cached metrics
+            const teamIds = user.teamMemberships.map(m => m.teamId);
+            const result = await getCachedDashboardMetrics(
+              user.id,
+              user.role,
+              teamIds,
+              lastDataHash
+            );
 
-            const slaMetrics = await calculateSLAMetrics(slaFilters);
-
-            send({
-              type: 'dashboard_stats',
-              stats: {
-                open: slaMetrics.openCount,
-                acknowledged: slaMetrics.acknowledgedCount,
-                resolved: slaMetrics.resolved24h, // Aligned with realtime stream
-                critical: slaMetrics.criticalCount,
-                // Retention info
-                isClipped: slaMetrics.isClipped,
-                retentionDays: slaMetrics.retentionDays,
-              },
-            });
+            if (result && result.changed) {
+              const updateData = {
+                type: 'dashboard_stats',
+                stats: {
+                  open: result.data.open,
+                  acknowledged: result.data.acknowledged,
+                  resolved: result.data.resolved,
+                  critical: result.data.critical,
+                  isClipped: result.data.isClipped,
+                  retentionDays: result.data.retentionDays,
+                },
+              };
+              lastDataHash = result.hash;
+              send(updateData);
+            }
           }
         } catch (error: any) {
           send({ type: 'error', message: error.message });

@@ -233,12 +233,18 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Notify status page subscribers (Email)
+  // Notify status page subscribers (Email) - run in background to avoid blocking API response
   try {
     const { notifyStatusPageSubscribers } = await import('@/lib/status-page-notifications');
-    await notifyStatusPageSubscribers(incident.id, 'triggered');
+    // Don't await - run in background for faster API response on resource-constrained systems
+    notifyStatusPageSubscribers(incident.id, 'triggered').catch(err => {
+      logger.error('api.incident.status_page_notification_failed', {
+        error: err instanceof Error ? err.message : String(err),
+        incidentId: incident.id,
+      });
+    });
   } catch (e) {
-    logger.error('api.incident.status_page_notification_failed', {
+    logger.error('api.incident.status_page_notification_import_failed', {
       error: e instanceof Error ? e.message : String(e),
       incidentId: incident.id,
     });
