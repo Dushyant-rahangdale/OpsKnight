@@ -8,7 +8,7 @@ description: Everything you need to install, configure, and start using OpsKnigh
 
 This section takes you from zero to a running incident management system. By the end, you will have OpsKnight installed, a service configured, and your first incident created.
 
-![OpsKnight Command Center dashboard](/dashboard-command-center-1200.jpg)
+![OpsKnight Command Center dashboard](../assets/dashboard-command-center-1200.jpg)
 
 ---
 
@@ -27,7 +27,7 @@ This section takes you from zero to a running incident management system. By the
 
 OpsKnight works great on mobile as a Progressive Web App (PWA), so on-call responders can act fast from anywhere.
 
-![OpsKnight mobile dashboard](/mobile-dashboard.png)
+![OpsKnight mobile dashboard](../assets/mobile-dashboard.png)
 
 **Why enable it early:**
 
