@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to save configuration' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 });
   }
 }
 
@@ -56,9 +53,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete configuration' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete configuration' }, { status: 500 });
   }
 }

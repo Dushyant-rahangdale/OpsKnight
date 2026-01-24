@@ -12,8 +12,10 @@ OpsKnight normalizes alerts into a standard Severity and Urgency model so notifi
 | -------- | ------------------------------------- | --------------- |
 | Critical | System down or unusable               | HIGH            |
 | Error    | Significant degradation               | MEDIUM          |
-| Warning  | Minor issue or approaching limits     | LOW             |
+| Warning  | Minor issue or approaching limits     | MEDIUM          |
 | Info     | Informational / recovery / normal ops | LOW             |
+
+> **Note**: Warning maps to MEDIUM (not LOW) to ensure important alerts are not missed. This aligns with industry best practices where warnings often indicate issues that need attention before they become critical.
 
 ## Urgency (Notification Level)
 

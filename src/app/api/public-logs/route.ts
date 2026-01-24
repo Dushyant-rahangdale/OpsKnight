@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogBuffer } from '@/lib/logger';
+import { getServerSession } from 'next-auth';
+import { getAuthOptions } from '@/lib/auth';
 
 function toNumber(value: string | null, fallback: number) {
-    if (!value) return fallback;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const limit = toNumber(searchParams.get('limit'), 200);
-    const rawEntries = getLogBuffer(limit);
+  // Require authentication to view logs - they may contain sensitive info
+  const session = await getServerSession(await getAuthOptions());
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    const entries = rawEntries.map((entry) => ({
-        ...entry,
-        error: entry.error
-            ? {
-                message: entry.error.message,
-                name: entry.error.name
-            }
-            : undefined
-    }));
+  const { searchParams } = new URL(request.url);
+  const limit = toNumber(searchParams.get('limit'), 200);
+  const rawEntries = getLogBuffer(limit);
 
-    return NextResponse.json({ success: true, data: entries });
+  const entries = rawEntries.map(entry => ({
+    ...entry,
+    error: entry.error
+      ? {
+          message: entry.error.message,
+          name: entry.error.name,
+        }
+      : undefined,
+  }));
+
+  return NextResponse.json({ success: true, data: entries });
 }

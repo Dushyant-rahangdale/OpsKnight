@@ -53,8 +53,14 @@ export function transformGoogleCloudMonitoringToEvent(data: GoogleCloudMonitorin
     data.resource?.type
   );
   const incidentId = firstString(incident?.incident_id);
+  // Use incidentId or policy+resource for stable dedup key (avoids Date.now() which defeats dedup)
   const dedupKey =
-    incidentId || (policy && resourceName ? `gcp-${policy}-${resourceName}` : `gcp-${Date.now()}`);
+    incidentId ||
+    (policy && resourceName
+      ? `gcp-${policy}-${resourceName}`
+      : policy
+        ? `gcp-${policy}`
+        : `gcp-${(summary || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`);
 
   return {
     event_action: normalizeEventAction(state, 'trigger'),

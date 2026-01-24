@@ -10,6 +10,15 @@ export async function validateOidcConnection(issuer: string): Promise<OidcValida
     // 1. Discovery Check: Fetch .well-known configuration
     // Ensure issuer doesn't end with slash to avoid double slash
     const normalizedIssuer = issuer.replace(/\/$/, '');
+
+    // Security: OIDC issuer must use HTTPS to prevent MITM attacks
+    if (!normalizedIssuer.startsWith('https://')) {
+      return {
+        isValid: false,
+        error: 'OIDC issuer must use HTTPS for security. HTTP URLs are not allowed.',
+      };
+    }
+
     const discoveryUrl = `${normalizedIssuer}/.well-known/openid-configuration`;
 
     logger.info(`[OIDC Validation] Checking discovery URL: ${discoveryUrl}`);

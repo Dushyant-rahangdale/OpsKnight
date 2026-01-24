@@ -30,7 +30,10 @@ export function transformAppDynamicsToEvent(data: AppDynamicsEvent): {
     firstString(data.severity, data.eventSeverity, data.eventType),
     'warning'
   );
-  const dedupKey = firstString(data.incidentId, data.eventId) || `appdynamics-${Date.now()}`;
+  // Use incident/event ID or create stable key from application+eventType (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(data.incidentId, data.eventId) ||
+    `appdynamics-${(data.application || data.eventType || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

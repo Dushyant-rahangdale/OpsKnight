@@ -27,7 +27,10 @@ export function transformPingdomToEvent(data: PingdomEvent): {
     status && status.toLowerCase().includes('down') ? 'critical' : 'info',
     'warning'
   );
-  const dedupKey = firstString(data.check_id) || `pingdom-${Date.now()}`;
+  // Use check_id or create stable key from check_name (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(data.check_id) ||
+    `pingdom-${(data.check_name || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

@@ -39,33 +39,73 @@ export async function validateWebhookUrl(urlString: string): Promise<boolean> {
 }
 
 function isPrivateIp(ip: string): boolean {
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4) {
-    // IPv6 check - simplified blocking of localhost/link-local
-    // For now, robustly handling IPv4 map-mapped and standard IPv6 local/private requires more complex logic
-    // Blocking ::1 and fe80::/10 generic check
-    if (ip === '::1' || ip.toLowerCase().startsWith('fe80:')) return true;
-    return false; // Allow public IPv6 for now or implement full IPv6 filtering
+  const lowerIp = ip.toLowerCase();
+
+  // IPv6 checks
+  if (ip.includes(':')) {
+    // Loopback
+    if (lowerIp === '::1') return true;
+    // Link-local (fe80::/10)
+    if (lowerIp.startsWith('fe80:')) return true;
+    // Unique Local Addresses (fc00::/7 includes fd00::/8)
+    if (lowerIp.startsWith('fc') || lowerIp.startsWith('fd')) return true;
+    // IPv4-mapped IPv6 addresses (::ffff:x.x.x.x)
+    if (lowerIp.startsWith('::ffff:')) {
+      const ipv4Part = ip.slice(7); // Extract IPv4 part
+      return isPrivateIp(ipv4Part);
+    }
+    // Site-local (deprecated but still blocked) fec0::/10
+    if (lowerIp.startsWith('fec')) return true;
+    return false;
   }
 
-  // IPv4 Private Ranges
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
+    return true; // Invalid IP format - block it
+  }
+
+  // IPv4 Private and Reserved Ranges
+  // 0.0.0.0/8 (Current network / "This" network)
+  if (parts[0] === 0) return true;
+
+  // 10.0.0.0/8 (Private - Class A)
+  if (parts[0] === 10) return true;
+
+  // 100.64.0.0/10 (Carrier-grade NAT / Shared Address Space)
+  if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
+
   // 127.0.0.0/8 (Loopback)
   if (parts[0] === 127) return true;
 
-  // 10.0.0.0/8 (Private)
-  if (parts[0] === 10) return true;
-
-  // 172.16.0.0/12 (Private)
-  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-
-  // 192.168.0.0/16 (Private)
-  if (parts[0] === 192 && parts[1] === 168) return true;
-
-  // 169.254.0.0/16 (Link-local)
+  // 169.254.0.0/16 (Link-local / APIPA) - includes cloud metadata endpoints
   if (parts[0] === 169 && parts[1] === 254) return true;
 
-  // 0.0.0.0/8 (Current network)
-  if (parts[0] === 0) return true;
+  // 172.16.0.0/12 (Private - Class B)
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+
+  // 192.0.0.0/24 (IETF Protocol Assignments)
+  if (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) return true;
+
+  // 192.0.2.0/24 (TEST-NET-1 for documentation)
+  if (parts[0] === 192 && parts[1] === 0 && parts[2] === 2) return true;
+
+  // 192.168.0.0/16 (Private - Class C)
+  if (parts[0] === 192 && parts[1] === 168) return true;
+
+  // 198.18.0.0/15 (Benchmark testing)
+  if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return true;
+
+  // 198.51.100.0/24 (TEST-NET-2)
+  if (parts[0] === 198 && parts[1] === 51 && parts[2] === 100) return true;
+
+  // 203.0.113.0/24 (TEST-NET-3)
+  if (parts[0] === 203 && parts[1] === 0 && parts[2] === 113) return true;
+
+  // 224.0.0.0/4 (Multicast)
+  if (parts[0] >= 224 && parts[0] <= 239) return true;
+
+  // 240.0.0.0/4 (Reserved for future use / Broadcast)
+  if (parts[0] >= 240) return true;
 
   return false;
 }

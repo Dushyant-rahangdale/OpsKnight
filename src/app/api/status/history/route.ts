@@ -103,6 +103,6 @@ export async function GET(req: NextRequest) {
     logger.error('api.status.history.error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return jsonError(error.message || 'Failed to fetch history', 500);
+    return jsonError('Failed to fetch history', 500);
   }
 }

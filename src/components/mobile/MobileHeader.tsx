@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import MobileQuickSwitcher from '@/components/mobile/MobileQuickSwitcher';
 
 type MobileHeaderProps = {
@@ -23,7 +22,8 @@ export default function MobileHeader({ systemStatus = 'ok' }: MobileHeaderProps)
   return (
     <header className="mobile-header">
       <Link href="/m" className="mobile-header-logo">
-        <Image src="/logo.svg" alt="OpsKnight" width={28} height={28} />
+        {/* Using img instead of Next.js Image for SVG - no optimization benefit for vectors */}
+        <img src="/logo.svg" alt="OpsKnight" width={28} height={28} />
         <span className="mobile-header-title">OpsKnight</span>
       </Link>
 

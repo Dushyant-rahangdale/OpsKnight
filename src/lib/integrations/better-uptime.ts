@@ -31,7 +31,10 @@ export function transformBetterUptimeToEvent(data: BetterUptimeEvent): {
   const summary = firstString(incident?.name, data.name, incident?.cause) || 'Better Uptime Alert';
   const status = firstString(incident?.status, data.status);
   const severity = normalizeSeverity(firstString(incident?.severity, data.severity), 'warning');
-  const dedupKey = firstString(incident?.id) || `better-uptime-${Date.now()}`;
+  // Use incident.id or create stable key from name (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(incident?.id) ||
+    `better-uptime-${(incident?.name || data.name || 'alert').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

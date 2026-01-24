@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
     logger.error('api.status.subscribe.error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return jsonError(error.message || 'Failed to subscribe', 500);
+    return jsonError('Failed to subscribe', 500);
   }
 }

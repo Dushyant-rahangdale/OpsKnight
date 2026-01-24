@@ -164,6 +164,13 @@ postgresql:
   username: opsknight
   # -- Database password (generate a secure password for production)
   password: 'opsknight_secure_password_change_me'
+  # -- Connection pool limit (Prisma connection pool size)
+  # Higher values allow more concurrent database connections for better scalability
+  # Recommended: 40 for standard deployments, 80-100 for high-traffic
+  connectionLimit: 40
+  # -- Pool timeout in seconds (max wait time for available connection)
+  # Prevents requests from hanging indefinitely when pool is exhausted
+  poolTimeout: 30
   # -- Storage size for PostgreSQL PVC
   storage: 10Gi
   # -- Storage class for PostgreSQL PVC (leave empty for default)

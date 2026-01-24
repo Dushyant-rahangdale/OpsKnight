@@ -50,8 +50,10 @@ export function transformBitbucketToEvent(data: BitbucketEvent): {
     'error'
   );
 
+  // Use pipeline/repo UUID or create stable key from repo name (avoids Date.now() which defeats dedup)
   const dedupKey =
-    firstString(data.pipeline?.uuid, data.repository?.uuid) || `bitbucket-${Date.now()}`;
+    firstString(data.pipeline?.uuid, data.repository?.uuid) ||
+    `bitbucket-${(data.repository?.full_name || data.repository?.name || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: action,

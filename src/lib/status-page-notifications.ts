@@ -73,13 +73,20 @@ export async function notifyStatusPageSubscribers(
 
     const appBaseUrl = getBaseUrl();
 
-    // 3. Send notifications for each status page
-    for (const page of statusPages) {
-      if (page.subscriptions.length === 0) continue;
+    // 3. Batch fetch all email configs upfront (avoids N+1 query pattern)
+    const pagesWithSubscribers = statusPages.filter(p => p.subscriptions.length > 0);
+    const emailConfigs = await Promise.all(
+      pagesWithSubscribers.map(page => getStatusPageEmailConfig(page.id))
+    );
+    const emailConfigMap = new Map(
+      pagesWithSubscribers.map((page, idx) => [page.id, emailConfigs[idx]])
+    );
 
-      // Get email config for this status page
-      const emailConfig = await getStatusPageEmailConfig(page.id);
-      if (!emailConfig.enabled) {
+    // 4. Send notifications for each status page
+    for (const page of pagesWithSubscribers) {
+      // Get email config from pre-fetched map
+      const emailConfig = emailConfigMap.get(page.id);
+      if (!emailConfig?.enabled) {
         logger.warn(`Email not configured for status page ${page.name} (${page.id})`);
         continue;
       }

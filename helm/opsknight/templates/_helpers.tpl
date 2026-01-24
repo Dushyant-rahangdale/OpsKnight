@@ -77,11 +77,16 @@ PostgreSQL service name
 
 {{/*
 Database URL
+Includes connection pool settings for scale:
+- connection_limit: Max concurrent connections per Prisma client instance
+- pool_timeout: Seconds to wait for available connection before timeout
 */}}
 {{- define "opsknight.databaseUrl" -}}
+{{- $connLimit := default 40 .Values.postgresql.connectionLimit }}
+{{- $poolTimeout := default 30 .Values.postgresql.poolTimeout }}
 {{- if .Values.postgresql.enabled }}
-{{- printf "postgresql://%s:%s@%s:%s/%s?schema=public" .Values.postgresql.username .Values.postgresql.password (include "opsknight.postgresql.serviceName" .) .Values.postgresql.port .Values.postgresql.database }}
+{{- printf "postgresql://%s:%s@%s:%s/%s?schema=public&connection_limit=%d&pool_timeout=%d" .Values.postgresql.username .Values.postgresql.password (include "opsknight.postgresql.serviceName" .) .Values.postgresql.port .Values.postgresql.database (int $connLimit) (int $poolTimeout) }}
 {{- else }}
-{{- printf "postgresql://%s:%s@%s:%s/%s?schema=public" .Values.postgresql.username .Values.postgresql.password .Values.postgresql.host .Values.postgresql.port .Values.postgresql.database }}
+{{- printf "postgresql://%s:%s@%s:%s/%s?schema=public&connection_limit=%d&pool_timeout=%d" .Values.postgresql.username .Values.postgresql.password .Values.postgresql.host .Values.postgresql.port .Values.postgresql.database (int $connLimit) (int $poolTimeout) }}
 {{- end }}
 {{- end }}

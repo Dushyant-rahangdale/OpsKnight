@@ -128,9 +128,10 @@ export function transformSentryToEvent(payload: SentryEvent): {
     };
   }
   // Fallback for unsupported payload formats - return acknowledge instead of throwing
+  // Use project name for stable dedup key (avoids Date.now() which defeats dedup)
   return {
     event_action: 'acknowledge' as const,
-    dedup_key: `sentry-unknown-${Date.now()}`,
+    dedup_key: `sentry-unknown-${payload.project?.slug || payload.project?.name || 'fallback'}`,
     payload: {
       summary: 'Sentry event received: unknown format',
       source: `Sentry${payload.project ? ` - ${payload.project.name}` : ''}`,

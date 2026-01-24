@@ -27,7 +27,10 @@ export function transformDynatraceToEvent(data: DynatraceEvent): {
     firstString(data.SeverityLevel, data.ProblemImpact),
     'warning'
   );
-  const dedupKey = firstString(data.ProblemID) || `dynatrace-${Date.now()}`;
+  // Use ProblemID or create stable key from ProblemTitle (avoids Date.now() which defeats dedup)
+  const dedupKey =
+    firstString(data.ProblemID) ||
+    `dynatrace-${(data.ProblemTitle || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
     event_action: normalizeEventAction(status, 'trigger'),

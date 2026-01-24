@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { logger, getLogBuffer } from '@/lib/logger';
 import * as publicLogsRoute from '@/app/api/public-logs/route';
 import { createMockRequest, parseResponse } from '../helpers/api-test';
+import { getServerSession } from 'next-auth';
+
+// Mock next-auth
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn(),
+}));
+
+// Mock the auth lib
+vi.mock('@/lib/auth', () => ({
+  getAuthOptions: vi.fn().mockResolvedValue({}),
+}));
 
 describe('Logger Buffer', () => {
   it('stores log entries for later retrieval', () => {
@@ -10,7 +21,7 @@ describe('Logger Buffer', () => {
 
     const entries = getLogBuffer(50);
     const _validItems = entries.filter((item: any) => item.level === 'error'); // eslint-disable-line @typescript-eslint/no-explicit-any
-    const match = entries.find((entry) => entry.message === message);
+    const match = entries.find(entry => entry.message === message);
     expect(match).toBeTruthy();
   });
 
@@ -28,6 +39,9 @@ describe('Logger Buffer', () => {
 
 describe('Public Logs API', () => {
   it('returns log entries without stack traces', async () => {
+    // Mock authenticated session
+    vi.mocked(getServerSession).mockResolvedValue({ user: { name: 'Test User' } });
+
     const message = `public-logs-${Date.now()}`;
     logger.error(message, { error: new Error('kaboom') });
 
