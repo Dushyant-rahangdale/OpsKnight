@@ -138,7 +138,7 @@ export default function SwipeableIncidentCard({
   };
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-[var(--bg-card)]">
+    <div className="relative rounded-xl overflow-hidden bg-[color:var(--bg-surface)]">
       {/* Background Actions Layer */}
       <motion.div
         className="absolute inset-0 flex items-center justify-between px-6 pointer-events-none"
