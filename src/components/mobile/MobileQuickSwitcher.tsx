@@ -217,8 +217,26 @@ export default function MobileQuickSwitcher() {
   const [isLoading, setIsLoading] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const router = useRouter();
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+  }, []);
 
   const hasQuery = query.trim().length >= MIN_QUERY_LENGTH;
+
+  // Global Command+K listener
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen(open => !open);
+      }
+    };
+
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   useEffect(() => {
     if (!open) {

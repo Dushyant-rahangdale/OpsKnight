@@ -13,6 +13,7 @@ import MobileNetworkBanner from '@/components/mobile/MobileNetworkBanner';
 import { TimezoneProvider } from '@/contexts/TimezoneContext';
 import { UserAvatarProvider } from '@/contexts/UserAvatarContext';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import MobileBiometricGuard from '@/components/mobile/MobileBiometricGuard';
 
 // Force all app routes to be dynamic
 export const dynamic = 'force-dynamic';
@@ -81,16 +82,18 @@ export default async function MobileLayout({ children }: { children: React.React
         currentUserName={dbUser.name || 'User'}
       >
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
-          <div className="mobile-shell" data-status={systemStatus}>
-            <MobileHeader systemStatus={systemStatus} />
-            <main className="mobile-content">
-              <MobileNetworkBanner />
-              <MobileSwipeNavigator>
-                <PullToRefresh>{children}</PullToRefresh>
-              </MobileSwipeNavigator>
-            </main>
-            <MobileNav />
-          </div>
+          <MobileBiometricGuard>
+            <div className="mobile-shell" data-status={systemStatus}>
+              <MobileHeader systemStatus={systemStatus} />
+              <main className="mobile-content">
+                <MobileNetworkBanner />
+                <MobileSwipeNavigator>
+                  <PullToRefresh>{children}</PullToRefresh>
+                </MobileSwipeNavigator>
+              </main>
+              <MobileNav />
+            </div>
+          </MobileBiometricGuard>
         </ThemeProvider>
       </UserAvatarProvider>
     </TimezoneProvider>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import MobileThemeToggle from '@/components/mobile/MobileThemeToggle';
 import PushNotificationToggle from '@/components/mobile/PushNotificationToggle';
+import MobileBiometricToggle from '@/components/mobile/MobileBiometricToggle';
 import { MobileAvatar } from '@/components/mobile/MobileUtils';
 import { useUserAvatarContextSafe } from '@/contexts/UserAvatarContext';
 import PwaInstallCard from '@/components/mobile/PwaInstallCard';
@@ -424,6 +425,7 @@ export default function MobileMoreContent({
         <div className="mobile-more-preferences">
           <PwaInstallCard />
           <MobileThemeToggle />
+          <MobileBiometricToggle />
           <PushNotificationToggle />
         </div>
       </section>
