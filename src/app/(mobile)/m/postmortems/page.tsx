@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import MobileCard from '@/components/mobile/MobileCard';
 import { ChevronRight } from 'lucide-react';
+import MobileTime from '@/components/mobile/MobileTime';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,7 @@ export default async function MobilePostmortemsPage() {
                       {pm.status}
                     </span>
                     <span className="text-[11px] text-[color:var(--text-muted)]">
-                      {new Date(pm.createdAt).toLocaleDateString()}
+                      <MobileTime value={pm.createdAt} format="date" />
                     </span>
                   </div>
 

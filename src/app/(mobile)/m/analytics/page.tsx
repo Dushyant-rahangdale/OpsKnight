@@ -5,12 +5,14 @@ import {
   MobileStatusBadge,
   MobileUrgencyBadge,
 } from '@/components/mobile/MobileUtils';
+import MobileTime from '@/components/mobile/MobileTime';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MobileAnalyticsPage() {
   const { calculateSLAMetrics } = await import('@/lib/sla-server');
   const metricsWindowDays = 90;
+  const lastUpdated = new Date();
   const slaMetrics = await calculateSLAMetrics({
     windowDays: metricsWindowDays,
     includeAllTime: false,
@@ -76,6 +78,9 @@ export default async function MobileAnalyticsPage() {
         </h1>
         <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           Last {windowLabelDays} days{windowLabelSuffix}
+        </p>
+        <p className="mt-1 text-[11px] text-[color:var(--text-muted)]">
+          Last updated <MobileTime value={lastUpdated} format="time" />
         </p>
       </div>
 

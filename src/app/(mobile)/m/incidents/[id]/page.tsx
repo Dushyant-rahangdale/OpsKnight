@@ -6,6 +6,8 @@ import { MobileAvatar } from '@/components/mobile/MobileUtils';
 import { getDefaultAvatar } from '@/lib/avatar';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import MobileTime from '@/components/mobile/MobileTime';
+import type { ReactNode } from 'react';
 import {
   ArrowLeft,
   Clock,
@@ -148,7 +150,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
             <span className="text-[color:var(--text-disabled)]">•</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {formatDate(incident.createdAt)}
+              <MobileTime value={incident.createdAt} format="short" />
             </span>
           </div>
         </div>
@@ -199,20 +201,20 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
           <DetailRow
             icon={<Clock className="h-4 w-4" />}
             label="Created"
-            value={formatDate(incident.createdAt)}
+            value={<MobileTime value={incident.createdAt} format="short" />}
           />
           {incident.acknowledgedAt && (
             <DetailRow
               icon={<CheckCircle2 className="h-4 w-4" />}
               label="Acknowledged"
-              value={formatDate(incident.acknowledgedAt)}
+              value={<MobileTime value={incident.acknowledgedAt} format="short" />}
             />
           )}
           {incident.resolvedAt && (
             <DetailRow
               icon={<CheckCircle2 className="h-4 w-4" />}
               label="Resolved"
-              value={formatDate(incident.resolvedAt)}
+              value={<MobileTime value={incident.resolvedAt} format="short" />}
             />
           )}
         </div>
@@ -257,7 +259,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
                     {event.message}
                   </div>
                   <div className="text-xs text-[color:var(--text-muted)] mt-0.5">
-                    {formatTimeAgo(event.createdAt)}
+                    <MobileTime value={event.createdAt} format="relative-short" />
                   </div>
                 </div>
               ))}
@@ -336,7 +338,8 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
                     {n.content}
                   </div>
                   <div className="text-xs text-[color:var(--text-muted)] mt-1">
-                    {n.user.name || n.user.email} • {formatTimeAgo(n.createdAt)}
+                    {n.user.name || n.user.email} •{' '}
+                    <MobileTime value={n.createdAt} format="relative-short" />
                   </div>
                 </div>
               ))}
@@ -365,9 +368,9 @@ function DetailRow({
   value,
   subValue,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  value: string;
+  value: ReactNode;
   subValue?: string;
 }) {
   return (
@@ -384,26 +387,4 @@ function DetailRow({
       </div>
     </div>
   );
-}
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
 }

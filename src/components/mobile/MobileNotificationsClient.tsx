@@ -8,6 +8,9 @@ import { MobileEmptyIcon, MobileEmptyState } from '@/components/mobile/MobileUti
 import { MobileFilterChip } from '@/components/mobile/MobileSearch';
 import { logger } from '@/lib/logger';
 import { cn } from '@/lib/utils';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { formatDayLabel } from '@/lib/mobile-time';
+import MobileTime from '@/components/mobile/MobileTime';
 
 type NotificationItem = {
   id: string;
@@ -45,24 +48,6 @@ const typeActionMap = new Map<NotificationItem['type'], string>([
 
 const getTypeLabel = (type: NotificationItem['type']) => typeLabelMap.get(type) ?? 'Notification';
 const getTypeAction = (type: NotificationItem['type']) => typeActionMap.get(type) ?? 'Open';
-
-const formatDayLabel = (date: Date) => {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfYesterday = new Date(startOfToday);
-  startOfYesterday.setDate(startOfToday.getDate() - 1);
-
-  if (date >= startOfToday) return 'Today';
-  if (date >= startOfYesterday) return 'Yesterday';
-
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
-  });
-
-  return formatter.format(date);
-};
 
 const resolveNotificationHref = (notification: NotificationItem) => {
   if (notification.incidentId) {
@@ -104,6 +89,7 @@ const NotificationSkeleton = () => (
 
 export default function MobileNotificationsClient() {
   const router = useRouter();
+  const { userTimeZone } = useTimezone();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>('all');
@@ -209,7 +195,7 @@ export default function MobileNotificationsClient() {
     notifications.forEach(notification => {
       const parsedDate = new Date(notification.createdAt);
       const safeDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-      const label = formatDayLabel(safeDate);
+      const label = formatDayLabel(safeDate, userTimeZone);
       const bucket = groups.get(label) ?? [];
       if (!groups.has(label)) {
         groups.set(label, bucket);
@@ -221,7 +207,7 @@ export default function MobileNotificationsClient() {
       label,
       items,
     }));
-  }, [notifications]);
+  }, [notifications, userTimeZone]);
 
   const iconTone = (type: NotificationItem['type']) => {
     switch (type) {
@@ -346,7 +332,7 @@ export default function MobileNotificationsClient() {
                           <div className="flex items-center gap-2 text-[11px] font-medium text-[color:var(--text-muted)]">
                             <span>{typeLabel}</span>
                             <span>•</span>
-                            <span>{notification.time}</span>
+                            <MobileTime value={notification.createdAt} format="relative-short" />
                           </div>
                         </div>
                       </div>

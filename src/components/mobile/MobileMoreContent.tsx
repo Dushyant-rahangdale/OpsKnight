@@ -311,7 +311,7 @@ export default function MobileMoreContent({
     {
       href: '/m/status',
       label: 'Status Page',
-      description: 'Public updates',
+      description: 'System health',
       icon: iconStatus,
       tone: 'green',
     },

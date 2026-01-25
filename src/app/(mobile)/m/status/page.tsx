@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import MobileCard from '@/components/mobile/MobileCard';
 import Link from 'next/link';
+import MobileTime from '@/components/mobile/MobileTime';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,23 +36,10 @@ export default async function MobileStatusPage() {
   const metricsWindowDays = 90;
 
   // Get status page config
+  // Get status page config (optional for internal view)
   const statusPage = await prisma.statusPage.findFirst({
     where: { enabled: true },
     include: {
-      services: {
-        where: { showOnPage: true },
-        include: {
-          service: {
-            include: {
-              incidents: {
-                where: { status: { in: ['OPEN', 'ACKNOWLEDGED'] } },
-                select: { id: true, urgency: true },
-              },
-            },
-          },
-        },
-        orderBy: { order: 'asc' },
-      },
       announcements: {
         where: {
           isActive: true,
@@ -63,35 +51,41 @@ export default async function MobileStatusPage() {
     },
   });
 
-  if (!statusPage) {
-    return (
-      <div className="flex flex-col gap-4 p-4 pb-24">
-        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
-          Status
-        </h1>
-        <MobileCard>
-          <div className="flex flex-col items-center gap-3 py-6 text-center text-[color:var(--text-muted)]">
-            <div className="text-3xl">📊</div>
-            <p className="text-sm font-semibold text-[color:var(--text-secondary)]">
-              Status page not configured.
-            </p>
-            <p className="text-xs">Contact your administrator to set up a status page.</p>
-          </div>
-        </MobileCard>
-      </div>
-    );
+  // Fetch ALL services for internal dashboard view
+  const services = await prisma.service.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, targetAckMinutes: true, targetResolveMinutes: true },
+  });
+
+  // Verify active incidents directly to ensure status accuracy
+  const activeIncidentCounts = await prisma.incident.groupBy({
+    by: ['serviceId', 'urgency'],
+    where: {
+      status: { in: ['OPEN', 'ACKNOWLEDGED'] },
+    },
+    _count: { id: true },
+  });
+
+  const verifiedCounts = new Map<string, { active: number; critical: number }>();
+  for (const group of activeIncidentCounts) {
+    const current = verifiedCounts.get(group.serviceId) || { active: 0, critical: 0 };
+    current.active += group._count.id;
+    if (group.urgency === 'HIGH') current.critical += group._count.id;
+    verifiedCounts.set(group.serviceId, current);
   }
 
   const { calculateSLAMetrics, getExternalStatusLabel } = await import('@/lib/sla-server');
+  const { getServiceDynamicStatus } = await import('@/lib/service-status');
 
-  // Optimized: Use a single call to get metrics for all services
-  const serviceIds = statusPage.services.map(sp => sp.serviceId);
+  // Use all services for metrics
+  const serviceIds = services.map(s => s.id);
   const metrics = await calculateSLAMetrics({
     serviceId: serviceIds,
     windowDays: metricsWindowDays,
     includeActiveIncidents: true,
     includeIncidents: true,
     incidentLimit: 50,
+    visibility: 'ALL',
   });
 
   const dayMs = 24 * 60 * 60 * 1000;
@@ -102,13 +96,25 @@ export default async function MobileStatusPage() {
   const windowLabelDays = metrics.isClipped ? effectiveWindowDays : metricsWindowDays;
   const windowLabelSuffix = metrics.isClipped ? ' (retention limit)' : '';
 
-  const serviceStatuses: ServiceStatus[] = statusPage.services.map(sp => {
-    const serviceMetric = metrics.serviceMetrics.find(m => m.id === sp.serviceId);
+  const serviceStatuses: ServiceStatus[] = services.map(service => {
+    const serviceMetric = metrics.serviceMetrics.find(m => m.id === service.id);
+    const verified = verifiedCounts.get(service.id) || { active: 0, critical: 0 };
+
+    // Use the higher count between direct DB query and SLA metrics (safety net)
+    const activeCount = Math.max(serviceMetric?.activeCount || 0, verified.active);
+    const criticalCount = Math.max(serviceMetric?.criticalCount || 0, verified.critical);
+
+    // Recalculate status based on verified counts
+    const dynamicStatus = getServiceDynamicStatus({
+      openIncidentCount: activeCount,
+      hasCritical: criticalCount > 0,
+    });
+
     return {
-      id: sp.service.id,
-      name: sp.service.name,
-      status: getExternalStatusLabel(serviceMetric?.dynamicStatus || 'OPERATIONAL'),
-      incidentCount: serviceMetric?.activeCount || 0,
+      id: service.id,
+      name: service.name,
+      status: getExternalStatusLabel(dynamicStatus),
+      incidentCount: activeCount,
     };
   });
 
@@ -148,14 +154,15 @@ export default async function MobileStatusPage() {
     .slice(0, 10);
 
   // Announcements
-  const announcements: Announcement[] = statusPage.announcements.map(a => ({
-    id: a.id,
-    title: a.title,
-    type: a.type,
-    message: a.message,
-    startDate: a.startDate,
-    endDate: a.endDate,
-  }));
+  const announcements: Announcement[] =
+    statusPage?.announcements.map(a => ({
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      message: a.message,
+      startDate: a.startDate,
+      endDate: a.endDate,
+    })) || [];
 
   const getStatusTone = (status: string) => {
     switch (status) {
@@ -248,23 +255,12 @@ export default async function MobileStatusPage() {
     }
   };
 
-  const formatTimeAgo = (date: Date) => {
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
-
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Page Title */}
       <div>
         <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
-          {statusPage.name || 'System Status'}
+          {statusPage?.name || 'System Health'}
         </h1>
         <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">
           Metrics reflect the last {windowLabelDays} days{windowLabelSuffix}.
@@ -300,7 +296,7 @@ export default async function MobileStatusPage() {
                 : `${activeIncidents.length} active incident${activeIncidents.length > 1 ? 's' : ''}`}
             </p>
             <p className="mt-1 text-[11px] text-[color:var(--text-muted)]" suppressHydrationWarning>
-              Updated {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              Updated <MobileTime value={now} format="time" />
             </p>
           </div>
         </div>
@@ -354,9 +350,13 @@ export default async function MobileStatusPage() {
                         {announcement.message}
                       </p>
                       <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">
-                        {new Date(announcement.startDate).toLocaleDateString()}
-                        {announcement.endDate &&
-                          ` - ${new Date(announcement.endDate).toLocaleDateString()}`}
+                        <MobileTime value={announcement.startDate} format="date" />
+                        {announcement.endDate && (
+                          <>
+                            {' '}
+                            - <MobileTime value={announcement.endDate} format="date" />
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -398,7 +398,7 @@ export default async function MobileStatusPage() {
                           {incident.serviceName}
                         </div>
                         <div className="mt-1 text-[11px] text-[color:var(--text-muted)]">
-                          {formatTimeAgo(incident.createdAt)}
+                          <MobileTime value={incident.createdAt} format="relative-short" />
                         </div>
                       </div>
                       <span
@@ -467,7 +467,8 @@ export default async function MobileStatusPage() {
                         {incident.title}
                       </div>
                       <div className="mt-1 text-[11px] text-[color:var(--text-muted)]">
-                        {incident.service.name} • Resolved {formatTimeAgo(incident.resolvedAt!)}
+                        {incident.service.name} • Resolved{' '}
+                        <MobileTime value={incident.resolvedAt!} format="relative-short" />
                       </div>
                     </div>
                     <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">

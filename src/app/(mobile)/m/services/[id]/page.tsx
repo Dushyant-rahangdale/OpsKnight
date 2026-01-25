@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Plus } from 'lucide-react';
 import MobileCard from '@/components/mobile/MobileCard';
+import MobileTime from '@/components/mobile/MobileTime';
+import type { ReactNode } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,7 +100,7 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
           Details
         </h3>
         <DetailRow label="Escalation Policy" value={service.policy?.name || 'None'} />
-        <DetailRow label="Created" value={formatDate(service.createdAt)} />
+        <DetailRow label="Created" value={<MobileTime value={service.createdAt} format="date" />} />
       </MobileCard>
 
       {/* Open Incidents */}
@@ -145,7 +147,7 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
                   {incident.title}
                 </div>
                 <div className="text-[11px] text-[color:var(--text-muted)]">
-                  {formatTimeAgo(incident.createdAt)}
+                  <MobileTime value={incident.createdAt} format="relative-short" />
                 </div>
               </Link>
             ))}
@@ -156,32 +158,11 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between border-b border-[color:var(--border)] py-2 text-xs">
       <span className="text-[color:var(--text-muted)]">{label}</span>
       <span className="font-semibold text-[color:var(--text-primary)]">{value}</span>
     </div>
   );
-}
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
 }

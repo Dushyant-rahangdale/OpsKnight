@@ -3,6 +3,8 @@
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { formatRelativeShort } from '@/lib/mobile-time';
 
 interface SwipeableIncidentCardProps {
   incident: {
@@ -39,6 +41,7 @@ export default function SwipeableIncidentCard({
   isUpdating = false,
 }: SwipeableIncidentCardProps) {
   const router = useRouter();
+  const { userTimeZone } = useTimezone();
   const cardRef = useRef<HTMLDivElement>(null);
   const [translateX, setTranslateX] = useState(0);
   const translateXRef = useRef(0);
@@ -93,7 +96,7 @@ export default function SwipeableIncidentCard({
   const statusKey = incident.status.toLowerCase();
   const urgencyKey = (incident.urgency || 'low').toLowerCase();
   const createdAt = new Date(incident.createdAt);
-  const timeAgo = getTimeAgo(createdAt);
+  const timeAgo = formatRelativeShort(createdAt, userTimeZone);
 
   return (
     <div
@@ -224,18 +227,4 @@ export default function SwipeableIncidentCard({
       )}
     </div>
   );
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }

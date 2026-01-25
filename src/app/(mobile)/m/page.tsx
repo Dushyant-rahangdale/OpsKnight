@@ -2,12 +2,15 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import MobileTime from '@/components/mobile/MobileTime';
+import { formatDurationShort } from '@/lib/mobile-time';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MobileDashboard() {
   const session = await getServerSession(await getAuthOptions());
   const userId = session?.user?.id;
+  const lastUpdated = new Date();
 
   // Fetch key metrics and on-call status
   const metricsWindowDays = 90;
@@ -113,7 +116,8 @@ export default async function MobileDashboard() {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>You&apos;re On-Call</div>
             <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>
-              {currentOnCallShift.schedule.name} • Until {formatShiftEnd(currentOnCallShift.end)}
+              {currentOnCallShift.schedule.name} • Until{' '}
+              <MobileTime value={currentOnCallShift.end} format="shift-end" />
             </div>
           </div>
           <svg
@@ -186,6 +190,9 @@ export default async function MobileDashboard() {
         Metrics reflect the last {windowLabelDays} days{windowLabelSuffix}. Active counts are
         current; resolved is the last 24 hours.
       </p>
+      <p className="text-[11px] text-[color:var(--text-muted)]">
+        Last updated <MobileTime value={lastUpdated} format="time" />
+      </p>
 
       {/* Recent Incidents */}
       <div style={{ marginTop: '1.5rem' }}>
@@ -239,14 +246,14 @@ export default async function MobileDashboard() {
                         gap: '0.25rem',
                       }}
                     >
-                      ⏱️ {formatOpenDuration(incident.createdAt)}
+                      ⏱️ {formatDurationShort(incident.createdAt)}
                     </span>
                   </div>
                   <div className="mobile-incident-title">{incident.title}</div>
                   <div className="mobile-incident-meta">
                     <span>{serviceName}</span>
                     <span>•</span>
-                    <span>{formatTimeAgo(incident.createdAt)}</span>
+                    <MobileTime value={incident.createdAt} format="relative-short" />
                   </div>
                 </Link>
               );
@@ -261,49 +268,4 @@ export default async function MobileDashboard() {
       </Link>
     </div>
   );
-}
-
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
-}
-
-function formatShiftEnd(date: Date): string {
-  const endDate = new Date(date);
-  const now = new Date();
-  const isToday = endDate.toDateString() === now.toDateString();
-  const isTomorrow = endDate.toDateString() === new Date(now.getTime() + 86400000).toDateString();
-
-  const time = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-  if (isToday) return `Today ${time}`;
-  if (isTomorrow) return `Tomorrow ${time}`;
-  return (
-    endDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
-    ` ${time}`
-  );
-}
-
-function formatOpenDuration(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - new Date(date).getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) {
-    const mins = diffMins % 60;
-    return mins > 0 ? `${diffHours}h ${mins}m` : `${diffHours}h`;
-  }
-  const hours = diffHours % 24;
-  return hours > 0 ? `${diffDays}d ${hours}h` : `${diffDays}d`;
 }

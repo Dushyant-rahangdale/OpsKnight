@@ -14,6 +14,15 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
   const pullThreshold = 70;
   const maxPull = 100;
 
+  const isInteractiveTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest(
+        'input, textarea, select, button, [contenteditable="true"], [role="textbox"], [data-disable-pull]'
+      )
+    );
+  };
+
   useEffect(() => {
     return () => {
       if (refreshTimeoutRef.current) {
@@ -43,6 +52,11 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isInteractiveTarget(e.target)) {
+      startPointRef.current = null;
+      return;
+    }
+
     const scrollParent = containerRef.current?.closest('.mobile-content');
     const scrollTop = scrollParent
       ? scrollParent.scrollTop
@@ -54,6 +68,14 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (isInteractiveTarget(e.target)) {
+      if (pullChange !== 0) {
+        setPullChange(0);
+      }
+      startPointRef.current = null;
+      return;
+    }
+
     const scrollParent = containerRef.current?.closest('.mobile-content');
     const scrollTop = scrollParent
       ? scrollParent.scrollTop

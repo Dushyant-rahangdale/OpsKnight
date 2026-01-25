@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useTimezone } from '@/contexts/TimezoneContext';
+import { formatRelativeShort } from '@/lib/mobile-time';
 
 interface Notification {
   id: string;
   title: string;
   message: string;
   time: string;
+  createdAt?: string;
   unread: boolean;
   type: 'incident' | 'service' | 'schedule';
   incidentId?: string;
@@ -19,7 +22,7 @@ interface Notification {
  */
 export default function MobileNotificationButton() {
   const router = useRouter();
-  const pathname = usePathname();
+  const { userTimeZone } = useTimezone();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewNotification, setHasNewNotification] = useState(false);
@@ -85,15 +88,25 @@ export default function MobileNotificationButton() {
     };
   }, [fetchNotifications]);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside interaction (touch + mouse)
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleOutside = (e: Event) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    if ('PointerEvent' in window) {
+      document.addEventListener('pointerdown', handleOutside, { passive: true });
+      return () => document.removeEventListener('pointerdown', handleOutside);
+    }
+
+    document.addEventListener('touchstart', handleOutside, { passive: true });
+    document.addEventListener('mousedown', handleOutside);
+    return () => {
+      document.removeEventListener('touchstart', handleOutside);
+      document.removeEventListener('mousedown', handleOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -113,6 +126,13 @@ export default function MobileNotificationButton() {
     if (notification.incidentId) {
       router.push(`/m/incidents/${notification.incidentId}`);
     }
+  };
+
+  const getNotificationTime = (notification: Notification) => {
+    if (notification.createdAt) {
+      return formatRelativeShort(notification.createdAt, userTimeZone);
+    }
+    return notification.time;
   };
 
   const markAllAsRead = async () => {
@@ -399,7 +419,7 @@ export default function MobileNotificationButton() {
                           opacity: 0.7,
                         }}
                       >
-                        {notification.time}
+                        {getNotificationTime(notification)}
                       </div>
                     </div>
                   </div>
