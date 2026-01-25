@@ -71,13 +71,13 @@ export default async function MobilePolicyDetailPage({ params }: PageProps) {
         </h3>
 
         {sortedSteps.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+          <div className="rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-6 py-8 text-center text-xs text-[color:var(--text-muted)]">
             No escalation steps defined.
           </div>
         ) : (
           sortedSteps.map(([stepOrder, rules]) => (
             <MobileCard key={stepOrder}>
-              <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-2 dark:border-slate-800">
+              <div className="mb-3 flex items-center gap-2 border-b border-[color:var(--border)] pb-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
                   {stepOrder + 1}
                 </div>
@@ -89,7 +89,7 @@ export default async function MobilePolicyDetailPage({ params }: PageProps) {
               <div className="flex flex-col gap-3">
                 {rules.map(rule => (
                   <div key={rule.id} className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-base dark:bg-slate-800">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color:var(--bg-secondary)] text-base">
                       {rule.targetType === 'USER'
                         ? '👤'
                         : rule.targetType === 'SCHEDULE'
@@ -125,7 +125,7 @@ export default async function MobilePolicyDetailPage({ params }: PageProps) {
       {/* Used By Services */}
       {policy.services.length > 0 && (
         <div className="flex flex-col gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             Used by Services
           </h3>
           <div className="flex flex-wrap gap-2">
