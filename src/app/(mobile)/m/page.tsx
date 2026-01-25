@@ -10,8 +10,21 @@ export default async function MobileDashboard() {
   const userId = session?.user?.id;
 
   // Fetch key metrics and on-call status
+  const metricsWindowDays = 90;
   const { calculateSLAMetrics } = await import('@/lib/sla-server');
-  const slaMetrics = await calculateSLAMetrics({ includeAllTime: true });
+  const slaMetrics = await calculateSLAMetrics({
+    windowDays: metricsWindowDays,
+    includeAllTime: false,
+    includeActiveIncidents: true,
+  });
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const effectiveWindowDays = Math.max(
+    1,
+    Math.ceil((slaMetrics.effectiveEnd.getTime() - slaMetrics.effectiveStart.getTime()) / dayMs)
+  );
+  const windowLabelDays = slaMetrics.isClipped ? effectiveWindowDays : metricsWindowDays;
+  const windowLabelSuffix = slaMetrics.isClipped ? ' (retention limit)' : '';
 
   const [currentOnCallShift] = await Promise.all([
     // Check if current user is on-call
@@ -31,30 +44,24 @@ export default async function MobileDashboard() {
 
   const openIncidents = slaMetrics.openCount;
   const criticalIncidents = slaMetrics.criticalCount;
+  const resolved24h = slaMetrics.resolved24h;
+  const totalActive =
+    slaMetrics.openCount +
+    slaMetrics.acknowledgedCount +
+    slaMetrics.snoozedCount +
+    slaMetrics.suppressedCount;
 
-  // Use the last trend point for 'Today' count
-  const resolvedToday =
-    slaMetrics.trendSeries.length > 0
-      ? slaMetrics.trendSeries[slaMetrics.trendSeries.length - 1].resolveCount
-      : slaMetrics.manualResolvedCount + slaMetrics.autoResolvedCount;
-
-  const recentIncidents = []; // Unused old variable
-
-  // Actually, mobile dashboard wants the actual list of incidents too.
-  // Let's keep the findMany for incidents but use slaMetrics for counts.
-  const incidentList = await prisma.incident.findMany({
-    where: { status: { in: ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED'] } },
-    orderBy: { createdAt: 'desc' },
-    take: 5,
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      urgency: true,
-      createdAt: true,
-      service: { select: { name: true } },
-    },
-  });
+  const activeIncidentList = (slaMetrics.activeIncidentSummaries || [])
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 5)
+    .map(incident => ({
+      id: incident.id,
+      title: incident.title,
+      status: incident.status,
+      urgency: incident.urgency,
+      createdAt: incident.createdAt,
+      service: { name: incident.serviceName },
+    }));
 
   const userName = session?.user?.name?.split(' ')[0] || 'there';
   const hour = new Date().getHours();
@@ -166,15 +173,19 @@ export default async function MobileDashboard() {
         </div>
         <div className="mobile-metric-card" style={{ borderLeft: '3px solid #16a34a' }}>
           <div className="mobile-metric-value" style={{ color: '#16a34a' }}>
-            {resolvedToday}
+            {resolved24h}
           </div>
-          <div className="mobile-metric-label">Resolved Today</div>
+          <div className="mobile-metric-label">Resolved (24h)</div>
         </div>
         <div className="mobile-metric-card">
-          <div className="mobile-metric-value">{openIncidents + resolvedToday}</div>
+          <div className="mobile-metric-value">{totalActive}</div>
           <div className="mobile-metric-label">Total Active</div>
         </div>
       </div>
+      <p className="text-[11px] font-medium text-[color:var(--text-muted)]">
+        Metrics reflect the last {windowLabelDays} days{windowLabelSuffix}. Active counts are
+        current; resolved is the last 24 hours.
+      </p>
 
       {/* Recent Incidents */}
       <div style={{ marginTop: '1.5rem' }}>
@@ -186,7 +197,7 @@ export default async function MobileDashboard() {
         </div>
 
         <div className="mobile-incident-list">
-          {incidentList.length === 0 ? (
+          {activeIncidentList.length === 0 ? (
             <div
               style={{
                 padding: '2rem',
@@ -197,46 +208,49 @@ export default async function MobileDashboard() {
                 border: '1px solid var(--border)',
               }}
             >
-              <p style={{ margin: 0 }}>No open incidents 🎉</p>
+              <p style={{ margin: 0 }}>No active incidents 🎉</p>
             </div>
           ) : (
-            incidentList.map(incident => (
-              <Link
-                key={incident.id}
-                href={`/m/incidents/${incident.id}`}
-                className="mobile-incident-card"
-              >
-                <div className="mobile-incident-header">
-                  <span className={`mobile-incident-status ${incident.status.toLowerCase()}`}>
-                    {incident.status}
-                  </span>
-                  {incident.urgency && (
-                    <span className={`mobile-incident-urgency ${incident.urgency.toLowerCase()}`}>
-                      {incident.urgency}
+            activeIncidentList.map(incident => {
+              const serviceName = incident.service?.name ?? 'Unknown service';
+              return (
+                <Link
+                  key={incident.id}
+                  href={`/m/incidents/${incident.id}`}
+                  className="mobile-incident-card"
+                >
+                  <div className="mobile-incident-header">
+                    <span className={`mobile-incident-status ${incident.status.toLowerCase()}`}>
+                      {incident.status}
                     </span>
-                  )}
-                  {/* Duration Timer */}
-                  <span
-                    style={{
-                      marginLeft: 'auto',
-                      fontSize: '0.7rem',
-                      color: 'var(--text-muted)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                    }}
-                  >
-                    ⏱️ {formatOpenDuration(incident.createdAt)}
-                  </span>
-                </div>
-                <div className="mobile-incident-title">{incident.title}</div>
-                <div className="mobile-incident-meta">
-                  <span>{incident.service.name}</span>
-                  <span>•</span>
-                  <span>{formatTimeAgo(incident.createdAt)}</span>
-                </div>
-              </Link>
-            ))
+                    {incident.urgency && (
+                      <span className={`mobile-incident-urgency ${incident.urgency.toLowerCase()}`}>
+                        {incident.urgency}
+                      </span>
+                    )}
+                    {/* Duration Timer */}
+                    <span
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}
+                    >
+                      ⏱️ {formatOpenDuration(incident.createdAt)}
+                    </span>
+                  </div>
+                  <div className="mobile-incident-title">{incident.title}</div>
+                  <div className="mobile-incident-meta">
+                    <span>{serviceName}</span>
+                    <span>•</span>
+                    <span>{formatTimeAgo(incident.createdAt)}</span>
+                  </div>
+                </Link>
+              );
+            })
           )}
         </div>
       </div>

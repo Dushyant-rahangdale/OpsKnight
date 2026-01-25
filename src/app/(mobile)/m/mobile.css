@@ -2144,6 +2144,30 @@ body {
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .mobile-route-buffer-skeleton,
+    .mobile-route-buffer-bar,
+    .mobile-nav-badge,
+    .mobile-header-status::before,
+    .mobile-status-icon svg path:last-child,
+    .mobile-qs-loading-bar span,
+    .mobile-swipe-navigator[data-hint='true']::before,
+    .mobile-swipe-navigator[data-hint='true']::after {
+        animation: none !important;
+    }
+
+    .mobile-route-transition,
+    .mobile-nav-item,
+    .mobile-card,
+    .mobile-search,
+    .mobile-more-hero::before,
+    .mobile-more-hero::after,
+    .mobile-incident-card,
+    .mobile-metric-card {
+        transition: none !important;
+    }
+}
+
 @keyframes routeLogoPulse {
     0% {
         transform: scale(0.92);

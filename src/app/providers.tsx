@@ -29,8 +29,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <TimezoneProvider>
           <ToastProvider>
             <KeyboardShortcutsProvider>{children}</KeyboardShortcutsProvider>
-            <Toaster position="top-right" richColors closeButton />
           </ToastProvider>
+          <Toaster position="top-right" richColors closeButton />
         </TimezoneProvider>
       </AppThemeProvider>
     </SessionProvider>

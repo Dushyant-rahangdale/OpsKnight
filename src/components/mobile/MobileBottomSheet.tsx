@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { lockBodyScroll } from '@/lib/body-scroll-lock';
+import { trapFocus } from '@/lib/focus-trap';
 
 interface MobileBottomSheetProps {
   isOpen: boolean;
@@ -24,22 +26,23 @@ export default function MobileBottomSheet({
   showHandle = true,
 }: MobileBottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
   const [isDragging, setIsDragging] = useState(false);
   const [translateY, setTranslateY] = useState(0);
   const startY = useRef(0);
   const currentY = useRef(0);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      setTranslateY(0);
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    if (!isOpen) return;
+    setTranslateY(0);
+    return lockBodyScroll();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!sheetRef.current) return;
+    return trapFocus(sheetRef.current, onClose);
+  }, [isOpen, onClose]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     startY.current = e.touches[0].clientY;
@@ -99,6 +102,11 @@ export default function MobileBottomSheet({
           transition: isDragging ? 'none' : undefined,
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Bottom sheet'}
+        tabIndex={-1}
       >
         {/* Drag Handle */}
         {showHandle && (
@@ -115,7 +123,9 @@ export default function MobileBottomSheet({
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4">
-            <h3 className="text-base font-bold text-[color:var(--text-primary)]">{title}</h3>
+            <h3 className="text-base font-bold text-[color:var(--text-primary)]" id={titleId}>
+              {title}
+            </h3>
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--text-muted)] transition hover:bg-[color:var(--bg-secondary)]"

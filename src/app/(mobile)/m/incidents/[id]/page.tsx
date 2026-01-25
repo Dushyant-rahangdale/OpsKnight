@@ -85,6 +85,8 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const serviceName = incident.service?.name ?? 'Unknown service';
+
   const [users, teams] = await Promise.all([
     prisma.user.findMany({
       where: { status: 'ACTIVE' },
@@ -141,7 +143,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[color:var(--text-muted)]">
             <span className="flex items-center gap-1">
               <Zap className="h-3.5 w-3.5" />
-              {incident.service.name}
+              {serviceName}
             </span>
             <span className="text-[color:var(--text-disabled)]">•</span>
             <span className="flex items-center gap-1">
@@ -172,11 +174,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
           </h3>
         </div>
         <div className="divide-y divide-[color:var(--border)]">
-          <DetailRow
-            icon={<Zap className="h-4 w-4" />}
-            label="Service"
-            value={incident.service.name}
-          />
+          <DetailRow icon={<Zap className="h-4 w-4" />} label="Service" value={serviceName} />
           <DetailRow
             icon={
               incident.assignee ? (

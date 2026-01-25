@@ -26,9 +26,31 @@ export default function MobileNav() {
         // Silent fail
       }
     };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const startPolling = () => {
+      if (interval) return;
+      fetchCount();
+      interval = setInterval(fetchCount, 30000);
+    };
+    const stopPolling = () => {
+      if (!interval) return;
+      clearInterval(interval);
+      interval = null;
+    };
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const resolveActiveIndex = () => {

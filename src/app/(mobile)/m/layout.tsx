@@ -4,7 +4,6 @@ import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import MobileNav from '@/components/mobile/MobileNav';
 import MobileHeader from '@/components/mobile/MobileHeader';
-import { ToastProvider } from '@/components/ToastProvider';
 import '@/app/globals.css';
 import './mobile.css';
 import './mobile-premium.css';
@@ -74,28 +73,26 @@ export default async function MobileLayout({ children }: { children: React.React
   else if (mediumOpenCount > 0) systemStatus = 'warning';
 
   return (
-    <ToastProvider>
-      <TimezoneProvider initialTimeZone={dbUser.timeZone || 'UTC'}>
-        <UserAvatarProvider
-          currentUserId={dbUser.id}
-          currentUserAvatar={dbUser.avatarUrl}
-          currentUserGender={dbUser.gender}
-          currentUserName={dbUser.name || 'User'}
-        >
-          <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
-            <div className="mobile-shell" data-status={systemStatus}>
-              <MobileHeader systemStatus={systemStatus} />
-              <main className="mobile-content">
-                <MobileNetworkBanner />
-                <MobileSwipeNavigator>
-                  <PullToRefresh>{children}</PullToRefresh>
-                </MobileSwipeNavigator>
-              </main>
-              <MobileNav />
-            </div>
-          </ThemeProvider>
-        </UserAvatarProvider>
-      </TimezoneProvider>
-    </ToastProvider>
+    <TimezoneProvider initialTimeZone={dbUser.timeZone || 'UTC'}>
+      <UserAvatarProvider
+        currentUserId={dbUser.id}
+        currentUserAvatar={dbUser.avatarUrl}
+        currentUserGender={dbUser.gender}
+        currentUserName={dbUser.name || 'User'}
+      >
+        <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
+          <div className="mobile-shell" data-status={systemStatus}>
+            <MobileHeader systemStatus={systemStatus} />
+            <main className="mobile-content">
+              <MobileNetworkBanner />
+              <MobileSwipeNavigator>
+                <PullToRefresh>{children}</PullToRefresh>
+              </MobileSwipeNavigator>
+            </main>
+            <MobileNav />
+          </div>
+        </ThemeProvider>
+      </UserAvatarProvider>
+    </TimezoneProvider>
   );
 }

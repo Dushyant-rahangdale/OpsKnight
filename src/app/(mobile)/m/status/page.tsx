@@ -32,7 +32,7 @@ type Announcement = {
 
 export default async function MobileStatusPage() {
   const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const metricsWindowDays = 90;
 
   // Get status page config
   const statusPage = await prisma.statusPage.findFirst({
@@ -86,7 +86,21 @@ export default async function MobileStatusPage() {
 
   // Optimized: Use a single call to get metrics for all services
   const serviceIds = statusPage.services.map(sp => sp.serviceId);
-  const metrics = await calculateSLAMetrics({ serviceId: serviceIds });
+  const metrics = await calculateSLAMetrics({
+    serviceId: serviceIds,
+    windowDays: metricsWindowDays,
+    includeActiveIncidents: true,
+    includeIncidents: true,
+    incidentLimit: 50,
+  });
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const effectiveWindowDays = Math.max(
+    1,
+    Math.ceil((metrics.effectiveEnd.getTime() - metrics.effectiveStart.getTime()) / dayMs)
+  );
+  const windowLabelDays = metrics.isClipped ? effectiveWindowDays : metricsWindowDays;
+  const windowLabelSuffix = metrics.isClipped ? ' (retention limit)' : '';
 
   const serviceStatuses: ServiceStatus[] = statusPage.services.map(sp => {
     const serviceMetric = metrics.serviceMetrics.find(m => m.id === sp.serviceId);
@@ -98,53 +112,40 @@ export default async function MobileStatusPage() {
     };
   });
 
+  const operationalCount = serviceStatuses.filter(s => s.status === 'OPERATIONAL').length;
+  const degradedCount = serviceStatuses.filter(s => s.status === 'PARTIAL_OUTAGE').length;
+  const majorCount = serviceStatuses.filter(s => s.status === 'MAJOR_OUTAGE').length;
+  const totalServices = serviceStatuses.length;
+
   // Overall status from aggregate metrics
   const overallStatus = getExternalStatusLabel(metrics.dynamicStatus);
 
   // Get active incidents with details
-  const activeIncidents: ActiveIncident[] =
-    serviceIds.length > 0
-      ? await prisma.incident
-          .findMany({
-            where: {
-              serviceId: { in: serviceIds },
-              status: { in: ['OPEN', 'ACKNOWLEDGED'] },
-            },
-            include: {
-              service: { select: { name: true } },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 10,
-          })
-          .then(incidents =>
-            incidents.map(inc => ({
-              id: inc.id,
-              title: inc.title,
-              status: inc.status,
-              urgency: inc.urgency,
-              serviceName: inc.service.name,
-              createdAt: inc.createdAt,
-              updatedAt: inc.updatedAt,
-            }))
-          )
-      : [];
+  const activeIncidents: ActiveIncident[] = (metrics.activeIncidentSummaries || [])
+    .filter(incident => serviceIds.includes(incident.serviceId))
+    .slice(0, 10)
+    .map(incident => ({
+      id: incident.id,
+      title: incident.title,
+      status: incident.status,
+      urgency: incident.urgency ?? 'LOW',
+      serviceName: incident.serviceName,
+      createdAt: incident.createdAt,
+      updatedAt: incident.createdAt,
+    }));
 
   // Get recent resolved incidents (history)
-  const recentHistory =
-    serviceIds.length > 0
-      ? await prisma.incident.findMany({
-          where: {
-            serviceId: { in: serviceIds },
-            status: 'RESOLVED',
-            resolvedAt: { gte: thirtyDaysAgo },
-          },
-          include: {
-            service: { select: { name: true } },
-          },
-          orderBy: { resolvedAt: 'desc' },
-          take: 10,
-        })
-      : [];
+  const recentHistory = (metrics.recentIncidents || [])
+    .filter(
+      incident =>
+        incident.status === 'RESOLVED' &&
+        incident.resolvedAt &&
+        serviceIds.includes(incident.service.id)
+    )
+    .sort(
+      (a, b) => new Date(b.resolvedAt as Date).getTime() - new Date(a.resolvedAt as Date).getTime()
+    )
+    .slice(0, 10);
 
   // Announcements
   const announcements: Announcement[] = statusPage.announcements.map(a => ({
@@ -261,14 +262,30 @@ export default async function MobileStatusPage() {
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Page Title */}
-      <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
-        {statusPage.name || 'System Status'}
-      </h1>
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
+          {statusPage.name || 'System Status'}
+        </h1>
+        <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">
+          Metrics reflect the last {windowLabelDays} days{windowLabelSuffix}.
+        </div>
+      </div>
 
       {/* Overall Status Banner */}
       <MobileCard
-        className={`border-l-4 ${getStatusTone(overallStatus).border} ${getStatusTone(overallStatus).bg}`}
+        className={`relative overflow-hidden border-l-4 ${getStatusTone(overallStatus).border} ${getStatusTone(overallStatus).bg}`}
       >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            background:
+              overallStatus === 'OPERATIONAL'
+                ? 'radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.25), transparent 60%)'
+                : overallStatus === 'PARTIAL_OUTAGE'
+                  ? 'radial-gradient(circle at 20% 20%, rgba(245, 158, 11, 0.25), transparent 60%)'
+                  : 'radial-gradient(circle at 20% 20%, rgba(239, 68, 68, 0.25), transparent 60%)',
+          }}
+        />
         <div className="flex items-center gap-3">
           <div className="text-3xl">{getStatusIcon(overallStatus)}</div>
           <div className="flex-1">
@@ -288,6 +305,28 @@ export default async function MobileStatusPage() {
           </div>
         </div>
       </MobileCard>
+
+      {/* Status Overview */}
+      <section className="grid grid-cols-2 gap-3">
+        <MobileCard className="space-y-1">
+          <div className="text-xs font-semibold text-[color:var(--text-muted)]">Services</div>
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">{totalServices}</div>
+          <div className="text-[11px] text-[color:var(--text-muted)]">
+            {operationalCount} ok · {degradedCount} degraded · {majorCount} major
+          </div>
+        </MobileCard>
+        <MobileCard className="space-y-1">
+          <div className="text-xs font-semibold text-[color:var(--text-muted)]">
+            Active Incidents
+          </div>
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">
+            {metrics.activeCount}
+          </div>
+          <div className="text-[11px] text-[color:var(--text-muted)]">
+            {metrics.criticalCount} critical · {metrics.resolved24h} resolved 24h
+          </div>
+        </MobileCard>
+      </section>
 
       {/* Announcements */}
       {announcements.length > 0 && (
@@ -416,8 +455,7 @@ export default async function MobileStatusPage() {
       {recentHistory.length > 0 && (
         <section className="flex flex-col gap-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
-            📜 Recent History (
-            {metrics.isClipped ? `${metrics.retentionDays} days - retention limit` : '30 days'})
+            📜 Recent History ({windowLabelDays} days{windowLabelSuffix})
           </h3>
           <div className="flex flex-col gap-2">
             {recentHistory.map(incident => (
@@ -444,8 +482,8 @@ export default async function MobileStatusPage() {
       )}
 
       {/* Footer */}
-      <div className="border-t border-[color:var(--border)] py-4 text-center text-[11px] text-[color:var(--text-muted)]">
-        Powered by OpsKnight
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-secondary)] p-3 text-center text-[11px] text-[color:var(--text-muted)]">
+        For deep analysis, use the Analytics page.
       </div>
     </div>
   );
