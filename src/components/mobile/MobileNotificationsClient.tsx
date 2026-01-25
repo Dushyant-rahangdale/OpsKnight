@@ -80,7 +80,7 @@ const resolveNotificationHref = (notification: NotificationItem) => {
 const NotificationSkeleton = () => (
   <MobileCard className="p-4">
     <div className="flex items-start gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color:var(--bg-secondary)]">
         <Skeleton width="18px" height="18px" borderRadius="6px" />
       </div>
       <div className="flex flex-1 flex-col gap-2">
@@ -232,7 +232,7 @@ export default function MobileNotificationsClient() {
       case 'schedule':
         return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400';
       default:
-        return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+        return 'bg-[color:var(--bg-secondary)] text-[color:var(--text-muted)]';
     }
   };
 
@@ -308,7 +308,7 @@ export default function MobileNotificationsClient() {
         <div className="flex flex-col gap-4">
           {groupedNotifications.map(group => (
             <div key={group.label} className="flex flex-col gap-2">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <div className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
                 {group.label}
               </div>
               <div className="flex flex-col gap-2">

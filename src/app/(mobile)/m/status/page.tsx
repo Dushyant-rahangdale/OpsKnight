@@ -66,11 +66,13 @@ export default async function MobileStatusPage() {
   if (!statusPage) {
     return (
       <div className="flex flex-col gap-4 p-4 pb-24">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Status</h1>
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
+          Status
+        </h1>
         <MobileCard>
-          <div className="flex flex-col items-center gap-3 py-6 text-center text-slate-500 dark:text-slate-400">
+          <div className="flex flex-col items-center gap-3 py-6 text-center text-[color:var(--text-muted)]">
             <div className="text-3xl">📊</div>
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <p className="text-sm font-semibold text-[color:var(--text-secondary)]">
               Status page not configured.
             </p>
             <p className="text-xs">Contact your administrator to set up a status page.</p>
@@ -259,7 +261,7 @@ export default async function MobileStatusPage() {
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Page Title */}
-      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
         {statusPage.name || 'System Status'}
       </h1>
 
@@ -270,20 +272,17 @@ export default async function MobileStatusPage() {
         <div className="flex items-center gap-3">
           <div className="text-3xl">{getStatusIcon(overallStatus)}</div>
           <div className="flex-1">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold text-[color:var(--text-primary)]">
               {overallStatus === 'OPERATIONAL'
                 ? 'All Systems Operational'
                 : getStatusLabel(overallStatus)}
             </h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-[color:var(--text-muted)]">
               {activeIncidents.length === 0
                 ? 'No active incidents'
                 : `${activeIncidents.length} active incident${activeIncidents.length > 1 ? 's' : ''}`}
             </p>
-            <p
-              className="mt-1 text-[11px] text-slate-500 dark:text-slate-400"
-              suppressHydrationWarning
-            >
+            <p className="mt-1 text-[11px] text-[color:var(--text-muted)]" suppressHydrationWarning>
               Updated {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
@@ -293,7 +292,7 @@ export default async function MobileStatusPage() {
       {/* Announcements */}
       {announcements.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             📢 Announcements
           </h3>
           <div className="flex flex-col gap-3">
@@ -309,13 +308,13 @@ export default async function MobileStatusPage() {
                   <div className="flex items-start gap-3">
                     <span className="text-lg">{getAnnouncementIcon(announcement.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                      <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                         {announcement.title}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                      <p className="mt-1 line-clamp-2 text-xs text-[color:var(--text-muted)]">
                         {announcement.message}
                       </p>
-                      <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+                      <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">
                         {new Date(announcement.startDate).toLocaleDateString()}
                         {announcement.endDate &&
                           ` - ${new Date(announcement.endDate).toLocaleDateString()}`}
@@ -332,7 +331,7 @@ export default async function MobileStatusPage() {
       {/* Active Incidents */}
       {activeIncidents.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             🚨 Active Incidents
           </h3>
           <div className="flex flex-col gap-3">
@@ -353,13 +352,13 @@ export default async function MobileStatusPage() {
                   <MobileCard padding="sm" className={`border-l-4 ${urgencyBorder}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                        <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                           {incident.title}
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                        <div className="text-xs text-[color:var(--text-muted)]">
                           {incident.serviceName}
                         </div>
-                        <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                        <div className="mt-1 text-[11px] text-[color:var(--text-muted)]">
                           {formatTimeAgo(incident.createdAt)}
                         </div>
                       </div>
@@ -379,7 +378,7 @@ export default async function MobileStatusPage() {
 
       {/* Services */}
       <section className="flex flex-col gap-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
           🖥️ Services ({serviceStatuses.length})
         </h3>
         <div className="flex flex-col gap-2">
@@ -393,7 +392,7 @@ export default async function MobileStatusPage() {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={`h-2.5 w-2.5 rounded-full ${tone.dot}`} />
-                  <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  <span className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {service.name}
                   </span>
                 </div>
@@ -416,7 +415,7 @@ export default async function MobileStatusPage() {
       {/* Recent History */}
       {recentHistory.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             📜 Recent History (
             {metrics.isClipped ? `${metrics.retentionDays} days - retention limit` : '30 days'})
           </h3>
@@ -426,10 +425,10 @@ export default async function MobileStatusPage() {
                 <MobileCard padding="sm" className="opacity-90">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                      <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                         {incident.title}
                       </div>
-                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="mt-1 text-[11px] text-[color:var(--text-muted)]">
                         {incident.service.name} • Resolved {formatTimeAgo(incident.resolvedAt!)}
                       </div>
                     </div>
@@ -445,7 +444,7 @@ export default async function MobileStatusPage() {
       )}
 
       {/* Footer */}
-      <div className="border-t border-slate-200 py-4 text-center text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+      <div className="border-t border-[color:var(--border)] py-4 text-center text-[11px] text-[color:var(--text-muted)]">
         Powered by OpsKnight
       </div>
     </div>

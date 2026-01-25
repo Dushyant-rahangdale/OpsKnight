@@ -165,7 +165,7 @@ export default async function MobileIncidentsPage(props: {
           {page > 1 ? (
             <Link
               href={buildPageUrl(page - 1)}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 transition-all active:scale-[0.98]"
+              className="flex items-center gap-1.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-2 text-sm font-medium text-[color:var(--text-secondary)] transition-all active:scale-[0.98]"
             >
               <ChevronLeft className="h-4 w-4" />
               Prev
@@ -174,7 +174,7 @@ export default async function MobileIncidentsPage(props: {
             <div />
           )}
 
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <span className="text-sm font-medium text-[color:var(--text-muted)]">
             Page {page} of {totalPages}
           </span>
 

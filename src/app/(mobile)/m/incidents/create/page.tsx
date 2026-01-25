@@ -19,10 +19,10 @@ export default async function MobileCreateIncidentPage() {
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
           New Incident
         </h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           Report a new issue
         </p>
       </div>

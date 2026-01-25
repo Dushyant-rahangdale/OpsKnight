@@ -68,14 +68,12 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
           />
 
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-slate-900 dark:text-white">{service.name}</h1>
+            <h1 className="text-lg font-bold text-[color:var(--text-primary)]">{service.name}</h1>
             {service.description && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {service.description}
-              </p>
+              <p className="mt-1 text-xs text-[color:var(--text-muted)]">{service.description}</p>
             )}
             <div
-              className={`mt-3 inline-flex items-center rounded-lg px-3 py-1 text-xs font-semibold ${isHealthy ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}
+              className={`mt-3 inline-flex items-center rounded-lg px-3 py-1 text-xs font-semibold ${isHealthy ? 'bg-[color:var(--badge-success-bg)] text-[color:var(--badge-success-text)]' : 'bg-[color:var(--badge-error-bg)] text-[color:var(--badge-error-text)]'}`}
             >
               {isHealthy
                 ? '✓ Operational'
@@ -96,7 +94,7 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
 
       {/* Service Info */}
       <MobileCard>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
           Details
         </h3>
         <DetailRow label="Escalation Policy" value={service.policy?.name || 'None'} />
@@ -107,7 +105,7 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
       {service.incidents.length > 0 && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
               Open Incidents
             </h2>
             <Link
@@ -123,30 +121,30 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
               <Link
                 key={incident.id}
                 href={`/m/incidents/${incident.id}`}
-                className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/60"
+                className="flex flex-col gap-2 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-4 shadow-sm transition hover:bg-[color:var(--bg-secondary)]"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="rounded-md bg-[color:var(--bg-secondary)] px-2 py-0.5 text-[10px] font-semibold uppercase text-[color:var(--text-muted)]">
                     {incident.status}
                   </span>
                   {incident.urgency && (
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                         incident.urgency === 'HIGH'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                          ? 'bg-[color:var(--badge-error-bg)] text-[color:var(--badge-error-text)]'
                           : incident.urgency === 'MEDIUM'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                            ? 'bg-[color:var(--badge-warning-bg)] text-[color:var(--badge-warning-text)]'
+                            : 'bg-[color:var(--badge-success-bg)] text-[color:var(--badge-success-text)]'
                       }`}
                     >
                       {incident.urgency}
                     </span>
                   )}
                 </div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                   {incident.title}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                <div className="text-[11px] text-[color:var(--text-muted)]">
                   {formatTimeAgo(incident.createdAt)}
                 </div>
               </Link>
@@ -160,9 +158,9 @@ export default async function MobileServiceDetailPage({ params }: PageProps) {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-100 py-2 text-xs dark:border-slate-800">
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+    <div className="flex items-center justify-between border-b border-[color:var(--border)] py-2 text-xs">
+      <span className="text-[color:var(--text-muted)]">{label}</span>
+      <span className="font-semibold text-[color:var(--text-primary)]">{value}</span>
     </div>
   );
 }

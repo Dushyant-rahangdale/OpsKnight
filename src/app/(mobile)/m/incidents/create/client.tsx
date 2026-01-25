@@ -63,33 +63,33 @@ export default function MobileCreateIncidentClient({
       <div className="flex flex-col gap-4">
         {/* Title */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
             Title <span className="text-red-500">*</span>
           </label>
           <input
             name="title"
             required
             placeholder="e.g. API Gateway High Latency"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-3 text-sm text-[color:var(--text-primary)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
         {/* Description */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
             Description
           </label>
           <textarea
             name="description"
             rows={4}
             placeholder="What's happening? Add context..."
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full resize-none rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-3 text-sm text-[color:var(--text-primary)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
         {/* Service */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
             Service <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -97,7 +97,7 @@ export default function MobileCreateIncidentClient({
               name="serviceId"
               required
               defaultValue={defaultServiceId}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-3 pr-10 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full appearance-none rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-3 pr-10 text-sm text-[color:var(--text-primary)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="" disabled>
                 Select a service
@@ -108,7 +108,7 @@ export default function MobileCreateIncidentClient({
                 </option>
               ))}
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]">
               <svg
                 width="12"
                 height="12"
@@ -125,7 +125,7 @@ export default function MobileCreateIncidentClient({
 
         {/* Urgency */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
             Urgency
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -155,13 +155,13 @@ export default function MobileCreateIncidentClient({
 
         {/* Assignee */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
             Assignee (Optional)
           </label>
           <div className="relative">
             <select
               name="assigneeId"
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-3 pr-10 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className="w-full appearance-none rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-3 pr-10 text-sm text-[color:var(--text-primary)] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               <option value="">Unassigned</option>
               {users.map(u => (
@@ -170,7 +170,7 @@ export default function MobileCreateIncidentClient({
                 </option>
               ))}
             </select>
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]">
               <svg
                 width="12"
                 height="12"
@@ -237,7 +237,7 @@ function UrgencyRadio({
             : value === 'MEDIUM'
               ? 'border-amber-500 bg-amber-100 text-amber-700 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-300'
               : 'border-emerald-500 bg-emerald-100 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
-          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
+          : 'border-[color:var(--border)] bg-[color:var(--bg-surface)] text-[color:var(--text-secondary)]'
       )}
     >
       <input
