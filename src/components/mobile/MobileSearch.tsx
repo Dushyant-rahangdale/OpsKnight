@@ -87,7 +87,6 @@ export default function MobileSearch({
             placeholder={placeholder}
             autoFocus={autoFocus}
             className="mobile-search-input flex-1 bg-transparent text-sm font-medium text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none"
-            style={{ backgroundColor: 'transparent', boxShadow: 'none' }}
           />
 
           {value && (

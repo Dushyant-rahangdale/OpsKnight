@@ -3011,10 +3011,12 @@ a {
     background: rgba(107, 114, 128, 0.15);
     color: #d1d5db;
 }
+
 /* Force transparency on mobile inputs to prevent white background override */
 .mobile-search-input,
 .mobile-sort-select {
-    background-color: transparent !important;
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
     appearance: none;
     -webkit-appearance: none;
     border: none !important;
@@ -3041,8 +3043,8 @@ a {
 
 /* Fix browser autofill white background */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px var(--bg-surface) inset !important;
     -webkit-text-fill-color: var(--text-primary) !important;
