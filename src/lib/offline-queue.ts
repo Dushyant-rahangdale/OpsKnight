@@ -127,28 +127,33 @@ export const flushQueuedRequests = async () => {
   const queue = await listQueuedRequests();
   let flushed = 0;
 
-  for (const item of queue) {
-    try {
-      const response = await fetch(item.url, {
-        method: item.method,
-        headers: item.headers,
-        body: item.body ?? undefined,
-        credentials: 'include',
-      });
+  // Process in batches of 5 to avoid browser/network limits
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+    const batch = queue.slice(i, i + BATCH_SIZE);
 
-      if (response.ok) {
-        await removeQueuedRequest(item.id);
-        flushed += 1;
-        continue;
-      }
+    await Promise.all(
+      batch.map(async item => {
+        try {
+          const response = await fetch(item.url, {
+            method: item.method,
+            headers: item.headers,
+            body: item.body ?? undefined,
+            credentials: 'include',
+          });
 
-      if (!isRetryableStatus(response.status)) {
-        await removeQueuedRequest(item.id);
-        continue;
-      }
-    } catch {
-      break;
-    }
+          if (response.ok) {
+            await removeQueuedRequest(item.id);
+            flushed += 1;
+          } else if (!isRetryableStatus(response.status)) {
+            // Permanent failure (e.g., 400 Bad Request), remove it
+            await removeQueuedRequest(item.id);
+          }
+        } catch {
+          // Network error, leave in queue
+        }
+      })
+    );
   }
 
   return { flushed, remaining: (await listQueuedRequests()).length };

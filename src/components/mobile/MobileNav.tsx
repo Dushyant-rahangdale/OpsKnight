@@ -96,6 +96,7 @@ export default function MobileNav() {
   return (
     <nav
       className="mobile-nav"
+      aria-label="Mobile navigation"
       style={
         {
           display: 'grid',
@@ -107,6 +108,7 @@ export default function MobileNav() {
       {/* Animated active indicator */}
       <div
         className="mobile-nav-slider"
+        aria-hidden="true"
         style={{
           width: '100%',
           transform: `translateX(${sliderIndex * 100}%)`,
@@ -114,6 +116,13 @@ export default function MobileNav() {
       />
       {MOBILE_NAV_ITEMS.map((item, index) => {
         const active = index === activeIndex;
+        // Determine aria-label: use item label or fallback + notification count
+        const label = item.label;
+        const badgeText =
+          'hasBadge' in item && item.hasBadge && unreadCount > 0
+            ? `, ${unreadCount} unread notifications`
+            : '';
+
         return (
           <Link
             key={item.href}
@@ -121,12 +130,16 @@ export default function MobileNav() {
             className={`mobile-nav-item ${active ? 'active' : ''}`}
             style={{ maxWidth: 'unset' }}
             onClick={() => haptics.selection()}
+            aria-label={`${label}${badgeText}`}
+            aria-current={active ? 'page' : undefined}
           >
             <span className="mobile-nav-icon" style={{ position: 'relative' }}>
               {active ? item.iconActive : item.icon}
               {/* Notification badge */}
               {'hasBadge' in item && item.hasBadge && unreadCount > 0 && (
-                <span className="mobile-nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                <span className="mobile-nav-badge" aria-hidden="true">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </span>
             <span className="mobile-nav-label">{item.label}</span>

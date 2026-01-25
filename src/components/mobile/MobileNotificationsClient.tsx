@@ -147,16 +147,22 @@ export default function MobileNotificationsClient() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!navigator.onLine) {
-      void (async () => {
+    const loadCache = async () => {
+      if (!navigator.onLine) {
         const cached = await readCache<NotificationResponse>('mobile-notifications');
-        if (cached) {
+        if (
+          cached &&
+          cached.notifications &&
+          Array.isArray(cached.notifications) &&
+          cached.notifications.length > 0
+        ) {
           setNotifications(cached.notifications);
           setUnreadCount(cached.unreadCount);
           setLoading(false);
         }
-      })();
-    }
+      }
+    };
+    void loadCache();
   }, []);
 
   useEffect(() => {
@@ -438,9 +444,9 @@ export default function MobileNotificationsClient() {
                       onClick={
                         href
                           ? () => {
-                              haptics.soft();
-                              router.push(href);
-                            }
+                            haptics.soft();
+                            router.push(href);
+                          }
                           : undefined
                       }
                     >

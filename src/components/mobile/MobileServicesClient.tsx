@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { MobileSearchWithParams } from '@/components/mobile/MobileSearchParams';
@@ -23,31 +23,38 @@ export default function MobileServicesClient({
 }) {
   const cacheKey = `mobile-services:${query || 'all'}`;
 
-  const services = useSyncExternalStore(
-    onStoreChange => {
-      if (typeof window === 'undefined') return () => {};
-      const handler = () => onStoreChange();
-      window.addEventListener('online', handler);
-      window.addEventListener('offline', handler);
-      return () => {
-        window.removeEventListener('online', handler);
-        window.removeEventListener('offline', handler);
-      };
-    },
-    () => {
-      if (typeof window === 'undefined') return initialServices;
-      if (!navigator.onLine) {
-        const cached = readCache<ServiceItem[]>(cacheKey);
-        if (cached?.length) return cached;
-      }
-      return initialServices;
-    },
-    () => initialServices
-  );
+  const [services, setServices] = useState<ServiceItem[]>(initialServices);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !navigator.onLine) return;
-    writeCache(cacheKey, initialServices);
+    if (typeof window === 'undefined') return;
+
+    const handleOnlineStatus = async () => {
+      if (!navigator.onLine) {
+        const cached = await readCache<ServiceItem[]>(cacheKey);
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setServices(cached);
+        }
+      } else {
+        setServices(initialServices);
+      }
+    };
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
+    // Initial check
+    void handleOnlineStatus();
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
+  }, [cacheKey, initialServices]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      writeCache(cacheKey, initialServices);
+    }
   }, [cacheKey, initialServices]);
 
   const healthyCount = services.filter(service => service._count.incidents === 0).length;

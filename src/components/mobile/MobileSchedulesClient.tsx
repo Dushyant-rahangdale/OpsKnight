@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { readCache, writeCache } from '@/lib/mobile-cache';
@@ -25,30 +25,38 @@ export default function MobileSchedulesClient({
 }: {
   initialSchedules: Schedule[];
 }) {
-  const schedules = useSyncExternalStore(
-    onStoreChange => {
-      if (typeof window === 'undefined') return () => {};
-      const handler = () => onStoreChange();
-      window.addEventListener('online', handler);
-      window.addEventListener('offline', handler);
-      return () => {
-        window.removeEventListener('online', handler);
-        window.removeEventListener('offline', handler);
-      };
-    },
-    () => {
-      if (typeof window === 'undefined') return initialSchedules;
-      if (!navigator.onLine) {
-        const cached = readCache<Schedule[]>('mobile-schedules');
-        if (cached?.length) return cached;
-      }
-      return initialSchedules;
-    },
-    () => initialSchedules
-  );
+  const [schedules, setSchedules] = useState<Schedule[]>(initialSchedules);
 
   useEffect(() => {
-    writeCache('mobile-schedules', schedules);
+    if (typeof window === 'undefined') return;
+
+    const handleOnlineStatus = async () => {
+      if (!navigator.onLine) {
+        const cached = await readCache<Schedule[]>('mobile-schedules');
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setSchedules(cached);
+        }
+      } else {
+        setSchedules(initialSchedules);
+      }
+    };
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
+    // Initial check
+    void handleOnlineStatus();
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
+  }, [initialSchedules]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      writeCache('mobile-schedules', schedules);
+    }
   }, [schedules]);
 
   return (

@@ -2,8 +2,10 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import MobileNav from '@/components/mobile/MobileNav';
 import MobileHeader from '@/components/mobile/MobileHeader';
+import MobileHeaderLoader from '@/components/mobile/MobileHeaderLoader';
 import '@/app/globals.css';
 import './mobile.css';
 import './mobile-premium.css';
@@ -45,34 +47,6 @@ export default async function MobileLayout({ children }: { children: React.React
     redirect('/api/auth/signout?callbackUrl=/m/login');
   }
 
-  // Incident Counts Logic (Same as Desktop)
-  let criticalOpenCount = 0;
-  let mediumOpenCount = 0;
-  let lowOpenCount = 0;
-
-  try {
-    const openUrgencyCounts = await prisma.incident.groupBy({
-      by: ['urgency'],
-      where: {
-        status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
-      },
-      _count: { _all: true },
-    });
-
-    for (const entry of openUrgencyCounts) {
-      if (entry.urgency === 'HIGH') criticalOpenCount = entry._count._all;
-      else if (entry.urgency === 'MEDIUM') mediumOpenCount = entry._count._all;
-      else if (entry.urgency === 'LOW') lowOpenCount = entry._count._all;
-    }
-  } catch (error) {
-    console.error('Failed to load incident counts', error);
-  }
-
-  // Determine System Status
-  let systemStatus: 'ok' | 'warning' | 'danger' = 'ok';
-  if (criticalOpenCount > 0) systemStatus = 'danger';
-  else if (mediumOpenCount > 0) systemStatus = 'warning';
-
   return (
     <TimezoneProvider initialTimeZone={dbUser.timeZone || 'UTC'}>
       <UserAvatarProvider
@@ -83,8 +57,11 @@ export default async function MobileLayout({ children }: { children: React.React
       >
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
           <MobileBiometricGuard>
-            <div className="mobile-shell" data-status={systemStatus}>
-              <MobileHeader systemStatus={systemStatus} />
+            <div className="mobile-shell">
+              <Suspense fallback={<MobileHeader systemStatus="ok" />}>
+                <MobileHeaderLoader />
+              </Suspense>
+
               <main className="mobile-content">
                 <MobileNetworkBanner />
                 <MobileSwipeNavigator>

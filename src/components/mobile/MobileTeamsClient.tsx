@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { MobileSearchWithParams } from '@/components/mobile/MobileSearchParams';
@@ -26,31 +26,38 @@ export default function MobileTeamsClient({
 }) {
   const cacheKey = `mobile-teams:${query || 'all'}`;
 
-  const teams = useSyncExternalStore(
-    onStoreChange => {
-      if (typeof window === 'undefined') return () => {};
-      const handler = () => onStoreChange();
-      window.addEventListener('online', handler);
-      window.addEventListener('offline', handler);
-      return () => {
-        window.removeEventListener('online', handler);
-        window.removeEventListener('offline', handler);
-      };
-    },
-    () => {
-      if (typeof window === 'undefined') return initialTeams;
-      if (!navigator.onLine) {
-        const cached = readCache<TeamItem[]>(cacheKey);
-        if (cached?.length) return cached;
-      }
-      return initialTeams;
-    },
-    () => initialTeams
-  );
+  const [teams, setTeams] = useState<TeamItem[]>(initialTeams);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !navigator.onLine) return;
-    writeCache(cacheKey, initialTeams);
+    if (typeof window === 'undefined') return;
+
+    const handleOnlineStatus = async () => {
+      if (!navigator.onLine) {
+        const cached = await readCache<TeamItem[]>(cacheKey);
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setTeams(cached);
+        }
+      } else {
+        setTeams(initialTeams);
+      }
+    };
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+
+    // Initial check
+    void handleOnlineStatus();
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
+  }, [cacheKey, initialTeams]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      writeCache(cacheKey, initialTeams);
+    }
   }, [cacheKey, initialTeams]);
 
   return (

@@ -30,12 +30,16 @@ export default function MobileIncidentList({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!navigator.onLine) {
-      const cached = readCache<IncidentListItem[]>('mobile-incidents');
-      if (cached?.length) {
-        setLocalIncidents(cached);
+    const loadFromCache = async () => {
+      if (!navigator.onLine) {
+        // Build treats this as async even if file looks sync locally
+        const cached = await readCache<IncidentListItem[]>('mobile-incidents');
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setLocalIncidents(cached);
+        }
       }
-    }
+    };
+    void loadFromCache();
   }, []);
 
   useEffect(() => {

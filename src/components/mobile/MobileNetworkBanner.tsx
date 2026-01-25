@@ -58,12 +58,19 @@ export default function MobileNetworkBanner() {
 
   if (!isOnline) {
     return (
-      <div className="mobile-network-banner offline" data-swipe-ignore>
+      <div
+        className="mobile-network-banner offline animate-in slide-in-from-top-2 duration-300"
+        data-swipe-ignore
+      >
         <div className="flex items-center gap-2">
           <WifiOff className="h-4 w-4" />
           <span>You&apos;re offline. View-only mode.</span>
         </div>
-        <button type="button" onClick={() => router.refresh()}>
+        <button
+          type="button"
+          onClick={() => router.refresh()}
+          className="active:scale-95 transition-transform"
+        >
           Retry
         </button>
       </div>
@@ -72,9 +79,19 @@ export default function MobileNetworkBanner() {
 
   if (isSlowConnection(effectiveType)) {
     return (
-      <div className="mobile-network-banner slow" data-swipe-ignore>
-        <span>Slow connection detected. Updates may lag.</span>
-        <button type="button" onClick={() => router.refresh()}>
+      <div
+        className="mobile-network-banner slow animate-in slide-in-from-top-2 duration-300"
+        data-swipe-ignore
+      >
+        <div className="flex items-center gap-2">
+          <Wifi className="h-4 w-4" />
+          <span>Slow connection. Updates may lag.</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.refresh()}
+          className="active:scale-95 transition-transform"
+        >
           Refresh
         </button>
       </div>
