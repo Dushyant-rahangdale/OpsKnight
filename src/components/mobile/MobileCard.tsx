@@ -20,9 +20,9 @@ const paddingSizes = {
 
 const variantStyles: Record<string, string> = {
   default:
-    'mobile-card mobile-card--default bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+    'mobile-card mobile-card--default bg-[color:var(--bg-surface)] border-[color:var(--border)]',
   elevated:
-    'mobile-card mobile-card--elevated bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+    'mobile-card mobile-card--elevated bg-[color:var(--bg-surface)] border-[color:var(--border)]',
   outlined: 'mobile-card mobile-card--outlined',
   gradient: 'mobile-card mobile-card--gradient',
 };

@@ -146,7 +146,7 @@ export function MobileAvatar({
       className={cn(
         'flex items-center justify-center rounded-full font-bold text-white',
         sizeClass,
-        'bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-200 dark:to-slate-50 text-[color:var(--text-primary)]'
+        'bg-gradient-to-br from-slate-200 to-slate-50 dark:from-slate-700 dark:to-slate-900 text-[color:var(--text-primary)]'
       )}
     >
       {initials}
@@ -259,7 +259,7 @@ export function MobileEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-4 py-10 text-center">
       {icon && (
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--bg-secondary)] text-2xl text-[color:var(--text-muted)]">
           {icon}
@@ -322,7 +322,8 @@ export function MobileSkeleton({
         width: variant === 'circular' ? height : width,
         height,
         borderRadius,
-        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+        background:
+          'linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-surface) 50%, var(--bg-secondary) 75%)',
         backgroundSize: '200% 100%',
         animation: 'shimmer 1.5s infinite',
       }}
@@ -352,16 +353,12 @@ export function MobileDivider({
   if (label) {
     return (
       <div className="flex items-center gap-3" style={{ margin: `${spacingValue} 0` }}>
-        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          {label}
-        </span>
-        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+        <div className="h-px flex-1 bg-[color:var(--border)]" />
+        <span className="text-[11px] font-semibold text-[color:var(--text-muted)]">{label}</span>
+        <div className="h-px flex-1 bg-[color:var(--border)]" />
       </div>
     );
   }
 
-  return (
-    <div className="h-px bg-slate-200 dark:bg-slate-800" style={{ margin: `${spacingValue} 0` }} />
-  );
+  return <div className="h-px bg-[color:var(--border)]" style={{ margin: `${spacingValue} 0` }} />;
 }

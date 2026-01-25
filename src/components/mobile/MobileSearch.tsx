@@ -115,7 +115,7 @@ export default function MobileSearch({
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (
-        <div className="mobile-search-suggestions absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border shadow-xl">
+        <div className="mobile-search-suggestions absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-xl">
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
