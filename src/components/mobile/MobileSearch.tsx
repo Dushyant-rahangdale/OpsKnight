@@ -57,11 +57,11 @@ export default function MobileSearch({
       <form onSubmit={handleSubmit}>
         <div
           className={cn(
-            'flex items-center gap-3 rounded-xl border-2 px-4 py-3 transition',
-            isFocused
-              ? 'border-primary bg-white shadow-sm dark:bg-slate-950'
-              : 'border-transparent bg-slate-100 dark:bg-slate-950/80'
+            'mobile-search flex items-center gap-3 rounded-xl border-2 px-4 py-3 transition',
+            'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+            isFocused && 'border-primary dark:border-primary ring-2 ring-primary/20'
           )}
+          data-focused={isFocused ? 'true' : 'false'}
         >
           {leftIcon || (
             <svg
@@ -71,7 +71,7 @@ export default function MobileSearch({
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="text-slate-400 dark:text-slate-500"
+              className="mobile-search-icon"
             >
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -87,14 +87,14 @@ export default function MobileSearch({
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="flex-1 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
+            className="mobile-search-input flex-1 bg-transparent text-sm font-medium focus:outline-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
           />
 
           {value && (
             <button
               type="button"
               onClick={handleClear}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-white transition hover:bg-slate-400 dark:bg-slate-600 dark:hover:bg-slate-500"
+              className="mobile-search-clear flex h-5 w-5 items-center justify-center rounded-full transition"
               aria-label="Clear search"
             >
               <svg
@@ -102,7 +102,7 @@ export default function MobileSearch({
                 height="12"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="white"
+                stroke="currentColor"
                 strokeWidth="3"
               >
                 <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
@@ -116,7 +116,7 @@ export default function MobileSearch({
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-900 dark:bg-slate-950">
+        <div className="mobile-search-suggestions absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border shadow-xl">
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
@@ -125,9 +125,8 @@ export default function MobileSearch({
                 onSearch?.(suggestion);
               }}
               className={cn(
-                'w-full px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800',
-                index < filteredSuggestions.length - 1 &&
-                  'border-b border-slate-100 dark:border-slate-800'
+                'mobile-search-suggestion w-full px-4 py-3 text-left text-sm font-medium transition',
+                index < filteredSuggestions.length - 1 && 'border-b border-[color:var(--border)]'
               )}
             >
               {suggestion}
@@ -158,7 +157,7 @@ export function MobileFilterChip({
         'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition',
         active
           ? 'border-transparent bg-primary text-white shadow-sm'
-          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-200'
+          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300'
       )}
     >
       {label}

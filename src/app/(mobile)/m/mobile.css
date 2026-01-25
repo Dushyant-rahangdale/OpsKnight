@@ -228,6 +228,79 @@ body {
     gap: 0.5rem;
 }
 
+/* Mobile shared card styles */
+.mobile-card {
+    background: var(--bg-surface);
+    border-color: var(--border);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-card--default {
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-card--elevated {
+    box-shadow: var(--shadow-lg);
+}
+
+.mobile-card--outlined {
+    background: transparent;
+    box-shadow: none;
+}
+
+.mobile-card--gradient {
+    background: var(--gradient-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Mobile search theming */
+.mobile-search {
+    background: var(--bg-secondary);
+    border-color: transparent;
+    color: var(--text-primary);
+}
+
+.mobile-search--focused {
+    background: var(--bg-surface);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+}
+
+.mobile-search-icon {
+    color: var(--text-muted);
+}
+
+.mobile-search-input {
+    color: var(--text-primary);
+}
+
+.mobile-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.mobile-search-clear {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+.mobile-search-clear:hover {
+    background: var(--border-hover);
+}
+
+.mobile-search-suggestions {
+    background: var(--bg-surface);
+    border-color: var(--border);
+}
+
+.mobile-search-suggestion {
+    color: var(--text-secondary);
+}
+
+.mobile-search-suggestion:hover {
+    background: var(--bg-secondary);
+}
+
 /* Mobile Content Area */
 .mobile-content {
     flex: 1;
@@ -1997,12 +2070,18 @@ body {
 
 /* Dark mode refinements */
 [data-theme='dark'] .mobile-metric-card,
+[data-theme='dark'] .mobile-card,
 [data-theme='dark'] .mobile-incident-card,
 [data-theme='dark'] .mobile-incidents-pagination,
-[data-theme='dark'] .mobile-notification-card {
-    background: rgba(15, 23, 42, 0.7);
+[data-theme='dark'] .mobile-notification-card,
+[data-theme='dark'] .mobile-qs-panel,
+[data-theme='dark'] .mobile-qs-item,
+[data-theme='dark'] .mobile-menu-group,
+[data-theme='dark'] .mobile-menu-item {
+    background: var(--bg-surface) !important;
     border-color: rgba(148, 163, 184, 0.18);
     box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
+    color: var(--text-primary) !important;
 }
 
 [data-theme='dark'] .mobile-filter-select,

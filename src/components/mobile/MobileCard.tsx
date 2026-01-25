@@ -19,13 +19,10 @@ const paddingSizes = {
 };
 
 const variantStyles: Record<string, string> = {
-  default:
-    'rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-900 dark:bg-slate-950',
-  elevated:
-    'rounded-2xl border border-slate-200/60 bg-white shadow-lg dark:border-slate-900/70 dark:bg-slate-950',
-  outlined: 'rounded-2xl border border-slate-200 bg-transparent dark:border-slate-900',
-  gradient:
-    'rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm dark:border-slate-900/70 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950',
+  default: 'mobile-card mobile-card--default',
+  elevated: 'mobile-card mobile-card--elevated',
+  outlined: 'mobile-card mobile-card--outlined',
+  gradient: 'mobile-card mobile-card--gradient',
 };
 
 export default function MobileCard({
@@ -48,6 +45,7 @@ export default function MobileCard({
       className={cn(
         'transition active:scale-[0.99]',
         onClick ? 'cursor-pointer' : 'cursor-default',
+        'rounded-2xl border',
         variantStyles[variant],
         paddingSizes[padding],
         className
@@ -75,8 +73,8 @@ export function MobileCardHeader({
   return (
     <div className={cn('flex items-start justify-between', subtitle ? 'mb-2' : 'mb-3')}>
       <div>
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
-        {subtitle && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
+        <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">{title}</h3>
+        {subtitle && <p className="mt-1 text-xs text-[color:var(--text-muted)]">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>
@@ -92,9 +90,7 @@ export function MobileCardSection({
   noPadding?: boolean;
 }) {
   return (
-    <div
-      className={cn('border-t border-slate-200 dark:border-slate-800', noPadding ? 'p-0' : 'py-3')}
-    >
+    <div className={cn('border-t border-[color:var(--border)]', noPadding ? 'p-0' : 'py-3')}>
       {children}
     </div>
   );

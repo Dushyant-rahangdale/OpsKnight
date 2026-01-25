@@ -206,10 +206,10 @@ export default function PushNotificationToggle() {
         <div className="flex items-start gap-3">
           <span className="text-xl">🔔</span>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+            <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
               Push Notifications
             </h3>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-xs text-[color:var(--text-muted)]">
               Active incident and page alerts
             </p>
           </div>
@@ -257,7 +257,7 @@ export default function PushNotificationToggle() {
             'flex min-h-[40px] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition',
             isSubscribed && !isTesting && !loading
               ? 'border-primary/30 bg-primary text-white'
-              : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'
+              : 'cursor-not-allowed border-[color:var(--border)] bg-[color:var(--bg-secondary)] text-[color:var(--text-muted)]'
           )}
         >
           {isTesting ? (

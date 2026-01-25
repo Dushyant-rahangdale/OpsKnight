@@ -90,11 +90,11 @@ export default async function MobileIncidentsPage(props: {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)] flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-primary" />
             Incidents
           </h1>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs font-medium text-[color:var(--text-muted)] mt-0.5">
             {totalCount > 0 ? `${startIndex}-${endIndex} of ${totalCount}` : '0 incidents'}
           </p>
         </div>
@@ -127,13 +127,13 @@ export default async function MobileIncidentsPage(props: {
 
       {/* Incident List */}
       {incidents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 py-12 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-surface)] py-12 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--bg-secondary)] text-[color:var(--text-muted)]">
             <SearchX className="h-7 w-7" />
           </div>
           <div>
-            <p className="font-semibold text-slate-700 dark:text-slate-300">No incidents found</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="font-semibold text-[color:var(--text-primary)]">No incidents found</p>
+            <p className="text-sm text-[color:var(--text-muted)] mt-1">
               {query ? `No match for "${query}"` : 'Change filters or create a new one'}
             </p>
           </div>
@@ -148,7 +148,7 @@ export default async function MobileIncidentsPage(props: {
             {(query || filter !== 'all' || sort !== 'created_desc') && (
               <Link
                 href="/m/incidents"
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-2 px-4 font-medium text-sm transition-all active:scale-[0.98]"
+                className="inline-flex items-center justify-center rounded-lg border border-[color:var(--border)] bg-[color:var(--bg-surface)] text-[color:var(--text-primary)] py-2 px-4 font-medium text-sm transition-all active:scale-[0.98]"
               >
                 Reset filters
               </Link>

@@ -36,8 +36,8 @@ export default async function MobileTeamsPage({
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Teams</h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">Teams</h1>
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           {teams.length} team{teams.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -54,7 +54,7 @@ export default async function MobileTeamsPage({
             <Link
               key={team.id}
               href={`/m/teams/${team.id}`}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800/60"
+              className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-4 text-[color:var(--text-primary)] shadow-sm transition hover:bg-[color:var(--bg-secondary)]"
             >
               {/* Team Avatar */}
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-base font-bold text-white dark:from-slate-200 dark:to-slate-50 dark:text-slate-900">
@@ -64,11 +64,11 @@ export default async function MobileTeamsPage({
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="truncate text-sm font-semibold">{team.name}</div>
                 {team.description && (
-                  <div className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="line-clamp-2 text-xs text-[color:var(--text-secondary)]">
                     {team.description}
                   </div>
                 )}
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-medium text-[color:var(--text-muted)]">
                   <span>
                     👥 {team._count.members} member{team._count.members !== 1 ? 's' : ''}
                   </span>
@@ -81,7 +81,7 @@ export default async function MobileTeamsPage({
                 </div>
               </div>
 
-              <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              <ChevronRight className="h-4 w-4 text-[color:var(--text-muted)]" />
             </Link>
           ))
         )}
@@ -92,10 +92,10 @@ export default async function MobileTeamsPage({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-6 py-10 text-center">
       <div className="text-3xl">👥</div>
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No teams</h3>
-      <p className="text-xs text-slate-500 dark:text-slate-400">Use desktop to create teams</p>
+      <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">No teams</h3>
+      <p className="text-xs text-[color:var(--text-muted)]">Use desktop to create teams</p>
     </div>
   );
 }

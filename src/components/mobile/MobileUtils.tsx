@@ -136,6 +136,7 @@ export function MobileAvatar({
         width={imageSize}
         height={imageSize}
         className={cn('rounded-full object-cover', sizeClass)}
+        unoptimized
       />
     );
   }
@@ -145,7 +146,7 @@ export function MobileAvatar({
       className={cn(
         'flex items-center justify-center rounded-full font-bold text-white',
         sizeClass,
-        'bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-200 dark:to-slate-50 dark:text-slate-900'
+        'bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-200 dark:to-slate-50 text-[color:var(--text-primary)]'
       )}
     >
       {initials}
@@ -237,7 +238,7 @@ export function MobileProgressBar({
         />
       </div>
       {showLabel && (
-        <div className="mt-1 text-right text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        <div className="mt-1 text-right text-[11px] font-medium text-[color:var(--text-muted)]">
           {Math.round(percentage)}%
         </div>
       )}
@@ -260,12 +261,12 @@ export function MobileEmptyState({
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
       {icon && (
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--bg-secondary)] text-2xl text-[color:var(--text-muted)]">
           {icon}
         </div>
       )}
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
-      {description && <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>}
+      <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">{title}</h3>
+      {description && <p className="text-xs text-[color:var(--text-muted)]">{description}</p>}
       {action && <div className="mt-2 flex flex-col gap-2">{action}</div>}
     </div>
   );

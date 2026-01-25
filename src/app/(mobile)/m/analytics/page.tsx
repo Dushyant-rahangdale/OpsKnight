@@ -33,10 +33,10 @@ export default async function MobileAnalyticsPage() {
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
           Analytics
         </h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           Last {windowLabelDays} days{windowLabelSuffix}
         </p>
       </div>
@@ -44,41 +44,41 @@ export default async function MobileAnalyticsPage() {
       <div className="grid grid-cols-2 gap-3">
         <MobileCard className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-rose-500" />
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{openIncidents}</div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">{openIncidents}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             Open Incidents
           </div>
         </MobileCard>
         <MobileCard className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">
             {incidentsInRange}
           </div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             New ({windowLabelDays}d)
           </div>
         </MobileCard>
         <MobileCard className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">
             {formatDuration(mtta)}
           </div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             MTTA
           </div>
         </MobileCard>
         <MobileCard className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-green-500" />
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="text-2xl font-bold text-[color:var(--text-primary)]">
             {formatDuration(mttr)}
           </div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
             MTTR
           </div>
         </MobileCard>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-secondary)] p-4 text-xs text-[color:var(--text-secondary)]">
         Metrics are calculated based on the last {windowLabelDays} days of activity.
         {slaMetrics.isClipped ? ' Data is limited by retention settings.' : ''} For detailed reports
         and custom ranges, please use the desktop dashboard.

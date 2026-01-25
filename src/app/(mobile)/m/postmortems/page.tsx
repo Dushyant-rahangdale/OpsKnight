@@ -23,19 +23,19 @@ export default async function MobilePostmortemsPage() {
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
           Postmortems
         </h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           {postmortems.length} total
         </p>
       </div>
 
       {postmortems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-6 py-10 text-center">
           <div className="text-3xl">📝</div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No postmortems</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">No postmortems</h3>
+          <p className="text-xs text-[color:var(--text-muted)]">
             Postmortems are created from resolved incidents
           </p>
         </div>
@@ -50,27 +50,27 @@ export default async function MobilePostmortemsPage() {
                       className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ${
                         pm.status === 'PUBLISHED'
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                          : 'bg-[color:var(--bg-secondary)] text-[color:var(--text-secondary)]'
                       }`}
                     >
                       {pm.status}
                     </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] text-[color:var(--text-muted)]">
                       {new Date(pm.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {pm.incident.title}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-muted)]">
                     <span>{pm.incident.service.name}</span>
                     <span>•</span>
                     <span>By {pm.createdBy.name || pm.createdBy.email}</span>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+                <ChevronRight className="h-4 w-4 text-[color:var(--text-muted)]" />
               </MobileCard>
             </Link>
           ))}

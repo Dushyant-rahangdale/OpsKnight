@@ -62,6 +62,20 @@ const nextConfig: NextConfig = {
         : false,
   },
   // Security headers
+  images: {
+    localPatterns: [
+      {
+        pathname: '/api/avatar',
+        search: '?**',
+      },
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+    ],
+  },
   async headers() {
     return [
       {

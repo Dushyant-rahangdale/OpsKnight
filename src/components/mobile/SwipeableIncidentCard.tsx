@@ -156,11 +156,11 @@ export default function SwipeableIncidentCard({
         onTouchEnd={handleTouchEnd}
         className={cn(
           'flex flex-col gap-2 p-4 rounded-xl border transition-colors touch-pan-y',
-          'bg-white dark:bg-slate-900',
-          'border-slate-200 dark:border-slate-800',
+          'bg-[color:var(--bg-surface)]',
+          'border-[color:var(--border)]',
           isUpdating
             ? 'cursor-progress opacity-60'
-            : 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50'
+            : 'cursor-pointer active:scale-[0.99] transition-transform'
         )}
         style={{
           transform: `translateX(${translateX}px)`,
@@ -192,19 +192,19 @@ export default function SwipeableIncidentCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug line-clamp-2">
+        <h3 className="text-sm font-semibold text-[color:var(--text-primary)] leading-snug line-clamp-2">
           {incident.title}
         </h3>
 
         {/* Meta info */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-[color:var(--text-muted)]">
           {incident.service?.name && (
             <>
               <span className="truncate">{incident.service.name}</span>
-              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="text-[color:var(--text-disabled)]">•</span>
             </>
           )}
-          <span>{timeAgo}</span>
+          <span suppressHydrationWarning>{timeAgo}</span>
         </div>
 
         {/* Swipe hint for open incidents */}

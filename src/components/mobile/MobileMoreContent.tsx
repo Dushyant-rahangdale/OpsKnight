@@ -1,8 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import MobileThemeToggle from '@/components/mobile/MobileThemeToggle';
 import PushNotificationToggle from '@/components/mobile/PushNotificationToggle';
 import { MobileAvatar } from '@/components/mobile/MobileUtils';
+import { useUserAvatarContextSafe } from '@/contexts/UserAvatarContext';
 import PwaInstallCard from '@/components/mobile/PwaInstallCard';
 import MobileSignOutButton from '@/components/mobile/MobileSignOutButton';
 
@@ -27,9 +30,11 @@ type ListItem = {
 };
 
 type MobileMoreContentProps = {
+  userId?: string;
   name: string;
   email: string;
   role: string;
+  gender?: string | null;
 };
 
 const chevronIcon = (
@@ -248,7 +253,15 @@ const iconSignOut = (
   </svg>
 );
 
-export default function MobileMoreContent({ name, email, role }: MobileMoreContentProps) {
+export default function MobileMoreContent({
+  userId,
+  name,
+  email,
+  role,
+  gender,
+}: MobileMoreContentProps) {
+  const { getAvatar } = useUserAvatarContextSafe();
+  const avatarUrl = userId ? getAvatar(userId, gender, name) : undefined;
   const shortcuts: ShortcutItem[] = [
     {
       href: '/m/teams',
@@ -369,7 +382,7 @@ export default function MobileMoreContent({ name, email, role }: MobileMoreConte
       <section className="mobile-more-hero">
         <div className="mobile-more-hero-content">
           <div className="mobile-more-avatar">
-            <MobileAvatar name={name} size="xl" />
+            <MobileAvatar name={name} src={avatarUrl} size="xl" />
           </div>
           <div className="mobile-more-identity">
             <h1 className="mobile-more-name">{name}</h1>

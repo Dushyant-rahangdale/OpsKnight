@@ -210,38 +210,43 @@ export default function MobileIncidentActions({
     'flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
   const sheetButtonBase =
-    'rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200';
+    'rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-2.5 text-sm font-semibold text-[color:var(--text-secondary)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2">
+      <div className={cn('flex gap-2', status === 'OPEN' ? 'flex-col' : 'flex-row')}>
         {status === 'OPEN' && (
           <button
             onClick={() => handleAction('ACKNOWLEDGE')}
             disabled={loading}
-            className={cn(actionBase, 'bg-amber-500 text-white hover:bg-amber-600')}
+            className={cn(
+              actionBase,
+              'w-full bg-amber-500 text-white hover:bg-amber-600 shadow-sm'
+            )}
           >
             {loading ? '...' : 'Acknowledge'}
           </button>
         )}
-        {status !== 'RESOLVED' && (
-          <button
-            onClick={() => openSheet('resolve')}
-            disabled={loading}
-            className={cn(actionBase, 'bg-emerald-600 text-white hover:bg-emerald-700')}
-          >
-            Resolve
-          </button>
-        )}
-        <button
-          onClick={() => openSheet('more')}
-          className={cn(
-            actionBase,
-            'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60'
+        <div className="flex gap-2 flex-1">
+          {status !== 'RESOLVED' && (
+            <button
+              onClick={() => openSheet('resolve')}
+              disabled={loading}
+              className={cn(actionBase, 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm')}
+            >
+              Resolve
+            </button>
           )}
-        >
-          More
-        </button>
+          <button
+            onClick={() => openSheet('more')}
+            className={cn(
+              actionBase,
+              'border border-[color:var(--border)] bg-[color:var(--bg-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-secondary)] shadow-sm'
+            )}
+          >
+            More
+          </button>
+        </div>
       </div>
 
       {errorMessage && sheetMode === null && (
@@ -310,9 +315,9 @@ export default function MobileIncidentActions({
               placeholder="Describe root cause, fix applied, or summary... (min 10 chars)"
               value={resolutionNote}
               onChange={e => setResolutionNote(e.target.value)}
-              className="min-h-[140px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              className="min-h-[140px] w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-3 py-2.5 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <div className="text-[11px] font-medium text-[color:var(--text-muted)]">
               {resolutionNote.length}/1000 characters (min {RESOLUTION_MIN})
             </div>
             <button
@@ -333,12 +338,12 @@ export default function MobileIncidentActions({
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Add a note..."
-              className="min-h-[140px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              className="min-h-[140px] w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-3 py-2.5 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => openSheet('more')}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60"
+                className="flex-1 rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text-secondary)] transition hover:bg-[color:var(--bg-secondary)]"
               >
                 Cancel
               </button>
@@ -355,7 +360,7 @@ export default function MobileIncidentActions({
 
         {sheetMode === 'snooze' && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
               Snooze for
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -375,13 +380,13 @@ export default function MobileIncidentActions({
 
         {sheetMode === 'reassign' && (
           <div className="flex flex-col gap-3">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
               Assign to user
             </label>
             <select
               onChange={e => e.target.value && handleReassign(e.target.value)}
               disabled={loading}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-2.5 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
               defaultValue=""
             >
               <option value="">Select a user...</option>
@@ -392,13 +397,13 @@ export default function MobileIncidentActions({
               ))}
             </select>
 
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <label className="text-xs font-semibold uppercase tracking-wide text-[color:var(--text-muted)]">
               Assign to team
             </label>
             <select
               onChange={e => e.target.value && handleReassign('', e.target.value)}
               disabled={loading}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-2.5 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
               defaultValue=""
             >
               <option value="">Select a team...</option>
@@ -412,7 +417,7 @@ export default function MobileIncidentActions({
             <button
               onClick={() => handleReassign('', '')}
               disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60"
+              className="rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-4 py-2.5 text-sm font-semibold text-[color:var(--text-secondary)] transition hover:bg-[color:var(--bg-secondary)]"
             >
               Unassign
             </button>

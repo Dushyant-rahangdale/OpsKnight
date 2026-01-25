@@ -296,7 +296,7 @@ export default function MobileQuickSwitcher() {
     <>
       <button
         type="button"
-        className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60"
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--bg-surface)] text-[color:var(--text-secondary)] shadow-sm transition hover:bg-[color:var(--bg-secondary)]"
         aria-label="Open quick switcher"
         onClick={() => setOpen(true)}
       >
@@ -320,7 +320,7 @@ export default function MobileQuickSwitcher() {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-900 dark:bg-slate-950"
+            className="w-full rounded-t-3xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="p-4">
@@ -339,7 +339,7 @@ export default function MobileQuickSwitcher() {
                   </button>
                 }
               />
-              <div className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="mt-2 text-xs font-medium text-[color:var(--text-muted)]">
                 {hasQuery ? 'Search results' : 'Start typing to search'}
               </div>
             </div>
@@ -352,7 +352,7 @@ export default function MobileQuickSwitcher() {
                       Recent
                     </div>
                     {recentItems.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                      <div className="rounded-xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] p-4 text-center text-xs text-[color:var(--text-muted)]">
                         No recent items yet.
                       </div>
                     ) : (
@@ -361,7 +361,7 @@ export default function MobileQuickSwitcher() {
                           <Link
                             key={`${item.type}-${item.id}`}
                             href={mapToMobileHref(item)}
-                            className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 transition hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900"
+                            className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-3 text-[color:var(--text-primary)] transition hover:bg-[color:var(--bg-secondary)]"
                             onClick={() => handleSelect(item)}
                           >
                             <span
@@ -398,7 +398,7 @@ export default function MobileQuickSwitcher() {
                         <Link
                           key={link.href}
                           href={link.href}
-                          className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900"
+                          className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-3 text-center text-xs font-semibold text-[color:var(--text-primary)] transition hover:bg-[color:var(--bg-secondary)]"
                         >
                           {link.label}
                         </Link>
@@ -413,7 +413,7 @@ export default function MobileQuickSwitcher() {
                       {Array.from({ length: 3 }).map((_, index) => (
                         <div
                           key={`qs-skeleton-${index}`}
-                          className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-900 dark:bg-slate-950"
+                          className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-3"
                         >
                           <span
                             className={cn(
@@ -434,7 +434,7 @@ export default function MobileQuickSwitcher() {
                   )}
 
                   {!isLoading && results.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
+                    <div className="rounded-xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] p-4 text-center text-sm text-[color:var(--text-muted)]">
                       No matches found. Try a different keyword.
                     </div>
                   )}
@@ -445,7 +445,7 @@ export default function MobileQuickSwitcher() {
                         <Link
                           key={`${item.type}-${item.id}`}
                           href={mapToMobileHref(item)}
-                          className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-slate-900 transition hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900"
+                          className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-3 text-[color:var(--text-primary)] transition hover:bg-[color:var(--bg-secondary)]"
                           onClick={() => handleSelect(item)}
                         >
                           <span

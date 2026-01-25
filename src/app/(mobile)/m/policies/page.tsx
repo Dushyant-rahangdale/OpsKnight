@@ -23,10 +23,10 @@ export default async function MobilePoliciesPage() {
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
           Escalation Policies
         </h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           {policies.length} policies
         </p>
       </div>
@@ -44,22 +44,22 @@ export default async function MobilePoliciesPage() {
             <Link key={policy.id} href={`/m/policies/${policy.id}`} className="no-underline">
               <MobileCard padding="md" className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {policy.name}
                   </div>
                   {policy.description && (
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
                       {policy.description}
                     </div>
                   )}
-                  <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="mt-2 flex items-center gap-2 text-[11px] text-[color:var(--text-muted)]">
                     <span>Steps: {policy.steps.length}</span>
                     <span>•</span>
                     <span>Services: {policy._count.services}</span>
                   </div>
                 </div>
 
-                <ChevronRight className="mt-1 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                <ChevronRight className="mt-1 h-4 w-4 text-[color:var(--text-muted)]" />
               </MobileCard>
             </Link>
           ))

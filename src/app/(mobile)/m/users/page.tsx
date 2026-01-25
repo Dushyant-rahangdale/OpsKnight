@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { MobileAvatar, MobileEmptyState } from '@/components/mobile/MobileUtils';
 import { MobileSearchWithParams } from '@/components/mobile/MobileSearchParams';
+import { getDefaultAvatar } from '@/lib/avatar';
 import MobileCard from '@/components/mobile/MobileCard';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,8 @@ export default async function MobileUsersPage({
       name: true,
       email: true,
       role: true,
+      avatarUrl: true,
+      gender: true,
     },
   });
 
@@ -37,8 +40,8 @@ export default async function MobileUsersPage({
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Users</h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">Users</h1>
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           {users.length} member{users.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -58,13 +61,16 @@ export default async function MobileUsersPage({
           users.map(user => (
             <Link key={user.id} href={`/m/users/${user.id}`} className="no-underline">
               <MobileCard className="flex items-center gap-3">
-                <MobileAvatar name={user.name || user.email} />
+                <MobileAvatar
+                  name={user.name || user.email}
+                  src={user.avatarUrl || getDefaultAvatar(user.gender, user.id)}
+                />
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {user.name || 'Unknown'}
                   </div>
-                  <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  <div className="truncate text-xs text-[color:var(--text-secondary)]">
                     {user.email}
                   </div>
                 </div>
@@ -73,13 +79,13 @@ export default async function MobileUsersPage({
                   className={`rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                     user.role === 'ADMIN'
                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                      : 'bg-[color:var(--bg-secondary)] text-[color:var(--text-secondary)]'
                   }`}
                 >
                   {user.role.toLowerCase()}
                 </div>
 
-                <span className="text-slate-400 dark:text-slate-500">
+                <span className="text-[color:var(--text-muted)]">
                   <svg
                     width="16"
                     height="16"

@@ -71,8 +71,10 @@ export default function PwaInstallCard() {
 
   return (
     <MobileCard padding="md" className="space-y-2">
-      <div className="text-sm font-semibold text-slate-900 dark:text-white">Install OpsKnight</div>
-      <div className="text-xs text-slate-500 dark:text-slate-400">
+      <div className="text-sm font-semibold text-[color:var(--text-primary)]">
+        Install OpsKnight
+      </div>
+      <div className="text-xs text-[color:var(--text-muted)]">
         Add the app to your Home Screen for faster access and alerts.
       </div>
 
@@ -84,9 +86,11 @@ export default function PwaInstallCard() {
           Install App
         </button>
       ) : (
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Tap <span className="font-semibold">Share</span>, scroll down, then tap{' '}
-          <span className="font-semibold">Add to Home Screen</span>.
+        <div className="mt-1 text-xs text-[color:var(--text-muted)]">
+          Tap <span className="font-semibold text-[color:var(--text-primary)]">Share</span>, scroll
+          down, then tap{' '}
+          <span className="font-semibold text-[color:var(--text-primary)]">Add to Home Screen</span>
+          .
         </div>
       )}
     </MobileCard>

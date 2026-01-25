@@ -38,10 +38,10 @@ export default async function MobileServicesPage({
     <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-xl font-bold tracking-tight text-[color:var(--text-primary)]">
           Services
         </h1>
-        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
           {healthyCount} healthy · {degradedCount} with issues
         </p>
       </div>
@@ -79,7 +79,7 @@ function ServiceCard({
   return (
     <Link
       href={`/m/services/${service.id}`}
-      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800/60"
+      className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] p-4 text-[color:var(--text-primary)] shadow-sm transition hover:bg-[color:var(--bg-secondary)]"
     >
       <div className="flex flex-1 items-center gap-3 min-w-0">
         <div
@@ -89,7 +89,7 @@ function ServiceCard({
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold">{service.name}</div>
           {service.description && (
-            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+            <div className="truncate text-xs text-[color:var(--text-secondary)]">
               {service.description}
             </div>
           )}
@@ -103,17 +103,17 @@ function ServiceCard({
         </span>
       )}
 
-      <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+      <ChevronRight className="h-4 w-4 text-[color:var(--text-muted)]" />
     </Link>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-900/60">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[color:var(--border)] bg-[color:var(--bg-secondary)] px-6 py-10 text-center">
       <div className="text-3xl">🔧</div>
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No services</h3>
-      <p className="text-xs text-slate-500 dark:text-slate-400">Use desktop to create services</p>
+      <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">No services</h3>
+      <p className="text-xs text-[color:var(--text-muted)]">Use desktop to create services</p>
     </div>
   );
 }

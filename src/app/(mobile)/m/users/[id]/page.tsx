@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MobileAvatar } from '@/components/mobile/MobileUtils';
+import { getDefaultAvatar } from '@/lib/avatar';
 import MobileCard from '@/components/mobile/MobileCard';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 
@@ -59,7 +60,11 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
 
       {/* User Header */}
       <MobileCard padding="lg" className="flex items-center gap-4">
-        <MobileAvatar name={user.name || user.email} size="lg" />
+        <MobileAvatar
+          name={user.name || user.email}
+          size="lg"
+          src={user.avatarUrl || getDefaultAvatar(user.gender, user.id)}
+        />
         <div className="flex-1">
           <h1 className="text-lg font-bold text-slate-900 dark:text-white">
             {user.name || 'Unknown User'}

@@ -92,7 +92,7 @@ export default function MobileBottomSheet({
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out dark:border-slate-900 dark:bg-slate-950 animate-in slide-in-from-bottom-6"
+        className="fixed inset-x-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-3xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-bottom-6"
         style={{
           maxHeight: getMaxHeight(),
           transform: `translateY(${translateY}px)`,
@@ -108,17 +108,17 @@ export default function MobileBottomSheet({
             onTouchEnd={handleTouchEnd}
             className="flex cursor-grab justify-center py-3 touch-none"
           >
-            <div className="h-1 w-9 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <div className="h-1 w-9 rounded-full bg-[color:var(--border)]" />
           </div>
         )}
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>
+          <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4">
+            <h3 className="text-base font-bold text-[color:var(--text-primary)]">{title}</h3>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--text-muted)] transition hover:bg-[color:var(--bg-secondary)]"
             >
               <svg
                 width="20"

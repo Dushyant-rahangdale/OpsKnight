@@ -22,12 +22,11 @@ type MobileButtonProps = {
 const variantStyles: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90',
   secondary:
-    'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-900',
+    'border border-[color:var(--border)] bg-[color:var(--bg-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-secondary)]',
   danger: 'bg-red-600 text-white hover:bg-red-700',
   success: 'bg-emerald-600 text-white hover:bg-emerald-700',
   warning: 'bg-amber-500 text-white hover:bg-amber-600',
-  ghost:
-    'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900',
+  ghost: 'bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--bg-secondary)]',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

@@ -2,6 +2,8 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import MobileIncidentActions from './actions';
+import { MobileAvatar } from '@/components/mobile/MobileUtils';
+import { getDefaultAvatar } from '@/lib/avatar';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import {
@@ -59,7 +61,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
     where: { id },
     include: {
       service: { select: { id: true, name: true } },
-      assignee: { select: { id: true, name: true, email: true } },
+      assignee: { select: { id: true, name: true, email: true, avatarUrl: true, gender: true } },
       team: { select: { id: true, name: true } },
       events: {
         orderBy: { createdAt: 'desc' },
@@ -107,7 +109,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
       </Link>
 
       {/* Header Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm">
         {/* Status Gradient Bar */}
         <div
           className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${STATUS_GRADIENT[incident.status] || STATUS_GRADIENT.OPEN}`}
@@ -131,17 +133,17 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
           </div>
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-snug mb-2">
+          <h1 className="text-lg font-bold text-[color:var(--text-primary)] leading-snug mb-2">
             {incident.title}
           </h1>
 
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[color:var(--text-muted)]">
             <span className="flex items-center gap-1">
               <Zap className="h-3.5 w-3.5" />
               {incident.service.name}
             </span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
+            <span className="text-[color:var(--text-disabled)]">•</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
               {formatDate(incident.createdAt)}
@@ -162,21 +164,36 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
       />
 
       {/* Details Card */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Activity className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+          <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+            <Activity className="h-4 w-4 text-[color:var(--text-muted)]" />
             Details
           </h3>
         </div>
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="divide-y divide-[color:var(--border)]">
           <DetailRow
             icon={<Zap className="h-4 w-4" />}
             label="Service"
             value={incident.service.name}
           />
           <DetailRow
-            icon={<User className="h-4 w-4" />}
+            icon={
+              incident.assignee ? (
+                <div className="-ml-0.5">
+                  <MobileAvatar
+                    name={incident.assignee.name || incident.assignee.email}
+                    size="sm"
+                    src={
+                      incident.assignee.avatarUrl ||
+                      getDefaultAvatar(incident.assignee.gender, incident.assignee.id)
+                    }
+                  />
+                </div>
+              ) : (
+                <User className="h-4 w-4" />
+              )
+            }
             label="Assigned To"
             value={incident.assignee?.name || incident.team?.name || 'Unassigned'}
             subValue={incident.team && !incident.assignee ? '(Team)' : undefined}
@@ -204,16 +221,17 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
       </div>
 
       {/* Description */}
+      {/* Description */}
       {incident.description && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+            <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[color:var(--text-muted)]" />
               Description
             </h3>
           </div>
           <div className="p-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm text-[color:var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
               {incident.description}
             </p>
           </div>
@@ -221,29 +239,26 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
       )}
 
       {/* Timeline / Events */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Activity className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+          <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+            <Activity className="h-4 w-4 text-[color:var(--text-muted)]" />
             Recent Activity
           </h3>
         </div>
         <div className="p-4">
           {incident.events.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+            <p className="text-sm text-[color:var(--text-muted)] text-center py-4">
               No activity yet
             </p>
           ) : (
             <div className="flex flex-col gap-4">
               {incident.events.map(event => (
-                <div
-                  key={event.id}
-                  className="pl-4 border-l-2 border-slate-200 dark:border-slate-700"
-                >
-                  <div className="text-sm font-medium text-slate-900 dark:text-white">
+                <div key={event.id} className="pl-4 border-l-2 border-[color:var(--border)]">
+                  <div className="text-sm font-medium text-[color:var(--text-primary)]">
                     {event.message}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <div className="text-xs text-[color:var(--text-muted)] mt-0.5">
                     {formatTimeAgo(event.createdAt)}
                   </div>
                 </div>
@@ -255,10 +270,10 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
 
       {/* Tags */}
       {incident.tags.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Tag className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+            <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+              <Tag className="h-4 w-4 text-[color:var(--text-muted)]" />
               Tags
             </h3>
           </div>
@@ -284,10 +299,10 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
 
       {/* Watchers */}
       {incident.watchers.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Eye className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+            <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+              <Eye className="h-4 w-4 text-[color:var(--text-muted)]" />
               Watchers ({incident.watchers.length})
             </h3>
           </div>
@@ -296,7 +311,7 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
               {incident.watchers.map(w => (
                 <span
                   key={w.id}
-                  className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-[color:var(--bg-secondary)] text-[color:var(--text-secondary)]"
                 >
                   {w.user.name || w.user.email}
                 </span>
@@ -308,10 +323,10 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
 
       {/* Notes */}
       {incident.notes.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-[color:var(--border)] bg-[color:var(--bg-secondary)]">
+            <h3 className="text-sm font-bold text-[color:var(--text-primary)] flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-[color:var(--text-muted)]" />
               Notes ({incident.notes.length})
             </h3>
           </div>
@@ -319,10 +334,10 @@ export default async function MobileIncidentDetailPage({ params }: PageProps) {
             <div className="flex flex-col gap-4">
               {incident.notes.map(n => (
                 <div key={n.id} className="pl-4 border-l-2 border-primary/50">
-                  <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <div className="text-sm text-[color:var(--text-secondary)] leading-relaxed">
                     {n.content}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <div className="text-xs text-[color:var(--text-muted)] mt-1">
                     {n.user.name || n.user.email} • {formatTimeAgo(n.createdAt)}
                   </div>
                 </div>
@@ -359,14 +374,14 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <span className="flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
         {icon}
         {label}
       </span>
       <div className="text-right">
-        <span className="text-sm font-medium text-slate-900 dark:text-white">{value}</span>
+        <span className="text-sm font-medium text-[color:var(--text-primary)]">{value}</span>
         {subValue && (
-          <span className="block text-xs text-slate-500 dark:text-slate-400">{subValue}</span>
+          <span className="block text-xs text-[color:var(--text-muted)]">{subValue}</span>
         )}
       </div>
     </div>
