@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/dushyant-rahangdale/opsknight/main/public/banner.png" alt="OpsKnight Banner" width="100%">
+<img src="public/banner.png" alt="OpsKnight Banner" width="100%">
 
 # OpsKnight
 
