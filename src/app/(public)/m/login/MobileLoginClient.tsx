@@ -291,7 +291,7 @@ export default function MobileLoginClient({
                       if (error) setError('');
                     }}
                     onBlur={() => setEmailTouched(true)}
-                    className="w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
+                    className="auth-input w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                     placeholder="you@opsknight.com"
                     disabled={isSubmitting || isSuccess}
                   />
@@ -343,7 +343,7 @@ export default function MobileLoginClient({
                         setCapsLockOn(false);
                       }
                     }}
-                    className="w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
+                    className="auth-input w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                     placeholder="••••••••"
                     disabled={isSubmitting || isSuccess}
                   />
