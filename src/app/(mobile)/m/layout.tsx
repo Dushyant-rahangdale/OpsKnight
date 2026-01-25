@@ -82,17 +82,16 @@ export default async function MobileLayout({ children }: { children: React.React
       >
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
           <MobileBiometricGuard>
+            <MobileHeader systemStatus={systemStatus} />
             <div className="mobile-shell" data-status={systemStatus}>
-              <MobileHeader systemStatus={systemStatus} />
-
               <main className="mobile-content">
                 <MobileNetworkBanner />
                 <MobileSwipeNavigator>
                   <PullToRefresh>{children}</PullToRefresh>
                 </MobileSwipeNavigator>
               </main>
-              <MobileNav />
             </div>
+            <MobileNav />
           </MobileBiometricGuard>
         </ThemeProvider>
       </UserAvatarProvider>
