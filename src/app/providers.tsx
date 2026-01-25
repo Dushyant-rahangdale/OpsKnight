@@ -11,15 +11,12 @@ import { KeyboardShortcutsProvider } from '@/components/KeyboardShortcutsProvide
 function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isMobileRoute = pathname?.startsWith('/m');
-  const themeProps = isMobileRoute ? {} : { forcedTheme: 'light' as const };
+  const themeProps = isMobileRoute
+    ? { defaultTheme: 'system' as const, enableSystem: true }
+    : { forcedTheme: 'light' as const, defaultTheme: 'light' as const, enableSystem: false };
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
-      disableTransitionOnChange
-    >
+    <ThemeProvider attribute={['class', 'data-theme']} disableTransitionOnChange {...themeProps}>
       {children}
     </ThemeProvider>
   );
