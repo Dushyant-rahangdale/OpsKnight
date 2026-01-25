@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { flushQueuedRequests } from '@/lib/offline-queue';
+import { WifiOff, Wifi } from 'lucide-react';
 
 type ConnectionInfo = {
   effectiveType?: string;
@@ -58,7 +59,10 @@ export default function MobileNetworkBanner() {
   if (!isOnline) {
     return (
       <div className="mobile-network-banner offline" data-swipe-ignore>
-        <span>You&apos;re offline. Some actions may fail.</span>
+        <div className="flex items-center gap-2">
+          <WifiOff className="h-4 w-4" />
+          <span>You&apos;re offline. View-only mode.</span>
+        </div>
         <button type="button" onClick={() => router.refresh()}>
           Retry
         </button>

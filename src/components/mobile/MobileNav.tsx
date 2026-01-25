@@ -120,7 +120,7 @@ export default function MobileNav() {
             href={item.href}
             className={`mobile-nav-item ${active ? 'active' : ''}`}
             style={{ maxWidth: 'unset' }}
-            onClick={() => haptics.soft()}
+            onClick={() => haptics.selection()}
           >
             <span className="mobile-nav-icon" style={{ position: 'relative' }}>
               {active ? item.iconActive : item.icon}

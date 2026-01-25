@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import MobileTime from '@/components/mobile/MobileTime';
+import NewIncidentButton from '@/components/mobile/NewIncidentButton';
 import { formatDurationShort } from '@/lib/mobile-time';
 
 export const dynamic = 'force-dynamic';
@@ -135,22 +136,7 @@ export default async function MobileDashboard() {
 
       {/* Quick Actions */}
       <div className="mobile-quick-actions">
-        <Link
-          href="/m/incidents/create"
-          className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl bg-slate-800 dark:bg-slate-700 p-4 text-white shadow-lg shadow-slate-900/10 active:scale-[0.98] transition-all font-semibold text-sm"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <path d="M12 5v14m-7-7h14" strokeLinecap="round" />
-          </svg>
-          New Incident
-        </Link>
+        <NewIncidentButton />
         <Link href="/m/incidents" className="mobile-quick-action secondary">
           <svg
             width="18"

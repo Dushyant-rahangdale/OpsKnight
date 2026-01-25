@@ -1,5 +1,5 @@
-import { PageSkeleton } from '@/components/mobile/SkeletonLoader';
+import { DashboardSkeleton } from '@/components/mobile/MobileSkeleton';
 
-export default function Loading() {
-  return <PageSkeleton itemCount={3} />;
+export default function MobileDashboardLoading() {
+  return <DashboardSkeleton />;
 }
