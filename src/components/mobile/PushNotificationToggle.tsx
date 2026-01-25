@@ -91,6 +91,16 @@ export default function PushNotificationToggle() {
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (error: unknown) {
+      // access denied or no SW is expected outcome in some envs, don't spam
+      const msg = error instanceof Error ? error.message : '';
+      if (
+        msg.includes('Service Worker not available') ||
+        msg.includes('Service Worker not supported') ||
+        msg.includes('Push requires HTTPS')
+      ) {
+        setIsSubscribed(false);
+        return;
+      }
       logger.error('Failed to check push subscription', {
         component: 'PushNotificationToggle',
         error,

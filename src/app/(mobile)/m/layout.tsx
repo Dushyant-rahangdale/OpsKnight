@@ -47,6 +47,32 @@ export default async function MobileLayout({ children }: { children: React.React
     redirect('/api/auth/signout?callbackUrl=/m/login');
   }
 
+  // Fetch incident counts for system status
+  let systemStatus: 'ok' | 'warning' | 'danger' = 'ok';
+
+  try {
+    const openUrgencyCounts = await prisma.incident.groupBy({
+      by: ['urgency'],
+      where: {
+        status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
+      },
+      _count: { _all: true },
+    });
+
+    let criticalOpenCount = 0;
+    let mediumOpenCount = 0;
+
+    for (const entry of openUrgencyCounts) {
+      if (entry.urgency === 'HIGH') criticalOpenCount = entry._count._all;
+      else if (entry.urgency === 'MEDIUM') mediumOpenCount = entry._count._all;
+    }
+
+    if (criticalOpenCount > 0) systemStatus = 'danger';
+    else if (mediumOpenCount > 0) systemStatus = 'warning';
+  } catch (error) {
+    console.error('Failed to load system status for mobile layout', error);
+  }
+
   return (
     <TimezoneProvider initialTimeZone={dbUser.timeZone || 'UTC'}>
       <UserAvatarProvider
@@ -57,10 +83,8 @@ export default async function MobileLayout({ children }: { children: React.React
       >
         <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
           <MobileBiometricGuard>
-            <div className="mobile-shell">
-              <Suspense fallback={<MobileHeader systemStatus="ok" />}>
-                <MobileHeaderLoader />
-              </Suspense>
+            <div className="mobile-shell" data-status={systemStatus}>
+              <MobileHeader systemStatus={systemStatus} />
 
               <main className="mobile-content">
                 <MobileNetworkBanner />
