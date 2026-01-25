@@ -217,10 +217,8 @@ export default function SwipeableIncidentCard({
 
       {/* Updating overlay */}
       {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded-xl backdrop-blur-sm">
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Updating...
-          </span>
+        <div className="absolute inset-0 flex items-center justify-center bg-[color:var(--bg-surface)] bg-opacity-80 rounded-xl backdrop-blur-sm">
+          <span className="text-sm font-medium text-[color:var(--text-muted)]">Updating...</span>
         </div>
       )}
     </div>

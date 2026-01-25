@@ -332,7 +332,7 @@ export default function MobileQuickSwitcher() {
                 rightAction={
                   <button
                     type="button"
-                    className="text-xs font-semibold text-slate-500 dark:text-slate-400"
+                    className="text-xs font-semibold text-[color:var(--text-muted)]"
                     onClick={() => setOpen(false)}
                   >
                     Cancel
@@ -348,7 +348,7 @@ export default function MobileQuickSwitcher() {
               {!hasQuery ? (
                 <>
                   <div className="mb-4">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
                       Recent
                     </div>
                     {recentItems.length === 0 ? (
@@ -375,7 +375,7 @@ export default function MobileQuickSwitcher() {
                             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                               <span className="truncate text-sm font-semibold">{item.title}</span>
                               {item.subtitle && (
-                                <span className="truncate text-xs text-slate-500 dark:text-slate-400">
+                                <span className="truncate text-xs text-[color:var(--text-muted)]">
                                   {item.subtitle}
                                 </span>
                               )}
@@ -390,7 +390,7 @@ export default function MobileQuickSwitcher() {
                   </div>
 
                   <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
                       Explore
                     </div>
                     <div className="grid grid-cols-2 gap-2">

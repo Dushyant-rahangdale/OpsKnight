@@ -89,7 +89,7 @@ export default function MobileListControls({
         </div>
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--bg-surface)] px-3 py-2">
           <label
-            className="text-[0.7rem] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+            className="text-[0.7rem] font-semibold uppercase tracking-wider text-[color:var(--text-muted)]"
             htmlFor="mobile-sort"
           >
             Sort
