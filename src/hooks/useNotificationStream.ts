@@ -3,19 +3,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { logger } from '@/lib/logger';
 
-type NotificationStreamHandlers = {
+type NotificationStreamHandlers<T = any> = {
   enabled?: boolean;
-  onNotifications?: (notifications: Array<{ unread: boolean }>) => void;
+  onNotifications?: (notifications: T[]) => void;
   onUnreadCount?: (count: number) => void;
   onError?: (error: Error) => void;
 };
 
-export function useNotificationStream({
+export function useNotificationStream<T = any>({
   enabled = true,
   onNotifications,
   onUnreadCount,
   onError,
-}: NotificationStreamHandlers) {
+}: NotificationStreamHandlers<T>) {
   const [isConnected, setIsConnected] = useState(false);
   const handlersRef = useRef({ onNotifications, onUnreadCount, onError });
 

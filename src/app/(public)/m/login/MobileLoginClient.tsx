@@ -448,7 +448,7 @@ export default function MobileLoginClient({
           </form>
 
           {/* Footer */}
-          <p className="mt-8 text-center text-xs text-slate-400">Protected by OpsKnight</p>
+          <p className="mt-8 text-center text-xs text-slate-400">Secured by OpsKnight</p>
         </div>
       </main>
     </div>

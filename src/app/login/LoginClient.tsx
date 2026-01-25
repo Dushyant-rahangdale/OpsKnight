@@ -125,14 +125,14 @@ export default function LoginClient({
             ) : (
               <span className="flex items-center gap-3">
                 <span className="w-1.5 h-6 bg-white/20 rounded-full" />
-                System Authentication
+                OpsKnight Secure Access
               </span>
             )}
           </h2>
           <p className="mt-2 text-sm text-white/50 pl-0.5">
             {isSuccess
               ? 'Redirecting to secure console...'
-              : 'Enter your credentials to access the secure console.'}
+              : 'Enter your credentials to access OpsKnight securely.'}
           </p>
         </div>
 

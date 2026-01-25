@@ -71,7 +71,8 @@ export const enqueueRequest = async (request: Omit<QueuedRequest, 'id' | 'create
     try {
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         const registration = await navigator.serviceWorker.ready;
-        await registration.sync.register('opsknight-sync');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (registration as any).sync.register('opsknight-sync');
       }
     } catch {
       // Background sync not available, rely on manual flush.

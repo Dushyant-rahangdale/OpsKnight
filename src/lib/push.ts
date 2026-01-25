@@ -263,6 +263,7 @@ export async function sendIncidentPush(
         include: {
           service: true,
           assignee: true,
+          team: true,
         },
       }),
     ]);

@@ -70,11 +70,11 @@ export default function MobileIncidentList({
       }
       return updated;
     });
+    const requestUrl =
+      typeof window !== 'undefined'
+        ? new URL(`/api/mobile/incidents/${id}/status`, window.location.origin).toString()
+        : `/api/mobile/incidents/${id}/status`;
     try {
-      const requestUrl =
-        typeof window !== 'undefined'
-          ? new URL(`/api/mobile/incidents/${id}/status`, window.location.origin).toString()
-          : `/api/mobile/incidents/${id}/status`;
       const response = await fetch(requestUrl, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
