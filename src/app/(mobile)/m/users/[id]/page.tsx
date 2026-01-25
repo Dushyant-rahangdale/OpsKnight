@@ -66,16 +66,16 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
           src={user.avatarUrl || getDefaultAvatar(user.gender, user.id)}
         />
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+          <h1 className="text-lg font-bold text-[color:var(--text-primary)]">
             {user.name || 'Unknown User'}
           </h1>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+          <p className="mt-1 text-xs text-[color:var(--text-muted)]">{user.email}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span
               className={`rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                 user.role === 'ADMIN'
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  ? 'bg-[color:var(--badge-warning-bg)] text-[color:var(--badge-warning-text)]'
+                  : 'bg-[color:var(--badge-neutral-bg)] text-[color:var(--badge-neutral-text)]'
               }`}
             >
               {user.role.toLowerCase()}
@@ -83,8 +83,8 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
             <span
               className={`rounded-lg px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                 user.status === 'ACTIVE'
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                  ? 'bg-[color:var(--badge-success-bg)] text-[color:var(--badge-success-text)]'
+                  : 'bg-[color:var(--badge-error-bg)] text-[color:var(--badge-error-text)]'
               }`}
             >
               {user.status}
@@ -95,7 +95,7 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
 
       {/* Teams Section */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[color:var(--text-muted)]">
           Teams ({user.teamMemberships.length})
         </h3>
         <div className="flex flex-col gap-2">
@@ -110,14 +110,14 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
               >
                 <MobileCard padding="sm" className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="text-sm font-semibold text-[color:var(--text-primary)]">
                       {membership.team.name}
                     </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="text-[11px] text-[color:var(--text-muted)]">
                       {membership.role}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+                  <ChevronRight className="h-4 w-4 text-[color:var(--text-muted)]" />
                 </MobileCard>
               </Link>
             ))
@@ -138,14 +138,14 @@ export default async function MobileUserDetailPage({ params }: PageProps) {
               <Link key={incident.id} href={`/m/incidents/${incident.id}`} className="no-underline">
                 <MobileCard padding="sm" className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                       {incident.title}
                     </div>
-                    <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <div className="mt-1 text-[11px] text-[color:var(--text-muted)]">
                       {incident.service.name} • {incident.status}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+                  <ChevronRight className="h-4 w-4 text-[color:var(--text-muted)]" />
                 </MobileCard>
               </Link>
             ))
