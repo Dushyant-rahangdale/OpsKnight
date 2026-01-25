@@ -11,8 +11,8 @@ self.addEventListener('push', function (event) {
     let data = {
         title: 'OpsKnight',
         body: 'New notification',
-        icon: '/icons/android-chrome-192x192.png',
-        badge: '/icons/android-chrome-192x192.png',
+        icon: '/icons/app-icon-192.png',
+        badge: '/icons/app-icon-192.png',
         url: '/m/notifications',
         actions: undefined
     };
@@ -44,8 +44,8 @@ self.addEventListener('push', function (event) {
 
     const options = {
         body: data.body,
-        icon: data.icon || '/icons/android-chrome-192x192.png',
-        badge: data.badge || '/icons/android-chrome-192x192.png',
+        icon: data.icon || '/icons/app-icon-192.png',
+        badge: data.badge || '/icons/app-icon-192.png',
         data: {
             url: data.url || data.data?.url || '/m/notifications',
             ...data.data

@@ -40,11 +40,16 @@ export default function PushNotificationToggle() {
   const [isTesting, setIsTesting] = useState(false);
   const [testMessage, setTestMessage] = useState('');
   const [isSupported, setIsSupported] = useState(false);
-  const serviceWorkerPath = '/sw-push.js';
+  const [isStandalone, setIsStandalone] = useState(false);
+  const serviceWorkerPath = '/sw.js';
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
       setIsSupported(true);
+      const standalone =
+        window.matchMedia?.('(display-mode: standalone)')?.matches ||
+        (window.navigator as { standalone?: boolean }).standalone;
+      setIsStandalone(Boolean(standalone));
       checkSubscription();
     }
   }, []);
@@ -53,14 +58,30 @@ export default function PushNotificationToggle() {
     if (!('serviceWorker' in navigator)) {
       throw new Error('Service Worker not supported');
     }
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      throw new Error('Push requires HTTPS. Please use a secure origin.');
+    }
     const existing = await navigator.serviceWorker.getRegistration();
     const targetUrl = new URL(serviceWorkerPath, window.location.origin).toString();
     const existingUrl = existing?.active?.scriptURL;
     const shouldRegister = !existing || !existingUrl || existingUrl !== targetUrl;
-    const registration = shouldRegister
-      ? await navigator.serviceWorker.register(serviceWorkerPath, { scope: '/' })
-      : existing;
+    let registration = existing;
+    if (shouldRegister) {
+      try {
+        registration = await navigator.serviceWorker.register(serviceWorkerPath, { scope: '/' });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Service Worker registration failed.';
+        throw new Error(
+          message.includes('404') || message.includes('Failed to register')
+            ? 'PWA service worker not available. Please enable PWA in production.'
+            : message
+        );
+      }
+    }
     await navigator.serviceWorker.ready;
+    if (!registration) {
+      throw new Error('Service Worker not available.');
+    }
     return registration;
   }
 
@@ -211,6 +232,11 @@ export default function PushNotificationToggle() {
             </h3>
             <p className="mt-0.5 text-xs text-[color:var(--text-muted)]">
               Active incident and page alerts
+            </p>
+            <p className="mt-1 text-[11px] text-[color:var(--text-muted)]">
+              {isStandalone
+                ? 'Installed PWA detected for best Android push reliability.'
+                : 'Tip: Install the app from Chrome ⋮ → Install app for best Android push.'}
             </p>
           </div>
         </div>

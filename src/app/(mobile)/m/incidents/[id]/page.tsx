@@ -28,29 +28,30 @@ type PageProps = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  OPEN: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border-red-200 dark:border-red-800',
+  OPEN: 'bg-red-50 text-red-700 dark:bg-red-900/10 dark:text-red-400 border-red-200 dark:border-red-900/20',
   ACKNOWLEDGED:
-    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
   RESOLVED:
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    'bg-slate-50 text-slate-600 dark:bg-slate-900/40 dark:text-slate-400 border-slate-200 dark:border-slate-800',
   SNOOZED:
-    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+    'bg-slate-50 text-slate-500 dark:bg-slate-900/30 dark:text-slate-500 border-slate-100 dark:border-slate-800',
   SUPPRESSED:
-    'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+    'bg-slate-50 text-slate-400 dark:bg-slate-900/20 dark:text-slate-600 border-slate-100 dark:border-slate-800',
 };
 
 const URGENCY_STYLES: Record<string, string> = {
-  HIGH: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
-  MEDIUM: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-  LOW: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+  HIGH: 'bg-red-50 text-red-700 dark:bg-red-900/10 dark:text-red-400',
+  MEDIUM: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  LOW: 'bg-slate-50 text-slate-600 dark:bg-slate-900/40 dark:text-slate-400',
 };
 
 const STATUS_GRADIENT: Record<string, string> = {
-  OPEN: 'from-red-500 to-rose-500',
-  ACKNOWLEDGED: 'from-amber-500 to-yellow-500',
-  RESOLVED: 'from-emerald-500 to-green-500',
-  SNOOZED: 'from-blue-500 to-indigo-500',
-  SUPPRESSED: 'from-slate-500 to-gray-500',
+  OPEN: 'from-red-600 to-red-500',
+  ACKNOWLEDGED: 'from-slate-600 to-slate-500',
+  RESOLVED: 'from-slate-600 to-slate-500',
+  SNOOZED: 'from-slate-500 to-slate-400',
+  SUPPRESSED: 'from-slate-400 to-slate-300',
+  DEFAULT: 'from-slate-800 to-slate-700',
 };
 
 export default async function MobileIncidentDetailPage({ params }: PageProps) {

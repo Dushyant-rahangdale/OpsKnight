@@ -166,12 +166,12 @@ export default function MobileLoginClient({
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#0a0a0a] text-white flex flex-col">
+    <div className="min-h-[100dvh] w-full bg-slate-50 text-slate-900 flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-center pt-12 pb-8">
         <Link href="/" className="flex items-center gap-3">
           <img src="/logo.svg" alt="OpsKnight" className="h-10 w-10" />
-          <span className="text-xl font-bold tracking-tight">OpsKnight</span>
+          <span className="text-xl font-bold tracking-tight text-slate-900">OpsKnight</span>
         </Link>
       </header>
 
@@ -180,10 +180,10 @@ export default function MobileLoginClient({
         <div className="w-full max-w-sm mx-auto">
           {/* Page Title */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 font-display">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 font-display">
               {isSuccess ? 'Access Granted' : 'Secure Mobile Login'}
             </h2>
-            <p className="mt-1 text-sm text-white/55">
+            <p className="mt-1 text-sm text-slate-500">
               {isSuccess
                 ? 'Redirecting to your mobile command center.'
                 : 'Verify your identity to reach OpsKnight Mobile.'}
@@ -202,19 +202,19 @@ export default function MobileLoginClient({
                     className={cn(
                       'flex items-start gap-3 rounded-lg border p-3 text-sm',
                       isSuccessTone
-                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                        : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                        ? 'border-slate-200 bg-white text-slate-700 shadow-sm'
+                        : 'border-amber-200 bg-amber-50 text-amber-800'
                     )}
                   >
                     <Icon
                       className={cn(
                         'h-4 w-4 mt-0.5 shrink-0',
-                        isSuccessTone ? 'text-emerald-400' : 'text-amber-400'
+                        isSuccessTone ? 'text-slate-500' : 'text-amber-600'
                       )}
                     />
                     <div>
                       <p className="font-medium">{notice.title}</p>
-                      <p className="text-white/60 text-xs mt-0.5">{notice.message}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">{notice.message}</p>
                     </div>
                   </div>
                 );
@@ -227,15 +227,15 @@ export default function MobileLoginClient({
             <div
               role="alert"
               className={cn(
-                'mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm flex items-start gap-3',
+                'mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-sm flex items-start gap-3',
                 isShaking && 'animate-shake'
               )}
             >
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-400 mt-0.5" />
-              <p className="flex-1 text-red-200">{error}</p>
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
+              <p className="flex-1 text-red-700">{error}</p>
               <button
                 onClick={() => setError('')}
-                className="text-white/40 hover:text-white transition-colors"
+                className="text-red-400 hover:text-red-700 transition-colors"
                 aria-label="Dismiss error"
               >
                 <X className="h-4 w-4" />
@@ -255,10 +255,10 @@ export default function MobileLoginClient({
               />
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10" />
+                  <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-[#0a0a0a] px-4 text-white/40">or</span>
+                  <span className="bg-slate-50 px-4 text-slate-400">or</span>
                 </div>
               </div>
             </div>
@@ -267,24 +267,20 @@ export default function MobileLoginClient({
           {/* Login Form */}
           <form onSubmit={handleCredentials} className="space-y-5">
             {/* Email Field */}
-            {/* Email Field */}
             <div className="group space-y-2">
               <label
                 className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
                   emailTouched && email && !isEmailValid
-                    ? 'text-rose-400'
-                    : 'text-white/60 group-focus-within:text-white/80'
+                    ? 'text-red-500'
+                    : 'text-slate-500 group-focus-within:text-slate-900'
                 }`}
               >
                 Identification
               </label>
               <div className="relative group/input">
-                <div className="absolute inset-0 bg-white/5 rounded-xl transition duration-300 group-hover/input:bg-white/10" />
-                <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[11px]" />
-
-                <div className="relative flex items-center pr-3 group-focus-within:border-white/30 group-focus-within:bg-white/5 rounded-xl border border-white/10 transition-colors duration-300">
-                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-white/10">
-                    <Mail className="h-5 w-5 text-white/40 transition-colors group-focus-within/input:text-white/70" />
+                <div className="relative flex items-center pr-3 group-focus-within:border-slate-400 bg-white rounded-xl border border-slate-200 shadow-sm transition-colors duration-300">
+                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-slate-100">
+                    <Mail className="h-5 w-5 text-slate-400 transition-colors group-focus-within/input:text-slate-600" />
                   </div>
                   <input
                     type="email"
@@ -295,19 +291,19 @@ export default function MobileLoginClient({
                       if (error) setError('');
                     }}
                     onBlur={() => setEmailTouched(true)}
-                    className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
+                    className="w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                     placeholder="you@opsknight.com"
                     disabled={isSubmitting || isSuccess}
                   />
                   {emailTouched && email && !isEmailValid && (
-                    <div className="absolute right-3 text-rose-400 animate-in fade-in zoom-in duration-200">
+                    <div className="absolute right-3 text-red-500 animate-in fade-in zoom-in duration-200">
                       <AlertCircle className="w-5 h-5" />
                     </div>
                   )}
                 </div>
               </div>
               {emailTouched && email && !isEmailValid && (
-                <p className="text-[10px] text-rose-400 font-medium pl-1 animate-in slide-in-from-top-1">
+                <p className="text-[10px] text-red-500 font-medium pl-1 animate-in slide-in-from-top-1">
                   Please enter a valid email address
                 </p>
               )}
@@ -316,24 +312,21 @@ export default function MobileLoginClient({
             {/* Password Field */}
             <div className="group space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-white/60 transition-colors duration-300 group-focus-within:text-white/80">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 transition-colors duration-300 group-focus-within:text-slate-900">
                   Access Key
                 </label>
                 <Link
                   href="/m/forgot-password"
-                  className="text-xs font-medium text-emerald-500/80 hover:text-emerald-400 transition-colors focus:outline-none focus:underline"
+                  className="text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus:underline"
                 >
                   Forgot password?
                 </Link>
               </div>
 
               <div className="relative group/input">
-                <div className="absolute inset-0 bg-white/5 rounded-xl transition duration-300 group-hover/input:bg-white/10" />
-                <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[11px]" />
-
-                <div className="relative flex items-center pr-3 group-focus-within:border-white/30 group-focus-within:bg-white/5 rounded-xl border border-white/10 transition-all duration-300">
-                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-white/10">
-                    <Lock className="h-5 w-5 text-white/40 transition-colors group-focus-within/input:text-white/70" />
+                <div className="relative flex items-center pr-3 group-focus-within:border-slate-400 bg-white rounded-xl border border-slate-200 shadow-sm transition-all duration-300">
+                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-slate-100">
+                    <Lock className="h-5 w-5 text-slate-400 transition-colors group-focus-within/input:text-slate-600" />
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -350,15 +343,15 @@ export default function MobileLoginClient({
                         setCapsLockOn(false);
                       }
                     }}
-                    className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
+                    className="w-full bg-transparent px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none transition-colors"
                     placeholder="••••••••"
                     disabled={isSubmitting || isSuccess}
                   />
-                  <div className="flex items-center border-l border-white/10 pl-3">
+                  <div className="flex items-center border-l border-slate-100 pl-3">
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-white/30 hover:text-white/80 transition-colors focus:outline-none p-1 rounded-md"
+                      className="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none p-1 rounded-md"
                       aria-label="Toggle password visibility"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -370,7 +363,7 @@ export default function MobileLoginClient({
               {/* Password Strength Indicator */}
               {password && !isSuccess && (
                 <div className="space-y-1 pt-1 duration-200 animate-in fade-in slide-in-from-top-1">
-                  <div className="flex gap-1 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                  <div className="flex gap-1 h-1 w-full overflow-hidden rounded-full bg-slate-200">
                     {[1, 2, 3, 4, 5].map(level => (
                       <div
                         key={level}
@@ -392,7 +385,7 @@ export default function MobileLoginClient({
               )}
 
               {capsLockOn && (
-                <div className="flex items-center gap-2 text-amber-400 text-xs animate-pulse font-medium pl-1">
+                <div className="flex items-center gap-2 text-amber-600 text-xs animate-pulse font-medium pl-1">
                   <AlertCircle className="h-3 w-3" />
                   <span>Caps Lock is ON</span>
                 </div>
@@ -408,8 +401,8 @@ export default function MobileLoginClient({
                 className={cn(
                   'h-5 w-5 rounded-md border flex items-center justify-center transition-all duration-200',
                   rememberMe
-                    ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-                    : 'bg-white/5 border-white/20 group-hover:border-white/40 group-hover:bg-white/10'
+                    ? 'bg-slate-800 border-slate-800 shadow-sm'
+                    : 'bg-white border-slate-300 group-hover:border-slate-400 shadow-sm'
                 )}
               >
                 {rememberMe && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
@@ -422,7 +415,7 @@ export default function MobileLoginClient({
                 disabled={isSubmitting || isSuccess}
                 className="sr-only"
               />
-              <label className="ml-3 text-sm text-white/60 group-hover:text-white transition-colors cursor-pointer select-none">
+              <label className="ml-3 text-sm text-slate-600 group-hover:text-slate-900 transition-colors cursor-pointer select-none">
                 Remember me
               </label>
             </div>
@@ -434,8 +427,8 @@ export default function MobileLoginClient({
               className={cn(
                 'w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200',
                 isSuccess
-                  ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20'
+                  ? 'bg-slate-900 text-white shadow-lg'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
               {isSuccess ? (
@@ -445,7 +438,7 @@ export default function MobileLoginClient({
                 </>
               ) : isSubmitting ? (
                 <>
-                  <Spinner size="sm" variant="black" />
+                  <Spinner size="sm" variant="white" />
                   <span>Signing in...</span>
                 </>
               ) : (
@@ -455,7 +448,7 @@ export default function MobileLoginClient({
           </form>
 
           {/* Footer */}
-          <p className="mt-8 text-center text-xs text-white/40">Protected by OpsKnight</p>
+          <p className="mt-8 text-center text-xs text-slate-400">Protected by OpsKnight</p>
         </div>
       </main>
     </div>

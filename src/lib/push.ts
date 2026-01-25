@@ -141,8 +141,8 @@ export async function sendPush(
           title: options.title,
           body: options.body,
           data: options.data,
-          icon: '/icons/android-chrome-192x192.png',
-          badge: options.data?.badge || '/icons/android-chrome-192x192.png',
+          icon: '/icons/app-icon-192.png',
+          badge: options.data?.badge || '/icons/app-icon-192.png',
           url: options.data?.url || '/m',
           actions: options.data?.actions ? JSON.parse(options.data.actions) : undefined,
         });
@@ -278,7 +278,7 @@ export async function sendIncidentPush(
 
     // Enhanced emoji logic based on urgency and event
     let titleEmoji = '';
-    let badge = '/icons/android-chrome-192x192.png';
+    let badge = '/icons/app-icon-192.png';
 
     if (eventType === 'triggered') {
       titleEmoji = incident.urgency === 'HIGH' ? '🔴' : incident.urgency === 'MEDIUM' ? '🟡' : '🔵';
@@ -337,14 +337,14 @@ export async function sendIncidentPush(
     const actions =
       eventType === 'triggered'
         ? [
-            { action: 'view', title: '👁️ View', icon: '/icons/android-chrome-192x192.png' },
+            { action: 'view', title: '👁️ View', icon: '/icons/app-icon-192.png' },
             {
               action: 'acknowledge',
               title: '✓ Acknowledge',
-              icon: '/icons/android-chrome-192x192.png',
+              icon: '/icons/app-icon-192.png',
             },
           ]
-        : [{ action: 'view', title: '👁️ View', icon: '/icons/android-chrome-192x192.png' }];
+        : [{ action: 'view', title: '👁️ View', icon: '/icons/app-icon-192.png' }];
 
     return await sendPush({
       userId,
