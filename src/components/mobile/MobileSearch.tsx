@@ -57,8 +57,8 @@ export default function MobileSearch({
       <form onSubmit={handleSubmit}>
         <div
           className={cn(
-            'mobile-search flex items-center gap-3 rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition',
-            isFocused && 'mobile-search--focused'
+            'mobile-search flex items-center gap-3 rounded-xl border-2 border-[color:var(--border)] bg-[color:var(--bg-secondary)] text-[color:var(--text-primary)] px-4 py-3 transition',
+            isFocused && 'mobile-search--focused ring-1 ring-primary/20'
           )}
           data-focused={isFocused ? 'true' : 'false'}
         >
@@ -86,7 +86,7 @@ export default function MobileSearch({
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="mobile-search-input flex-1 bg-transparent text-sm font-medium focus:outline-none"
+            className="mobile-search-input flex-1 bg-transparent text-sm font-medium text-[color:var(--text-primary)] placeholder:text-[color:var(--text-muted)] focus:outline-none"
           />
 
           {value && (

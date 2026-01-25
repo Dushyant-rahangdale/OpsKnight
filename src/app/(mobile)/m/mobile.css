@@ -3038,3 +3038,18 @@ a {
 .mobile-shell textarea::placeholder {
     color: var(--text-muted) !important;
 }
+
+/* Fix browser autofill white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px var(--bg-surface) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Ensure Search wrapper is dark in dark mode */
+[data-theme='dark'] .mobile-search {
+    background-color: var(--bg-secondary) !important;
+}
