@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MobileAvatar } from '@/components/mobile/MobileUtils';
 import MobileCard from '@/components/mobile/MobileCard';
+import { ArrowLeft } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,46 +49,26 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
   const totalParticipants = schedule.layers.reduce((acc, layer) => acc + layer.users.length, 0);
 
   return (
-    <div className="mobile-dashboard">
+    <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Back Button */}
       <Link
         href="/m/schedules"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.375rem',
-          color: 'var(--primary-color)',
-          textDecoration: 'none',
-          fontSize: '0.85rem',
-          fontWeight: '600',
-          marginBottom: '1rem',
-        }}
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary"
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <ArrowLeft className="h-4 w-4" />
         Back to Schedules
       </Link>
 
       {/* Schedule Header */}
-      <MobileCard padding="lg" className="mobile-incident-card">
-        <div style={{ marginBottom: '0.75rem' }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: '700', margin: 0 }}>{schedule.name}</h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+      <MobileCard padding="lg">
+        <div className="space-y-2">
+          <h1 className="text-lg font-bold text-slate-900 dark:text-white">{schedule.name}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             📅 {schedule.layers.length} layer{schedule.layers.length !== 1 ? 's' : ''} • 👥{' '}
             {totalParticipants} participant{totalParticipants !== 1 ? 's' : ''}
           </p>
           {schedule.timeZone && (
-            <p
-              style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0' }}
-            >
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
               🌍 Timezone: {schedule.timeZone}
             </p>
           )}
@@ -95,27 +76,13 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
 
         {/* Current On-Call */}
         {currentOnCall && (
-          <div
-            style={{
-              padding: '0.75rem',
-              background: 'var(--badge-success-bg)',
-              borderRadius: '8px',
-              marginTop: '0.75rem',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '0.7rem',
-                fontWeight: '600',
-                color: 'var(--badge-success-text)',
-                marginBottom: '0.375rem',
-              }}
-            >
+          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/40 dark:bg-emerald-950/40">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
               CURRENTLY ON-CALL
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="mt-2 flex items-center gap-2">
               <MobileAvatar name={currentOnCall.name || currentOnCall.email} size="sm" />
-              <span style={{ fontWeight: '600', color: 'var(--badge-success-text)' }}>
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                 {currentOnCall.name || currentOnCall.email}
               </span>
             </div>
@@ -124,52 +91,34 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
       </MobileCard>
 
       {/* Layers Section */}
-      <div style={{ marginTop: '1.5rem' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: '700', margin: '0 0 0.75rem' }}>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Rotation Layers
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex flex-col gap-3">
           {schedule.layers.map((layer, index) => (
             <MobileCard key={layer.id} padding="md">
-              <div style={{ marginBottom: '0.75rem' }}>
-                <div
-                  style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}
-                >
+              <div className="mb-3">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
                   {layer.name || `Layer ${index + 1}`}
                 </div>
-                <div
-                  style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}
-                >
+                <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                   ⏱️ {layer.rotationLengthHours}h rotation • {layer.users.length} participants
                 </div>
               </div>
 
               {/* Layer Participants */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="flex flex-col gap-2">
                 {layer.users.map((layerUser, userIndex) => (
                   <div
                     key={layerUser.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem',
-                      background: 'var(--bg-primary)',
-                      borderRadius: '6px',
-                    }}
+                    className="flex items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-2 dark:bg-slate-800"
                   >
-                    <span
-                      style={{
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        color: 'var(--text-muted)',
-                        width: '20px',
-                      }}
-                    >
+                    <span className="w-6 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                       #{userIndex + 1}
                     </span>
                     <MobileAvatar name={layerUser.user.name || layerUser.user.email} size="sm" />
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    <span className="text-sm text-slate-900 dark:text-slate-100">
                       {layerUser.user.name || layerUser.user.email}
                     </span>
                   </div>
@@ -181,15 +130,8 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
       </div>
 
       {/* View on Desktop Link */}
-      <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-        <Link
-          href={`/schedules/${schedule.id}`}
-          style={{
-            fontSize: '0.85rem',
-            color: 'var(--primary-color)',
-            textDecoration: 'none',
-          }}
-        >
+      <div className="pt-2 text-center">
+        <Link href={`/schedules/${schedule.id}`} className="text-sm font-semibold text-primary">
           View full schedule on desktop →
         </Link>
       </div>

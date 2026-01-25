@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { MOBILE_NAV_ITEMS, MOBILE_MORE_ROUTES } from '@/components/mobile/mobileNavItems';
+import { cn } from '@/lib/utils';
 
 type MobileSwipeNavigatorProps = {
   children: ReactNode;
@@ -140,23 +141,32 @@ export default function MobileSwipeNavigator({ children }: MobileSwipeNavigatorP
 
   return (
     <div
-      className={`mobile-swipe-navigator${snapDirection ? ` snap-${snapDirection}` : ''}`}
-      data-hint={showHint ? 'true' : 'false'}
+      className="relative"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
       {[
-        <div key={pathname} className="mobile-route-transition">
+        <div
+          key={pathname}
+          className={cn(
+            'transition-transform duration-150',
+            snapDirection === 'left' && '-translate-x-2',
+            snapDirection === 'right' && 'translate-x-2'
+          )}
+        >
           {children}
         </div>,
       ]}
       {showHint && (
-        <div className="mobile-swipe-hint" aria-hidden="true">
-          <span className="mobile-swipe-hint-arrow">←</span>
+        <div
+          className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-[11px] font-semibold text-slate-600 shadow-sm backdrop-blur dark:border-slate-900 dark:bg-slate-950/80 dark:text-slate-300"
+          aria-hidden="true"
+        >
+          <span className="text-slate-400">←</span>
           <span>Swipe to switch tabs</span>
-          <span className="mobile-swipe-hint-arrow">→</span>
+          <span className="text-slate-400">→</span>
         </div>
       )}
     </div>

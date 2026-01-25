@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 type MobileSearchProps = {
   placeholder?: string;
@@ -52,19 +53,15 @@ export default function MobileSearch({
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <form onSubmit={handleSubmit}>
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            background: isFocused ? 'var(--bg-surface)' : 'var(--bg-secondary)',
-            border: isFocused ? '2px solid var(--primary-color)' : '2px solid transparent',
-            borderRadius: '12px',
-            padding: '0.75rem 1rem',
-            transition: 'all 0.2s ease',
-          }}
+          className={cn(
+            'flex items-center gap-3 rounded-xl border-2 px-4 py-3 transition',
+            isFocused
+              ? 'border-primary bg-white shadow-sm dark:bg-slate-950'
+              : 'border-transparent bg-slate-100 dark:bg-slate-950/80'
+          )}
         >
           {leftIcon || (
             <svg
@@ -72,8 +69,9 @@ export default function MobileSearch({
               height="18"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--text-muted)"
+              stroke="currentColor"
               strokeWidth="2"
+              className="text-slate-400 dark:text-slate-500"
             >
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -89,32 +87,15 @@ export default function MobileSearch({
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            style={{
-              flex: 1,
-              background: 'none',
-              border: 'none',
-              outline: 'none',
-              fontSize: '0.95rem',
-              color: 'var(--text-primary)',
-            }}
+            className="flex-1 bg-transparent text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
           />
 
           {value && (
             <button
               type="button"
               onClick={handleClear}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '20px',
-                height: '20px',
-                background: 'var(--text-muted)',
-                border: 'none',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                padding: 0,
-              }}
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-white transition hover:bg-slate-400 dark:bg-slate-600 dark:hover:bg-slate-500"
+              aria-label="Clear search"
             >
               <svg
                 width="12"
@@ -135,21 +116,7 @@ export default function MobileSearch({
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '0.5rem',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            overflow: 'hidden',
-            zIndex: 100,
-          }}
-        >
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-900 dark:bg-slate-950">
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
@@ -157,18 +124,11 @@ export default function MobileSearch({
                 handleChange(suggestion);
                 onSearch?.(suggestion);
               }}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                background: 'none',
-                border: 'none',
-                borderBottom:
-                  index < filteredSuggestions.length - 1 ? '1px solid var(--border)' : 'none',
-                textAlign: 'left',
-                fontSize: '0.9rem',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-              }}
+              className={cn(
+                'w-full px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800',
+                index < filteredSuggestions.length - 1 &&
+                  'border-b border-slate-100 dark:border-slate-800'
+              )}
             >
               {suggestion}
             </button>
@@ -194,33 +154,15 @@ export function MobileFilterChip({
   return (
     <button
       onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.375rem',
-        padding: '0.5rem 0.875rem',
-        background: active ? 'var(--accent)' : 'var(--bg-secondary)',
-        color: active ? 'white' : 'var(--text-secondary)',
-        border: active ? 'none' : '1px solid var(--border)',
-        borderRadius: '999px',
-        fontSize: '0.8rem',
-        fontWeight: '600',
-        whiteSpace: 'nowrap',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      }}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition',
+        active
+          ? 'border-transparent bg-primary text-white shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-200'
+      )}
     >
       {label}
-      {count !== undefined && (
-        <span
-          style={{
-            opacity: 0.8,
-            fontSize: '0.7rem',
-          }}
-        >
-          {count}
-        </span>
-      )}
+      {count !== undefined && <span className="text-[0.65rem] opacity-70">{count}</span>}
     </button>
   );
 }

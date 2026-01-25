@@ -2,8 +2,6 @@
    Dark Theme Variables
    Extracted from globals.css
    ======================================== */
-:root.dark,
-.dark,
 [data-theme='dark'] {
     /* Slate Dark Theme Override - App Wide */
     --primary: #f8fafc;

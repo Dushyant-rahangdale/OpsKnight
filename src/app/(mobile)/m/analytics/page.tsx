@@ -31,40 +31,57 @@ export default async function MobileAnalyticsPage() {
   };
 
   return (
-    <div className="mobile-dashboard">
-      <h1 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem' }}>Analytics</h1>
+    <div className="flex flex-col gap-4 p-4 pb-24">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Analytics
+        </h1>
+        <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+          Last {windowLabelDays} days{windowLabelSuffix}
+        </p>
+      </div>
 
-      <div className="mobile-metrics-grid">
-        <MobileCard className="mobile-metric-card">
-          <div className="mobile-metric-value">{openIncidents}</div>
-          <div className="mobile-metric-label">Open Incidents</div>
-        </MobileCard>
-        <MobileCard className="mobile-metric-card">
-          <div className="mobile-metric-value">{incidentsInRange}</div>
-          <div className="mobile-metric-label">
-            New ({windowLabelDays}d){windowLabelSuffix}
+      <div className="grid grid-cols-2 gap-3">
+        <MobileCard className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-500 to-rose-500" />
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">{openIncidents}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Open Incidents
           </div>
         </MobileCard>
-        <MobileCard className="mobile-metric-card">
-          <div className="mobile-metric-value">{formatDuration(mtta)}</div>
-          <div className="mobile-metric-label">
-            MTTA ({windowLabelDays}d){windowLabelSuffix}
+        <MobileCard className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            {incidentsInRange}
+          </div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            New ({windowLabelDays}d)
           </div>
         </MobileCard>
-        <MobileCard className="mobile-metric-card">
-          <div className="mobile-metric-value">{formatDuration(mttr)}</div>
-          <div className="mobile-metric-label">
-            MTTR ({windowLabelDays}d){windowLabelSuffix}
+        <MobileCard className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            {formatDuration(mtta)}
+          </div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            MTTA
+          </div>
+        </MobileCard>
+        <MobileCard className="relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-green-500" />
+          <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            {formatDuration(mttr)}
+          </div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            MTTR
           </div>
         </MobileCard>
       </div>
 
-      <div style={{ marginTop: '1.5rem', padding: '0 0.5rem' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Metrics are calculated based on the last {windowLabelDays} days of activity.
-          {slaMetrics.isClipped ? ' Data is limited by retention settings.' : ''} For detailed
-          reports and custom ranges, please use the desktop dashboard.
-        </p>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
+        Metrics are calculated based on the last {windowLabelDays} days of activity.
+        {slaMetrics.isClipped ? ' Data is limited by retention settings.' : ''} For detailed reports
+        and custom ranges, please use the desktop dashboard.
       </div>
     </div>
   );

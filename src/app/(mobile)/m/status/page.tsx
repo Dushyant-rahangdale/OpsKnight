@@ -65,24 +65,15 @@ export default async function MobileStatusPage() {
 
   if (!statusPage) {
     return (
-      <div className="mobile-dashboard">
-        <h1
-          style={{
-            fontSize: '1.25rem',
-            fontWeight: '700',
-            marginBottom: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Status
-        </h1>
+      <div className="flex flex-col gap-4 p-4 pb-24">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Status</h1>
         <MobileCard>
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-            <p>Status page not configured.</p>
-            <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-              Contact your administrator to set up a status page.
+          <div className="flex flex-col items-center gap-3 py-6 text-center text-slate-500 dark:text-slate-400">
+            <div className="text-3xl">📊</div>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Status page not configured.
             </p>
+            <p className="text-xs">Contact your administrator to set up a status page.</p>
           </div>
         </MobileCard>
       </div>
@@ -163,16 +154,36 @@ export default async function MobileStatusPage() {
     endDate: a.endDate,
   }));
 
-  const getStatusColor = (status: string) => {
+  const getStatusTone = (status: string) => {
     switch (status) {
       case 'OPERATIONAL':
-        return '#16a34a';
+        return {
+          border: 'border-emerald-500',
+          bg: 'bg-emerald-50/70 dark:bg-emerald-950/40',
+          text: 'text-emerald-700 dark:text-emerald-300',
+          dot: 'bg-emerald-500',
+        };
       case 'PARTIAL_OUTAGE':
-        return '#d97706';
+        return {
+          border: 'border-amber-500',
+          bg: 'bg-amber-50/70 dark:bg-amber-950/40',
+          text: 'text-amber-700 dark:text-amber-300',
+          dot: 'bg-amber-500',
+        };
       case 'MAJOR_OUTAGE':
-        return '#dc2626';
+        return {
+          border: 'border-red-500',
+          bg: 'bg-red-50/70 dark:bg-red-950/40',
+          text: 'text-red-700 dark:text-red-300',
+          dot: 'bg-red-500',
+        };
       default:
-        return '#6b7280';
+        return {
+          border: 'border-slate-400',
+          bg: 'bg-slate-50/70 dark:bg-slate-900/50',
+          text: 'text-slate-600 dark:text-slate-400',
+          dot: 'bg-slate-400',
+        };
     }
   };
 
@@ -204,12 +215,21 @@ export default async function MobileStatusPage() {
 
   const getUrgencyBadge = (urgency: string) => {
     if (urgency === 'HIGH') {
-      return { bg: 'var(--badge-error-bg)', text: 'var(--badge-error-text)', label: 'High' };
+      return {
+        label: 'High',
+        classes: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+      };
     }
     if (urgency === 'MEDIUM') {
-      return { bg: 'var(--badge-warning-bg)', text: 'var(--badge-warning-text)', label: 'Medium' };
+      return {
+        label: 'Medium',
+        classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      };
     }
-    return { bg: 'var(--badge-success-bg)', text: 'var(--badge-success-text)', label: 'Low' };
+    return {
+      label: 'Low',
+      classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    };
   };
 
   const getAnnouncementIcon = (type: string) => {
@@ -237,54 +257,31 @@ export default async function MobileStatusPage() {
   };
 
   return (
-    <div className="mobile-dashboard">
+    <div className="flex flex-col gap-4 p-4 pb-24">
       {/* Page Title */}
-      <h1
-        style={{
-          fontSize: '1.25rem',
-          fontWeight: '700',
-          marginBottom: '1rem',
-          color: 'var(--text-primary)',
-        }}
-      >
+      <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
         {statusPage.name || 'System Status'}
       </h1>
 
       {/* Overall Status Banner */}
       <MobileCard
-        style={{
-          marginBottom: '1.25rem',
-          borderLeft: `4px solid ${getStatusColor(overallStatus)}`,
-          background:
-            overallStatus === 'OPERATIONAL'
-              ? 'linear-gradient(135deg, rgba(22, 163, 74, 0.08) 0%, var(--card-bg) 100%)'
-              : overallStatus === 'MAJOR_OUTAGE'
-                ? 'linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, var(--card-bg) 100%)'
-                : 'linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, var(--card-bg) 100%)',
-        }}
+        className={`border-l-4 ${getStatusTone(overallStatus).border} ${getStatusTone(overallStatus).bg}`}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.5rem 0' }}>
-          <div style={{ fontSize: '2.5rem' }}>{getStatusIcon(overallStatus)}</div>
-          <div style={{ flex: 1 }}>
-            <h2
-              style={{
-                fontSize: '1.1rem',
-                fontWeight: '700',
-                margin: 0,
-                color: 'var(--text-primary)',
-              }}
-            >
+        <div className="flex items-center gap-3">
+          <div className="text-3xl">{getStatusIcon(overallStatus)}</div>
+          <div className="flex-1">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {overallStatus === 'OPERATIONAL'
                 ? 'All Systems Operational'
                 : getStatusLabel(overallStatus)}
             </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {activeIncidents.length === 0
                 ? 'No active incidents'
                 : `${activeIncidents.length} active incident${activeIncidents.length > 1 ? 's' : ''}`}
             </p>
             <p
-              style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}
+              className="mt-1 text-[11px] text-slate-500 dark:text-slate-400"
               suppressHydrationWarning
             >
               Updated {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -295,156 +292,79 @@ export default async function MobileStatusPage() {
 
       {/* Announcements */}
       {announcements.length > 0 && (
-        <section style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              marginBottom: '0.75rem',
-              color: 'var(--text-primary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             📢 Announcements
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {announcements.map(announcement => (
-              <MobileCard
-                key={announcement.id}
-                padding="sm"
-                style={{
-                  borderLeft: `3px solid ${announcement.type === 'MAINTENANCE' ? '#3b82f6' : announcement.type === 'INCIDENT' ? '#dc2626' : '#6b7280'}`,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>
-                    {getAnnouncementIcon(announcement.type)}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: '600',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-primary)',
-                        marginBottom: '0.25rem',
-                      }}
-                    >
-                      {announcement.title}
-                    </div>
-                    <p
-                      style={{
-                        fontSize: '0.8rem',
-                        color: 'var(--text-secondary)',
-                        margin: 0,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {announcement.message}
-                    </p>
-                    <div
-                      style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '0.5rem',
-                      }}
-                    >
-                      {new Date(announcement.startDate).toLocaleDateString()}
-                      {announcement.endDate &&
-                        ` - ${new Date(announcement.endDate).toLocaleDateString()}`}
+          <div className="flex flex-col gap-3">
+            {announcements.map(announcement => {
+              const tone =
+                announcement.type === 'MAINTENANCE'
+                  ? 'border-blue-400'
+                  : announcement.type === 'INCIDENT'
+                    ? 'border-red-400'
+                    : 'border-slate-400';
+              return (
+                <MobileCard key={announcement.id} padding="sm" className={`border-l-4 ${tone}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg">{getAnnouncementIcon(announcement.type)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {announcement.title}
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
+                        {announcement.message}
+                      </p>
+                      <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+                        {new Date(announcement.startDate).toLocaleDateString()}
+                        {announcement.endDate &&
+                          ` - ${new Date(announcement.endDate).toLocaleDateString()}`}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </MobileCard>
-            ))}
+                </MobileCard>
+              );
+            })}
           </div>
         </section>
       )}
 
       {/* Active Incidents */}
       {activeIncidents.length > 0 && (
-        <section style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              marginBottom: '0.75rem',
-              color: 'var(--text-primary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             🚨 Active Incidents
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex flex-col gap-3">
             {activeIncidents.map(incident => {
               const urgencyBadge = getUrgencyBadge(incident.urgency);
+              const urgencyBorder =
+                incident.urgency === 'HIGH'
+                  ? 'border-red-400'
+                  : incident.urgency === 'MEDIUM'
+                    ? 'border-amber-400'
+                    : 'border-emerald-400';
               return (
                 <Link
                   key={incident.id}
                   href={`/m/incidents/${incident.id}`}
-                  style={{ textDecoration: 'none' }}
+                  className="no-underline"
                 >
-                  <MobileCard
-                    padding="sm"
-                    style={{
-                      borderLeft: `3px solid ${
-                        incident.urgency === 'HIGH'
-                          ? '#dc2626'
-                          : incident.urgency === 'MEDIUM'
-                            ? '#d97706'
-                            : '#16a34a'
-                      }`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: '0.5rem',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: '600',
-                            fontSize: '0.9rem',
-                            color: 'var(--text-primary)',
-                            marginBottom: '0.25rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                  <MobileCard padding="sm" className={`border-l-4 ${urgencyBorder}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                           {incident.title}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {incident.serviceName}
                         </div>
-                        <div
-                          style={{
-                            fontSize: '0.75rem',
-                            color: 'var(--text-muted)',
-                            marginTop: '0.25rem',
-                          }}
-                        >
+                        <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
                           {formatTimeAgo(incident.createdAt)}
                         </div>
                       </div>
                       <span
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          fontWeight: '600',
-                          background: urgencyBadge.bg,
-                          color: urgencyBadge.text,
-                          flexShrink: 0,
-                        }}
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase ${urgencyBadge.classes}`}
                       >
                         {urgencyBadge.label}
                       </span>
@@ -458,75 +378,34 @@ export default async function MobileStatusPage() {
       )}
 
       {/* Services */}
-      <section style={{ marginBottom: '1.5rem' }}>
-        <h3
-          style={{
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            marginBottom: '0.75rem',
-            color: 'var(--text-primary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
+      <section className="flex flex-col gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           🖥️ Services ({serviceStatuses.length})
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {serviceStatuses.map(service => (
-            <MobileCard
-              key={service.id}
-              padding="sm"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  flex: 1,
-                  minWidth: 0,
-                }}
+        <div className="flex flex-col gap-2">
+          {serviceStatuses.map(service => {
+            const tone = getStatusTone(service.status);
+            return (
+              <MobileCard
+                key={service.id}
+                padding="sm"
+                className="flex items-center justify-between"
               >
-                <span
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    backgroundColor: getStatusColor(service.status),
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontWeight: '500',
-                    color: 'var(--text-primary)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {service.name}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={`h-2.5 w-2.5 rounded-full ${tone.dot}`} />
+                  <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {service.name}
+                  </span>
+                </div>
+                <span className={`text-[11px] font-semibold ${tone.text}`}>
+                  {getStatusLabel(service.status)}
                 </span>
-              </div>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  color: getStatusColor(service.status),
-                  flexShrink: 0,
-                }}
-              >
-                {getStatusLabel(service.status)}
-              </span>
-            </MobileCard>
-          ))}
+              </MobileCard>
+            );
+          })}
           {serviceStatuses.length === 0 && (
             <MobileCard padding="sm">
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1rem' }}>
+              <div className="py-3 text-center text-xs text-slate-500 dark:text-slate-400">
                 No services configured
               </div>
             </MobileCard>
@@ -536,70 +415,25 @@ export default async function MobileStatusPage() {
 
       {/* Recent History */}
       {recentHistory.length > 0 && (
-        <section style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              marginBottom: '0.75rem',
-              color: 'var(--text-primary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             📜 Recent History (
             {metrics.isClipped ? `${metrics.retentionDays} days - retention limit` : '30 days'})
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="flex flex-col gap-2">
             {recentHistory.map(incident => (
-              <Link
-                key={incident.id}
-                href={`/m/incidents/${incident.id}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <MobileCard padding="sm" style={{ opacity: 0.85 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: '500',
-                          fontSize: '0.85rem',
-                          color: 'var(--text-primary)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+              <Link key={incident.id} href={`/m/incidents/${incident.id}`} className="no-underline">
+                <MobileCard padding="sm" className="opacity-90">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                         {incident.title}
                       </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          marginTop: '0.15rem',
-                        }}
-                      >
+                      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                         {incident.service.name} • Resolved {formatTimeAgo(incident.resolvedAt!)}
                       </div>
                     </div>
-                    <span
-                      style={{
-                        padding: '0.15rem 0.4rem',
-                        borderRadius: '4px',
-                        fontSize: '0.65rem',
-                        fontWeight: '600',
-                        background: 'var(--badge-success-bg)',
-                        color: 'var(--badge-success-text)',
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                       Resolved
                     </span>
                   </div>
@@ -611,17 +445,8 @@ export default async function MobileStatusPage() {
       )}
 
       {/* Footer */}
-      <div
-        style={{
-          textAlign: 'center',
-          padding: '1rem 0',
-          borderTop: '1px solid var(--border)',
-          marginTop: '1rem',
-        }}
-      >
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-          Powered by OpsKnight
-        </p>
+      <div className="border-t border-slate-200 py-4 text-center text-[11px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        Powered by OpsKnight
       </div>
     </div>
   );

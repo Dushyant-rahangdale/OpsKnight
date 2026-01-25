@@ -2,294 +2,241 @@
 
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface SwipeableIncidentCardProps {
-    incident: {
-        id: string;
-        title: string;
-        status: string;
-        urgency?: string | null;
-        createdAt: string | Date;
-        service?: { name: string } | null;
-    };
-    onAcknowledge?: (id: string) => void;
-    onResolve?: (id: string) => void;
-    isUpdating?: boolean;
+  incident: {
+    id: string;
+    title: string;
+    status: string;
+    urgency?: string | null;
+    createdAt: string | Date;
+    service?: { name: string } | null;
+  };
+  onAcknowledge?: (id: string) => void;
+  onResolve?: (id: string) => void;
+  isUpdating?: boolean;
 }
 
-/**
- * Swipeable incident card for mobile
- * Swipe left to acknowledge, swipe right to resolve
- */
+const STATUS_STYLES: Record<string, string> = {
+  open: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+  acknowledged: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+  resolved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+  snoozed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+  suppressed: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+};
+
+const URGENCY_STYLES: Record<string, string> = {
+  high: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+  medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+  low: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+};
+
 export default function SwipeableIncidentCard({
-    incident,
-    onAcknowledge,
-    onResolve,
-    isUpdating = false
+  incident,
+  onAcknowledge,
+  onResolve,
+  isUpdating = false,
 }: SwipeableIncidentCardProps) {
-    const router = useRouter();
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [translateX, setTranslateX] = useState(0);
-    const translateXRef = useRef(0);
-    const [isDragging, setIsDragging] = useState(false);
-    const isDraggingRef = useRef(false);
-    const startX = useRef(0);
-    const threshold = 80;
+  const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [translateX, setTranslateX] = useState(0);
+  const translateXRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
+  const startX = useRef(0);
+  const threshold = 80;
 
-    const handleTouchStart = (e: React.TouchEvent) => {
-        startX.current = e.touches[0].clientX;
-        isDraggingRef.current = true;
-        setIsDragging(true);
-    };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+  };
 
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (!isDraggingRef.current) return;
-        const deltaX = e.touches[0].clientX - startX.current;
-        // Limit swipe range
-        const maxSwipe = 120;
-        const newTranslateX = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
-        translateXRef.current = newTranslateX;
-        setTranslateX(newTranslateX);
-    };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const deltaX = e.touches[0].clientX - startX.current;
+    const maxSwipe = 120;
+    const newTranslateX = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
+    translateXRef.current = newTranslateX;
+    setTranslateX(newTranslateX);
+  };
 
-    const handleTouchEnd = () => {
-        isDraggingRef.current = false;
-        setIsDragging(false);
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
 
-        if (isUpdating) {
-            translateXRef.current = 0;
-            setTranslateX(0);
-            return;
-        }
+    if (isUpdating) {
+      translateXRef.current = 0;
+      setTranslateX(0);
+      return;
+    }
 
-        const finalTranslateX = translateXRef.current;
-        if (finalTranslateX < -threshold && onAcknowledge) {
-            // Swiped left - Acknowledge
-            onAcknowledge(incident.id);
-        } else if (finalTranslateX > threshold && onResolve) {
-            // Swiped right - Resolve
-            onResolve(incident.id);
-        }
+    const finalTranslateX = translateXRef.current;
+    if (finalTranslateX < -threshold && onAcknowledge) {
+      onAcknowledge(incident.id);
+    } else if (finalTranslateX > threshold && onResolve) {
+      onResolve(incident.id);
+    }
 
-        // Reset position
-        translateXRef.current = 0;
-        setTranslateX(0);
-    };
+    translateXRef.current = 0;
+    setTranslateX(0);
+  };
 
-    const handleClick = () => {
-        if (isUpdating) return;
-        if (Math.abs(translateX) < 10) {
-            router.push(`/m/incidents/${incident.id}`);
-        }
-    };
+  const handleClick = () => {
+    if (isUpdating) return;
+    if (Math.abs(translateX) < 10) {
+      router.push(`/m/incidents/${incident.id}`);
+    }
+  };
 
-    const getStatusColor = () => {
-        switch (incident.status.toLowerCase()) {
-            case 'open': return { bg: 'var(--badge-error-bg)', text: 'var(--badge-error-text)' };
-            case 'acknowledged': return { bg: 'var(--badge-warning-bg)', text: 'var(--badge-warning-text)' };
-            case 'resolved': return { bg: 'var(--badge-success-bg)', text: 'var(--badge-success-text)' };
-            case 'snoozed': return { bg: 'var(--badge-snoozed-bg)', text: 'var(--badge-snoozed-text)' };
-            default: return { bg: 'var(--badge-neutral-bg)', text: 'var(--badge-neutral-text)' };
-        }
-    };
+  const statusKey = incident.status.toLowerCase();
+  const urgencyKey = (incident.urgency || 'low').toLowerCase();
+  const createdAt = new Date(incident.createdAt);
+  const timeAgo = getTimeAgo(createdAt);
 
-    const getUrgencyColor = () => {
-        const urgencyValue = incident.urgency?.toLowerCase() || 'low';
-        switch (urgencyValue) {
-            case 'high': return { bg: 'var(--badge-error-bg)', text: 'var(--badge-error-text)' };
-            case 'medium': return { bg: 'var(--badge-warning-bg)', text: 'var(--badge-warning-text)' };
-            case 'low': return { bg: 'var(--badge-success-bg)', text: 'var(--badge-success-text)' };
-            default: return { bg: 'var(--badge-neutral-bg)', text: 'var(--badge-neutral-text)' };
-        }
-    };
-
-    const statusColors = getStatusColor();
-    const urgencyColors = getUrgencyColor();
-    const createdAt = new Date(incident.createdAt);
-    const timeAgo = getTimeAgo(createdAt);
-
-    // Calculate background reveal colors based on swipe direction
-    const revealBg = translateX < 0
-        ? 'linear-gradient(90deg, transparent 60%, rgba(251, 191, 36, 0.3) 100%)' // Acknowledge - yellow
-        : translateX > 0
-            ? 'linear-gradient(270deg, transparent 60%, rgba(34, 197, 94, 0.3) 100%)' // Resolve - green
-            : 'transparent';
-
-    return (
-        <div style={{
-            position: 'relative',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            background: revealBg
-        }}>
-            {/* Action hints */}
-            {translateX !== 0 && (
-                <>
-                    {translateX < -20 && (
-                        <div style={{
-                            position: 'absolute',
-                            right: '1rem',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: '#fbbf24',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            opacity: Math.min(1, Math.abs(translateX) / threshold)
-                        }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            ACK
-                        </div>
-                    )}
-                    {translateX > 20 && (
-                        <div style={{
-                            position: 'absolute',
-                            left: '1rem',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            color: '#22c55e',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            opacity: Math.min(1, Math.abs(translateX) / threshold)
-                        }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            RESOLVE
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* Card */}
+  return (
+    <div
+      className={cn(
+        'relative rounded-xl overflow-hidden',
+        translateX < 0 && 'bg-gradient-to-r from-transparent via-transparent to-amber-500/20',
+        translateX > 0 && 'bg-gradient-to-l from-transparent via-transparent to-emerald-500/20'
+      )}
+    >
+      {/* Swipe action hints */}
+      {translateX !== 0 && (
+        <>
+          {translateX < -20 && (
             <div
-                ref={cardRef}
-                data-testid={`incident-card-${incident.id}`}
-                onClick={handleClick}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                    padding: '1rem',
-                    background: 'var(--bg-secondary)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    transform: `translateX(${translateX}px)`,
-                    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-                    cursor: isUpdating ? 'progress' : 'pointer',
-                    touchAction: 'pan-y'
-                }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-amber-500 dark:text-amber-400 text-xs font-bold"
+              style={{ opacity: Math.min(1, Math.abs(translateX) / threshold) }}
             >
-                {/* Header */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '0.5rem'
-                }}>
-                    <span style={{
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.65rem',
-                        fontWeight: '700',
-                        textTransform: 'uppercase',
-                        background: statusColors.bg,
-                        color: statusColors.text
-                    }}>
-                        {incident.status}
-                    </span>
-                    {incident.urgency && (
-                        <span style={{
-                            padding: '0.15rem 0.4rem',
-                            borderRadius: '999px',
-                            fontSize: '0.6rem',
-                            fontWeight: '700',
-                            textTransform: 'uppercase',
-                            background: urgencyColors.bg,
-                            color: urgencyColors.text
-                        }}>
-                            {incident.urgency}
-                        </span>
-                    )}
-                </div>
-
-                {/* Title */}
-                <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.3',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                }}>
-                    {incident.title}
-                </div>
-
-                {/* Meta */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.75rem',
-                    color: 'var(--text-muted)'
-                }}>
-                    {incident.service?.name && (
-                        <>
-                            <span>{incident.service.name}</span>
-                            <span>•</span>
-                        </>
-                    )}
-                    <span>{timeAgo}</span>
-                </div>
-
-                {/* Swipe hint */}
-                {incident.status.toLowerCase() === 'open' && (
-                    <div style={{
-                        fontSize: '0.65rem',
-                        color: 'var(--text-muted)',
-                        opacity: 0.6,
-                        textAlign: 'center',
-                        marginTop: '0.25rem'
-                    }}>
-                        ← Acknowledge • Resolve →
-                    </div>
-                )}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              ACK
             </div>
+          )}
+          {translateX > 20 && (
+            <div
+              className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-emerald-500 dark:text-emerald-400 text-xs font-bold"
+              style={{ opacity: Math.min(1, Math.abs(translateX) / threshold) }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              RESOLVE
+            </div>
+          )}
+        </>
+      )}
 
-            {isUpdating && (
-                <div className="mobile-incident-card-overlay">
-                    Updating...
-                </div>
+      {/* Card */}
+      <div
+        ref={cardRef}
+        data-testid={`incident-card-${incident.id}`}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={cn(
+          'flex flex-col gap-2 p-4 rounded-xl border transition-colors touch-pan-y',
+          'bg-white dark:bg-slate-900',
+          'border-slate-200 dark:border-slate-800',
+          isUpdating
+            ? 'cursor-progress opacity-60'
+            : 'cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50'
+        )}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+        }}
+      >
+        {/* Header with status and urgency */}
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              'px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide',
+              STATUS_STYLES[statusKey] ||
+                'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
             )}
+          >
+            {incident.status}
+          </span>
+          {incident.urgency && (
+            <span
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide',
+                URGENCY_STYLES[urgencyKey] ||
+                  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+              )}
+            >
+              {incident.urgency}
+            </span>
+          )}
         </div>
-    );
+
+        {/* Title */}
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug line-clamp-2">
+          {incident.title}
+        </h3>
+
+        {/* Meta info */}
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          {incident.service?.name && (
+            <>
+              <span className="truncate">{incident.service.name}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+            </>
+          )}
+          <span>{timeAgo}</span>
+        </div>
+
+        {/* Swipe hint for open incidents */}
+        {statusKey === 'open' && (
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-1 opacity-70">
+            ← Acknowledge • Resolve →
+          </div>
+        )}
+      </div>
+
+      {/* Updating overlay */}
+      {isUpdating && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 rounded-xl backdrop-blur-sm">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            Updating...
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getTimeAgo(date: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 }

@@ -52,32 +52,50 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="mobile-nav"
+      className="fixed bottom-0 left-0 right-0 z-50 flex min-h-[calc(68px+env(safe-area-inset-bottom))] items-center justify-around border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] pt-2 text-slate-600 backdrop-blur-xl transition-all dark:border-slate-900 dark:bg-slate-950 dark:text-slate-200"
       style={{ '--mobile-nav-count': MOBILE_NAV_ITEMS.length } as CSSProperties}
     >
       {/* Animated active indicator */}
       <div
-        className="mobile-nav-slider"
+        className="absolute bottom-0 left-0 h-full rounded-t-xl bg-gradient-to-b from-primary/10 to-transparent transition-transform duration-300 ease-out"
         style={{
+          width: `calc(100% / ${MOBILE_NAV_ITEMS.length})`,
           transform: `translateX(${sliderIndex * 100}%)`,
         }}
+        aria-hidden="true"
       />
+
       {MOBILE_NAV_ITEMS.map((item, index) => {
         const active = index === activeIndex;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`mobile-nav-item ${active ? 'active' : ''}`}
+            className={`relative z-10 flex flex-1 max-w-[80px] flex-col items-center justify-center p-1 text-slate-600 transition-all active:scale-95 dark:text-slate-200 ${
+              active ? 'text-slate-900 dark:text-white' : ''
+            }`}
           >
-            <span className="mobile-nav-icon" style={{ position: 'relative' }}>
+            {/* Active Top Bar Indicator */}
+            {active && (
+              <span className="absolute -top-[9px] h-[3px] w-[30%] rounded-b bg-primary shadow-[0_1px_6px_rgba(var(--primary),0.4)]" />
+            )}
+
+            <span className="relative flex items-center justify-center">
               {active ? item.iconActive : item.icon}
               {/* Notification badge */}
               {'hasBadge' in item && item.hasBadge && unreadCount > 0 && (
-                <span className="mobile-nav-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] animate-[pulse_2s_ease-in-out_infinite] items-center justify-center rounded-full bg-red-600 px-0.5 text-[0.6rem] font-bold text-white shadow-sm">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </span>
-            <span className="mobile-nav-label">{item.label}</span>
+            <span
+              className={`mt-0.5 text-[0.65rem] font-semibold leading-none transition-all ${
+                active ? 'font-bold scale-105' : ''
+              }`}
+            >
+              {item.label}
+            </span>
           </Link>
         );
       })}

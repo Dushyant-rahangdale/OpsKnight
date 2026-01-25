@@ -1,6 +1,7 @@
 'use client';
 
-import { ReactNode, CSSProperties, type KeyboardEvent } from 'react';
+import { ReactNode, type KeyboardEvent } from 'react';
+import { cn } from '@/lib/utils';
 
 type MobileCardProps = {
   children: ReactNode;
@@ -8,37 +9,23 @@ type MobileCardProps = {
   padding?: 'none' | 'sm' | 'md' | 'lg';
   onClick?: () => void;
   className?: string;
-  style?: CSSProperties;
 };
 
 const paddingSizes = {
-  none: '0',
-  sm: '0.75rem',
-  md: '1rem',
-  lg: '1.5rem',
+  none: 'p-0',
+  sm: 'p-3',
+  md: 'p-4',
+  lg: 'p-6',
 };
 
-const variantStyles: Record<string, CSSProperties> = {
-  default: {
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border)',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-  },
-  elevated: {
-    background: 'var(--bg-secondary)',
-    border: 'none',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
-  },
-  outlined: {
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    boxShadow: 'none',
-  },
-  gradient: {
-    background: 'var(--gradient-surface)',
-    border: '1px solid var(--border)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-  },
+const variantStyles: Record<string, string> = {
+  default:
+    'rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-900 dark:bg-slate-950',
+  elevated:
+    'rounded-2xl border border-slate-200/60 bg-white shadow-lg dark:border-slate-900/70 dark:bg-slate-950',
+  outlined: 'rounded-2xl border border-slate-200 bg-transparent dark:border-slate-900',
+  gradient:
+    'rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm dark:border-slate-900/70 dark:from-slate-950 dark:via-slate-950 dark:to-slate-950',
 };
 
 export default function MobileCard({
@@ -47,7 +34,6 @@ export default function MobileCard({
   padding = 'md',
   onClick,
   className = '',
-  style = {},
 }: MobileCardProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!onClick) return;
@@ -57,19 +43,15 @@ export default function MobileCard({
     }
   };
 
-  const baseStyles: CSSProperties = {
-    borderRadius: '12px',
-    padding: paddingSizes[padding],
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    cursor: onClick ? 'pointer' : 'default',
-    ...variantStyles[variant],
-    ...style,
-  };
-
   return (
     <div
-      className={`mobile-card ${className}`}
-      style={baseStyles}
+      className={cn(
+        'transition active:scale-[0.99]',
+        onClick ? 'cursor-pointer' : 'cursor-default',
+        variantStyles[variant],
+        paddingSizes[padding],
+        className
+      )}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       role={onClick ? 'button' : undefined}
@@ -91,36 +73,10 @@ export function MobileCardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        marginBottom: subtitle ? '0.5rem' : '0.75rem',
-      }}
-    >
+    <div className={cn('flex items-start justify-between', subtitle ? 'mb-2' : 'mb-3')}>
       <div>
-        <h3
-          style={{
-            fontSize: '0.95rem',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            margin: 0,
-          }}
-        >
-          {title}
-        </h3>
-        {subtitle && (
-          <p
-            style={{
-              fontSize: '0.8rem',
-              color: 'var(--text-muted)',
-              margin: '0.25rem 0 0',
-            }}
-          >
-            {subtitle}
-          </p>
-        )}
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+        {subtitle && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>
@@ -137,10 +93,7 @@ export function MobileCardSection({
 }) {
   return (
     <div
-      style={{
-        padding: noPadding ? 0 : '0.75rem 0',
-        borderTop: '1px solid var(--border)',
-      }}
+      className={cn('border-t border-slate-200 dark:border-slate-800', noPadding ? 'p-0' : 'py-3')}
     >
       {children}
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MobileCard from '@/components/mobile/MobileCard';
 import { logger } from '@/lib/logger';
+import { cn } from '@/lib/utils';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -200,34 +201,16 @@ export default function PushNotificationToggle() {
   if (!isSupported) return null;
 
   return (
-    <MobileCard padding="md">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem' }}>
-          <span
-            style={{
-              fontSize: '1.25rem',
-              width: '24px',
-              textAlign: 'center',
-              lineHeight: '1.5rem',
-            }}
-          >
-            🔔
-          </span>
+    <MobileCard padding="md" className="space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="text-xl">🔔</span>
           <div>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-              }}
-            >
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
               Push Notifications
             </h3>
-            <p
-              style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}
-            >
-              Active Incident and page alerts
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Active incident and page alerts
             </p>
           </div>
         </div>
@@ -236,35 +219,22 @@ export default function PushNotificationToggle() {
           type="button"
           onClick={loading ? undefined : isSubscribed ? unsubscribe : subscribe}
           disabled={loading}
-          style={{
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
-            border: 'none',
-            background: isSubscribed ? 'var(--badge-error-bg)' : 'var(--accent)',
-            color: isSubscribed ? 'var(--badge-error-text)' : 'white',
-            fontWeight: '600',
-            fontSize: '0.85rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-            whiteSpace: 'nowrap',
-            minWidth: '80px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
+          className={cn(
+            'flex h-9 min-w-[90px] items-center justify-center rounded-lg px-3 text-xs font-semibold transition',
+            loading ? 'cursor-not-allowed opacity-70' : 'active:scale-[0.98]',
+            isSubscribed
+              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+              : 'bg-primary text-white'
+          )}
         >
           {loading ? (
             <div
-              style={{
-                width: '14px',
-                height: '14px',
-                border: `2px solid ${isSubscribed ? 'var(--badge-error-text)' : 'white'}`,
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-              }}
+              className={cn(
+                'h-3.5 w-3.5 animate-spin rounded-full border-2',
+                isSubscribed
+                  ? 'border-red-700 border-t-transparent dark:border-red-300'
+                  : 'border-white border-t-transparent'
+              )}
             />
           ) : isSubscribed ? (
             'Disable'
@@ -274,94 +244,47 @@ export default function PushNotificationToggle() {
         </button>
       </div>
       {error && (
-        <div
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--badge-error-text)',
-            padding: '0.5rem',
-            background: 'var(--badge-error-bg)',
-            borderRadius: '4px',
-            marginTop: '0.75rem',
-          }}
-        >
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
           Error: {error}
         </div>
       )}
-      <div
-        style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
-      >
+      <div className="flex flex-col gap-2">
         <button
           type="button"
           onClick={sendTestPush}
           disabled={!isSubscribed || isTesting || loading}
-          style={{
-            padding: '0.625rem 1rem',
-            borderRadius: '8px',
-            background:
-              isSubscribed && !isTesting && !loading ? 'var(--accent)' : 'var(--bg-secondary)',
-            color: isSubscribed && !isTesting && !loading ? 'white' : 'var(--text-tertiary)',
-            fontWeight: 600,
-            fontSize: '0.85rem',
-            border: '1px solid var(--border)',
-            cursor: isSubscribed && !isTesting && !loading ? 'pointer' : 'not-allowed',
-            opacity: isSubscribed && !isTesting && !loading ? 1 : 0.6,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            minHeight: '40px',
-          }}
+          className={cn(
+            'flex min-h-[40px] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition',
+            isSubscribed && !isTesting && !loading
+              ? 'border-primary/30 bg-primary text-white'
+              : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'
+          )}
         >
           {isTesting ? (
             <>
-              <div
-                style={{
-                  width: '14px',
-                  height: '14px',
-                  border: '2px solid white',
-                  borderTopColor: 'transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
               Sending test...
             </>
           ) : (
             <>
-              <span style={{ fontSize: '1.1rem' }}>🔔</span>
+              <span className="text-base">🔔</span>
               Send test push
             </>
           )}
         </button>
         {testMessage && (
           <div
-            style={{
-              fontSize: '0.75rem',
-              color:
-                testMessage.includes('successfully') || testMessage.includes('sent')
-                  ? 'var(--color-success)'
-                  : 'var(--color-error)',
-              padding: '0.5rem',
-              background:
-                testMessage.includes('successfully') || testMessage.includes('sent')
-                  ? 'var(--badge-success-bg, #d1fae5)'
-                  : 'var(--badge-error-bg)',
-              borderRadius: '6px',
-              textAlign: 'center',
-            }}
+            className={cn(
+              'rounded-lg px-3 py-2 text-center text-xs font-medium',
+              testMessage.includes('successfully') || testMessage.includes('sent')
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'border border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300'
+            )}
           >
             {testMessage}
           </div>
         )}
       </div>
-      <style jsx>{`
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
     </MobileCard>
   );
 }

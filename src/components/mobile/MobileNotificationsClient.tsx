@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/mobile/SkeletonLoader';
 import { MobileEmptyIcon, MobileEmptyState } from '@/components/mobile/MobileUtils';
 import { MobileFilterChip } from '@/components/mobile/MobileSearch';
 import { logger } from '@/lib/logger';
+import { cn } from '@/lib/utils';
 
 type NotificationItem = {
   id: string;
@@ -77,24 +78,24 @@ const resolveNotificationHref = (notification: NotificationItem) => {
 };
 
 const NotificationSkeleton = () => (
-  <MobileCard className="mobile-notification-card mobile-notifications-skeleton">
-    <div className="mobile-notification-main">
-      <div className="mobile-notification-icon tone-service">
+  <MobileCard className="p-4">
+    <div className="flex items-start gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900">
         <Skeleton width="18px" height="18px" borderRadius="6px" />
       </div>
-      <div className="mobile-notification-body">
-        <div className="mobile-notification-title-row">
+      <div className="flex flex-1 flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
           <Skeleton width="60%" height="14px" borderRadius="4px" />
           <Skeleton width="12px" height="12px" borderRadius="999px" />
         </div>
         <Skeleton width="90%" height="12px" borderRadius="4px" />
-        <div className="mobile-notification-meta">
+        <div className="flex items-center gap-2">
           <Skeleton width="80px" height="10px" borderRadius="4px" />
           <Skeleton width="40px" height="10px" borderRadius="4px" />
         </div>
       </div>
     </div>
-    <div className="mobile-notification-actions">
+    <div className="mt-3 flex gap-2">
       <Skeleton width="70px" height="24px" borderRadius="999px" />
       <Skeleton width="70px" height="24px" borderRadius="999px" />
     </div>
@@ -222,18 +223,33 @@ export default function MobileNotificationsClient() {
     }));
   }, [notifications]);
 
+  const iconTone = (type: NotificationItem['type']) => {
+    switch (type) {
+      case 'incident':
+        return 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400';
+      case 'service':
+        return 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400';
+      case 'schedule':
+        return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400';
+      default:
+        return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+    }
+  };
+
   return (
-    <div className="mobile-notifications-page">
-      <div className="mobile-notifications-header">
+    <div className="flex flex-col gap-4 p-4 pb-24">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="mobile-notifications-title">Notifications</h1>
-          <p className="mobile-notifications-subtitle">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Notifications
+          </h1>
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
         <button
           type="button"
-          className="mobile-notifications-action"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
           onClick={handleMarkAllRead}
           disabled={unreadCount === 0 || isUpdating}
         >
@@ -241,7 +257,7 @@ export default function MobileNotificationsClient() {
         </button>
       </div>
 
-      <div className="mobile-notifications-filters">
+      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
         {filters.map(filter => (
           <MobileFilterChip
             key={filter.value}
@@ -252,10 +268,14 @@ export default function MobileNotificationsClient() {
         ))}
       </div>
 
-      {errorMessage && <div className="mobile-notifications-error">{errorMessage}</div>}
+      {errorMessage && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+          {errorMessage}
+        </div>
+      )}
 
       {loading ? (
-        <div className="mobile-notifications-skeleton-list" data-testid="notifications-skeleton">
+        <div className="flex flex-col gap-3" data-testid="notifications-skeleton">
           <NotificationSkeleton />
           <NotificationSkeleton />
           <NotificationSkeleton />
@@ -269,14 +289,14 @@ export default function MobileNotificationsClient() {
             <>
               <button
                 type="button"
-                className="mobile-empty-action primary"
+                className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white transition active:scale-[0.98]"
                 onClick={() => router.push('/m/incidents')}
               >
                 View incidents
               </button>
               <button
                 type="button"
-                className="mobile-empty-action"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition active:scale-[0.98] dark:border-slate-900 dark:bg-slate-950 dark:text-slate-300"
                 onClick={() => router.push('/m/services')}
               >
                 Check services
@@ -285,68 +305,83 @@ export default function MobileNotificationsClient() {
           }
         />
       ) : (
-        <div className="mobile-notifications-list">
+        <div className="flex flex-col gap-4">
           {groupedNotifications.map(group => (
-            <div key={group.label} className="mobile-notifications-group">
-              <div className="mobile-notifications-group-title">{group.label}</div>
-              {group.items.map(notification => {
-                const href = resolveNotificationHref(notification);
-                const typeLabel = getTypeLabel(notification.type);
-                const typeAction = getTypeAction(notification.type);
-                return (
-                  <MobileCard
-                    key={notification.id}
-                    className={`mobile-notification-card${notification.unread ? ' unread' : ''}`}
-                    onClick={href ? () => router.push(href) : undefined}
-                  >
-                    <div className="mobile-notification-main">
-                      <div className={`mobile-notification-icon tone-${notification.type}`}>
-                        <span>{typeLabel.charAt(0)}</span>
-                      </div>
-                      <div className="mobile-notification-body">
-                        <div className="mobile-notification-title-row">
-                          <span className="mobile-notification-title">{notification.title}</span>
-                          {notification.unread && <span className="mobile-notification-dot" />}
-                        </div>
-                        <p className="mobile-notification-message">{notification.message}</p>
-                        <div className="mobile-notification-meta">
-                          <span>{typeLabel}</span>
-                          <span>-</span>
-                          <span>{notification.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mobile-notification-actions">
-                      {href && (
-                        <button
-                          type="button"
-                          className="mobile-notification-link"
-                          onClick={event => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            router.push(href);
-                          }}
+            <div key={group.label} className="flex flex-col gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {group.label}
+              </div>
+              <div className="flex flex-col gap-2">
+                {group.items.map(notification => {
+                  const href = resolveNotificationHref(notification);
+                  const typeLabel = getTypeLabel(notification.type);
+                  const typeAction = getTypeAction(notification.type);
+                  return (
+                    <MobileCard
+                      key={notification.id}
+                      className={notification.unread ? 'ring-1 ring-primary/20' : undefined}
+                      onClick={href ? () => router.push(href) : undefined}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={cn(
+                            'flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold',
+                            iconTone(notification.type)
+                          )}
                         >
-                          {typeAction}
-                        </button>
-                      )}
-                      {notification.unread && (
-                        <button
-                          type="button"
-                          className="mobile-notification-mark"
-                          onClick={event => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            void handleMarkRead(notification.id);
-                          }}
-                        >
-                          Mark read
-                        </button>
-                      )}
-                    </div>
-                  </MobileCard>
-                );
-              })}
+                          {typeLabel.charAt(0)}
+                        </div>
+                        <div className="flex flex-1 flex-col gap-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {notification.title}
+                            </span>
+                            {notification.unread && (
+                              <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                            <span>{typeLabel}</span>
+                            <span>•</span>
+                            <span>{notification.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {href && (
+                          <button
+                            type="button"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                            onClick={event => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              router.push(href);
+                            }}
+                          >
+                            {typeAction}
+                          </button>
+                        )}
+                        {notification.unread && (
+                          <button
+                            type="button"
+                            className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-primary/90"
+                            onClick={event => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              void handleMarkRead(notification.id);
+                            }}
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
+                    </MobileCard>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>

@@ -1,25 +1,41 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
+import Link from 'next/link';
+import SsoButton from '@/components/auth/SsoButton';
+import Spinner from '@/components/ui/Spinner';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  AlertTriangle,
+  X,
+  CheckCircle2,
+  Check,
+  Sparkles,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { calculatePasswordStrength } from '@/lib/password-strength';
 
 type Props = {
   callbackUrl: string;
-  errorCode?: string | null;
-  passwordSet?: boolean;
-  ssoError?: string | null;
   ssoEnabled: boolean;
   ssoProviderType?: string | null;
   ssoProviderLabel?: string | null;
+  errorCode?: string | null;
+  ssoError?: string | null;
+  passwordSet?: boolean;
 };
 
 function formatError(message: string | null | undefined) {
   if (!message) return '';
-  if (message === 'CredentialsSignin') return 'Invalid email or password.';
-  if (message === 'AccessDenied')
-    return 'Access denied. Check your SSO access or contact your admin.';
-  if (message === 'Configuration') return 'Server configuration error.';
-  return 'Unable to sign in. Please try again.';
+  if (message === 'CredentialsSignin') return 'Invalid email or password';
+  if (message === 'AccessDenied') return 'Access denied';
+  if (message === 'Configuration') return 'Server configuration error';
+  return 'Authentication failed';
 }
 
 export default function MobileLoginClient({
@@ -31,51 +47,73 @@ export default function MobileLoginClient({
   ssoProviderType,
   ssoProviderLabel,
 }: Props) {
-  const emailInputRef = useRef<HTMLInputElement>(null);
-  const passwordInputRef = useRef<HTMLInputElement>(null);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isValid, setIsValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSSOLoading, setIsSSOLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // Password strength
+  const passwordStrength = calculatePasswordStrength(password);
+
+  const notices: Array<{
+    id: string;
+    tone: 'success' | 'warning';
+    title: string;
+    message: string;
+  }> = [];
+
+  if (passwordSet) {
+    notices.push({
+      id: 'password-set',
+      tone: 'success',
+      title: 'Password updated',
+      message: 'Sign in with your new credentials.',
+    });
+  }
+
+  if (ssoError) {
+    notices.push({
+      id: 'sso-error',
+      tone: 'warning',
+      title: 'SSO unavailable',
+      message: ssoError,
+    });
+  }
 
   useEffect(() => {
-    setMounted(true);
-    if (errorCode) {
-      setError(formatError(errorCode));
-    }
+    if (errorCode) setError(formatError(errorCode));
   }, [errorCode]);
 
   useEffect(() => {
-    if (mounted) {
-      emailInputRef.current?.focus();
-    }
-  }, [mounted]);
+    setIsValid(Boolean(email) && Boolean(password));
+  }, [email, password]);
 
-  let safeCallbackUrl = callbackUrl.startsWith('/m') ? callbackUrl : '/m';
-  if (safeCallbackUrl.includes('/login') || safeCallbackUrl === '/') {
+  let safeCallbackUrl = callbackUrl;
+  // Ensure we redirect to mobile dashboard /m unless specific deep link
+  if (
+    !safeCallbackUrl ||
+    safeCallbackUrl === '/' ||
+    safeCallbackUrl.includes('/login') ||
+    safeCallbackUrl.includes('/auth') || // Catches /auth/signout
+    !safeCallbackUrl.startsWith('/m')
+  ) {
     safeCallbackUrl = '/m';
   }
-
-  const providerLabelMap: Record<string, string> = {
-    google: 'Google',
-    okta: 'Okta',
-    azure: 'Microsoft',
-    auth0: 'Auth0',
-    custom: 'SSO',
-  };
-  const providerLabel =
-    ssoProviderLabel || providerLabelMap[ssoProviderType ?? 'custom'] || providerLabelMap.custom;
 
   const handleSSO = async () => {
     setIsSSOLoading(true);
     setError('');
     try {
-      // Fix: Override callbackUrl to /m if it is root or empty or signout to prevent desktop fallback
-      // Fix: Override callbackUrl to /m if it is root, /login, or signout to prevent desktop fallback or loop
       let finalCallbackUrl = callbackUrl;
       if (
         !finalCallbackUrl ||
@@ -87,632 +125,339 @@ export default function MobileLoginClient({
       }
       await signIn('oidc', { callbackUrl: finalCallbackUrl });
     } catch {
-      setError('SSO authentication failed.');
+      setError('Connection failed');
       setIsSSOLoading(false);
     }
   };
 
-  const handleCredentials = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCredentials = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError('');
-
-    if (!email.trim()) {
-      setError('Email is required');
-      emailInputRef.current?.focus();
-      return;
-    }
-
-    if (!password) {
-      setError('Password is required');
-      passwordInputRef.current?.focus();
-      return;
-    }
+    if (!isValid) return;
 
     setIsSubmitting(true);
+    setError('');
 
     try {
       const result = await signIn('credentials', {
         redirect: false,
         email: email.trim(),
         password,
+        rememberMe: String(rememberMe),
         callbackUrl: safeCallbackUrl,
       });
 
       if (result?.error) {
         setError(formatError(result.error));
-        setPassword('');
-        passwordInputRef.current?.focus();
+        setIsSubmitting(false);
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
       } else if (result?.ok) {
-        // Use hard navigation to ensure session is properly picked up
-        window.location.href = result?.url || safeCallbackUrl;
+        setIsSubmitting(false);
+        setIsSuccess(true);
+        setTimeout(() => {
+          // Force use of sanitized URL to prevent 404s from bad callbacks
+          window.location.href = safeCallbackUrl;
+        }, 800);
       }
     } catch {
-      setError('An unexpected error occurred.');
-    } finally {
+      setError('Unexpected error');
       setIsSubmitting(false);
     }
   };
 
   return (
-    <>
-      {/* CSS Animations */}
-      <style>{`
-                @keyframes gradientShift {
-                    0%, 100% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                }
-                @keyframes float {
-                    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
-                    50% { transform: translateY(-20px) rotate(180deg); opacity: 0.3; }
-                }
-                @keyframes pulse-glow {
-                    0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.2); }
-                    50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.4); }
-                }
-                @keyframes slideUp {
-                    from { opacity: 0; transform: translateY(30px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .login-card {
-                    animation: slideUp 0.5s ease-out forwards;
-                }
-                .floating-shape {
-                    position: absolute;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(99, 102, 241, 0.1));
-                    animation: float 6s ease-in-out infinite;
-                }
-                .input-focus:focus {
-                    outline: none;
-                    border-color: var(--primary-color) !important;
-                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-                }
-                .btn-primary:active {
-                    transform: scale(0.98);
-                }
-                .btn-sso:hover {
-                    background: rgba(99, 102, 241, 0.08);
-                }
-            `}</style>
+    <div className="min-h-[100dvh] w-full bg-[#0a0a0a] text-white flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-center pt-12 pb-8">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/logo.svg" alt="OpsKnight" className="h-10 w-10" />
+          <span className="text-xl font-bold tracking-tight">OpsKnight</span>
+        </Link>
+      </header>
 
-      <div
-        style={{
-          minHeight: '100dvh',
-          background: 'linear-gradient(-45deg, #0f172a, #1e1b4b, #0f172a, #1a1a2e)',
-          backgroundSize: '400% 400%',
-          animation: 'gradientShift 15s ease infinite',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '1.5rem',
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflowX: 'hidden',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Floating Background Shapes */}
-        <div
-          className="floating-shape"
-          style={{
-            width: '150px',
-            height: '150px',
-            top: '10%',
-            left: '-50px',
-            animationDelay: '0s',
-          }}
-        />
-        <div
-          className="floating-shape"
-          style={{
-            width: '100px',
-            height: '100px',
-            top: '60%',
-            right: '-30px',
-            animationDelay: '2s',
-          }}
-        />
-        <div
-          className="floating-shape"
-          style={{
-            width: '80px',
-            height: '80px',
-            bottom: '20%',
-            left: '20%',
-            animationDelay: '4s',
-          }}
-        />
-
-        {/* Main Card with Glassmorphism */}
-        <div
-          className="login-card"
-          style={{
-            margin: 'auto',
-            width: '100%',
-            maxWidth: '400px',
-            background: 'rgba(30, 41, 59, 0.8)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '24px',
-            padding: '2.5rem 1.75rem',
-            boxShadow:
-              '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            position: 'relative',
-            zIndex: 1,
-          }}
-        >
-          {/* Logo & Branding */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '72px',
-                height: '72px',
-                background:
-                  'linear-gradient(135deg, rgba(220, 38, 38, 0.2), rgba(220, 38, 38, 0.1))',
-                borderRadius: '20px',
-                marginBottom: '1.5rem',
-                animation: 'pulse-glow 3s ease-in-out infinite',
-              }}
-            >
-              <img src="/logo.svg" alt="OpsKnight" width={44} height={44} />
-            </div>
-            <h1
-              style={{
-                fontSize: '1.75rem',
-                fontWeight: '800',
-                color: '#ffffff',
-                margin: '0 0 0.5rem',
-                letterSpacing: '-0.03em',
-              }}
-            >
-              Welcome back
-            </h1>
-            <p
-              style={{
-                fontSize: '0.95rem',
-                color: 'rgba(148, 163, 184, 1)',
-                margin: 0,
-              }}
-            >
-              Sign in to OpsKnight
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col px-6 pb-8">
+        <div className="w-full max-w-sm mx-auto">
+          {/* Page Title */}
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 font-display">
+              {isSuccess ? 'Access Granted' : 'Secure Mobile Login'}
+            </h2>
+            <p className="mt-1 text-sm text-white/55">
+              {isSuccess
+                ? 'Redirecting to your mobile command center.'
+                : 'Verify your identity to reach OpsKnight Mobile.'}
             </p>
           </div>
 
-          {/* SSO Button */}
-          {ssoEnabled && (
-            <>
-              <button
-                type="button"
-                onClick={handleSSO}
-                disabled={isSSOLoading || isSubmitting}
-                className="btn-sso"
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  borderRadius: '14px',
-                  border: '1px solid rgba(99, 102, 241, 0.5)',
-                  background: 'rgba(99, 102, 241, 0.1)',
-                  color: '#a5b4fc',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.625rem',
-                  marginBottom: '1.75rem',
-                  opacity: isSSOLoading ? 0.7 : 1,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {isSSOLoading ? (
-                  <span>Connecting...</span>
-                ) : (
-                  <>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path
-                        d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5Z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span>Continue with {providerLabel}</span>
-                  </>
-                )}
-              </button>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginBottom: '1.75rem',
-                }}
-              >
-                <div style={{ flex: 1, height: '1px', background: 'rgba(148, 163, 184, 0.2)' }} />
-                <span
-                  style={{
-                    fontSize: '0.8rem',
-                    color: 'rgba(148, 163, 184, 0.6)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  or
-                </span>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(148, 163, 184, 0.2)' }} />
-              </div>
-            </>
-          )}
-
-          {/* Success/Error Messages */}
-          {ssoError && (
-            <div
-              style={{
-                padding: '0.875rem 1rem',
-                borderRadius: '12px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#f87171',
-                fontSize: '0.875rem',
-                marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {ssoError}
+          {/* Notices */}
+          {notices.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {notices.map(notice => {
+                const isSuccessTone = notice.tone === 'success';
+                const Icon = isSuccessTone ? Sparkles : AlertTriangle;
+                return (
+                  <div
+                    key={notice.id}
+                    className={cn(
+                      'flex items-start gap-3 rounded-lg border p-3 text-sm',
+                      isSuccessTone
+                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                        : 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-4 w-4 mt-0.5 shrink-0',
+                        isSuccessTone ? 'text-emerald-400' : 'text-amber-400'
+                      )}
+                    />
+                    <div>
+                      <p className="font-medium">{notice.title}</p>
+                      <p className="text-white/60 text-xs mt-0.5">{notice.message}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {passwordSet && (
-            <div
-              style={{
-                padding: '0.875rem 1rem',
-                borderRadius: '12px',
-                background: 'rgba(34, 197, 94, 0.15)',
-                color: '#4ade80',
-                fontSize: '0.875rem',
-                marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-              }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Password set successfully!
-            </div>
-          )}
-
+          {/* Error Alert */}
           {error && (
             <div
-              style={{
-                padding: '0.875rem 1rem',
-                borderRadius: '12px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#f87171',
-                fontSize: '0.875rem',
-                marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-              }}
+              role="alert"
+              className={cn(
+                'mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm flex items-start gap-3',
+                isShaking && 'animate-shake'
+              )}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-400 mt-0.5" />
+              <p className="flex-1 text-red-200">{error}</p>
+              <button
+                onClick={() => setError('')}
+                className="text-white/40 hover:text-white transition-colors"
+                aria-label="Dismiss error"
               >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {error}
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* SSO Button */}
+          {ssoEnabled && (
+            <div className="mb-6">
+              <SsoButton
+                providerType={ssoProviderType as 'google' | 'okta' | 'azure' | 'auth0' | 'custom'}
+                providerLabel={ssoProviderLabel}
+                onClick={handleSSO}
+                loading={isSSOLoading}
+                disabled={isSubmitting || isSuccess}
+              />
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-[#0a0a0a] px-4 text-white/40">or</span>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleCredentials}>
+          <form onSubmit={handleCredentials} className="space-y-5">
             {/* Email Field */}
-            <div style={{ marginBottom: '1.25rem' }}>
+            {/* Email Field */}
+            <div className="group space-y-2">
               <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.85rem',
-                  fontWeight: '600',
-                  color: 'rgba(226, 232, 240, 0.9)',
-                  marginBottom: '0.625rem',
-                }}
+                className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                  emailTouched && email && !isEmailValid
+                    ? 'text-rose-400'
+                    : 'text-white/60 group-focus-within:text-white/80'
+                }`}
               >
-                Email address
+                Identification
               </label>
-              <input
-                ref={emailInputRef}
-                type="email"
-                value={email}
-                onChange={e => {
-                  setEmail(e.target.value);
-                  setError('');
-                }}
-                placeholder="name@company.com"
-                autoComplete="email"
-                disabled={isSubmitting || isSSOLoading}
-                className="input-focus"
-                style={{
-                  width: '100%',
-                  padding: '1rem 1.125rem',
-                  borderRadius: '14px',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  color: '#f1f5f9',
-                  fontSize: '1rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s ease',
-                }}
-              />
+              <div className="relative group/input">
+                <div className="absolute inset-0 bg-white/5 rounded-xl transition duration-300 group-hover/input:bg-white/10" />
+                <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[11px]" />
+
+                <div className="relative flex items-center pr-3 group-focus-within:border-white/30 group-focus-within:bg-white/5 rounded-xl border border-white/10 transition-colors duration-300">
+                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-white/10">
+                    <Mail className="h-5 w-5 text-white/40 transition-colors group-focus-within/input:text-white/70" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (error) setError('');
+                    }}
+                    onBlur={() => setEmailTouched(true)}
+                    className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
+                    placeholder="you@opsknight.com"
+                    disabled={isSubmitting || isSuccess}
+                  />
+                  {emailTouched && email && !isEmailValid && (
+                    <div className="absolute right-3 text-rose-400 animate-in fade-in zoom-in duration-200">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              {emailTouched && email && !isEmailValid && (
+                <p className="text-[10px] text-rose-400 font-medium pl-1 animate-in slide-in-from-top-1">
+                  Please enter a valid email address
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '0.625rem',
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: '0.85rem',
-                    fontWeight: '600',
-                    color: 'rgba(226, 232, 240, 0.9)',
-                  }}
-                >
-                  Password
+            <div className="group space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-white/60 transition-colors duration-300 group-focus-within:text-white/80">
+                  Access Key
                 </label>
-                <a
+                <Link
                   href="/m/forgot-password"
-                  style={{
-                    fontSize: '0.8rem',
-                    color: '#a5b4fc',
-                    textDecoration: 'none',
-                    fontWeight: '500',
-                  }}
+                  className="text-xs font-medium text-emerald-500/80 hover:text-emerald-400 transition-colors focus:outline-none focus:underline"
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  ref={passwordInputRef}
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => {
-                    setPassword(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  disabled={isSubmitting || isSSOLoading}
-                  className="input-focus"
-                  style={{
-                    width: '100%',
-                    padding: '1rem 1.125rem',
-                    paddingRight: '3.5rem',
-                    borderRadius: '14px',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    color: '#f1f5f9',
-                    fontSize: '1rem',
-                    boxSizing: 'border-box',
-                    transition: 'all 0.2s ease',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'rgba(148, 163, 184, 0.8)',
-                    cursor: 'pointer',
-                    padding: '0.25rem',
-                  }}
-                >
-                  {showPassword ? (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
+
+              <div className="relative group/input">
+                <div className="absolute inset-0 bg-white/5 rounded-xl transition duration-300 group-hover/input:bg-white/10" />
+                <div className="absolute inset-[1px] bg-[#0a0a0a] rounded-[11px]" />
+
+                <div className="relative flex items-center pr-3 group-focus-within:border-white/30 group-focus-within:bg-white/5 rounded-xl border border-white/10 transition-all duration-300">
+                  <div className="flex items-center justify-center pl-4 pr-3 py-3.5 border-r border-white/10">
+                    <Lock className="h-5 w-5 text-white/40 transition-colors group-focus-within/input:text-white/70" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={e => {
+                      setPassword(e.target.value);
+                      if (error) setError('');
+                    }}
+                    onKeyDown={e => {
+                      if (e.getModifierState('CapsLock')) {
+                        setCapsLockOn(true);
+                      } else {
+                        setCapsLockOn(false);
+                      }
+                    }}
+                    className="w-full bg-transparent px-4 py-3 text-white placeholder:text-white/20 focus:outline-none transition-colors"
+                    placeholder="••••••••"
+                    disabled={isSubmitting || isSuccess}
+                  />
+                  <div className="flex items-center border-l border-white/10 pl-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-white/30 hover:text-white/80 transition-colors focus:outline-none p-1 rounded-md"
+                      aria-label="Toggle password visibility"
                     >
-                      <path
-                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <line
-                        x1="1"
-                        y1="1"
-                        x2="23"
-                        y2="23"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path
-                        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {/* Password Strength Indicator */}
+              {password && !isSuccess && (
+                <div className="space-y-1 pt-1 duration-200 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex gap-1 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                    {[1, 2, 3, 4, 5].map(level => (
+                      <div
+                        key={level}
+                        className={cn(
+                          'h-full flex-1 transition-all duration-500',
+                          level <= (passwordStrength.score + 1) * 1.25
+                            ? passwordStrength.color
+                            : 'bg-transparent'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <p
+                    className={cn('text-[10px] font-medium text-right', passwordStrength.textColor)}
+                  >
+                    Strength: {passwordStrength.label}
+                  </p>
+                </div>
+              )}
+
+              {capsLockOn && (
+                <div className="flex items-center gap-2 text-amber-400 text-xs animate-pulse font-medium pl-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>Caps Lock is ON</span>
+                </div>
+              )}
+            </div>
+
+            {/* Remember Me */}
+            <div
+              className="flex items-center group cursor-pointer"
+              onClick={() => !isSubmitting && !isSuccess && setRememberMe(!rememberMe)}
+            >
+              <div
+                className={cn(
+                  'h-5 w-5 rounded-md border flex items-center justify-center transition-all duration-200',
+                  rememberMe
+                    ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                    : 'bg-white/5 border-white/20 group-hover:border-white/40 group-hover:bg-white/10'
+                )}
+              >
+                {rememberMe && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
+              </div>
+              <input
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                disabled={isSubmitting || isSuccess}
+                className="sr-only"
+              />
+              <label className="ml-3 text-sm text-white/60 group-hover:text-white transition-colors cursor-pointer select-none">
+                Remember me
+              </label>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || isSSOLoading}
-              className="btn-primary"
-              style={{
-                width: '100%',
-                padding: '1.125rem',
-                borderRadius: '14px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                color: 'white',
-                fontSize: '1rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.625rem',
-                opacity: isSubmitting ? 0.7 : 1,
-                transition: 'all 0.2s ease',
-                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
-              }}
+              disabled={isSubmitting || isSSOLoading || !isValid || isSuccess}
+              className={cn(
+                'w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200',
+                isSuccess
+                  ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20'
+              )}
             >
-              {isSubmitting ? (
+              {isSuccess ? (
                 <>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    style={{ animation: 'spin 1s linear infinite' }}
-                  >
-                    <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="32" />
-                  </svg>
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>Success</span>
+                </>
+              ) : isSubmitting ? (
+                <>
+                  <Spinner size="sm" variant="black" />
                   <span>Signing in...</span>
                 </>
               ) : (
-                <>
-                  <span>Sign in</span>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </>
+                <span>Sign in</span>
               )}
             </button>
           </form>
 
           {/* Footer */}
-          <div
-            style={{
-              textAlign: 'center',
-              marginTop: '2rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid rgba(148, 163, 184, 0.1)',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '0.8rem',
-                color: 'rgba(148, 163, 184, 0.6)',
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Secured by OpsKnight
-            </p>
-          </div>
+          <p className="mt-8 text-center text-xs text-white/40">Protected by OpsKnight</p>
         </div>
-
-        {/* Version Badge */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '1.5rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            fontSize: '0.7rem',
-            color: 'rgba(148, 163, 184, 0.4)',
-            letterSpacing: '0.05em',
-          }}
-        >
-          OpsKnight Mobile v1.0
-        </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
