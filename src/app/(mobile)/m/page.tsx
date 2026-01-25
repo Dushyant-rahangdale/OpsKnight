@@ -177,8 +177,8 @@ export default async function MobileDashboard() {
         </div>
       </div>
       <p className="text-[11px] font-medium text-[color:var(--text-muted)] mobile-enter delay-300">
-        Metrics reflect the last {windowLabelDays} days{windowLabelSuffix}. Active counts are
-        current; resolved is the last 24 hours.
+        <strong>Open</strong>: New & Unacknowledged. <strong>Total Active</strong>: All unresolved
+        incidents.
       </p>
       <p className="text-[11px] text-[color:var(--text-muted)] mobile-enter delay-300">
         Last updated <MobileTime value={lastUpdated} format="time" />
