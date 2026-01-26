@@ -66,7 +66,8 @@ export function IncidentHeatmapWidget({
   // Responsive cell sizing - dynamically calculate to fill available width
   const { cellSize, cellGap, showDayLabels, fontSize } = useMemo(() => {
     const dayLabelWidth = 24; // Width for day labels column
-    const padding = 16; // Horizontal padding inside the container
+    // Critical fix: Padding must account for the largest possible padding (md:p-6 = 24px * 2 = 48px) + borders
+    const padding = 52;
     const availableWidth = Math.max(0, containerWidth - dayLabelWidth - padding);
 
     // Calculate optimal cell size to fill width
