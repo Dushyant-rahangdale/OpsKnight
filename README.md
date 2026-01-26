@@ -130,11 +130,30 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 
 ---
 
+## 🔌 Integrations
+
+OpsKnight plays nicely with your existing stack.
+
+<div align="center">
+  <img src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white" alt="Slack" />
+  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus" />
+  <img src="https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white" alt="Datadog" />
+  <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana" />
+  <img src="https://img.shields.io/badge/Sentry-362D59?style=for-the-badge&logo=sentry&logoColor=white" alt="Sentry" />
+  <img src="https://img.shields.io/badge/AWS_CloudWatch-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" alt="CloudWatch" />
+  <img src="https://img.shields.io/badge/Teams-6264A7?style=for-the-badge&logo=microsoft-teams&logoColor=white" alt="Microsoft Teams" />
+  <img src="https://img.shields.io/badge/Webhooks-000000?style=for-the-badge&logo=webhook&logoColor=white" alt="Webhooks" />
+</div>
+
+[**View All Integrations →**](docs/v1/integrations/README.md)
+
+---
+
 ## 🛠️ Built With
 
 OpsKnight is built on a modern, type-safe stack designed for performance and developer experience.
 
-<p align="left">
+<div align="center">
   <img src="https://img.shields.io/badge/Next.js_15-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/React_19-20232a?style=for-the-badge&logo=react&logoColor=61dafb" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
@@ -142,7 +161,7 @@ OpsKnight is built on a modern, type-safe stack designed for performance and dev
   <img src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma" />
   <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
-</p>
+</div>
 
 ---
 
@@ -179,9 +198,9 @@ We support multiple deployment strategies to fit your infrastructure needs.
 
 | Method             | Best For                            | Guide                                          |
 | :----------------- | :---------------------------------- | :--------------------------------------------- |
-| **Docker Compose** | Local Development, small teams      | [Read Guide](docs/v1/deployment/docker.md)     |
-| **Helm Chart**     | Production Kubernetes (Recommended) | [Read Guide](docs/v1/deployment/helm.md)       |
-| **Kustomize**      | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1/deployment/kubernetes.md) |
+| ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose** | Local Development, small teams      | [Read Guide](docs/v1/deployment/docker.md)     |
+| ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart**     | Production Kubernetes (Recommended) | [Read Guide](docs/v1/deployment/helm.md)       |
+| ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**      | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1/deployment/kubernetes.md) |
 
 > **Note:** For production, we recommend using an external managed PostgreSQL database.
 
@@ -233,9 +252,20 @@ See the full [ROADMAP.md](ROADMAP.md) for details.
 
 Join the OpsKnight community to get help, suggest features, or contribute.
 
-- **📧 Email**: [help@opsknight.com](mailto:help@opsknight.com) - Feedback, support, and feature requests.
-- **💬 Discussions**: [GitHub Discussions](https://github.com/dushyant-rahangdale/opsknight/discussions)
-- **🐛 Issues**: [Report a Bug](https://github.com/dushyant-rahangdale/opsknight/issues)
+<div align="center">
+  <a href="mailto:help@opsknight.com">
+    <img src="https://img.shields.io/badge/Email-help%40opsknight.com-blue?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
+  </a>
+  <a href="https://github.com/dushyant-rahangdale/opsknight/discussions">
+    <img src="https://img.shields.io/badge/GitHub-Discussions-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions" />
+  </a>
+  <a href="https://github.com/dushyant-rahangdale/opsknight/issues">
+    <img src="https://img.shields.io/badge/Issues-Report%20Bug-d73a49?style=for-the-badge&logo=github&logoColor=white" alt="Report Bug" />
+  </a>
+  <a href="CONTRIBUTING.md">
+    <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge&logo=git&logoColor=white" alt="PRs Welcome" />
+  </a>
+</div>
 
 We love contributors! Please check our [Contributing Guide](CONTRIBUTING.md) to get started.
 
@@ -248,7 +278,9 @@ OpsKnight is an independent open-source project. If it helps you sleep better at
 - **🌟 Star the repo**: It helps others find us.
 - **💝 Sponsor**: [Become a Sponsor](https://github.com/sponsors/dushyant-rahangdale)
 
-Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdale) and contributors.
+Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdale) and these amazing contributors:
+
+### ✨ Contributors
 
 <a href="https://github.com/dushyant-rahangdale/opsknight/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=dushyant-rahangdale/opsknight" />
