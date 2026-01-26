@@ -65,7 +65,8 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 
 ## 🎥 Demo
 
-![OpsKnight Demo](public/demo.gif)
+[![Watch Demo](public/OpsKnight.png)](public/demo.mov)
+> *Click to watch the full demo video*
 
 ---
 
@@ -104,10 +105,7 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
   </tr>
 </table>
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/dushyant-rahangdale/opsknight/main/docs/v1/assets/dashboard-command-center-1200.jpg" alt="OpsKnight Dashboard" width="100%">
-  <sub><em>The Incident Command Center: Real-time observability and response coordination.</em></sub>
-</div>
+
 
 </div>
 
