@@ -74,55 +74,31 @@ export function IncidentHeatmapWidget({
     // Using gap = cellSize * 0.25
     const gapRatio = 0.25;
     const effectiveWeeks = weeksCount + (weeksCount - 1) * gapRatio;
-    const optimalCellSize = effectiveWeeks > 0 ? Math.floor(availableWidth / effectiveWeeks) : 12;
 
-    // Set min/max based on screen size
-    let minCell: number;
-    let maxCell: number;
-    let showLabels = true;
-    let fontSz = 10;
+    // Calculate precise cell size needed to fit
+    // availableWidth = weeks * (cell + gap)
+    // We want to force it to fit, so we calculate the max width per week
+    const widthPerWeek = effectiveWeeks > 0 ? (availableWidth / effectiveWeeks) : 12;
 
-    if (containerWidth < 320) {
-      minCell = 6;
-      maxCell = 10;
-      showLabels = false;
-      fontSz = 8;
-    } else if (containerWidth < 480) {
-      minCell = 8;
-      maxCell = 12;
-      showLabels = false;
-      fontSz = 9;
-    } else if (containerWidth < 640) {
-      minCell = 9;
-      maxCell = 14;
-      fontSz = 9;
-    } else if (containerWidth < 768) {
-      minCell = 10;
-      maxCell = 16;
-      fontSz = 9;
-    } else if (containerWidth < 1024) {
-      minCell = 11;
-      maxCell = 18;
-      fontSz = 10;
-    } else if (containerWidth < 1440) {
-      minCell = 12;
-      maxCell = 22;
-      fontSz = 10;
-    } else {
-      // Large screens - allow bigger cells
-      minCell = 14;
-      maxCell = 28;
-      fontSz = 11;
-    }
+    // Determine safe gap based on available space
+    // If very tight (<12px per week), use 1px gap. Otherwise 2px.
+    const safeGap = widthPerWeek < 12 ? 1 : 2;
 
-    const scaledCell = Math.max(minCell, Math.min(maxCell, optimalCellSize));
-    const scaledGap = Math.max(2, Math.round(scaledCell * gapRatio));
+    // Cell size is the remainder. Ensure at least 2px.
+    const scaledCell = Math.max(2, Math.min(28, Math.floor(widthPerWeek - safeGap)));
+
+    // Recalculate actual gap used (in case floor changed things)
+    const scaledGap = safeGap;
+
+    // Only show day labels if cells are big enough to matter
+    const showDayLabels = scaledCell >= 10;
+    const fontSize = Math.max(8, Math.min(11, scaledCell * 0.8));
 
     return {
       cellSize: scaledCell,
       cellGap: scaledGap,
-      showDayLabels: showLabels,
-      fontSize: fontSz,
+      showDayLabels,
+      fontSize,
     };
   }, [containerWidth, weeksCount]);
 
@@ -286,7 +262,7 @@ export function IncidentHeatmapWidget({
           className="relative overflow-x-auto pb-2 -mx-1 px-1"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="min-w-max">
+          <div className="w-full flex flex-col">
             {/* Month Labels Row - Dynamically positioned */}
             <div
               className="flex mb-2 h-4 relative"
