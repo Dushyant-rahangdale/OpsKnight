@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/banner.png" alt="OpsKnight Banner" width="100%">
+<video src="public/OpsKnight.mp4" poster="public/banner.png" width="100%" autoplay loop muted playsinline></video>
 
 # OpsKnight
 
@@ -59,6 +59,13 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 | **Status Pages**    |  **Included (Unlimited)**   |        Extra Cost        |
 | **Custom Branding** |       ✅ Full Control       |        ❌ Limited        |
 | **Data Privacy**    |    ✅ 100% Owned by You     | ❌ Third-Party Processed |
+
+
+---
+
+## 🎥 Demo
+
+<video src="public/demo.mov" width="100%" autoplay loop muted playsinline></video>
 
 ---
 
