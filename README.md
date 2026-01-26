@@ -65,8 +65,9 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 
 ## 🎥 Demo
 
-[![Watch Demo](public/OpsKnight.png)](public/demo.mov)
-> *Click to watch the full demo video*
+<div align="center">
+  <img src="public/demo.gif" alt="OpsKnight demo" width="100%">
+</div>
 
 ---
 
