@@ -1,6 +1,6 @@
 <div align="center">
 
-<video src="public/OpsKnight.mp4" poster="public/banner.png" width="100%" autoplay loop muted playsinline></video>
+<img src="public/OpsKnight.png" alt="OpsKnight Banner" width="100%">
 
 # OpsKnight
 
@@ -65,7 +65,7 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 
 ## 🎥 Demo
 
-<video src="public/demo.mov" width="100%" autoplay loop muted playsinline></video>
+[![Watch the demo](public/OpsKnight.png)](public/demo.mov)
 
 ---
 
