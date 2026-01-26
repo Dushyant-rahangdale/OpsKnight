@@ -260,10 +260,10 @@ export function IncidentHeatmapWidget({
 
         {/* Heatmap Grid Container */}
         <div
-          className="relative overflow-x-auto pb-2 -mx-1 px-1 flex justify-center"
+          className="relative overflow-hidden pb-2 -mx-1 px-1"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          <div className="w-full flex flex-col">
+          <div className="w-fit mx-auto flex flex-col">
             {/* Month Labels Row - Dynamically positioned */}
             <div
               className="flex mb-2 h-4 relative"
