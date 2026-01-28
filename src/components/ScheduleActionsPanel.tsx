@@ -16,10 +16,13 @@ import { Plus } from 'lucide-react';
 
 type ScheduleActionsPanelProps = {
   scheduleId: string;
-  users: any[];
+  users: Array<{ id: string; name: string }>;
   canManageSchedules: boolean;
-  createLayer: any;
-  createOverride: any;
+  createLayer: (scheduleId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
+  createOverride: (
+    scheduleId: string,
+    formData: FormData
+  ) => Promise<{ error?: string } | undefined>;
   defaultStartDate: string;
 };
 

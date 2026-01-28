@@ -1,7 +1,6 @@
-/* eslint-disable */
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/shadcn/avatar';
 import { Badge } from '@/components/ui/shadcn/badge';
 import {
@@ -38,23 +37,43 @@ const LAYER_COLORS = [
 ];
 
 export default function CoverageTimeline({ shifts, timeZone }: CoverageTimelineProps) {
-  const now = new Date();
-  const todayStart = startOfDayInTimeZone(now, timeZone);
-  const todayEnd = startOfNextDayInTimeZone(now, timeZone);
+  // Stable reference date for initial render (doesn't need to be precise for SSR)
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Mark as mounted and start update interval
+  useEffect(() => {
+    setIsMounted(true);
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const todayStart = useMemo(
+    () => startOfDayInTimeZone(currentTime, timeZone),
+    [currentTime, timeZone]
+  );
+  const todayEnd = useMemo(
+    () => startOfNextDayInTimeZone(currentTime, timeZone),
+    [currentTime, timeZone]
+  );
+  const todayStartTime = todayStart.getTime();
+  const todayEndTime = todayEnd.getTime();
 
   // Filter shifts to today only
   const todayShifts = useMemo(() => {
     return shifts
       .filter(shift => {
-        return shift.start < todayEnd && shift.end > todayStart;
+        return shift.start.getTime() < todayEndTime && shift.end.getTime() > todayStartTime;
       })
       .map(shift => ({
         ...shift,
         // Clamp to today's bounds
-        displayStart: new Date(Math.max(shift.start.getTime(), todayStart.getTime())),
-        displayEnd: new Date(Math.min(shift.end.getTime(), todayEnd.getTime())),
+        displayStart: new Date(Math.max(shift.start.getTime(), todayStartTime)),
+        displayEnd: new Date(Math.min(shift.end.getTime(), todayEndTime)),
       }));
-  }, [shifts, todayStart, todayEnd]);
+  }, [shifts, todayStartTime, todayEndTime]);
 
   // Get unique layer names for color assignment
   const layerColorMap = useMemo(() => {
@@ -66,12 +85,11 @@ export default function CoverageTimeline({ shifts, timeZone }: CoverageTimelineP
     return map;
   }, [todayShifts]);
 
-  // Current hour position
-  const dayDurationMs = Math.max(todayEnd.getTime() - todayStart.getTime(), 1);
-  const currentHourPosition = Math.min(
-    100,
-    Math.max(0, ((now.getTime() - todayStart.getTime()) / dayDurationMs) * 100)
-  );
+  // Current hour position - only calculate meaningful value on client
+  const dayDurationMs = Math.max(todayEndTime - todayStartTime, 1);
+  const currentHourPosition = isMounted
+    ? Math.min(100, Math.max(0, ((currentTime.getTime() - todayStartTime) / dayDurationMs) * 100))
+    : 50; // Default to middle during SSR to avoid hydration mismatch
 
   // Generate hour markers
   const hourMarkers = [0, 6, 12, 18];
@@ -92,12 +110,12 @@ export default function CoverageTimeline({ shifts, timeZone }: CoverageTimelineP
             Today
           </Badge>
           <span className="text-xs text-slate-500">
-            {formatDateTime(now, timeZone, { format: 'date' })}
+            {formatDateTime(currentTime, timeZone, { format: 'date' })}
           </span>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-400">
           <Clock className="h-3 w-3" />
-          <span>{formatDateTime(now, timeZone, { format: 'time', hour12: false })}</span>
+          <span>{formatDateTime(currentTime, timeZone, { format: 'time', hour12: false })}</span>
           <Badge variant="outline" size="xs">
             {timeZone}
           </Badge>
@@ -190,13 +208,15 @@ export default function CoverageTimeline({ shifts, timeZone }: CoverageTimelineP
             );
           })}
 
-          {/* Current Time Indicator */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
-            style={{ left: `${currentHourPosition}%` }}
-          >
-            <div className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-red-500" />
-          </div>
+          {/* Current Time Indicator - only render on client */}
+          {isMounted && (
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+              style={{ left: `${currentHourPosition}%` }}
+            >
+              <div className="absolute -top-1 -left-1 h-2 w-2 rounded-full bg-red-500" />
+            </div>
+          )}
         </div>
 
         {/* Hour Labels */}

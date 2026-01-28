@@ -5,8 +5,6 @@ import { Badge } from '@/components/ui/shadcn/badge';
 import { DirectUserAvatar } from '@/components/UserAvatar';
 import { getDefaultAvatar } from '@/lib/avatar';
 import { Clock, Users, CalendarClock, ArrowRight, Zap } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { formatDateTime } from '@/lib/timezone';
 
 type QuickStatsProps = {
   layers: Array<{
@@ -33,8 +31,8 @@ export default function ScheduleQuickStats({
   layers,
   activeBlocks,
   overrideCount,
-  timeZone,
-}: QuickStatsProps) {
+}: // timeZone prop unused in this component but kept for future use
+QuickStatsProps) {
   const stats = useMemo(() => {
     // Total responders across all layers (unique)
     const allResponders = new Set<string>();
@@ -61,7 +59,8 @@ export default function ScheduleQuickStats({
       let nextPersonAvatar = getDefaultAvatar(null, 'next');
       if (layer && layer.users.length > 1) {
         const currentIndex = layer.users.findIndex(u => u.user.name === earliest.userName);
-        const nextIndex = (currentIndex + 1) % layer.users.length;
+        // If user not found in layer, default to showing first user as next
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % layer.users.length;
         const nextUser = layer.users[nextIndex];
         nextPerson = nextUser?.user.name || 'Next responder';
         nextPersonAvatar =

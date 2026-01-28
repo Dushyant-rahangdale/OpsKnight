@@ -133,7 +133,6 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[], timeZone: string
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
   const [cursor, setCursor] = useState(() => new Date());
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [filterLayer, _setFilterLayer] = useState<string | null>(null);
 
   const monthLabel = useMemo(
     () =>
@@ -145,14 +144,9 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
     [cursor, timeZone]
   );
 
-  const filteredShifts = useMemo(() => {
-    if (!filterLayer) return shifts;
-    return shifts.filter(shift => shift.label.startsWith(filterLayer + ':'));
-  }, [shifts, filterLayer]);
-
   const calendarCells = useMemo(
-    () => buildCalendar(cursor, filteredShifts, timeZone),
-    [cursor, filteredShifts, timeZone]
+    () => buildCalendar(cursor, shifts, timeZone),
+    [cursor, shifts, timeZone]
   );
   const todayKey = useMemo(() => formatDateKeyInTimeZone(new Date(), timeZone), [timeZone]);
 
@@ -302,7 +296,7 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
                                     shift.user.avatarUrl ||
                                     getDefaultAvatar(shift.user.gender, shift.user.name)
                                   }
-                                  alt={shift.user.name}
+                                  alt={`Avatar of ${shift.user.name}`}
                                   className="h-4 w-4 rounded-full object-cover flex-shrink-0 ring-1 ring-white/50"
                                 />
                                 <span className="font-medium text-foreground truncate flex-1 min-w-0">
