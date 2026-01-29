@@ -4,39 +4,48 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
 
+import { formatDateForInput } from '@/lib/timezone';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/shadcn/sheet';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
-import { Layers, Loader2, Plus } from 'lucide-react';
+import { Layers, Loader2, Edit3 } from 'lucide-react';
 
-type LayerCreateFormProps = {
-  scheduleId: string;
-  canManageSchedules: boolean;
-  createLayer: (scheduleId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
-  defaultStartDate: string;
+type LayerEditSheetProps = {
+  layer: {
+    id: string;
+    name: string;
+    start: Date;
+    end: Date | null;
+    rotationLengthHours: number;
+  };
+  timeZone: string;
+  updateLayer: (layerId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export default function LayerCreateForm({
-  scheduleId,
-  canManageSchedules,
-  createLayer,
-  defaultStartDate,
-}: LayerCreateFormProps) {
+export default function LayerEditSheet({
+  layer,
+  timeZone,
+  updateLayer,
+  open,
+  onOpenChange,
+}: LayerEditSheetProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [open, setOpen] = useState(false);
 
   // Local state for quick interactions
-  const [rotationDuration, setRotationDuration] = useState<string>('168'); // Default 1 week hours
+  const [rotationDuration, setRotationDuration] = useState<string>(
+    layer.rotationLengthHours.toString()
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,16 +53,16 @@ export default function LayerCreateForm({
 
     startTransition(async () => {
       try {
-        const result = await createLayer(scheduleId, formData);
+        const result = await updateLayer(layer.id, formData);
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          showToast('Layer created successfully', 'success');
-          setOpen(false);
+          showToast('Layer updated successfully', 'success');
+          onOpenChange(false);
           router.refresh();
         }
-      } catch (error) {
-        showToast('Failed to create layer', 'error');
+      } catch {
+        showToast('Failed to update layer', 'error');
       }
     });
   };
@@ -62,26 +71,18 @@ export default function LayerCreateForm({
     setRotationDuration(hours.toString());
   };
 
-  if (!canManageSchedules) return null;
-
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button className="w-full h-10 gap-2 text-sm font-semibold bg-primary text-white hover:bg-primary/90 shadow-sm">
-          <Plus className="h-3.5 w-3.5" />
-          Add Rotation
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
         <SheetHeader className="mb-6">
           <SheetTitle className="flex items-center gap-3 text-xl">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Layers className="h-5 w-5" />
+              <Edit3 className="h-5 w-5" />
             </span>
-            Add Rotation Layer
+            Edit Rotation Layer
           </SheetTitle>
           <SheetDescription>
-            Create a new rotation sequence. Defines who is on-call and for how long.
+            Update the rotation settings for <strong>{layer.name}</strong>.
           </SheetDescription>
         </SheetHeader>
 
@@ -91,6 +92,7 @@ export default function LayerCreateForm({
             <Input
               id="name"
               name="name"
+              defaultValue={layer.name}
               placeholder="e.g. Primary On-Call, Weekday Shift"
               required
               disabled={isPending}
@@ -176,7 +178,7 @@ export default function LayerCreateForm({
             <input
               type="datetime-local"
               name="start"
-              defaultValue={defaultStartDate}
+              defaultValue={formatDateForInput(layer.start, timeZone)}
               required
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -191,27 +193,31 @@ export default function LayerCreateForm({
             <input
               type="datetime-local"
               name="end"
+              defaultValue={layer.end ? formatDateForInput(layer.end, timeZone) : ''}
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
             <p className="text-[10px] text-slate-500">Leave empty for an ongoing rotation.</p>
           </div>
 
-          {/* User ordering hint */}
-          <div className="p-3 rounded-md bg-blue-50/70 border border-blue-100 text-xs text-blue-700">
-            <strong>Tip:</strong> You can add users and reorder the rotation after creating the
-            layer.
-          </div>
-
           <div className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
             <Button type="submit" className="flex-1" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  Saving...
                 </>
               ) : (
-                'Create Layer'
+                'Save Changes'
               )}
             </Button>
           </div>

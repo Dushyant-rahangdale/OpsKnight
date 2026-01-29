@@ -465,7 +465,7 @@ export default async function ScheduleDetailPage({
                 <Badge variant="secondary">{schedule.layers.length}</Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-3 space-y-2 max-h-[350px] overflow-y-auto">
+            <CardContent className="p-4 pt-3 space-y-2">
               {schedule.layers.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Layers className="h-8 w-8 mx-auto mb-2 opacity-50" />
