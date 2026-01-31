@@ -17,6 +17,9 @@ const mockPrisma = vi.hoisted(() => ({
   systemSettings: {
     findUnique: vi.fn(),
   },
+  oidcConfig: {
+    findFirst: vi.fn(),
+  },
 }));
 
 // Mock next-auth

@@ -110,7 +110,7 @@
     "zod": "^3.25.76"
   },
   "optionalDependencies": {
-    "@aws-sdk/client-sns": "^3.0.0",
+    "@aws-sdk/client-sns": "^3.971.0",
     "@sendgrid/mail": "^8.1.6",
     "nodemailer": "7.0.12",
     "resend": "^4.0.0",
@@ -157,5 +157,8 @@
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
+  },
+  "overrides": {
+    "fast-xml-parser": "^5.3.4"
   }
 }
