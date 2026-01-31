@@ -230,7 +230,7 @@ function matchesSearch(zone: ZoneOption, rawQuery: string): boolean {
     ...(zone.mainCities || []),
     ...(zone.keywords || []),
   ]
-    .filter(Boolean)
+    .filter((token): token is string => Boolean(token))
     .map(normalize);
 
   const haystack = tokens.join(' ');
