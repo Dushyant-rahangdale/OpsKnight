@@ -84,6 +84,7 @@ const LAYER_COLORS = [
 export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: ScheduleTimelineProps) {
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
+  const [showFinalSchedule, setShowFinalSchedule] = useState(true);
 
   const endDate = useMemo(() => addDays(startDate, daysToShow), [startDate, daysToShow]);
 
@@ -197,6 +198,21 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                 14 Days
               </Button>
             </div>
+
+            {finalScheduleBlocks.length > 0 && (
+              <Button
+                onClick={() => setShowFinalSchedule(!showFinalSchedule)}
+                size="sm"
+                variant={showFinalSchedule ? 'secondary' : 'outline'}
+                className={cn(
+                  'h-7 px-3 text-xs gap-1.5',
+                  showFinalSchedule && 'bg-slate-800 text-white hover:bg-slate-700'
+                )}
+              >
+                <Shield className="h-3 w-3" />
+                Final
+              </Button>
+            )}
 
             <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white/70 p-1">
               <Button
@@ -470,7 +486,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
             </div>
 
             {/* Final Schedule Row */}
-            {finalScheduleBlocks.length > 0 && (
+            {showFinalSchedule && finalScheduleBlocks.length > 0 && (
               <div className="border-t-2 border-slate-300 pt-2 mt-2">
                 <div className="relative">
                   {/* Final Schedule Label */}
@@ -603,7 +619,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                   <div className="h-3 w-3 rounded-md bg-orange-500 ring-2 ring-orange-200" />
                   <span className="text-xs font-medium text-slate-600">Override</span>
                 </div>
-                {finalScheduleBlocks.length > 0 && (
+                {showFinalSchedule && finalScheduleBlocks.length > 0 && (
                   <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
                     <div className="h-3 w-3 rounded-md bg-slate-800 ring-2 ring-slate-400" />
                     <span className="text-xs font-medium text-slate-600">Final Schedule</span>

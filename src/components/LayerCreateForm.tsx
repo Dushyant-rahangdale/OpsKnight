@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
 
@@ -21,7 +21,9 @@ import {
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
-import { Layers, Loader2, Plus, Info } from 'lucide-react';
+import { Badge } from '@/components/ui/shadcn/badge';
+import { Layers, Loader2, Plus, Info, Clock, Calendar, Users, Repeat, AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type LayerCreateFormProps = {
   scheduleId: string;
@@ -29,6 +31,9 @@ type LayerCreateFormProps = {
   createLayer: (scheduleId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
   defaultStartDate: string;
 };
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function LayerCreateForm({
   scheduleId,
@@ -41,12 +46,69 @@ export default function LayerCreateForm({
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
-  // Local state for quick interactions
-  const [rotationDuration, setRotationDuration] = useState<string>('168'); // Default 1 week hours
+  // Form state
+  const [rotationDuration, setRotationDuration] = useState<string>('168');
+  const [shiftDuration, setShiftDuration] = useState<string>('');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [startHour, setStartHour] = useState<string>('');
+  const [endHour, setEndHour] = useState<string>('');
+
+  // Computed preview info
+  const rotationInfo = useMemo(() => {
+    const hours = parseInt(rotationDuration) || 0;
+    if (hours <= 0) return null;
+
+    if (hours < 24) return `${hours} hour rotation`;
+    if (hours === 24) return 'Daily rotation';
+    if (hours === 168) return 'Weekly rotation';
+    if (hours === 336) return 'Bi-weekly rotation';
+    if (hours % 24 === 0) return `${hours / 24} day rotation`;
+    return `${hours} hour rotation`;
+  }, [rotationDuration]);
+
+  const shiftInfo = useMemo(() => {
+    const hours = parseInt(shiftDuration) || 0;
+    if (hours <= 0) return null;
+    return `${hours}h active per rotation`;
+  }, [shiftDuration]);
+
+  const restrictionInfo = useMemo(() => {
+    const parts: string[] = [];
+
+    if (selectedDays.length > 0 && selectedDays.length < 7) {
+      const isWeekdays = selectedDays.length === 5 && [1, 2, 3, 4, 5].every(d => selectedDays.includes(d));
+      const isWeekends = selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6);
+
+      if (isWeekdays) parts.push('Weekdays only');
+      else if (isWeekends) parts.push('Weekends only');
+      else parts.push(`${selectedDays.length} days/week`);
+    }
+
+    if (startHour && endHour) {
+      parts.push(`${startHour.padStart(2, '0')}:00-${endHour.padStart(2, '0')}:00`);
+    }
+
+    return parts.length > 0 ? parts.join(' • ') : null;
+  }, [selectedDays, startHour, endHour]);
+
+  const toggleDay = (day: number) => {
+    setSelectedDays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
+
+  const setWeekdays = () => setSelectedDays([1, 2, 3, 4, 5]);
+  const setWeekends = () => setSelectedDays([0, 6]);
+  const clearDays = () => setSelectedDays([]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+
+    // Add selected days to form data
+    selectedDays.forEach(day => {
+      formData.append('daysOfWeek', day.toString());
+    });
 
     startTransition(async () => {
       try {
@@ -56,9 +118,14 @@ export default function LayerCreateForm({
         } else {
           showToast('Layer created successfully', 'success');
           setOpen(false);
+          // Reset form state
+          setSelectedDays([]);
+          setStartHour('');
+          setEndHour('');
+          setShiftDuration('');
           router.refresh();
         }
-      } catch (error) {
+      } catch {
         showToast('Failed to create layer', 'error');
       }
     });
@@ -87,81 +154,94 @@ export default function LayerCreateForm({
             Add Rotation Layer
           </SheetTitle>
           <SheetDescription>
-            Create a new rotation sequence. Defines who is on-call and for how long.
+            Create a new on-call rotation. Users take turns being on-call based on the schedule.
           </SheetDescription>
         </SheetHeader>
 
+        {/* Preview Card */}
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
+          <div className="flex items-center gap-2 mb-3">
+            <Repeat className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-slate-700">Rotation Preview</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {rotationInfo && (
+              <Badge variant="secondary" className="gap-1">
+                <Clock className="h-3 w-3" />
+                {rotationInfo}
+              </Badge>
+            )}
+            {shiftInfo && (
+              <Badge variant="outline" className="gap-1 border-orange-200 bg-orange-50 text-orange-700">
+                <AlertCircle className="h-3 w-3" />
+                {shiftInfo}
+              </Badge>
+            )}
+            {restrictionInfo && (
+              <Badge variant="outline" className="gap-1 border-purple-200 bg-purple-50 text-purple-700">
+                <Calendar className="h-3 w-3" />
+                {restrictionInfo}
+              </Badge>
+            )}
+            {!rotationInfo && !shiftInfo && !restrictionInfo && (
+              <span className="text-xs text-slate-500 italic">Configure settings below...</span>
+            )}
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <Label htmlFor="name">Layer Name</Label>
+          {/* Layer Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-slate-500" />
+              Layer Name
+            </Label>
             <Input
               id="name"
               name="name"
-              placeholder="e.g. Primary On-Call, Weekday Shift"
+              placeholder="e.g. Primary On-Call, Weekend Coverage"
               required
               disabled={isPending}
+              className="h-11"
             />
+            <p className="text-[11px] text-slate-500">Give this rotation a descriptive name</p>
           </div>
 
+          {/* Rotation Length */}
           <div className="space-y-3">
-            <Label>Rotation Length (Handover)</Label>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              <Button
-                type="button"
-                variant={rotationDuration === '6' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(6)}
-                className="text-xs"
-              >
-                6h
-              </Button>
-              <Button
-                type="button"
-                variant={rotationDuration === '9' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(9)}
-                className="text-xs"
-              >
-                9h
-              </Button>
-              <Button
-                type="button"
-                variant={rotationDuration === '12' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(12)}
-                className="text-xs"
-              >
-                12h
-              </Button>
-              <Button
-                type="button"
-                variant={rotationDuration === '24' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(24)}
-                className="text-xs"
-              >
-                Daily
-              </Button>
-              <Button
-                type="button"
-                variant={rotationDuration === '168' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(168)}
-                className="text-xs"
-              >
-                Weekly
-              </Button>
-              <Button
-                type="button"
-                variant={rotationDuration === '336' ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={() => setQuickDuration(336)}
-                className="text-xs"
-              >
-                2 Weeks
-              </Button>
+            <Label className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 text-slate-500" />
+              Rotation Length
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[280px]">
+                    <p>How often the on-call person changes. After this time, the next person in the rotation takes over.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { hours: 12, label: '12 Hours' },
+                { hours: 24, label: 'Daily' },
+                { hours: 168, label: 'Weekly' },
+                { hours: 336, label: '2 Weeks' },
+              ].map(({ hours, label }) => (
+                <Button
+                  key={hours}
+                  type="button"
+                  variant={rotationDuration === hours.toString() ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setQuickDuration(hours)}
+                  className="text-xs"
+                >
+                  {label}
+                </Button>
+              ))}
             </div>
-
             <div className="flex items-center gap-2">
               <Input
                 type="number"
@@ -171,39 +251,52 @@ export default function LayerCreateForm({
                 required
                 min="1"
                 disabled={isPending}
-                className="w-28"
+                className="w-24 h-10"
+              />
+              <span className="text-sm text-slate-500">hours</span>
+              <span className="text-xs text-slate-400 ml-auto">{rotationInfo}</span>
+            </div>
+          </div>
+
+          {/* Shift Duration */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-slate-500" />
+              Shift Duration
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Optional</Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[280px]">
+                    <p className="font-medium mb-1">Creates gaps in coverage</p>
+                    <p className="text-slate-400">Example: 12h shift with 24h rotation = person is on-call for 12 hours, then 12 hours off before next person starts.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                name="shiftLengthHours"
+                value={shiftDuration}
+                onChange={e => setShiftDuration(e.target.value)}
+                min="1"
+                placeholder="Same as rotation"
+                disabled={isPending}
+                className="w-40 h-10"
               />
               <span className="text-sm text-slate-500">hours</span>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label htmlFor="shiftLengthHours" className="flex items-center">
-              Shift Duration (Optional)
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 ml-2 text-slate-400 cursor-pointer" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[300px]">
-                    <p>If set, this defines how long the user is actually on-call within their rotation period.</p>
-                    <p className="mt-1 text-xs text-slate-400">Example: For 12h shifts every day (18:00-06:00), set Rotation = 24h and Shift Duration = 12h.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+          {/* Start Date */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-500" />
+              Start Date & Time
             </Label>
-            <Input
-              id="shiftLengthHours"
-              name="shiftLengthHours"
-              type="number"
-              min="1"
-              placeholder="Leave empty to match Rotation Length"
-              disabled={isPending}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <Label htmlFor="start">Start Date & Time</Label>
             <input
               type="datetime-local"
               name="start"
@@ -212,12 +305,15 @@ export default function LayerCreateForm({
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <p className="text-[10px] text-slate-500">First shift starts at this time.</p>
+            <p className="text-[11px] text-slate-500">First rotation starts at this time</p>
           </div>
 
-          <div className="space-y-3">
-            <Label htmlFor="end">
-              End Date & Time <span className="text-slate-400 font-normal">(Optional)</span>
+          {/* End Date */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-slate-500" />
+              End Date
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Optional</Badge>
             </Label>
             <input
               type="datetime-local"
@@ -225,172 +321,185 @@ export default function LayerCreateForm({
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <p className="text-[10px] text-slate-500">Leave empty for an ongoing rotation.</p>
+            <p className="text-[11px] text-slate-500">Leave empty for ongoing rotation</p>
           </div>
 
           {/* Restrictions Section */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              Restrictions <span className="text-slate-400 font-normal">(Optional)</span>
+          <div className="space-y-4 p-4 rounded-xl bg-purple-50/50 border border-purple-100">
+            <div className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-purple-900">
+                <AlertCircle className="h-4 w-4" />
+                Restrictions
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700">Optional</Badge>
+              </Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-slate-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 text-purple-400 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-[300px]">
-                    <p>Limit when this layer is active. Use for business-hours-only or weekday-only schedules.</p>
+                  <TooltipContent className="max-w-[280px]">
+                    <p>Limit when this layer is active. Great for business-hours-only or weekday coverage.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </Label>
+            </div>
 
-            {/* Days of Week - Toggle Buttons */}
+            {/* Days of Week */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-medium">Active Days</span>
+                <span className="text-xs text-purple-700 font-medium">Active Days</span>
                 <div className="flex gap-1">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest('form');
-                      [1,2,3,4,5].forEach(i => {
-                        const cb = form?.querySelector(`input[name="daysOfWeek"][value="${i}"]`) as HTMLInputElement;
-                        if (cb) cb.checked = true;
-                      });
-                      [0,6].forEach(i => {
-                        const cb = form?.querySelector(`input[name="daysOfWeek"][value="${i}"]`) as HTMLInputElement;
-                        if (cb) cb.checked = false;
-                      });
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    onClick={setWeekdays}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      selectedDays.length === 5 && [1,2,3,4,5].every(d => selectedDays.includes(d))
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                    )}
                   >
                     Weekdays
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest('form');
-                      [0,6].forEach(i => {
-                        const cb = form?.querySelector(`input[name="daysOfWeek"][value="${i}"]`) as HTMLInputElement;
-                        if (cb) cb.checked = true;
-                      });
-                      [1,2,3,4,5].forEach(i => {
-                        const cb = form?.querySelector(`input[name="daysOfWeek"][value="${i}"]`) as HTMLInputElement;
-                        if (cb) cb.checked = false;
-                      });
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    onClick={setWeekends}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6)
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                    )}
                   >
                     Weekends
                   </button>
+                  {selectedDays.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearDays}
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex gap-1">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <label
+              <div className="grid grid-cols-7 gap-1">
+                {DAY_SHORT.map((day, i) => (
+                  <button
                     key={i}
-                    className="relative flex-1"
+                    type="button"
+                    onClick={() => toggleDay(i)}
+                    disabled={isPending}
+                    className={cn(
+                      "h-10 rounded-lg text-sm font-semibold transition-all",
+                      selectedDays.includes(i)
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "bg-white border-2 border-purple-200 text-purple-400 hover:border-purple-300 hover:text-purple-600"
+                    )}
                   >
-                    <input
-                      type="checkbox"
-                      name="daysOfWeek"
-                      value={i}
-                      disabled={isPending}
-                      className="peer sr-only"
-                    />
-                    <div className="h-9 flex items-center justify-center rounded-lg border-2 border-slate-200 bg-white text-sm font-semibold text-slate-400 cursor-pointer transition-all peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-disabled:opacity-50 peer-disabled:cursor-not-allowed hover:border-slate-300 peer-checked:hover:border-primary">
-                      {day}
-                    </div>
-                  </label>
+                    {day}
+                  </button>
                 ))}
               </div>
-              <p className="text-[10px] text-slate-500">Select days when this layer is active. Leave empty for all days.</p>
+              <div className="flex justify-between text-[10px] text-purple-500 px-1">
+                {DAY_LABELS.map((day, i) => (
+                  <span key={i} className="w-[calc(100%/7)] text-center">{day}</span>
+                ))}
+              </div>
             </div>
 
-            {/* Time Range - Dropdowns with Presets */}
+            {/* Time Range */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-600 font-medium">Active Hours</span>
+                <span className="text-xs text-purple-700 font-medium">Active Hours</span>
                 <div className="flex gap-1">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest('form');
-                      const startInput = form?.querySelector('select[name="restrictStartHour"]') as HTMLSelectElement;
-                      const endInput = form?.querySelector('select[name="restrictEndHour"]') as HTMLSelectElement;
-                      if (startInput) startInput.value = '9';
-                      if (endInput) endInput.value = '17';
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    onClick={() => { setStartHour('9'); setEndHour('17'); }}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      startHour === '9' && endHour === '17'
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                    )}
                   >
                     9-5
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest('form');
-                      const startInput = form?.querySelector('select[name="restrictStartHour"]') as HTMLSelectElement;
-                      const endInput = form?.querySelector('select[name="restrictEndHour"]') as HTMLSelectElement;
-                      if (startInput) startInput.value = '18';
-                      if (endInput) endInput.value = '6';
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    onClick={() => { setStartHour('18'); setEndHour('6'); }}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      startHour === '18' && endHour === '6'
+                        ? "bg-purple-600 text-white"
+                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                    )}
                   >
                     Nights
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      const form = e.currentTarget.closest('form');
-                      const startInput = form?.querySelector('select[name="restrictStartHour"]') as HTMLSelectElement;
-                      const endInput = form?.querySelector('select[name="restrictEndHour"]') as HTMLSelectElement;
-                      if (startInput) startInput.value = '';
-                      if (endInput) endInput.value = '';
-                    }}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
-                  >
-                    Clear
-                  </button>
+                  {(startHour || endHour) && (
+                    <button
+                      type="button"
+                      onClick={() => { setStartHour(''); setEndHour(''); }}
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <select
                   name="restrictStartHour"
+                  value={startHour}
+                  onChange={e => setStartHour(e.target.value)}
                   disabled={isPending}
-                  className="flex-1 h-10 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  className="flex-1 h-10 text-sm rounded-lg border-2 border-purple-200 bg-white px-3 hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 cursor-pointer"
                 >
                   <option value="">Start time</option>
                   {Array.from({ length: 24 }, (_, i) => (
                     <option key={i} value={i}>
-                      {i.toString().padStart(2, '0')}:00 {i < 12 ? 'AM' : 'PM'}
+                      {i.toString().padStart(2, '0')}:00
                     </option>
                   ))}
                 </select>
-                <span className="text-sm text-slate-400 font-medium">to</span>
+                <span className="text-sm text-purple-400 font-medium">to</span>
                 <select
                   name="restrictEndHour"
+                  value={endHour}
+                  onChange={e => setEndHour(e.target.value)}
                   disabled={isPending}
-                  className="flex-1 h-10 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                  className="flex-1 h-10 text-sm rounded-lg border-2 border-purple-200 bg-white px-3 hover:border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 cursor-pointer"
                 >
                   <option value="">End time</option>
                   {Array.from({ length: 24 }, (_, i) => (
                     <option key={i} value={i}>
-                      {i.toString().padStart(2, '0')}:00 {i < 12 ? 'AM' : 'PM'}
+                      {i.toString().padStart(2, '0')}:00
                     </option>
                   ))}
                 </select>
               </div>
-              <p className="text-[10px] text-slate-500">Leave empty for 24-hour coverage.</p>
+              <p className="text-[10px] text-purple-500">Leave empty for 24-hour coverage</p>
             </div>
           </div>
 
-          {/* User ordering hint */}
-          <div className="p-3 rounded-md bg-blue-50/70 border border-blue-100 text-xs text-blue-700">
-            <strong>Tip:</strong> You can add users and reorder the rotation after creating the
-            layer.
+          {/* Tip */}
+          <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
+            <strong>Next step:</strong> After creating, add team members to the rotation and set their order.
           </div>
 
-          <div className="flex gap-2 pt-4">
+          {/* Submit */}
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
             <Button type="submit" className="flex-1" disabled={isPending}>
               {isPending ? (
                 <>

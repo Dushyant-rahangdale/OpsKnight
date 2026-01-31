@@ -44,7 +44,36 @@ export type OnCallBlock = {
   source: 'rotation' | 'override';
 };
 
-function generateLayerBlocks(layer: LayerInput, windowStart: Date, windowEnd: Date): OnCallBlock[] {
+function getDayHourInTimeZone(date: Date, timeZone: string): { day: number; hour: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+
+  const weekday = parts.find(p => p.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '0');
+
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
+  return { day: dayMap[weekday] ?? 0, hour };
+}
+
+function generateLayerBlocks(
+  layer: LayerInput,
+  windowStart: Date,
+  windowEnd: Date,
+  timeZone: string
+): OnCallBlock[] {
   if (layer.users.length === 0) {
     return [];
   }
@@ -117,8 +146,7 @@ function generateLayerBlocks(layer: LayerInput, windowStart: Date, windowEnd: Da
       // Apply restrictions if present
       if (layer.restrictions) {
         const { daysOfWeek, startHour, endHour } = layer.restrictions;
-        const blockDay = clampedStart.getDay();
-        const blockHour = clampedStart.getHours();
+        const { day: blockDay, hour: blockHour } = getDayHourInTimeZone(clampedStart, timeZone);
 
         // Skip if day not allowed
         if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(blockDay)) {
@@ -227,9 +255,12 @@ export function buildScheduleBlocks(
   layers: LayerInput[],
   overrides: OverrideInput[],
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
+  timeZone: string = 'UTC'
 ) {
-  const blocks = layers.flatMap(layer => generateLayerBlocks(layer, windowStart, windowEnd));
+  const blocks = layers.flatMap(layer =>
+    generateLayerBlocks(layer, windowStart, windowEnd, timeZone)
+  );
   return applyOverrides(blocks, overrides);
 }
 

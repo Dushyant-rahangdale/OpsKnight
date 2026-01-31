@@ -91,6 +91,45 @@ function formatShortTime(date: Date, timeZone: string): string {
   }).format(date);
 }
 
+function formatRestrictions(restrictions: LayerRestrictions | null | undefined): string[] {
+  if (!restrictions) return [];
+
+  const badges: string[] = [];
+
+  // Format days
+  if (restrictions.daysOfWeek && restrictions.daysOfWeek.length > 0) {
+    const days = restrictions.daysOfWeek.sort((a, b) => a - b);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Check for common patterns
+    const isWeekdays = days.length === 5 && [1, 2, 3, 4, 5].every(d => days.includes(d));
+    const isWeekends = days.length === 2 && days.includes(0) && days.includes(6);
+
+    if (isWeekdays) {
+      badges.push('Mon-Fri');
+    } else if (isWeekends) {
+      badges.push('Sat-Sun');
+    } else if (days.length <= 3) {
+      badges.push(days.map(d => dayNames[d]).join(', '));
+    } else {
+      badges.push(`${days.length} days`);
+    }
+  }
+
+  // Format hours
+  if (restrictions.startHour != null && restrictions.endHour != null) {
+    const start = restrictions.startHour.toString().padStart(2, '0');
+    const end = restrictions.endHour.toString().padStart(2, '0');
+    badges.push(`${start}:00-${end}:00`);
+  } else if (restrictions.startHour != null) {
+    badges.push(`from ${restrictions.startHour.toString().padStart(2, '0')}:00`);
+  } else if (restrictions.endHour != null) {
+    badges.push(`until ${restrictions.endHour.toString().padStart(2, '0')}:00`);
+  }
+
+  return badges;
+}
+
 // Info Tooltip Component for consistent help icons
 function HelpTip({ children }: { children: React.ReactNode }) {
   return (
@@ -229,9 +268,13 @@ export default function LayerCard({
                   </Badge>
                 )}
                 {layer.restrictions && (layer.restrictions.daysOfWeek?.length || layer.restrictions.startHour != null) && (
-                  <Badge variant="outline" size="xs" className="border-purple-200 bg-purple-50 text-purple-700">
-                    Restricted
-                  </Badge>
+                  <>
+                    {formatRestrictions(layer.restrictions).map((badge, i) => (
+                      <Badge key={i} variant="outline" size="xs" className="border-purple-200 bg-purple-50 text-purple-700">
+                        {badge}
+                      </Badge>
+                    ))}
+                  </>
                 )}
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />

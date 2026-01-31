@@ -1,11 +1,11 @@
 import { Prisma } from '@prisma/client';
-import type { NotificationChannel } from './notifications';
 import prisma from './prisma';
 import { runSerializableTransaction } from './db-utils';
 // import { sendNotification, NotificationChannel } from './notifications'; // Unused
-import { buildScheduleBlocks } from './oncall';
+import { buildScheduleBlocks, getFinalScheduleBlocks } from './oncall';
 import { logger } from './logger';
 import { ESCALATION_LOCK_TIMEOUT_MS } from './config';
+import { startOfDayInTimeZone, startOfNextDayInTimeZone } from './timezone';
 // import { formatDateTime } from './timezone'; // Unused
 
 /**
@@ -15,7 +15,8 @@ import { ESCALATION_LOCK_TIMEOUT_MS } from './config';
 async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Promise<string[]> {
   const schedule = await prisma.onCallSchedule.findUnique({
     where: { id: scheduleId },
-    include: {
+    select: {
+      timeZone: true,
       layers: {
         include: {
           users: {
@@ -41,10 +42,8 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
   }
 
   // Build schedule blocks to find who's on-call
-  const windowStart = new Date(atTime);
-  windowStart.setHours(0, 0, 0, 0);
-  const windowEnd = new Date(atTime);
-  windowEnd.setHours(23, 59, 59, 999);
+  const windowStart = startOfDayInTimeZone(atTime, schedule.timeZone);
+  const windowEnd = startOfNextDayInTimeZone(atTime, schedule.timeZone);
 
   const blocks = buildScheduleBlocks(
     schedule.layers.map(layer => ({
@@ -54,6 +53,8 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
       end: layer.end,
       rotationLengthHours: layer.rotationLengthHours,
       shiftLengthHours: (layer as { shiftLengthHours?: number | null }).shiftLengthHours,
+      restrictions: layer.restrictions as any,
+      priority: (layer as { priority?: number }).priority,
       users: layer.users.map(lu => ({
         userId: lu.userId,
         user: { name: lu.user.name },
@@ -69,12 +70,18 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
       replacesUserId: override.replacesUserId,
     })),
     windowStart,
-    windowEnd
+    windowEnd,
+    schedule.timeZone
   );
 
-  // Find all blocks that are active at the current time
-  // Multiple layers can be active simultaneously (e.g., "day" and "night" layers)
-  const activeBlocks = blocks.filter(
+  const layerPriority = new Map<string, number>(
+    schedule.layers.map(layer => [layer.id, (layer as { priority?: number }).priority ?? 0])
+  );
+
+  const finalBlocks = getFinalScheduleBlocks(blocks, layerPriority);
+
+  // Find all blocks that are active at the current time (priority-resolved)
+  const activeBlocks = finalBlocks.filter(
     block => block.start.getTime() <= atTime.getTime() && block.end.getTime() > atTime.getTime()
   );
 

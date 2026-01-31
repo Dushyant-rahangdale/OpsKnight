@@ -1,7 +1,14 @@
 import prisma from '@/lib/prisma';
 import { getUserPermissions } from '@/lib/rbac';
-import { buildScheduleBlocks } from '@/lib/oncall';
-import { formatDateForInput, formatDateTime, getTimeZoneLabel } from '@/lib/timezone';
+import { buildScheduleBlocks, getFinalScheduleBlocks } from '@/lib/oncall';
+import {
+  formatDateForInput,
+  formatDateTime,
+  getTimeZoneLabel,
+  formatDateKeyInTimeZone,
+  addDaysToDateKey,
+  startOfDayFromDateKey,
+} from '@/lib/timezone';
 import {
   addLayerUser,
   createLayer,
@@ -69,9 +76,6 @@ export default async function ScheduleDetailPage({
   const now = new Date();
   const calendarRangeStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const calendarRangeEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-  // Coverage range: from yesterday to 90 days ahead to ensure we catch current coverage
-  const coverageRangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const coverageRangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90);
   const historyPageSize = 8;
   const historyPage = Math.max(1, Number(awaitedSearchParams?.history ?? 1) || 1);
 
@@ -167,11 +171,19 @@ export default async function ScheduleDetailPage({
   const permissions = await getUserPermissions();
   const canManageSchedules = permissions.isAdminOrResponder;
 
+  // Timezone-aware coverage windows
+  const todayKey = formatDateKeyInTimeZone(now, schedule.timeZone);
+  const coverageRangeStart = startOfDayFromDateKey(addDaysToDateKey(todayKey, -1), schedule.timeZone);
+  const coverageRangeEnd = startOfDayFromDateKey(addDaysToDateKey(todayKey, 90), schedule.timeZone);
+
+  const layerPriorities = new Map(schedule.layers.map(l => [l.id, l.priority ?? 0]));
+
   const scheduleBlocks = buildScheduleBlocks(
     schedule.layers,
     overridesInRange,
     calendarRangeStart,
-    calendarRangeEnd
+    calendarRangeEnd,
+    schedule.timeZone
   );
   const calendarShifts = scheduleBlocks.map(block => ({
     id: block.id,
@@ -189,11 +201,13 @@ export default async function ScheduleDetailPage({
     schedule.layers,
     overridesInRange,
     coverageRangeStart,
-    coverageRangeEnd
+    coverageRangeEnd,
+    schedule.timeZone
   );
+  const finalCoverageBlocks = getFinalScheduleBlocks(coverageBlocks, layerPriorities);
   // Filter for blocks that are currently active (start <= now < end)
   const nowTime = now.getTime();
-  const activeBlocks = coverageBlocks.filter(block => {
+  const activeBlocks = finalCoverageBlocks.filter(block => {
     const blockStartTime = block.start.getTime();
     const blockEndTime = block.end.getTime();
     return blockStartTime <= nowTime && blockEndTime > nowTime;
@@ -406,7 +420,7 @@ export default async function ScheduleDetailPage({
               source: block.source,
             }))}
             timeZone={schedule.timeZone}
-            layerPriorities={new Map(schedule.layers.map(l => [l.id, l.priority]))}
+            layerPriorities={layerPriorities}
           />
 
           {/* Monthly Calendar (has built-in header) */}
