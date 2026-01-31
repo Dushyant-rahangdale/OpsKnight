@@ -1,6 +1,5 @@
 ﻿import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { checkRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { getNextAuthSecret } from '@/lib/secret-manager';
 
@@ -45,8 +44,6 @@ const CORS_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
   .map(value => value.trim())
   .filter(Boolean);
-const API_RATE_LIMIT_MAX = Number(process.env.API_RATE_LIMIT_MAX || 300);
-const API_RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
 const STATUS_DOMAIN_CACHE_TTL = Number(process.env.STATUS_PAGE_DOMAIN_CACHE_TTL || 60);
 
 function isPublicPath(pathname: string) {
@@ -243,8 +240,6 @@ export default async function middleware(req: NextRequest) {
 
   if (pathname.startsWith('/api')) {
     const originAllowed = origin && CORS_ALLOWED_ORIGINS.includes(origin);
-    const applyRateLimit =
-      !pathname.startsWith('/api/cron') && !pathname.startsWith('/api/events/stream');
     const clientId =
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       req.headers.get('x-real-ip') ||
@@ -263,17 +258,8 @@ export default async function middleware(req: NextRequest) {
         return new NextResponse(null, { status: 204, headers: corsHeaders });
       }
 
-      if (applyRateLimit) {
-        const rateKey = `ip:${clientId}:${pathname}`;
-        const rate = await checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
-        if (!rate.allowed) {
-          const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
-          return NextResponse.json(
-            { error: 'Rate limit exceeded.' },
-            { status: 429, headers: { ...corsHeaders, 'Retry-After': String(retryAfter) } }
-          );
-        }
-      }
+      // NOTE: Rate limiting is now handled in the individual API routes (Node.js runtime)
+      // to support Distributed Rate Limiting via PostgreSQL, which cannot run in Edge Middleware.
 
       const apiResponse = NextResponse.next();
       // Apply CORS headers
@@ -287,17 +273,8 @@ export default async function middleware(req: NextRequest) {
       return apiResponse;
     }
 
-    if (applyRateLimit) {
-      const rateKey = `ip:${clientId}:${pathname}`;
-      const rate = await checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
-      if (!rate.allowed) {
-        const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
-        return NextResponse.json(
-          { error: 'Rate limit exceeded.' },
-          { status: 429, headers: { 'Retry-After': String(retryAfter) } }
-        );
-      }
-    }
+    // NOTE: Rate limiting is now handled in the individual API routes (Node.js runtime)
+    // to support Distributed Rate Limiting via PostgreSQL, which cannot run in Edge Middleware.
 
     // Let API routes handle auth/authorization; avoid login redirects for API calls.
     return response;
