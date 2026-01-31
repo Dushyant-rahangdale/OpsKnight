@@ -103,7 +103,19 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
     }
   }
 
-  return Array.from(userIds);
+  if (userIds.size > 0) {
+    return Array.from(userIds);
+  }
+
+  // Fallback: if no active block was found (e.g., schedule gaps or data issues), return all unique
+  // users in the schedule so escalation still reaches someone instead of failing silently.
+  const rosterUserIds = new Set<string>();
+  for (const layer of schedule.layers) {
+    for (const lu of layer.users) {
+      rosterUserIds.add(lu.userId);
+    }
+  }
+  return Array.from(rosterUserIds);
 }
 
 /**
@@ -684,10 +696,10 @@ export async function processPendingEscalations(
             data: {
               escalationStatus:
                 benignReason.includes('exhausted') ||
-                  benignReason.includes('completed') ||
-                  benignReason.includes('no escalation policy') ||
-                  benignReason.includes('no users to notify') ||
-                  benignReason.includes('invalid target')
+                benignReason.includes('completed') ||
+                benignReason.includes('no escalation policy') ||
+                benignReason.includes('no users to notify') ||
+                benignReason.includes('invalid target')
                   ? 'COMPLETED'
                   : 'ESCALATING',
               nextEscalationAt: null,
@@ -727,7 +739,7 @@ export async function processPendingEscalations(
                   message: `Escalation processing failed (FATAL): ${errorMessage}`,
                 },
               })
-              .catch(() => { });
+              .catch(() => {});
           } else {
             await prisma.incident.update({
               where: { id: incident.id },
