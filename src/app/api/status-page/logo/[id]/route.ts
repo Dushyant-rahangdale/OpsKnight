@@ -1,3 +1,7 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+
 function parseDataImage(dataUrl: string): { mime: string; buffer: Buffer } | null {
   const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+)(;base64)?,(.*)$/);
   if (!match) return null;
