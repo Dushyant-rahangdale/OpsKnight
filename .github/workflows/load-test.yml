@@ -1,0 +1,197 @@
+name: Load Tests (k6)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of load test to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+          - health
+          - incidents
+      target_url:
+        description: 'Target URL (leave empty for localhost)'
+        required: false
+        default: ''
+      api_key:
+        description: 'API key for authenticated tests'
+        required: false
+        default: ''
+  schedule:
+    # Run smoke tests daily at 3 AM UTC
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  load-test:
+    name: Load Test (${{ github.event.inputs.test_type || 'smoke' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opsknight_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opsknight_test?schema=public
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: load-test-secret-key
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        if: github.event.inputs.target_url == '' || github.event.inputs.target_url == null
+        env:
+          HUSKY: '0'
+        run: npm ci --legacy-peer-deps
+
+      - name: Set up database
+        if: github.event.inputs.target_url == '' || github.event.inputs.target_url == null
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Build application
+        if: github.event.inputs.target_url == '' || github.event.inputs.target_url == null
+        run: npm run build
+
+      - name: Start application
+        if: github.event.inputs.target_url == '' || github.event.inputs.target_url == null
+        run: |
+          npm run start &
+          # Wait for app to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/api/health > /dev/null; then
+              echo "Application is ready"
+              break
+            fi
+            echo "Waiting for application... ($i/30)"
+            sleep 2
+          done
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Determine test file
+        id: test_file
+        run: |
+          TEST_TYPE="${{ github.event.inputs.test_type || 'smoke' }}"
+          case $TEST_TYPE in
+            smoke)
+              echo "file=tests/load/smoke.js" >> $GITHUB_OUTPUT
+              ;;
+            load)
+              echo "file=tests/load/load.js" >> $GITHUB_OUTPUT
+              ;;
+            stress)
+              echo "file=tests/load/stress.js" >> $GITHUB_OUTPUT
+              ;;
+            health)
+              echo "file=tests/load/scenarios/health.js" >> $GITHUB_OUTPUT
+              ;;
+            incidents)
+              echo "file=tests/load/scenarios/incidents.js" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Run load test
+        run: |
+          BASE_URL="${{ github.event.inputs.target_url || 'http://localhost:3000' }}"
+          API_KEY="${{ github.event.inputs.api_key || secrets.LOAD_TEST_API_KEY || '' }}"
+
+          k6 run \
+            --env BASE_URL="$BASE_URL" \
+            --env API_KEY="$API_KEY" \
+            --out json=reports/k6-results.json \
+            ${{ steps.test_file.outputs.file }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-results-${{ github.event.inputs.test_type || 'smoke' }}
+          path: reports/
+          retention-days: 30
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Type:** ${{ github.event.inputs.test_type || 'smoke' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ github.event.inputs.target_url || 'http://localhost:3000' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f reports/*-summary.json ]; then
+            echo "### Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat reports/*-summary.json | head -100 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  scheduled-smoke:
+    name: Scheduled Smoke Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run smoke test against production
+        if: secrets.PRODUCTION_URL != ''
+        run: |
+          mkdir -p reports
+          k6 run \
+            --env BASE_URL="${{ secrets.PRODUCTION_URL }}" \
+            tests/load/smoke.js
+        continue-on-error: true
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scheduled-smoke-results
+          path: reports/

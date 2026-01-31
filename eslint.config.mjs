@@ -57,6 +57,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     "**/node_modules/**",
     ".next/**",
+    ".next-pre-push/**",
     "out/**",
     "build/**",
     "dist/**",
@@ -70,7 +71,11 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "reports/**",
     "*.log",
-    "public/**"
+    "public/**",
+    "tests/load/**",
+    "tests/e2e/**",
+    "playwright-report/**",
+    "test-results/**"
   ]),
 ]);
 

@@ -1,0 +1,193 @@
+name: E2E Tests (Playwright)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      browsers:
+        description: 'Browsers to test'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - chromium,firefox
+          - chromium,firefox,webkit
+          - all
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opsknight_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opsknight_test?schema=public
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: e2e-test-secret-key-for-testing
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Set up database
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Seed test data
+        run: npx prisma db seed || echo "Seeding skipped or failed"
+        continue-on-error: true
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests
+        run: |
+          mkdir -p reports
+          npx playwright test --project=chromium
+        env:
+          E2E_TEST_EMAIL: test@example.com
+          E2E_TEST_PASSWORD: testpassword123
+          E2E_ADMIN_EMAIL: admin@example.com
+          E2E_ADMIN_PASSWORD: adminpassword123
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: reports/e2e-results.xml
+
+      - name: Upload trace files
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+      - name: Publish E2E results
+        uses: dorny/test-reporter@v2
+        if: always()
+        with:
+          name: 'E2E Tests (Playwright)'
+          path: reports/e2e-results.xml
+          reporter: java-junit
+        continue-on-error: true
+
+  e2e-multi-browser:
+    name: E2E Multi-Browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: e2e
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opsknight_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opsknight_test?schema=public
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: e2e-test-secret-key-for-testing
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Set up database
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests on all browsers
+        run: |
+          mkdir -p reports
+          npx playwright test
+        env:
+          E2E_TEST_EMAIL: test@example.com
+          E2E_TEST_PASSWORD: testpassword123
+
+      - name: Upload multi-browser report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-multi-browser
+          path: playwright-report/
+          retention-days: 30

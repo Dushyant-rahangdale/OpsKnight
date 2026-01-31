@@ -75,11 +75,11 @@ jobs:
           mkdir -p reports
           npm run prisma:health
 
-      - name: Unit tests
+      - name: Unit tests with coverage
         # DB-backed tests share a single database; run files serially to avoid cross-test contention.
         run: |
           mkdir -p reports
-          npm run test:ci:unit
+          npm run test:ci:unit -- --coverage
 
       - name: Database integration tests
         # Enable real database for integration and resilience tests
@@ -89,6 +89,13 @@ jobs:
 
       - name: TypeScript typecheck
         run: npx tsc --noEmit
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
 
       - name: Upload test report artifact (JUnit)
         if: always()
