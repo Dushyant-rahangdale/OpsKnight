@@ -130,6 +130,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
+    "aria-query": "^5.3.2",
     "autoprefixer": "^10.4.23",
     "cssnano": "^7.1.2",
     "dotenv": "^17.2.3",
@@ -146,6 +147,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
+    "tldts": "^7.0.19",
     "ts-node": "^10.9.1",
     "typescript": "^5",
     "vitest": "^4.0.16"
