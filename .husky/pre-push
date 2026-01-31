@@ -48,7 +48,7 @@ npx vitest run -c vitest.unit.config.ts || {
 echo ""
 echo "🏗️  Verifying build..."
 # Use a separate build directory for pre-push checks to avoid locking the dev server
-BUILD_DIR='.next-pre-push' npm run build > /dev/null 2>&1 || {
+BUILD_DIR='.next-pre-push' npm run build || {
   echo "❌ Build failed. Please fix build errors before pushing."
   exit 1
 }
