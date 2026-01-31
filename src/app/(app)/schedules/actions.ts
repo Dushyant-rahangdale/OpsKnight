@@ -125,10 +125,19 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
     const restrictStartHour = formData.get('restrictStartHour');
     const restrictEndHour = formData.get('restrictEndHour');
 
+    const startHourNum = restrictStartHour ? Number(restrictStartHour) : undefined;
+    const endHourNum = restrictEndHour ? Number(restrictEndHour) : undefined;
+
+    if (daysOfWeek.some(d => Number.isNaN(d) || d < 0 || d > 6)) {
+        return { error: 'Days of week must be between 0 (Sun) and 6 (Sat).' };
+    }
+    if ((startHourNum ?? 0) < 0 || (startHourNum ?? 0) > 23 || (endHourNum ?? 0) < 0 || (endHourNum ?? 0) > 23) {
+        return { error: 'Hours must be between 0 and 23.' };
+    }
     const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
         daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
-        startHour: restrictStartHour ? Number(restrictStartHour) : undefined,
-        endHour: restrictEndHour ? Number(restrictEndHour) : undefined,
+        startHour: startHourNum,
+        endHour: endHourNum,
     } : null;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
@@ -315,10 +324,19 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
     const restrictStartHour = formData.get('restrictStartHour');
     const restrictEndHour = formData.get('restrictEndHour');
 
+    const startHourNum = restrictStartHour ? Number(restrictStartHour) : undefined;
+    const endHourNum = restrictEndHour ? Number(restrictEndHour) : undefined;
+
+    if (daysOfWeek.some(d => Number.isNaN(d) || d < 0 || d > 6)) {
+        return { error: 'Days of week must be between 0 (Sun) and 6 (Sat).' };
+    }
+    if ((startHourNum ?? 0) < 0 || (startHourNum ?? 0) > 23 || (endHourNum ?? 0) < 0 || (endHourNum ?? 0) > 23) {
+        return { error: 'Hours must be between 0 and 23.' };
+    }
     const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
         daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
-        startHour: restrictStartHour ? Number(restrictStartHour) : undefined,
-        endHour: restrictEndHour ? Number(restrictEndHour) : undefined,
+        startHour: startHourNum,
+        endHour: endHourNum,
     } : null;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
