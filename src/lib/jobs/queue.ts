@@ -252,6 +252,20 @@ export async function processJob(job: any): Promise<boolean> {
           return true;
         }
 
+        // Cap notification retries to avoid infinite loops on bad payloads
+        const cappedMaxAttempts = Math.min(job.maxAttempts, 3);
+        if (job.attempts + 1 >= cappedMaxAttempts) {
+          await prisma.backgroundJob.update({
+            where: { id: job.id },
+            data: {
+              status: 'FAILED',
+              failedAt: new Date(),
+              error: notificationResult.error || 'Notification failed (final)',
+            },
+          });
+          return false;
+        }
+
         await markJobFailed(job.id, notificationResult.error || 'Notification failed');
         return false;
 
@@ -313,8 +327,9 @@ export async function processJob(job: any): Promise<boolean> {
               });
             }
             await markJobCompleted(job.id);
-            // Resume escalation immediately after unsnooze
-            await scheduleEscalation(job.payload.incidentId, 0, 0);
+            // Resume escalation at current step (default 0)
+            const nextStep = incident.currentEscalationStep ?? 0;
+            await scheduleEscalation(job.payload.incidentId, nextStep, 0);
             return true;
           } else {
             // Not ready yet, reschedule

@@ -571,7 +571,16 @@ export async function createIncident(formData: FormData) {
   if (incident.status === 'OPEN' && incident.resolvedAt === null && incident.currentEscalationStep === 0) {
     try {
       const { scheduleEscalation } = await import('@/lib/jobs/queue');
-      await scheduleEscalation(incident.id, 0, 0);
+      // Retry up to 3 times with short backoff to ensure the first escalation job is queued
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await scheduleEscalation(incident.id, 0, 0);
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise(res => setTimeout(res, 200 * Math.pow(2, attempt)));
+        }
+      }
     } catch (e) {
       logger.error('Failed to schedule escalation after reopen', {
         component: 'incidents-actions',
