@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from './prisma';
 import { runSerializableTransaction } from './db-utils';
 // import { sendNotification, NotificationChannel } from './notifications'; // Unused
+import type { NotificationChannel } from './notifications';
 import { buildScheduleBlocks, getFinalScheduleBlocks } from './oncall';
 import { logger } from './logger';
 import { ESCALATION_LOCK_TIMEOUT_MS } from './config';

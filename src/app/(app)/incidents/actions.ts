@@ -444,6 +444,11 @@ export async function createIncident(formData: FormData) {
   const visibility = (formData.get('visibility') as 'PUBLIC' | 'PRIVATE') || 'PUBLIC';
 
   const incident = await prisma.$transaction(async tx => {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User session not found. Please sign in again.');
+    }
+
     let assigneeName: string | null = null;
     if (assigneeId && assigneeId.length) {
       const assignee = await tx.user.findUnique({
@@ -469,7 +474,7 @@ export async function createIncident(formData: FormData) {
         await tx.incidentNote.create({
           data: {
             incidentId: existingOpenIncident.id,
-            userId: (await getCurrentUser())!.id, // Safe bang as assertResponderOrAbove checks user
+            userId: currentUser.id,
             content: `[Manual Report Merged] User reported recurrence.\n\nTitle: ${title}\nDescription: ${description}`,
           },
         });
@@ -519,7 +524,7 @@ export async function createIncident(formData: FormData) {
         await tx.incidentNote.create({
           data: {
             incidentId: reOpenedIncident.id,
-            userId: (await getCurrentUser())!.id,
+            userId: currentUser.id,
             content: `[Re-opened] User reported recurrence.\n\nTitle: ${title}\nDescription: ${description}`,
           },
         });
@@ -561,6 +566,20 @@ export async function createIncident(formData: FormData) {
 
     return createdIncident;
   });
+
+  // If we reopened a recently resolved incident, immediately schedule the first escalation step
+  if (incident.status === 'OPEN' && incident.resolvedAt === null && incident.currentEscalationStep === 0) {
+    try {
+      const { scheduleEscalation } = await import('@/lib/jobs/queue');
+      await scheduleEscalation(incident.id, 0, 0);
+    } catch (e) {
+      logger.error('Failed to schedule escalation after reopen', {
+        component: 'incidents-actions',
+        error: e,
+        incidentId: incident.id,
+      });
+    }
+  }
 
   // Execute escalation policy if service has one
   let escalationResult: { escalated?: boolean; reason?: string } | null = null;

@@ -178,8 +178,14 @@ export default async function ScheduleDetailPage({
 
   const layerPriorities = new Map(schedule.layers.map(l => [l.id, l.priority ?? 0]));
 
+  // Cast layers with proper restrictions type
+  const typedLayers = schedule.layers.map(layer => ({
+    ...layer,
+    restrictions: layer.restrictions as { daysOfWeek?: number[]; startHour?: number; endHour?: number } | null,
+  }));
+
   const scheduleBlocks = buildScheduleBlocks(
-    schedule.layers,
+    typedLayers,
     overridesInRange,
     calendarRangeStart,
     calendarRangeEnd,
@@ -198,7 +204,7 @@ export default async function ScheduleDetailPage({
   }));
 
   const coverageBlocks = buildScheduleBlocks(
-    schedule.layers,
+    typedLayers,
     overridesInRange,
     coverageRangeStart,
     coverageRangeEnd,

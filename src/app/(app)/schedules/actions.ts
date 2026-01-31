@@ -138,7 +138,7 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
         daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
         startHour: startHourNum,
         endHour: endHourNum,
-    } : null;
+    } : undefined;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
@@ -337,7 +337,7 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
         daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
         startHour: startHourNum,
         endHour: endHourNum,
-    } : null;
+    } : undefined;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };

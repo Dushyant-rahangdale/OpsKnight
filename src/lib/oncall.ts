@@ -327,12 +327,18 @@ export function getFinalScheduleBlocks(
       activeBlocks.delete(event.block.id);
     }
 
-    // Find the winner (highest priority active block)
+    // Find the winner (highest priority active block). Tie-breaker: lexical layerId for determinism.
     let winner: OnCallBlock | null = null;
     let maxPriority = -Infinity;
     for (const { block, priority } of activeBlocks.values()) {
       if (priority > maxPriority) {
         maxPriority = priority;
+        winner = block;
+        continue;
+      }
+      if (priority === maxPriority && winner && block.layerId < winner.layerId) {
+        winner = block;
+      } else if (priority === maxPriority && !winner) {
         winner = block;
       }
     }
