@@ -543,8 +543,13 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                   {/* Grid Background */}
                   <div className="absolute inset-0 flex pointer-events-none">
                     {days.map((day, index) => {
-                      const isCurrentDay = isToday(day);
-                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                      const dayKey = formatDateKeyInTimeZone(day, timeZone);
+                      const dayWeekday = new Intl.DateTimeFormat('en-US', {
+                        weekday: 'short',
+                        timeZone,
+                      }).format(day);
+                      const isCurrentDay = dayKey === todayKey;
+                      const isWeekend = dayWeekday === 'Sat' || dayWeekday === 'Sun';
                       return (
                         <div
                           key={index}
