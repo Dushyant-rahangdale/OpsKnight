@@ -409,6 +409,21 @@ export async function updateIncidentPriority(id: string, priority: string | null
     },
   });
 
+  // Cancel pending escalation jobs when incident is acknowledged or resolved
+  if (status === 'ACKNOWLEDGED' || status === 'RESOLVED') {
+    try {
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM "BackgroundJob" WHERE "type" = 'ESCALATION' AND "status" = 'PENDING' AND payload->>'incidentId' = $1`,
+        id
+      );
+    } catch (error) {
+      logger.error('Failed to cancel pending escalation jobs on status update', {
+        incidentId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   revalidatePath(`/incidents/${id}`);
   revalidatePath('/incidents');
   revalidatePath('/');
