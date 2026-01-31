@@ -99,7 +99,7 @@ export async function authorizeStatusApiRequest(
     const limit = options.rateLimitMax ?? DEFAULT_RATE_LIMIT_MAX;
     const windowMs = (options.rateLimitWindowSec ?? DEFAULT_RATE_LIMIT_WINDOW_SEC) * 1000;
     const rateKey = getRateLimitKey(req, tokenHash);
-    const rate = checkRateLimit(rateKey, limit, windowMs);
+    const rate = await checkRateLimit(rateKey, limit, windowMs);
     if (!rate.allowed) {
       const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
       return { allowed: false, error: 'Rate limit exceeded', status: 429, retryAfter };

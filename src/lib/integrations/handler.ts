@@ -81,7 +81,7 @@ export function createIntegrationHandler<T>(
 
       // 2. Rate limiting
       if (RATE_LIMIT_ENABLED && !options.skipRateLimit) {
-        const rateResult = checkRateLimit(integrationId);
+        const rateResult = await checkRateLimit(integrationId);
 
         if (!rateResult.allowed) {
           const headers = createRateLimitHeaders(rateResult);
@@ -265,7 +265,7 @@ export async function withIntegrationMiddleware(
 
   // 2. Rate limiting
   if (RATE_LIMIT_ENABLED) {
-    const rateResult = checkRateLimit(integrationId);
+    const rateResult = await checkRateLimit(integrationId);
     if (!rateResult.allowed) {
       recordWebhookReceived(
         integrationType,

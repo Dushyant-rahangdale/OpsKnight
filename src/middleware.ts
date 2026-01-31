@@ -265,7 +265,7 @@ export default async function middleware(req: NextRequest) {
 
       if (applyRateLimit) {
         const rateKey = `ip:${clientId}:${pathname}`;
-        const rate = checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
+        const rate = await checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
         if (!rate.allowed) {
           const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
           return NextResponse.json(
@@ -289,7 +289,7 @@ export default async function middleware(req: NextRequest) {
 
     if (applyRateLimit) {
       const rateKey = `ip:${clientId}:${pathname}`;
-      const rate = checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
+      const rate = await checkRateLimit(rateKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS);
       if (!rate.allowed) {
         const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
         return NextResponse.json(

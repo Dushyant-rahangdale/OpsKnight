@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     return jsonError('API key missing scope: incidents:read.', 403);
   }
 
-  const rate = checkRateLimit(
+  const rate = await checkRateLimit(
     `api:${apiKey.id}:incidents:get`,
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW_MS
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     return jsonError('API key missing scope: incidents:write.', 403);
   }
 
-  const rate = checkRateLimit(
+  const rate = await checkRateLimit(
     `api:${apiKey.id}:incidents:post`,
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW_MS

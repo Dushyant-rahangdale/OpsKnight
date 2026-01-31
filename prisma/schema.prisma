@@ -1287,3 +1287,12 @@ model DashboardWidget {
 
   @@index([dashboardId])
 }
+
+// Distributed Rate Limiting
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt]) // For cleanup jobs
+}

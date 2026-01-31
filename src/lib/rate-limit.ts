@@ -1,83 +1,75 @@
-type RateLimitState = {
-  count: number;
-  resetAt: number;
-};
-
-const store = new Map<string, RateLimitState>();
-
-// Cleanup configuration
-const CLEANUP_INTERVAL_MS = 60_000; // Run cleanup every 60 seconds
-const MAX_STORE_SIZE = 10_000; // Force cleanup if store exceeds this size
-let lastCleanup = Date.now();
+import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
- * Remove expired entries from the rate limit store
- * This prevents unbounded memory growth on long-running servers
+ * Check rate limit using PostgreSQL for distributed coordination
+ * Uses a tiered approach:
+ * 1. Checks atomic counter in DB
+ * 2. Auto-expires records via cleanup (simplified for this implementation)
  */
-function cleanupExpiredEntries(): void {
-  const now = Date.now();
-  let cleanedCount = 0;
-
-  for (const [key, state] of store) {
-    if (now >= state.resetAt) {
-      store.delete(key);
-      cleanedCount++;
-    }
-  }
-
-  lastCleanup = now;
-}
-
-/**
- * Check if cleanup should run based on time or store size
- */
-function maybeCleanup(): void {
-  const now = Date.now();
-  const timeSinceLastCleanup = now - lastCleanup;
-
-  // Cleanup if interval has passed OR store is too large
-  if (timeSinceLastCleanup >= CLEANUP_INTERVAL_MS || store.size > MAX_STORE_SIZE) {
-    cleanupExpiredEntries();
-  }
-}
-
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number
-): { allowed: boolean; remaining: number; resetAt: number; count: number } {
-  // Periodically clean up expired entries to prevent memory leaks
-  maybeCleanup();
+): Promise<{ allowed: boolean; remaining: number; resetAt: number; count: number }> {
+  try {
+    const now = Date.now();
+    const windowStart = Math.floor(now / windowMs);
+    const dbKey = `${key}:${windowStart}`; // Unique key per window
+    const expiresAt = new Date(now + windowMs);
 
-  const now = Date.now();
-  const current = store.get(key);
+    // Atomic increment using upsert
+    // If record exists, increment count. If not, create with count 1.
+    const result = await prisma.rateLimit.upsert({
+      where: { key: dbKey },
+      create: {
+        key: dbKey,
+        count: 1,
+        expiresAt,
+      },
+      update: {
+        count: { increment: 1 },
+      },
+    });
 
-  if (!current || now >= current.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1, resetAt: now + windowMs, count: 1 };
+    const resetAt = (windowStart + 1) * windowMs;
+    const count = result.count;
+    const remaining = Math.max(0, limit - count);
+
+    // Probability-based cleanup (1% chance to clean old records)
+    if (Math.random() < 0.01) {
+      cleanupExpiredRateLimits().catch(err => {
+        logger.error('Failed to cleanup rate limits', { error: err });
+      });
+    }
+
+    return {
+      allowed: count <= limit,
+      remaining,
+      resetAt,
+      count,
+    };
+  } catch (error) {
+    // Fail OPEN if DB is down to avoid outage
+    logger.error('Rate limit DB check failed, allowing request', { error });
+    return {
+      allowed: true,
+      remaining: 1,
+      resetAt: Date.now() + windowMs,
+      count: 0,
+    };
   }
-
-  if (current.count >= limit) {
-    return { allowed: false, remaining: 0, resetAt: current.resetAt, count: current.count };
-  }
-
-  const next = { count: current.count + 1, resetAt: current.resetAt };
-  store.set(key, next);
-  return { allowed: true, remaining: limit - next.count, resetAt: next.resetAt, count: next.count };
 }
 
-/**
- * Get current store size (for monitoring/debugging)
- */
+async function cleanupExpiredRateLimits() {
+  await prisma.rateLimit.deleteMany({
+    where: {
+      expiresAt: { lt: new Date() },
+    },
+  });
+}
+
+// Stub for interface compatibility if needed, though we moved to async
 export function getRateLimitStoreSize(): number {
-  return store.size;
-}
-
-/**
- * Force cleanup of expired entries (for testing or manual trigger)
- */
-export function forceCleanup(): number {
-  const sizeBefore = store.size;
-  cleanupExpiredEntries();
-  return sizeBefore - store.size;
+  return 0; // Stateless
 }

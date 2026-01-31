@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const ipHeader = req.headers.get('x-forwarded-for') || '';
     const ip = ipHeader.split(',')[0]?.trim() || 'anonymous';
-    const rate = checkRateLimit(`api:status:subscribe:ip:${ip}`, 10, 60_000);
+    const rate = await checkRateLimit(`api:status:subscribe:ip:${ip}`, 10, 60_000);
     if (!rate.allowed) {
       const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
       return jsonError('Rate limit exceeded', 429, { retryAfter });

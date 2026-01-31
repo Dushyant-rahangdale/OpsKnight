@@ -18,7 +18,7 @@ export async function GET() {
 
     // Rate limiting to prevent abuse
     const rateKey = `api:sidebar-stats:${session.user.email}`;
-    const rate = checkRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+    const rate = await checkRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
     if (!rate.allowed) {
       const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
       return jsonError('Rate limit exceeded', 429, { retryAfter });

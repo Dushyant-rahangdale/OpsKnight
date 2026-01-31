@@ -68,70 +68,41 @@ function startCleanupTimer() {
 /**
  * Check if a request should be rate limited
  */
-export function checkRateLimit(
+import { checkRateLimit as checkGlobalRateLimit } from '@/lib/rate-limit';
+
+// ... config interfaces ...
+
+export async function checkRateLimit(
   integrationId: string,
   config: Partial<RateLimitConfig> = {}
-): RateLimitResult {
-  const { maxRequests, windowMs, burstLimit } = { ...DEFAULT_CONFIG, ...config };
-  const now = Date.now();
+): Promise<RateLimitResult> {
+  const { maxRequests, windowMs } = { ...DEFAULT_CONFIG, ...config };
 
-  startCleanupTimer();
+  // Use a prefix to distinguish integration rate limits from API limits
+  const key = `integration:${integrationId}`;
 
-  let entry = rateLimitStore.get(integrationId);
+  const result = await checkGlobalRateLimit(key, maxRequests, windowMs);
 
-  if (!entry) {
-    // First request - initialize with full burst capacity
-    entry = {
-      tokens: burstLimit,
-      lastRefill: now,
-      windowStart: now,
-      requestCount: 0,
-    };
-    rateLimitStore.set(integrationId, entry);
-  }
-
-  // Refill tokens based on time elapsed
-  const elapsed = now - entry.lastRefill;
-  const refillRate = maxRequests / windowMs; // tokens per ms
-  const tokensToAdd = elapsed * refillRate;
-
-  entry.tokens = Math.min(burstLimit, entry.tokens + tokensToAdd);
-  entry.lastRefill = now;
-
-  // Reset window if needed
-  if (now - entry.windowStart >= windowMs) {
-    entry.windowStart = now;
-    entry.requestCount = 0;
-  }
-
-  // Check if request is allowed
-  if (entry.tokens >= 1) {
-    entry.tokens -= 1;
-    entry.requestCount += 1;
+  if (!result.allowed) {
+    const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000);
+    logger.warn('integration.rate_limited', {
+      integrationId,
+      remaining: 0,
+      retryAfter: retryAfterSeconds,
+    });
 
     return {
-      allowed: true,
-      remaining: Math.floor(entry.tokens),
-      resetAt: entry.windowStart + windowMs,
+      allowed: false,
+      remaining: 0,
+      resetAt: result.resetAt,
+      retryAfter: retryAfterSeconds,
     };
   }
 
-  // Rate limited
-  const retryAfterMs = (1 - entry.tokens) / refillRate;
-  const retryAfterSeconds = Math.ceil(retryAfterMs / 1000);
-
-  logger.warn('integration.rate_limited', {
-    integrationId,
-    requestCount: entry.requestCount,
-    remaining: 0,
-    retryAfter: retryAfterSeconds,
-  });
-
   return {
-    allowed: false,
-    remaining: 0,
-    resetAt: entry.windowStart + windowMs,
-    retryAfter: retryAfterSeconds,
+    allowed: true,
+    remaining: result.remaining,
+    resetAt: result.resetAt,
   };
 }
 

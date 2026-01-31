@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const ipHeader = req.headers.get('x-forwarded-for') || '';
     const ip = ipHeader.split(',')[0]?.trim() || 'anonymous';
-    const ipRate = checkRateLimit(`api:status-page:subscribe:ip:${ip}`, 10, 60_000);
+    const ipRate = await checkRateLimit(`api:status-page:subscribe:ip:${ip}`, 10, 60_000);
     if (!ipRate.allowed) {
       const retryAfter = Math.ceil((ipRate.resetAt - Date.now()) / 1000);
       return jsonError('Rate limit exceeded', 429, { retryAfter });
@@ -35,7 +35,11 @@ export async function POST(req: NextRequest) {
     }
 
     const emailKey = `${statusPageId}:${email.trim().toLowerCase()}`;
-    const emailRate = checkRateLimit(`api:status-page:subscribe:email:${emailKey}`, 3, 60_000);
+    const emailRate = await checkRateLimit(
+      `api:status-page:subscribe:email:${emailKey}`,
+      3,
+      60_000
+    );
     if (!emailRate.allowed) {
       const retryAfter = Math.ceil((emailRate.resetAt - Date.now()) / 1000);
       return jsonError('Rate limit exceeded', 429, { retryAfter });

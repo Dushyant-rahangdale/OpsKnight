@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   // Rate limiting
   const rateLimitKey = `sla-performance:${session.user.email}`;
-  const rateLimit = checkRateLimit(rateLimitKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  const rateLimit = await checkRateLimit(rateLimitKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
   if (!rateLimit.allowed) {
     const retryAfter = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
     return NextResponse.json(
