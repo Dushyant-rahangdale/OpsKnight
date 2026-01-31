@@ -90,6 +90,9 @@ export default async function ScheduleDetailPage({
               start: true,
               end: true,
               rotationLengthHours: true,
+              shiftLengthHours: true,
+              restrictions: true,
+              priority: true,
               users: {
                 select: {
                   userId: true,
@@ -395,12 +398,15 @@ export default async function ScheduleDetailPage({
               start: block.start,
               end: block.end,
               layerName: block.layerName,
+              layerId: block.layerId,
+              userId: block.userId,
               userName: block.userName,
               userAvatar: block.userAvatar,
               userGender: block.userGender,
               source: block.source,
             }))}
             timeZone={schedule.timeZone}
+            layerPriorities={new Map(schedule.layers.map(l => [l.id, l.priority]))}
           />
 
           {/* Monthly Calendar (has built-in header) */}
@@ -481,6 +487,8 @@ export default async function ScheduleDetailPage({
                       start: new Date(layer.start),
                       end: layer.end ? new Date(layer.end) : null,
                       rotationLengthHours: layer.rotationLengthHours,
+                      shiftLengthHours: layer.shiftLengthHours,
+                      restrictions: layer.restrictions as { daysOfWeek?: number[]; startHour?: number; endHour?: number } | null,
                       users: layer.users,
                     }}
                     scheduleId={schedule.id}

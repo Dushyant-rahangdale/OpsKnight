@@ -613,6 +613,9 @@ model OnCallLayer {
   start               DateTime
   end                 DateTime?
   rotationLengthHours Int       @default(24)
+  shiftLengthHours    Int?      // Optional: If set, defines strict shift duration (leaving gaps)
+  restrictions        Json?     // { daysOfWeek: [0-6], startHour: 0-23, endHour: 0-23 }
+  priority            Int       @default(0) // Higher number = higher priority for final schedule
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 

@@ -117,6 +117,19 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
     const rotationLength = Number(formData.get('rotationLengthHours'));
+    const shiftLengthValue = formData.get('shiftLengthHours');
+    const shiftLength = shiftLengthValue ? Number(shiftLengthValue) : null;
+
+    // Parse restrictions
+    const daysOfWeek = formData.getAll('daysOfWeek').map(Number);
+    const restrictStartHour = formData.get('restrictStartHour');
+    const restrictEndHour = formData.get('restrictEndHour');
+
+    const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
+        daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
+        startHour: restrictStartHour ? Number(restrictStartHour) : undefined,
+        endHour: restrictEndHour ? Number(restrictEndHour) : undefined,
+    } : null;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
@@ -151,7 +164,9 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
                 name,
                 start: startDate,
                 end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-                rotationLengthHours: rotationLength
+                rotationLengthHours: rotationLength,
+                shiftLengthHours: shiftLength,
+                restrictions
             }
         });
 
@@ -287,6 +302,19 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
     const rotationLength = Number(formData.get('rotationLengthHours'));
+    const shiftLengthValue = formData.get('shiftLengthHours');
+    const shiftLength = shiftLengthValue ? Number(shiftLengthValue) : null;
+
+    // Parse restrictions
+    const daysOfWeek = formData.getAll('daysOfWeek').map(Number);
+    const restrictStartHour = formData.get('restrictStartHour');
+    const restrictEndHour = formData.get('restrictEndHour');
+
+    const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
+        daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
+        startHour: restrictStartHour ? Number(restrictStartHour) : undefined,
+        endHour: restrictEndHour ? Number(restrictEndHour) : undefined,
+    } : null;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
@@ -321,7 +349,9 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
                 name,
                 start: startDate,
                 end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-                rotationLengthHours: rotationLength
+                rotationLengthHours: rotationLength,
+                shiftLengthHours: shiftLength,
+                restrictions
             }
         });
 

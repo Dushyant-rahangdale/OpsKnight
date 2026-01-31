@@ -53,6 +53,7 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
       start: layer.start,
       end: layer.end,
       rotationLengthHours: layer.rotationLengthHours,
+      shiftLengthHours: (layer as { shiftLengthHours?: number | null }).shiftLengthHours,
       users: layer.users.map(lu => ({
         userId: lu.userId,
         user: { name: lu.user.name },
@@ -666,10 +667,10 @@ export async function processPendingEscalations(
             data: {
               escalationStatus:
                 benignReason.includes('exhausted') ||
-                benignReason.includes('completed') ||
-                benignReason.includes('no escalation policy') ||
-                benignReason.includes('no users to notify') ||
-                benignReason.includes('invalid target')
+                  benignReason.includes('completed') ||
+                  benignReason.includes('no escalation policy') ||
+                  benignReason.includes('no users to notify') ||
+                  benignReason.includes('invalid target')
                   ? 'COMPLETED'
                   : 'ESCALATING',
               nextEscalationAt: null,
@@ -709,7 +710,7 @@ export async function processPendingEscalations(
                   message: `Escalation processing failed (FATAL): ${errorMessage}`,
                 },
               })
-              .catch(() => {});
+              .catch(() => { });
           } else {
             await prisma.incident.update({
               where: { id: incident.id },

@@ -18,7 +18,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/shadcn/tooltip';
 import { getDefaultAvatar } from '@/lib/avatar';
-import { ChevronLeft, ChevronRight, Calendar, Clock, Users } from 'lucide-react';
+import { getFinalScheduleBlocks, type OnCallBlock } from '@/lib/oncall';
+import { ChevronLeft, ChevronRight, Calendar, Clock, Users, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { addDays, format, startOfDay, differenceInHours, isToday } from 'date-fns';
 
@@ -28,6 +29,8 @@ type TimelineShift = {
   userAvatar?: string | null;
   userGender?: string | null;
   layerName: string;
+  layerId?: string;
+  userId?: string;
   start: Date;
   end: Date;
   source?: 'layer' | 'rotation' | 'override';
@@ -36,6 +39,7 @@ type TimelineShift = {
 type ScheduleTimelineProps = {
   shifts: TimelineShift[];
   timeZone: string;
+  layerPriorities?: Map<string, number>;
 };
 
 const LAYER_COLORS = [
@@ -77,7 +81,7 @@ const LAYER_COLORS = [
   },
 ];
 
-export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineProps) {
+export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: ScheduleTimelineProps) {
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
 
@@ -117,6 +121,29 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
     });
     return [...groups.entries()];
   }, [visibleShifts]);
+
+  // Compute final schedule blocks (merged view with priority resolution)
+  const finalScheduleBlocks = useMemo(() => {
+    if (!layerPriorities || layerPriorities.size === 0 || visibleShifts.length === 0) {
+      return [];
+    }
+
+    // Convert shifts to OnCallBlock format
+    const blocks: OnCallBlock[] = visibleShifts.map(shift => ({
+      id: shift.id,
+      start: shift.start,
+      end: shift.end,
+      userId: shift.userId || '',
+      userName: shift.userName,
+      userAvatar: shift.userAvatar,
+      userGender: shift.userGender,
+      layerId: shift.layerId || shift.layerName,
+      layerName: shift.layerName,
+      source: shift.source === 'override' ? 'override' : 'rotation',
+    }));
+
+    return getFinalScheduleBlocks(blocks, layerPriorities);
+  }, [visibleShifts, layerPriorities]);
 
   const handlePrevPeriod = () => {
     setStartDate(prev => addDays(prev, -daysToShow));
@@ -267,13 +294,41 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
                 shiftsByLayer.map(([layerName, layerShifts]) => {
                   const color = layerColorMap.get(layerName) || LAYER_COLORS[0];
 
+                  // Sort shifts by start time and assign rows to handle overlaps
+                  const sortedShifts = [...layerShifts].sort((a, b) => a.start.getTime() - b.start.getTime());
+                  const rows: TimelineShift[][] = [];
+                  const shiftRowMap = new Map<string, number>();
+
+                  sortedShifts.forEach(shift => {
+                    let rowIndex = 0;
+                    while (true) {
+                      const row = rows[rowIndex];
+                      if (!row) {
+                        rows[rowIndex] = [shift];
+                        shiftRowMap.set(shift.id, rowIndex);
+                        break;
+                      }
+                      const lastShift = row[row.length - 1];
+                      // Check for temporal overlap
+                      if (shift.start.getTime() >= lastShift.end.getTime()) {
+                        row.push(shift);
+                        shiftRowMap.set(shift.id, rowIndex);
+                        break;
+                      }
+                      rowIndex++;
+                    }
+                  });
+
+                  const rowHeight = 56; // 48px height + 8px gap
+                  const containerHeight = Math.max(rows.length * rowHeight, 60);
+
                   return (
                     <div key={layerName} className="relative">
-                      {/* Layer Label */}
-                      <div className="absolute left-3 top-3 z-20">
+                      {/* Layer Label - position statically to avoid overlap */}
+                      <div className="px-3 py-2 z-20 relative">
                         <div
                           className={cn(
-                            'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm',
+                            'inline-block px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm',
                             color.light,
                             color.text
                           )}
@@ -301,8 +356,10 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
                       </div>
 
                       {/* Shift Blocks */}
-                      <div className="relative px-3 pt-10 pb-4" style={{ minHeight: '100px' }}>
-                        {layerShifts.map(shift => {
+                      <div className="relative px-3 pb-4 transition-all duration-300" style={{ height: `${containerHeight}px` }}>
+                        {sortedShifts.map(shift => {
+                          const rowIndex = shiftRowMap.get(shift.id) || 0;
+
                           // Calculate position
                           const shiftStart = shift.start < startDate ? startDate : shift.start;
                           const shiftEnd = shift.end > endDate ? endDate : shift.end;
@@ -328,8 +385,8 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
                                     )}
                                     style={{
                                       left: `${leftPercent}%`,
-                                      width: `${Math.max(widthPercent, 3)}%`,
-                                      top: '0',
+                                      width: `${Math.max(widthPercent, 1)}%`,
+                                      top: `${rowIndex * rowHeight}px`,
                                     }}
                                   >
                                     <DirectUserAvatar
@@ -412,6 +469,122 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
               )}
             </div>
 
+            {/* Final Schedule Row */}
+            {finalScheduleBlocks.length > 0 && (
+              <div className="border-t-2 border-slate-300 pt-2 mt-2">
+                <div className="relative">
+                  {/* Final Schedule Label */}
+                  <div className="px-3 py-2 z-20 relative">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm bg-slate-800 text-white">
+                      <Shield className="h-3 w-3" />
+                      Final Schedule
+                    </div>
+                  </div>
+
+                  {/* Grid Background */}
+                  <div className="absolute inset-0 flex pointer-events-none">
+                    {days.map((day, index) => {
+                      const isCurrentDay = isToday(day);
+                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                      return (
+                        <div
+                          key={index}
+                          className={cn(
+                            'flex-1 border-r border-slate-100/50 last:border-r-0',
+                            isCurrentDay && 'bg-indigo-50/20',
+                            isWeekend && !isCurrentDay && 'bg-slate-50/30'
+                          )}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Final Schedule Blocks */}
+                  <div className="relative px-3 pb-4" style={{ height: '70px' }}>
+                    {finalScheduleBlocks.map((block, index) => {
+                      const blockStart = block.start < startDate ? startDate : block.start;
+                      const blockEnd = block.end > endDate ? endDate : block.end;
+
+                      const startHours = differenceInHours(blockStart, startDate);
+                      const endHours = differenceInHours(blockEnd, startDate);
+
+                      const leftPercent = (startHours / totalHours) * 100;
+                      const widthPercent = ((endHours - startHours) / totalHours) * 100;
+
+                      return (
+                        <TooltipProvider key={`final-${index}`} delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className={cn(
+                                  'absolute h-12 rounded-xl flex items-center gap-2 px-3 cursor-pointer transition-all duration-200',
+                                  'bg-gradient-to-r from-slate-700 to-slate-800 shadow-lg hover:shadow-xl hover:scale-[1.02] hover:-translate-y-0.5',
+                                  'ring-2 ring-slate-600/50'
+                                )}
+                                style={{
+                                  left: `${leftPercent}%`,
+                                  width: `${Math.max(widthPercent, 1)}%`,
+                                  top: '0px',
+                                }}
+                              >
+                                <DirectUserAvatar
+                                  avatarUrl={
+                                    block.userAvatar ||
+                                    getDefaultAvatar(block.userGender, block.userName)
+                                  }
+                                  name={block.userName}
+                                  size="sm"
+                                  className="ring-2 ring-white/40 shadow-sm"
+                                  fallbackClassName="bg-white/30 text-white"
+                                />
+                                {widthPercent > 8 && (
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-semibold text-white truncate">
+                                      {block.userName}
+                                    </div>
+                                    {widthPercent > 15 && (
+                                      <div className="text-[10px] text-white/80 flex items-center gap-1 truncate">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {format(block.start, 'HH:mm')} - {format(block.end, 'HH:mm')}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="p-3 max-w-xs">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <DirectUserAvatar
+                                    avatarUrl={
+                                      block.userAvatar ||
+                                      getDefaultAvatar(block.userGender, block.userName)
+                                    }
+                                    name={block.userName}
+                                    size="xs"
+                                  />
+                                  <span className="font-semibold text-slate-900">
+                                    {block.userName}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3" />
+                                  {format(block.start, 'MMM d, HH:mm')} - {format(block.end, 'MMM d, HH:mm')}
+                                </div>
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+                                  Effective On-Call
+                                </span>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Legend */}
             {shiftsByLayer.length > 0 && (
               <div className="flex flex-wrap items-center gap-4 p-4 border-t border-slate-100 bg-slate-50/50">
@@ -430,6 +603,12 @@ export default function ScheduleTimeline({ shifts, timeZone }: ScheduleTimelineP
                   <div className="h-3 w-3 rounded-md bg-orange-500 ring-2 ring-orange-200" />
                   <span className="text-xs font-medium text-slate-600">Override</span>
                 </div>
+                {finalScheduleBlocks.length > 0 && (
+                  <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
+                    <div className="h-3 w-3 rounded-md bg-slate-800 ring-2 ring-slate-400" />
+                    <span className="text-xs font-medium text-slate-600">Final Schedule</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

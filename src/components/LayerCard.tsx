@@ -24,8 +24,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/shadcn/tooltip';
-import { Trash2, Edit3, Users, Clock, ArrowUp, ArrowDown, Layers, Info, X } from 'lucide-react';
+import { Trash2, Edit3, Users, Clock, ArrowUp, ArrowDown, Layers, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type LayerRestrictions = {
+  daysOfWeek?: number[];
+  startHour?: number;
+  endHour?: number;
+};
 
 type LayerCardProps = {
   layer: {
@@ -34,6 +40,8 @@ type LayerCardProps = {
     start: Date;
     end: Date | null;
     rotationLengthHours: number;
+    shiftLengthHours?: number | null;
+    restrictions?: LayerRestrictions | null;
     users: Array<{
       userId: string;
       position: number;
@@ -215,6 +223,16 @@ export default function LayerCard({
                 <Badge variant="secondary" size="xs">
                   {layer.rotationLengthHours}h rotation
                 </Badge>
+                {layer.shiftLengthHours && layer.shiftLengthHours !== layer.rotationLengthHours && (
+                  <Badge variant="outline" size="xs" className="border-orange-200 bg-orange-50 text-orange-700">
+                    {layer.shiftLengthHours}h shift
+                  </Badge>
+                )}
+                {layer.restrictions && (layer.restrictions.daysOfWeek?.length || layer.restrictions.startHour != null) && (
+                  <Badge variant="outline" size="xs" className="border-purple-200 bg-purple-50 text-purple-700">
+                    Restricted
+                  </Badge>
+                )}
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {formatShortTime(new Date(layer.start), timeZone)}
@@ -257,6 +275,8 @@ export default function LayerCard({
               start: new Date(layer.start),
               end: layer.end ? new Date(layer.end) : null,
               rotationLengthHours: layer.rotationLengthHours,
+              shiftLengthHours: layer.shiftLengthHours,
+              restrictions: layer.restrictions,
             }}
             timeZone={timeZone}
             updateLayer={updateLayer}
@@ -277,24 +297,27 @@ export default function LayerCard({
               </div>
               {canManageSchedules && availableUsers.length > 0 && (
                 <form action={handleAddUser}>
-                  <select
-                    name="userId"
-                    required
-                    disabled={isPending}
-                    onChange={e => {
-                      if (e.target.value) {
-                        e.target.form?.requestSubmit();
-                      }
-                    }}
-                    className="h-7 text-xs rounded-md border border-primary/50 bg-primary/5 px-2 pr-6 hover:border-primary hover:bg-primary/10 focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer font-medium text-primary"
-                  >
-                    <option value="">+ Add Responder</option>
-                    {availableUsers.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="userId"
+                      required
+                      disabled={isPending}
+                      onChange={e => {
+                        if (e.target.value) {
+                          e.target.form?.requestSubmit();
+                        }
+                      }}
+                      className="h-7 text-xs rounded-md border border-primary/50 bg-primary/5 pl-2 pr-7 hover:border-primary hover:bg-primary/10 focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer font-medium text-primary appearance-none"
+                    >
+                      <option value="">+ Add Responder</option>
+                      {availableUsers.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-primary pointer-events-none opacity-70" />
+                  </div>
                 </form>
               )}
             </div>
