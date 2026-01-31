@@ -42,6 +42,15 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
     return [];
   }
 
+  // If there are active overrides at the given time, honor them immediately.
+  // Overrides replace the underlying rotation for their window.
+  if (schedule.overrides.length > 0) {
+    const overrideUserIds = Array.from(new Set(schedule.overrides.map(o => o.userId)));
+    if (overrideUserIds.length > 0) {
+      return overrideUserIds;
+    }
+  }
+
   // Build schedule blocks to find who's on-call
   const windowStart = startOfDayInTimeZone(atTime, schedule.timeZone);
   const windowEnd = startOfNextDayInTimeZone(atTime, schedule.timeZone);
