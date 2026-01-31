@@ -76,10 +76,9 @@ export default function ScheduleEditForm({
         </div>
         <Button
           type="button"
-          variant="outline"
           size="sm"
           onClick={() => setIsEditing(true)}
-          className="gap-2"
+          className="gap-2 bg-primary text-white hover:bg-primary/90 shadow-sm"
         >
           <Edit className="h-4 w-4" />
           Edit Schedule Settings

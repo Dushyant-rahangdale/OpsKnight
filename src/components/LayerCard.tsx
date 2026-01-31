@@ -3,19 +3,11 @@
 import { useTransition, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
-import { DateTimeInput } from '@/components/ui';
-import { formatDateForInput } from '@/lib/timezone';
+import LayerEditSheet from './LayerEditSheet';
 import { Card, CardContent } from '@/components/ui/shadcn/card';
 import UserAvatar from '@/components/UserAvatar';
 import { Button } from '@/components/ui/shadcn/button';
-import { Input } from '@/components/ui/shadcn/input';
-import { Label } from '@/components/ui/shadcn/label';
 import { Badge } from '@/components/ui/shadcn/badge';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/shadcn/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,21 +24,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/shadcn/tooltip';
-import {
-  ChevronDown,
-  Trash2,
-  Edit3,
-  Users,
-  Clock,
-  ArrowUp,
-  ArrowDown,
-  Layers,
-  Info,
-  Loader2,
-  Check,
-  X,
-} from 'lucide-react';
+import { Trash2, Edit3, Users, Clock, ArrowUp, ArrowDown, Layers, Info, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type LayerRestrictions = {
+  daysOfWeek?: number[];
+  startHour?: number;
+  endHour?: number;
+};
 
 type LayerCardProps = {
   layer: {
@@ -55,6 +40,8 @@ type LayerCardProps = {
     start: Date;
     end: Date | null;
     rotationLengthHours: number;
+    shiftLengthHours?: number | null;
+    restrictions?: LayerRestrictions | null;
     users: Array<{
       userId: string;
       position: number;
@@ -104,6 +91,45 @@ function formatShortTime(date: Date, timeZone: string): string {
   }).format(date);
 }
 
+function formatRestrictions(restrictions: LayerRestrictions | null | undefined): string[] {
+  if (!restrictions) return [];
+
+  const badges: string[] = [];
+
+  // Format days
+  if (restrictions.daysOfWeek && restrictions.daysOfWeek.length > 0) {
+    const days = restrictions.daysOfWeek.sort((a, b) => a - b);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Check for common patterns
+    const isWeekdays = days.length === 5 && [1, 2, 3, 4, 5].every(d => days.includes(d));
+    const isWeekends = days.length === 2 && days.includes(0) && days.includes(6);
+
+    if (isWeekdays) {
+      badges.push('Mon-Fri');
+    } else if (isWeekends) {
+      badges.push('Sat-Sun');
+    } else if (days.length <= 3) {
+      badges.push(days.map(d => dayNames[d]).join(', '));
+    } else {
+      badges.push(`${days.length} days`);
+    }
+  }
+
+  // Format hours
+  if (restrictions.startHour != null && restrictions.endHour != null) {
+    const start = restrictions.startHour.toString().padStart(2, '0');
+    const end = restrictions.endHour.toString().padStart(2, '0');
+    badges.push(`${start}:00-${end}:00`);
+  } else if (restrictions.startHour != null) {
+    badges.push(`from ${restrictions.startHour.toString().padStart(2, '0')}:00`);
+  } else if (restrictions.endHour != null) {
+    badges.push(`until ${restrictions.endHour.toString().padStart(2, '0')}:00`);
+  }
+
+  return badges;
+}
+
 // Info Tooltip Component for consistent help icons
 function HelpTip({ children }: { children: React.ReactNode }) {
   return (
@@ -145,9 +171,7 @@ export default function LayerCard({
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isRespondersOpen, setIsRespondersOpen] = useState(false);
 
   const color = LAYER_COLORS[colorIndex % LAYER_COLORS.length];
 
@@ -163,24 +187,6 @@ export default function LayerCard({
       }
     });
   }, [scheduleId, layer.id, deleteLayer, showToast, router]);
-
-  const handleUpdate = useCallback(
-    async (formData: FormData) => {
-      setIsUpdating(true);
-      startTransition(async () => {
-        const result = await updateLayer(layer.id, formData);
-        if (result?.error) {
-          showToast(result.error, 'error');
-        } else {
-          showToast('Layer updated', 'success');
-          setIsEditOpen(false);
-          router.refresh();
-        }
-        setIsUpdating(false);
-      });
-    },
-    [layer.id, updateLayer, showToast, router]
-  );
 
   const handleAddUser = useCallback(
     async (formData: FormData) => {
@@ -238,13 +244,13 @@ export default function LayerCard({
       >
         {/* Compact Header */}
         <div className="flex items-start justify-between gap-3 p-3 bg-slate-50/70">
-          <div className="flex items-start gap-3 min-w-0">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', color.light)}>
               <Layers className={cn('h-4 w-4', color.text)} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-800 truncate">{layer.name}</h3>
+                <h3 className="text-base font-semibold text-slate-800 truncate">{layer.name}</h3>
                 <HelpTip>
                   <p>
                     <strong>Layer:</strong> A rotation pattern that cycles through responders.
@@ -256,6 +262,20 @@ export default function LayerCard({
                 <Badge variant="secondary" size="xs">
                   {layer.rotationLengthHours}h rotation
                 </Badge>
+                {layer.shiftLengthHours && layer.shiftLengthHours !== layer.rotationLengthHours && (
+                  <Badge variant="outline" size="xs" className="border-orange-200 bg-orange-50 text-orange-700">
+                    {layer.shiftLengthHours}h shift
+                  </Badge>
+                )}
+                {layer.restrictions && (layer.restrictions.daysOfWeek?.length || layer.restrictions.startHour != null) && (
+                  <>
+                    {formatRestrictions(layer.restrictions).map((badge, i) => (
+                      <Badge key={i} variant="outline" size="xs" className="border-purple-200 bg-purple-50 text-purple-700">
+                        {badge}
+                      </Badge>
+                    ))}
+                  </>
+                )}
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {formatShortTime(new Date(layer.start), timeZone)}
@@ -290,215 +310,138 @@ export default function LayerCard({
         </div>
 
         <CardContent className="p-0">
-          {/* Compact Edit Form */}
-          {isEditOpen && (
-            <div className="p-3 bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-1 duration-150">
-              <form action={handleUpdate} className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-slate-500 uppercase">Name</Label>
-                    <Input
-                      name="name"
-                      defaultValue={layer.name}
-                      required
-                      disabled={isUpdating}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
-                      Rotation (hrs)
-                      <HelpTip>How long each person is on-call before the next takes over.</HelpTip>
-                    </Label>
-                    <Input
-                      name="rotationLengthHours"
-                      type="number"
-                      min="1"
-                      defaultValue={layer.rotationLengthHours}
-                      required
-                      disabled={isUpdating}
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-slate-500 uppercase">Start</Label>
-                    <DateTimeInput
-                      name="start"
-                      value={formatDateForInput(new Date(layer.start), timeZone)}
-                      required
-                      fullWidth
-                      disabled={isUpdating}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-slate-500 uppercase flex items-center gap-1">
-                      End
-                      <HelpTip>Optional. Leave empty for indefinite rotation.</HelpTip>
-                    </Label>
-                    <DateTimeInput
-                      name="end"
-                      value={layer.end ? formatDateForInput(new Date(layer.end), timeZone) : ''}
-                      fullWidth
-                      disabled={isUpdating}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditOpen(false)}
-                    className="h-7 text-xs"
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" disabled={isUpdating} className="h-7 text-xs">
-                    {isUpdating ? (
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    ) : (
-                      <Check className="h-3 w-3 mr-1" />
-                    )}
-                    Save
-                  </Button>
-                </div>
-              </form>
-            </div>
-          )}
+          {/* Edit Sheet - same UI as Create form */}
+          <LayerEditSheet
+            layer={{
+              id: layer.id,
+              name: layer.name,
+              start: new Date(layer.start),
+              end: layer.end ? new Date(layer.end) : null,
+              rotationLengthHours: layer.rotationLengthHours,
+              shiftLengthHours: layer.shiftLengthHours,
+              restrictions: layer.restrictions,
+            }}
+            timeZone={timeZone}
+            updateLayer={updateLayer}
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+          />
 
-          {/* Responders Collapsible */}
-          <Collapsible open={isRespondersOpen} onOpenChange={setIsRespondersOpen}>
-            <CollapsibleTrigger asChild>
-              <button className="w-full flex items-center justify-between p-2.5 px-3 text-left hover:bg-slate-50 transition-colors border-t border-slate-100">
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <Users className="h-3 w-3" />
-                  <span className="font-medium">Responders</span>
-                  <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-slate-100">
-                    {layer.users.length}
-                  </Badge>
-                  <HelpTip>
-                    <p>
-                      <strong>Responders:</strong> Team members in this rotation. Order determines
-                      who's on-call first.
-                    </p>
-                  </HelpTip>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    'h-3 w-3 text-slate-400 transition-transform',
-                    isRespondersOpen && 'rotate-180'
-                  )}
-                />
-              </button>
-            </CollapsibleTrigger>
-
-            <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-1">
-                {layer.users.length === 0 ? (
-                  <div className="py-4 text-center border border-dashed border-slate-200 rounded-md bg-slate-50/50">
-                    <Users className="h-5 w-5 text-slate-300 mx-auto mb-1" />
-                    <p className="text-[10px] text-slate-400">No responders yet</p>
-                  </div>
-                ) : (
-                  layer.users.map((layerUser, index) => (
-                    <div
-                      key={layerUser.userId}
-                      className={cn(
-                        'flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-slate-50 group',
-                        isPending && 'opacity-50'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center',
-                            index === 0
-                              ? `${color.light} ${color.text}`
-                              : 'bg-slate-100 text-slate-500'
-                          )}
-                        >
-                          {index + 1}
-                        </span>
-                        <UserAvatar
-                          userId={layerUser.userId}
-                          name={layerUser.user.name}
-                          gender={layerUser.user.gender}
-                          size="xs"
-                          className="h-5 w-5"
-                        />
-                        <span className="text-xs font-medium text-slate-700">
-                          {layerUser.user.name}
-                        </span>
-                        {index === 0 && (
-                          <Badge
-                            variant="secondary"
-                            className="h-4 px-1 text-[8px] bg-emerald-50 text-emerald-600 border-emerald-100"
-                          >
-                            NEXT
-                          </Badge>
-                        )}
-                      </div>
-                      {canManageSchedules && (
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleMoveUser(layerUser.userId, 'up')}
-                            disabled={index === 0 || isPending}
-                            className="h-5 w-5"
-                          >
-                            <ArrowUp className="h-2.5 w-2.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleMoveUser(layerUser.userId, 'down')}
-                            disabled={index === layer.users.length - 1 || isPending}
-                            className="h-5 w-5"
-                          >
-                            <ArrowDown className="h-2.5 w-2.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveUser(layerUser.userId)}
-                            disabled={isPending}
-                            className="h-5 w-5 text-slate-400 hover:text-red-500"
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-
-                {/* Add Responder */}
-                {canManageSchedules && availableUsers.length > 0 && (
-                  <form action={handleAddUser} className="mt-2">
+          {/* Responders Section - Always visible */}
+          <div className="border-t border-slate-100">
+            {/* Header with Add button */}
+            <div className="flex items-center justify-between p-2.5 px-3 bg-slate-50/50">
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <Users className="h-3.5 w-3.5" />
+                <span className="font-medium">Responders</span>
+                <Badge variant="secondary" className="h-4 px-1.5 text-[9px] bg-slate-100">
+                  {layer.users.length}
+                </Badge>
+              </div>
+              {canManageSchedules && availableUsers.length > 0 && (
+                <form action={handleAddUser}>
+                  <div className="relative">
                     <select
                       name="userId"
                       required
                       disabled={isPending}
-                      className="w-full h-7 text-xs rounded-md border border-slate-200 bg-white px-2 hover:border-blue-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                      onChange={e => {
+                        if (e.target.value) {
+                          e.target.form?.requestSubmit();
+                        }
+                      }}
+                      className="h-7 text-xs rounded-md border border-primary/50 bg-primary/5 pl-2 pr-7 hover:border-primary hover:bg-primary/10 focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer font-medium text-primary appearance-none"
                     >
-                      <option value="">+ Add responder...</option>
+                      <option value="">+ Add Responder</option>
                       {availableUsers.map(user => (
                         <option key={user.id} value={user.id}>
                           {user.name}
                         </option>
                       ))}
                     </select>
-                    <Button type="submit" size="sm" disabled={isPending} className="hidden">
-                      Add
-                    </Button>
-                  </form>
-                )}
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-primary pointer-events-none opacity-70" />
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Responders List - only show if there are responders */}
+            {layer.users.length > 0 && (
+              <div className="px-3 pb-3 pt-2 space-y-2">
+                {layer.users.map((layerUser, index) => (
+                  <div
+                    key={layerUser.userId}
+                    className={cn(
+                      'flex items-center justify-between py-2 px-2 rounded-md hover:bg-slate-50 group',
+                      isPending && 'opacity-50'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center',
+                          index === 0
+                            ? `${color.light} ${color.text}`
+                            : 'bg-slate-100 text-slate-500'
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                      <UserAvatar
+                        userId={layerUser.userId}
+                        name={layerUser.user.name}
+                        gender={layerUser.user.gender}
+                        size="xs"
+                        className="h-6 w-6"
+                      />
+                      <span className="text-sm font-medium text-slate-700">
+                        {layerUser.user.name}
+                      </span>
+                      {index === 0 && (
+                        <Badge
+                          variant="secondary"
+                          className="h-4 px-1.5 text-[8px] bg-emerald-50 text-emerald-600 border-emerald-100"
+                        >
+                          NEXT
+                        </Badge>
+                      )}
+                    </div>
+                    {canManageSchedules && (
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleMoveUser(layerUser.userId, 'up')}
+                          disabled={index === 0 || isPending}
+                          className="h-6 w-6"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleMoveUser(layerUser.userId, 'down')}
+                          disabled={index === layer.users.length - 1 || isPending}
+                          className="h-6 w-6"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveUser(layerUser.userId)}
+                          disabled={isPending}
+                          className="h-6 w-6 text-slate-400 hover:text-red-500"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            )}
+          </div>
         </CardContent>
       </Card>
 

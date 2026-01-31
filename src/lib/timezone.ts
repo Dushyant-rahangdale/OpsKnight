@@ -3,6 +3,18 @@
  * across all components in the incident management system
  */
 import { logger } from '@/lib/logger';
+import { getTimeZones } from '@vvo/tzdb';
+
+type TimeZoneOption = {
+  value: string;
+  label: string;
+  description?: string;
+  countryName?: string;
+  mainCities?: string[];
+  keywords?: string[];
+  offsetMinutes: number;
+  offsetLabel: string;
+};
 
 /**
  * Get user's timezone preference, fallback to UTC
@@ -168,36 +180,87 @@ export function getTimeZoneLabel(timeZone: string): string {
 /**
  * Get all supported timezones with labels
  */
-export function getAllTimeZones(): Array<{ value: string; label: string }> {
+export function getAllTimeZones(): Array<TimeZoneOption> {
   try {
-    if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
-      const zones = Intl.supportedValuesOf('timeZone');
-      return zones
-        .map(zone => ({
-          value: zone,
-          label: getTimeZoneLabel(zone),
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-    }
+    const options = getTimeZones().map(tz => {
+      const offsetMinutes = tz.currentTimeOffsetInMinutes ?? tz.rawOffsetInMinutes ?? 0;
+      const offsetLabel = formatOffset(offsetMinutes);
+      const primaryCity = tz.mainCities?.[0] || tz.group?.[0]?.split('/')?.[1]?.replace('_', ' ');
+      const fallbackCity = tz.name.split('/').at(-1)?.replace('_', ' ');
+      const city = primaryCity || fallbackCity || tz.alternativeName || tz.name;
+      const label = `${offsetLabel} — ${city}${tz.countryName ? `, ${tz.countryName}` : ''}`;
+      const descriptionParts = [tz.name];
+      if (tz.alternativeName) descriptionParts.push(tz.alternativeName);
+      const description = descriptionParts.join(' • ');
+
+      const keywords = [
+        tz.name,
+        tz.countryName,
+        tz.continentName,
+        tz.alternativeName,
+        offsetLabel,
+        ...(tz.mainCities || []),
+        ...(tz.group || []),
+      ].filter(Boolean) as string[];
+
+      return {
+        value: tz.name,
+        label,
+        description,
+        countryName: tz.countryName,
+        mainCities: tz.mainCities,
+        keywords,
+        offsetMinutes,
+        offsetLabel,
+      } satisfies TimeZoneOption;
+    });
+
+    return options.sort((a, b) =>
+      a.offsetMinutes === b.offsetMinutes
+        ? a.label.localeCompare(b.label)
+        : a.offsetMinutes - b.offsetMinutes
+    );
   } catch {
-    // Fallback if Intl.supportedValuesOf is not available
+    // Fallback if tzdb or Intl APIs are unavailable
   }
 
-  // Fallback list
+  // Minimal fallback list
   return [
-    { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    { value: 'America/New_York', label: 'America/New_York (Eastern Time)' },
-    { value: 'America/Chicago', label: 'America/Chicago (Central Time)' },
-    { value: 'America/Denver', label: 'America/Denver (Mountain Time)' },
-    { value: 'America/Los_Angeles', label: 'America/Los_Angeles (Pacific Time)' },
-    { value: 'Europe/London', label: 'Europe/London (GMT)' },
-    { value: 'Europe/Paris', label: 'Europe/Paris (CET)' },
-    { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
-    { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
-    { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT)' },
-    { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
-    { value: 'Australia/Sydney', label: 'Australia/Sydney (AEST)' },
+    {
+      value: 'UTC',
+      label: 'UTC (Coordinated Universal Time)',
+      offsetMinutes: 0,
+      offsetLabel: 'UTC',
+    },
+    {
+      value: 'America/New_York',
+      label: 'UTC-05:00 — New York, United States',
+      offsetMinutes: -300,
+      offsetLabel: 'UTC-05:00',
+    },
+    {
+      value: 'Europe/London',
+      label: 'UTC+00:00 — London, United Kingdom',
+      offsetMinutes: 0,
+      offsetLabel: 'UTC+00:00',
+    },
+    {
+      value: 'Asia/Kolkata',
+      label: 'UTC+05:30 — Kolkata, India',
+      offsetMinutes: 330,
+      offsetLabel: 'UTC+05:30',
+    },
   ];
+}
+
+function formatOffset(minutes: number): string {
+  const sign = minutes >= 0 ? '+' : '-';
+  const abs = Math.abs(minutes);
+  const hours = Math.floor(abs / 60)
+    .toString()
+    .padStart(2, '0');
+  const mins = (abs % 60).toString().padStart(2, '0');
+  return `UTC${sign}${hours}:${mins}`;
 }
 
 /**

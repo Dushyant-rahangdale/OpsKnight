@@ -117,11 +117,38 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
     const rotationLength = Number(formData.get('rotationLengthHours'));
+    const shiftLengthValue = formData.get('shiftLengthHours');
+    const shiftLength = shiftLengthValue ? Number(shiftLengthValue) : null;
+
+    // Parse restrictions
+    const daysOfWeek = formData.getAll('daysOfWeek').map(Number);
+    const restrictStartHour = formData.get('restrictStartHour');
+    const restrictEndHour = formData.get('restrictEndHour');
+
+    const startHourNum = restrictStartHour ? Number(restrictStartHour) : undefined;
+    const endHourNum = restrictEndHour ? Number(restrictEndHour) : undefined;
+
+    if (daysOfWeek.some(d => Number.isNaN(d) || d < 0 || d > 6)) {
+        return { error: 'Days of week must be between 0 (Sun) and 6 (Sat).' };
+    }
+    if ((startHourNum ?? 0) < 0 || (startHourNum ?? 0) > 23 || (endHourNum ?? 0) < 0 || (endHourNum ?? 0) > 23) {
+        return { error: 'Hours must be between 0 and 23.' };
+    }
+    const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
+        daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
+        startHour: startHourNum,
+        endHour: endHourNum,
+    } : undefined;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
     }
-
+    if (shiftLength !== null && (Number.isNaN(shiftLength) || shiftLength <= 0)) {
+        return { error: 'Shift length must be greater than 0 hours.' };
+    }
+    if (shiftLength !== null && shiftLength > rotationLength) {
+        return { error: 'Shift length cannot exceed rotation length.' };
+    }
     const schedule = await prisma.onCallSchedule.findUnique({
         where: { id: scheduleId },
         select: { timeZone: true }
@@ -151,7 +178,9 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
                 name,
                 start: startDate,
                 end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-                rotationLengthHours: rotationLength
+                rotationLengthHours: rotationLength,
+                shiftLengthHours: shiftLength,
+                restrictions
             }
         });
 
@@ -287,9 +316,37 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
     const start = formData.get('start') as string;
     const end = formData.get('end') as string;
     const rotationLength = Number(formData.get('rotationLengthHours'));
+    const shiftLengthValue = formData.get('shiftLengthHours');
+    const shiftLength = shiftLengthValue ? Number(shiftLengthValue) : null;
+
+    // Parse restrictions
+    const daysOfWeek = formData.getAll('daysOfWeek').map(Number);
+    const restrictStartHour = formData.get('restrictStartHour');
+    const restrictEndHour = formData.get('restrictEndHour');
+
+    const startHourNum = restrictStartHour ? Number(restrictStartHour) : undefined;
+    const endHourNum = restrictEndHour ? Number(restrictEndHour) : undefined;
+
+    if (daysOfWeek.some(d => Number.isNaN(d) || d < 0 || d > 6)) {
+        return { error: 'Days of week must be between 0 (Sun) and 6 (Sat).' };
+    }
+    if ((startHourNum ?? 0) < 0 || (startHourNum ?? 0) > 23 || (endHourNum ?? 0) < 0 || (endHourNum ?? 0) > 23) {
+        return { error: 'Hours must be between 0 and 23.' };
+    }
+    const restrictions = (daysOfWeek.length > 0 || restrictStartHour || restrictEndHour) ? {
+        daysOfWeek: daysOfWeek.length > 0 ? daysOfWeek : undefined,
+        startHour: startHourNum,
+        endHour: endHourNum,
+    } : undefined;
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
+    }
+    if (shiftLength !== null && (Number.isNaN(shiftLength) || shiftLength <= 0)) {
+        return { error: 'Shift length must be greater than 0 hours.' };
+    }
+    if (shiftLength !== null && shiftLength > rotationLength) {
+        return { error: 'Shift length cannot exceed rotation length.' };
     }
 
     const layerMeta = await prisma.onCallLayer.findUnique({
@@ -321,7 +378,9 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
                 name,
                 start: startDate,
                 end: endDate && !Number.isNaN(endDate.getTime()) ? endDate : null,
-                rotationLengthHours: rotationLength
+                rotationLengthHours: rotationLength,
+                shiftLengthHours: shiftLength,
+                restrictions
             }
         });
 
@@ -513,4 +572,3 @@ export async function deleteOverride(scheduleId: string, overrideId: string): Pr
         return { error: error instanceof Error ? error.message : 'Failed to delete override.' };
     }
 }
-

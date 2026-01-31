@@ -196,9 +196,13 @@ export async function markJobFailed(jobId: string, error: string): Promise<void>
       status: shouldRetry ? 'PENDING' : 'FAILED',
       failedAt: shouldRetry ? null : new Date(),
       error: shouldRetry ? null : error,
-      // Reschedule for retry with exponential backoff
+      // Reschedule for retry with exponential backoff (base 30s) and jitter to avoid thundering herd
       scheduledAt: shouldRetry
-        ? new Date(Date.now() + Math.pow(2, job.attempts) * 5000) // 5s, 10s, 20s
+        ? new Date(
+            Date.now() +
+              Math.pow(2, job.attempts) * 30000 + // 30s, 60s, 120s...
+              Math.floor(Math.random() * 10000) // +0-10s jitter
+          )
         : job.scheduledAt,
     },
   });
@@ -246,18 +250,24 @@ export async function processJob(job: any): Promise<boolean> {
         if (notificationResult.success) {
           await markJobCompleted(job.id);
           return true;
-        } else {
-          // If a notification record was created (we have an ID), mark job as completed
-          // because the notification-retry cron will handle the retries from here.
-          // We don't want to fail the job and retry, as that would create duplicate records.
-          if (notificationResult.notificationId) {
-            await markJobCompleted(job.id);
-            return true;
-          }
+        }
 
-          await markJobFailed(job.id, notificationResult.error || 'Notification failed');
+        // Cap notification retries to avoid infinite loops on bad payloads
+        const cappedMaxAttempts = Math.min(job.maxAttempts, 3);
+        if (job.attempts + 1 >= cappedMaxAttempts) {
+          await prisma.backgroundJob.update({
+            where: { id: job.id },
+            data: {
+              status: 'FAILED',
+              failedAt: new Date(),
+              error: notificationResult.error || 'Notification failed (final)',
+            },
+          });
           return false;
         }
+
+        await markJobFailed(job.id, notificationResult.error || 'Notification failed');
+        return false;
 
       case 'AUTO_UNSNOOZE':
         const incident = await prisma.incident.findUnique({
@@ -308,15 +318,18 @@ export async function processJob(job: any): Promise<boolean> {
                   createdAt: updatedIncident.createdAt.toISOString(),
                   acknowledgedAt: updatedIncident.acknowledgedAt?.toISOString() || null,
                   resolvedAt: updatedIncident.resolvedAt?.toISOString() || null,
-                });
-              }
-            } catch (error) {
+              });
+            }
+          } catch (error) {
               logger.error('Auto-unsnooze notifications failed', {
                 incidentId: job.payload.incidentId,
                 error: error instanceof Error ? error.message : String(error),
               });
             }
             await markJobCompleted(job.id);
+            // Resume escalation at current step (default 0)
+            const nextStep = incident.currentEscalationStep ?? 0;
+            await scheduleEscalation(job.payload.incidentId, nextStep, 0);
             return true;
           } else {
             // Not ready yet, reschedule

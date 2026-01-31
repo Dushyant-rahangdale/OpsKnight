@@ -16,10 +16,13 @@ import { Plus } from 'lucide-react';
 
 type ScheduleActionsPanelProps = {
   scheduleId: string;
-  users: any[];
+  users: Array<{ id: string; name: string }>;
   canManageSchedules: boolean;
-  createLayer: any;
-  createOverride: any;
+  createLayer: (scheduleId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
+  createOverride: (
+    scheduleId: string,
+    formData: FormData
+  ) => Promise<{ error?: string } | undefined>;
   defaultStartDate: string;
 };
 
@@ -35,20 +38,18 @@ export default function ScheduleActionsPanel({
 
   return (
     <Card className="overflow-hidden border-slate-200/80">
-      <CardHeader className="p-4 pb-2 border-b border-slate-100 bg-slate-50/70">
+      <CardHeader className="p-4 pb-3 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Plus className="h-4 w-4" />
           </div>
           <div>
-            <CardTitle className="text-sm">Quick Actions</CardTitle>
-            <CardDescription className="text-xs">
-              Add rotations or schedule overrides
-            </CardDescription>
+            <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
+            <CardDescription className="text-xs">Add rotations or overrides</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-3 space-y-3">
+      <CardContent className="p-4 space-y-3">
         <LayerCreateForm
           scheduleId={scheduleId}
           canManageSchedules={canManageSchedules}

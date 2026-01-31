@@ -1,7 +1,14 @@
 import prisma from '@/lib/prisma';
 import { getUserPermissions } from '@/lib/rbac';
-import { buildScheduleBlocks } from '@/lib/oncall';
-import { formatDateForInput, formatDateTime, getTimeZoneLabel } from '@/lib/timezone';
+import { buildScheduleBlocks, getFinalScheduleBlocks } from '@/lib/oncall';
+import {
+  formatDateForInput,
+  formatDateTime,
+  getTimeZoneLabel,
+  formatDateKeyInTimeZone,
+  addDaysToDateKey,
+  startOfDayFromDateKey,
+} from '@/lib/timezone';
 import {
   addLayerUser,
   createLayer,
@@ -69,9 +76,6 @@ export default async function ScheduleDetailPage({
   const now = new Date();
   const calendarRangeStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const calendarRangeEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-  // Coverage range: from yesterday to 90 days ahead to ensure we catch current coverage
-  const coverageRangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const coverageRangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90);
   const historyPageSize = 8;
   const historyPage = Math.max(1, Number(awaitedSearchParams?.history ?? 1) || 1);
 
@@ -90,6 +94,9 @@ export default async function ScheduleDetailPage({
               start: true,
               end: true,
               rotationLengthHours: true,
+              shiftLengthHours: true,
+              restrictions: true,
+              priority: true,
               users: {
                 select: {
                   userId: true,
@@ -164,11 +171,32 @@ export default async function ScheduleDetailPage({
   const permissions = await getUserPermissions();
   const canManageSchedules = permissions.isAdminOrResponder;
 
+  // Timezone-aware coverage windows
+  const todayKey = formatDateKeyInTimeZone(now, schedule.timeZone);
+  const coverageRangeStart = startOfDayFromDateKey(
+    addDaysToDateKey(todayKey, -1),
+    schedule.timeZone
+  );
+  const coverageRangeEnd = startOfDayFromDateKey(addDaysToDateKey(todayKey, 90), schedule.timeZone);
+
+  const layerPriorities = new Map(schedule.layers.map(l => [l.id, l.priority ?? 0]));
+
+  // Cast layers with proper restrictions type
+  const typedLayers = schedule.layers.map(layer => ({
+    ...layer,
+    restrictions: layer.restrictions as {
+      daysOfWeek?: number[];
+      startHour?: number;
+      endHour?: number;
+    } | null,
+  }));
+
   const scheduleBlocks = buildScheduleBlocks(
-    schedule.layers,
+    typedLayers,
     overridesInRange,
     calendarRangeStart,
-    calendarRangeEnd
+    calendarRangeEnd,
+    schedule.timeZone
   );
   const calendarShifts = scheduleBlocks.map(block => ({
     id: block.id,
@@ -183,14 +211,16 @@ export default async function ScheduleDetailPage({
   }));
 
   const coverageBlocks = buildScheduleBlocks(
-    schedule.layers,
+    typedLayers,
     overridesInRange,
     coverageRangeStart,
-    coverageRangeEnd
+    coverageRangeEnd,
+    schedule.timeZone
   );
+  const finalCoverageBlocks = getFinalScheduleBlocks(coverageBlocks, layerPriorities);
   // Filter for blocks that are currently active (start <= now < end)
   const nowTime = now.getTime();
-  const activeBlocks = coverageBlocks.filter(block => {
+  const activeBlocks = finalCoverageBlocks.filter(block => {
     const blockStartTime = block.start.getTime();
     const blockEndTime = block.end.getTime();
     return blockStartTime <= nowTime && blockEndTime > nowTime;
@@ -241,7 +271,7 @@ export default async function ScheduleDetailPage({
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
                   <Calendar className="h-5 w-5" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight tracking-tight text-white">
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
                   {schedule.name}
                 </h1>
               </div>
@@ -259,22 +289,6 @@ export default async function ScheduleDetailPage({
                   <Users className="h-3.5 w-3.5" />
                   {totalParticipants} participants
                 </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25 transition hover:bg-white/25"
-                        aria-label="Timezone info"
-                      >
-                        <Info className="h-3.5 w-3.5 text-white" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      Schedule times, overrides, and calendars use {scheduleTimezoneLongLabel}.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             </div>
 
@@ -395,12 +409,15 @@ export default async function ScheduleDetailPage({
               start: block.start,
               end: block.end,
               layerName: block.layerName,
+              layerId: block.layerId,
+              userId: block.userId,
               userName: block.userName,
               userAvatar: block.userAvatar,
               userGender: block.userGender,
               source: block.source,
             }))}
             timeZone={schedule.timeZone}
+            layerPriorities={layerPriorities}
           />
 
           {/* Monthly Calendar (has built-in header) */}
@@ -465,7 +482,7 @@ export default async function ScheduleDetailPage({
                 <Badge variant="secondary">{schedule.layers.length}</Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-3 space-y-2 max-h-[350px] overflow-y-auto">
+            <CardContent className="p-4 pt-3 space-y-2">
               {schedule.layers.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Layers className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -481,6 +498,12 @@ export default async function ScheduleDetailPage({
                       start: new Date(layer.start),
                       end: layer.end ? new Date(layer.end) : null,
                       rotationLengthHours: layer.rotationLengthHours,
+                      shiftLengthHours: layer.shiftLengthHours,
+                      restrictions: layer.restrictions as {
+                        daysOfWeek?: number[];
+                        startHour?: number;
+                        endHour?: number;
+                      } | null,
                       users: layer.users,
                     }}
                     scheduleId={schedule.id}

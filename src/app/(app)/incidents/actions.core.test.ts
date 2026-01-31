@@ -17,6 +17,11 @@ vi.mock('@/lib/escalation', () => ({
   executeEscalation: vi.fn().mockResolvedValue({ escalated: false }),
 }));
 
+const scheduleEscalationMock = vi.fn().mockResolvedValue('job-1');
+vi.mock('@/lib/jobs/queue', () => ({
+  scheduleEscalation: scheduleEscalationMock,
+}));
+
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -115,7 +120,12 @@ describe('createIncident Action', () => {
       return Promise.resolve(null);
     });
 
-    (prisma.incident.update as any).mockResolvedValue({ id: 'inc-resolved', status: 'OPEN' });
+    (prisma.incident.update as any).mockResolvedValue({
+      id: 'inc-resolved',
+      status: 'OPEN',
+      resolvedAt: null,
+      currentEscalationStep: 0,
+    });
     (prisma.$transaction as any).mockImplementation((cb: any) => cb(prisma));
 
     const formData = new FormData();
@@ -147,6 +157,7 @@ describe('createIncident Action', () => {
       })
     );
 
+    expect(scheduleEscalationMock).toHaveBeenCalledWith('inc-resolved', 0, 0);
     expect(result).toHaveProperty('id', 'inc-resolved');
   });
 });

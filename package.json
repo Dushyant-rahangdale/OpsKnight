@@ -80,6 +80,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/web-push": "^3.6.4",
+    "@vvo/tzdb": "^6.198.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
@@ -109,7 +110,7 @@
     "zod": "^3.25.76"
   },
   "optionalDependencies": {
-    "@aws-sdk/client-sns": "^3.0.0",
+    "@aws-sdk/client-sns": "^3.971.0",
     "@sendgrid/mail": "^8.1.6",
     "nodemailer": "7.0.12",
     "resend": "^4.0.0",
@@ -129,6 +130,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
+    "aria-query": "^5.3.2",
     "autoprefixer": "^10.4.23",
     "cssnano": "^7.1.2",
     "dotenv": "^17.2.3",
@@ -145,6 +147,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
+    "tldts": "^7.0.19",
     "ts-node": "^10.9.1",
     "typescript": "^5",
     "vitest": "^4.0.16"
@@ -154,5 +157,8 @@
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
+  },
+  "overrides": {
+    "fast-xml-parser": "^5.3.4"
   }
 }

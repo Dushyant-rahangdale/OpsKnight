@@ -71,7 +71,7 @@
   padding: 0.75rem 1rem;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--card);
 }
 
 .history-name {
@@ -86,9 +86,9 @@
 .history-tag {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #16a34a;
-  background: #ecfdf3;
-  border: 1px solid #86efac;
+  color: var(--success-foreground, #16a34a);
+  background: var(--success-bg, #ecfdf3);
+  border: 1px solid var(--success-border, #86efac);
   padding: 0.25rem 0.5rem;
   border-radius: 999px;
 }

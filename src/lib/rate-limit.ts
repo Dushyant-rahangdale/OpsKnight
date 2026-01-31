@@ -41,7 +41,11 @@ function maybeCleanup(): void {
   }
 }
 
-export function checkRateLimit(key: string, limit: number, windowMs: number) {
+export function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): { allowed: boolean; remaining: number; resetAt: number; count: number } {
   // Periodically clean up expired entries to prevent memory leaks
   maybeCleanup();
 
@@ -50,16 +54,16 @@ export function checkRateLimit(key: string, limit: number, windowMs: number) {
 
   if (!current || now >= current.resetAt) {
     store.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1, resetAt: now + windowMs };
+    return { allowed: true, remaining: limit - 1, resetAt: now + windowMs, count: 1 };
   }
 
   if (current.count >= limit) {
-    return { allowed: false, remaining: 0, resetAt: current.resetAt };
+    return { allowed: false, remaining: 0, resetAt: current.resetAt, count: current.count };
   }
 
   const next = { count: current.count + 1, resetAt: current.resetAt };
   store.set(key, next);
-  return { allowed: true, remaining: limit - next.count, resetAt: next.resetAt };
+  return { allowed: true, remaining: limit - next.count, resetAt: next.resetAt, count: next.count };
 }
 
 /**

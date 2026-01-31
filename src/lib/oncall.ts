@@ -4,12 +4,21 @@ type LayerUser = {
   position: number;
 };
 
+type LayerRestrictions = {
+  daysOfWeek?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
+  startHour?: number;     // 0-23
+  endHour?: number;       // 0-23
+};
+
 type LayerInput = {
   id: string;
   name: string;
   start: Date;
   end: Date | null;
   rotationLengthHours: number;
+  shiftLengthHours?: number | null;
+  restrictions?: LayerRestrictions | null;
+  priority?: number;
   users: LayerUser[];
 };
 
@@ -35,49 +44,146 @@ export type OnCallBlock = {
   source: 'rotation' | 'override';
 };
 
-function generateLayerBlocks(layer: LayerInput, windowStart: Date, windowEnd: Date): OnCallBlock[] {
+function getDayHourInTimeZone(date: Date, timeZone: string): { day: number; hour: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+
+  const weekday = parts.find(p => p.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '0');
+
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
+  return { day: dayMap[weekday] ?? 0, hour };
+}
+
+function generateLayerBlocks(
+  layer: LayerInput,
+  windowStart: Date,
+  windowEnd: Date,
+  timeZone: string
+): OnCallBlock[] {
   if (layer.users.length === 0) {
     return [];
   }
 
   const rotationMs = layer.rotationLengthHours * 60 * 60 * 1000;
-  if (rotationMs <= 0) {
+  const shiftMs = (layer.shiftLengthHours || layer.rotationLengthHours) * 60 * 60 * 1000;
+
+  if (rotationMs <= 0 || shiftMs <= 0) {
     return [];
   }
 
   const layerStart = layer.start;
   const layerEnd = layer.end ?? null;
   const effectiveWindowStart = windowStart < layerStart ? layerStart : windowStart;
+
   if (layerEnd && effectiveWindowStart >= layerEnd) {
     return [];
   }
 
+  // Calculate initial index
   const startOffsetMs = Math.max(0, effectiveWindowStart.getTime() - layerStart.getTime());
   let index = Math.floor(startOffsetMs / rotationMs);
-  let blockStart = new Date(layerStart.getTime() + index * rotationMs);
-  if (blockStart > effectiveWindowStart) {
-    index = Math.max(0, index - 1);
-    blockStart = new Date(layerStart.getTime() + index * rotationMs);
-  }
+
+  // If we land inside a gap, we might need to check if we missed the duty period for this index
+  // But simpler to just start checking from this index.
 
   const blocks: OnCallBlock[] = [];
   let guard = 0;
   // Support up to 1 year of 1-hour rotations (~8760 blocks). 10000 is safe.
   const maxBlocks = 10000;
-  while (blockStart < windowEnd) {
-    const rawEnd = new Date(blockStart.getTime() + rotationMs);
+
+  while (guard < maxBlocks) {
+    const rotationStartTime = layerStart.getTime() + index * rotationMs;
+    const blockStart = new Date(rotationStartTime);
+
+    if (blockStart >= windowEnd) {
+      break;
+    }
+
+    if (layerEnd && blockStart >= layerEnd) {
+      break;
+    }
+
+    const dutyEndTime = rotationStartTime + shiftMs;
+    // The "end of the block" logic needs to consider rotation boundary? 
+    // No, duty can be shorter than rotation (gap) or longer (overlap? not supported well).
+    // Assuming shift <= rotation usually. If shift > rotation, it overlaps next user.
+    // Existing logic handles overlaps by "next user starts at next index".
+    // We just emit blocks. Overlapping blocks are rendered overlappingly (now fixed in Timeline to stack).
+
+    const rawEnd = new Date(dutyEndTime);
     const blockEnd = layerEnd && rawEnd > layerEnd ? layerEnd : rawEnd;
+
+    // Check visibility
+    // If the entire duty block is before window start, skip
     if (blockEnd <= effectiveWindowStart) {
-      blockStart = blockEnd;
-      index += 1;
+      index++;
+      guard++;
       continue;
     }
 
+    // Determine User
     const user = layer.users[index % layer.users.length];
-    const clampedStart = blockStart < windowStart ? windowStart : blockStart;
+
+    // Clamp to Window
+    const clampedStart = blockStart < effectiveWindowStart ? effectiveWindowStart : blockStart;
     const clampedEnd = blockEnd > windowEnd ? windowEnd : blockEnd;
 
     if (clampedStart < clampedEnd) {
+      // Apply restrictions if present
+      if (layer.restrictions) {
+        const { daysOfWeek, startHour, endHour } = layer.restrictions;
+        const { day: blockDay, hour: blockHour } = getDayHourInTimeZone(clampedStart, timeZone);
+
+        // Skip if day not allowed
+        if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(blockDay)) {
+          index++;
+          guard++;
+          continue;
+        }
+
+        // Skip if hour not in range (startHour <= hour < endHour)
+        if (startHour != null && endHour != null) {
+          // Handle overnight ranges (e.g., 18:00 - 06:00)
+          if (startHour <= endHour) {
+            // Normal range (e.g., 09:00 - 17:00)
+            if (blockHour < startHour || blockHour >= endHour) {
+              index++;
+              guard++;
+              continue;
+            }
+          } else {
+            // Overnight range (e.g., 18:00 - 06:00)
+            if (blockHour < startHour && blockHour >= endHour) {
+              index++;
+              guard++;
+              continue;
+            }
+          }
+        } else if (startHour != null && blockHour < startHour) {
+          index++;
+          guard++;
+          continue;
+        } else if (endHour != null && blockHour >= endHour) {
+          index++;
+          guard++;
+          continue;
+        }
+      }
+
       blocks.push({
         id: `${layer.id}-${index}`,
         start: clampedStart,
@@ -92,16 +198,8 @@ function generateLayerBlocks(layer: LayerInput, windowStart: Date, windowEnd: Da
       });
     }
 
-    if (blockEnd >= windowEnd) {
-      break;
-    }
-
-    blockStart = blockEnd;
-    index += 1;
-    guard += 1;
-    if (guard >= maxBlocks) {
-      break;
-    }
+    index++;
+    guard++;
   }
 
   return blocks;
@@ -157,8 +255,108 @@ export function buildScheduleBlocks(
   layers: LayerInput[],
   overrides: OverrideInput[],
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
+  timeZone: string = 'UTC'
 ) {
-  const blocks = layers.flatMap(layer => generateLayerBlocks(layer, windowStart, windowEnd));
+  const blocks = layers.flatMap(layer =>
+    generateLayerBlocks(layer, windowStart, windowEnd, timeZone)
+  );
   return applyOverrides(blocks, overrides);
+}
+
+/**
+ * Generates the final effective schedule by merging all layers.
+ * Higher priority layers override lower priority layers during overlaps.
+ * Returns a flattened list of non-overlapping blocks.
+ */
+export function getFinalScheduleBlocks(
+  blocks: OnCallBlock[],
+  layerPriority: Map<string, number>
+): OnCallBlock[] {
+  if (blocks.length === 0) return [];
+
+  // Sort blocks by start time
+  const sorted = [...blocks].sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  // Create timeline events
+  type TimelineEvent = {
+    time: Date;
+    type: 'start' | 'end';
+    block: OnCallBlock;
+    priority: number;
+  };
+
+  const events: TimelineEvent[] = [];
+  for (const block of sorted) {
+    const priority = layerPriority.get(block.layerId) ?? 0;
+    events.push({ time: block.start, type: 'start', block, priority });
+    events.push({ time: block.end, type: 'end', block, priority });
+  }
+
+  // Sort events by time, then by type (ends before starts at same time)
+  events.sort((a, b) => {
+    const timeDiff = a.time.getTime() - b.time.getTime();
+    if (timeDiff !== 0) return timeDiff;
+    // Process 'end' before 'start' at same time
+    if (a.type === 'end' && b.type === 'start') return -1;
+    if (a.type === 'start' && b.type === 'end') return 1;
+    return 0;
+  });
+
+  const result: OnCallBlock[] = [];
+  const activeBlocks = new Map<string, { block: OnCallBlock; priority: number }>();
+  let lastTime: Date | null = null;
+  let lastWinner: OnCallBlock | null = null;
+
+  for (const event of events) {
+    // If time has changed and we have an active winner, emit a block
+    if (lastTime && lastWinner && event.time.getTime() > lastTime.getTime()) {
+      result.push({
+        ...lastWinner,
+        id: `final-${lastWinner.id}-${lastTime.getTime()}`,
+        start: lastTime,
+        end: event.time,
+        layerName: 'Final Schedule',
+      });
+    }
+
+    // Update active blocks
+    if (event.type === 'start') {
+      activeBlocks.set(event.block.id, { block: event.block, priority: event.priority });
+    } else {
+      activeBlocks.delete(event.block.id);
+    }
+
+    // Find the winner (highest priority active block). Tie-breaker: lexical layerId for determinism.
+    let winner: OnCallBlock | null = null;
+    let maxPriority = -Infinity;
+    for (const { block, priority } of activeBlocks.values()) {
+      if (priority > maxPriority) {
+        maxPriority = priority;
+        winner = block;
+        continue;
+      }
+      if (priority === maxPriority && winner && block.layerId < winner.layerId) {
+        winner = block;
+      } else if (priority === maxPriority && !winner) {
+        winner = block;
+      }
+    }
+
+    lastTime = event.time;
+    lastWinner = winner;
+  }
+
+  // Merge consecutive blocks with the same user
+  const merged: OnCallBlock[] = [];
+  for (const block of result) {
+    const last = merged[merged.length - 1];
+    if (last && last.userId === block.userId && last.end.getTime() === block.start.getTime()) {
+      last.end = block.end;
+    } else {
+      merged.push({ ...block });
+    }
+  }
+
+  return merged;
 }

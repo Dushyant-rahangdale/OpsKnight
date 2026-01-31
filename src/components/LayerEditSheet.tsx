@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
 
+import { formatDateForInput } from '@/lib/timezone';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/shadcn/sheet';
 import {
   Tooltip,
@@ -22,46 +22,66 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
 import { Badge } from '@/components/ui/shadcn/badge';
-import {
-  Layers,
-  Loader2,
-  Plus,
-  Info,
-  Clock,
-  Calendar,
-  Users,
-  Repeat,
-  AlertCircle,
-} from 'lucide-react';
+import { Loader2, Edit3, Info, Clock, Calendar, Repeat, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type LayerCreateFormProps = {
-  scheduleId: string;
-  canManageSchedules: boolean;
-  createLayer: (scheduleId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
-  defaultStartDate: string;
+type LayerRestrictions = {
+  daysOfWeek?: number[];
+  startHour?: number;
+  endHour?: number;
+};
+
+type LayerEditSheetProps = {
+  layer: {
+    id: string;
+    name: string;
+    start: Date;
+    end: Date | null;
+    rotationLengthHours: number;
+    shiftLengthHours?: number | null;
+    restrictions?: LayerRestrictions | null;
+  };
+  timeZone: string;
+  updateLayer: (layerId: string, formData: FormData) => Promise<{ error?: string } | undefined>;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export default function LayerCreateForm({
-  scheduleId,
-  canManageSchedules,
-  createLayer,
-  defaultStartDate,
-}: LayerCreateFormProps) {
+export default function LayerEditSheet({
+  layer,
+  timeZone,
+  updateLayer,
+  open,
+  onOpenChange,
+}: LayerEditSheetProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [open, setOpen] = useState(false);
 
   // Form state
-  const [rotationDuration, setRotationDuration] = useState<string>('168');
-  const [shiftDuration, setShiftDuration] = useState<string>('');
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [startHour, setStartHour] = useState<string>('');
-  const [endHour, setEndHour] = useState<string>('');
+  const [rotationDuration, setRotationDuration] = useState<string>(
+    layer.rotationLengthHours.toString()
+  );
+  const [shiftDuration, setShiftDuration] = useState<string>(
+    layer.shiftLengthHours?.toString() || ''
+  );
+  const [selectedDays, setSelectedDays] = useState<number[]>(layer.restrictions?.daysOfWeek || []);
+  const [startHour, setStartHour] = useState<string>(
+    layer.restrictions?.startHour?.toString() || ''
+  );
+  const [endHour, setEndHour] = useState<string>(layer.restrictions?.endHour?.toString() || '');
+
+  // Reset state when layer changes
+  useEffect(() => {
+    setRotationDuration(layer.rotationLengthHours.toString());
+    setShiftDuration(layer.shiftLengthHours?.toString() || '');
+    setSelectedDays(layer.restrictions?.daysOfWeek || []);
+    setStartHour(layer.restrictions?.startHour?.toString() || '');
+    setEndHour(layer.restrictions?.endHour?.toString() || '');
+  }, [layer]);
 
   // Computed preview info
   const rotationInfo = useMemo(() => {
@@ -76,12 +96,6 @@ export default function LayerCreateForm({
     return `${hours} hour rotation`;
   }, [rotationDuration]);
 
-  const shiftInfo = useMemo(() => {
-    const hours = parseInt(shiftDuration) || 0;
-    if (hours <= 0) return null;
-    return `${hours}h active per rotation`;
-  }, [shiftDuration]);
-
   const restrictionInfo = useMemo(() => {
     const parts: string[] = [];
 
@@ -91,9 +105,9 @@ export default function LayerCreateForm({
       const isWeekends =
         selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6);
 
-      if (isWeekdays) parts.push('Weekdays only');
-      else if (isWeekends) parts.push('Weekends only');
-      else parts.push(`${selectedDays.length} days/week`);
+      if (isWeekdays) parts.push('Weekdays');
+      else if (isWeekends) parts.push('Weekends');
+      else parts.push(`${selectedDays.length} days`);
     }
 
     if (startHour && endHour) {
@@ -122,21 +136,16 @@ export default function LayerCreateForm({
 
     startTransition(async () => {
       try {
-        const result = await createLayer(scheduleId, formData);
+        const result = await updateLayer(layer.id, formData);
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          showToast('Layer created successfully', 'success');
-          setOpen(false);
-          // Reset form state
-          setSelectedDays([]);
-          setStartHour('');
-          setEndHour('');
-          setShiftDuration('');
+          showToast('Layer updated successfully', 'success');
+          onOpenChange(false);
           router.refresh();
         }
       } catch {
-        showToast('Failed to create layer', 'error');
+        showToast('Failed to update layer', 'error');
       }
     });
   };
@@ -145,38 +154,29 @@ export default function LayerCreateForm({
     setRotationDuration(hours.toString());
   };
 
-  if (!canManageSchedules) return null;
-
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button className="w-full h-10 gap-2 text-sm font-medium shadow-sm">
-          <Plus className="h-4 w-4" />
-          Add Rotation
-        </Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
         {/* Header */}
         <SheetHeader className="pb-4 mb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Layers className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <Edit3 className="h-5 w-5" />
             </div>
             <div>
-              <SheetTitle className="text-lg font-semibold">Add Rotation Layer</SheetTitle>
-              <SheetDescription>Create a new on-call rotation schedule</SheetDescription>
+              <SheetTitle className="text-lg font-semibold">Edit Layer</SheetTitle>
+              <SheetDescription>
+                Update settings for <strong>{layer.name}</strong>
+              </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        {/* Live Preview Card */}
+        {/* Current Settings Card */}
         <div className="mb-6 p-4 rounded-xl bg-slate-50/80 border border-slate-200/80">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Repeat className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-slate-700">Live Preview</span>
-            </div>
-            <span className="text-[10px] text-slate-400 uppercase tracking-wide">Auto-updates</span>
+          <div className="flex items-center gap-2 mb-3">
+            <Repeat className="h-4 w-4 text-slate-500" />
+            <span className="text-sm font-medium text-slate-700">Current Settings</span>
           </div>
           <div className="flex flex-wrap gap-2 min-h-[28px]">
             {rotationInfo && (
@@ -185,13 +185,13 @@ export default function LayerCreateForm({
                 {rotationInfo}
               </Badge>
             )}
-            {shiftInfo && (
+            {shiftDuration && (
               <Badge
                 variant="outline"
                 className="gap-1.5 border-orange-200 bg-orange-50 text-orange-700"
               >
                 <AlertCircle className="h-3 w-3" />
-                {shiftInfo}
+                {shiftDuration}h shift
               </Badge>
             )}
             {restrictionInfo && (
@@ -203,28 +203,22 @@ export default function LayerCreateForm({
                 {restrictionInfo}
               </Badge>
             )}
-            {!rotationInfo && !shiftInfo && !restrictionInfo && (
-              <span className="text-xs text-slate-400">Configure settings below...</span>
-            )}
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Layer Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-slate-500" />
-              Layer Name
-            </Label>
+            <Label htmlFor="name">Layer Name</Label>
             <Input
               id="name"
               name="name"
-              placeholder="e.g. Primary On-Call, Weekend Coverage"
+              defaultValue={layer.name}
+              placeholder="e.g. Primary On-Call, Weekday Shift"
               required
               disabled={isPending}
               className="h-11"
             />
-            <p className="text-[11px] text-slate-500">Give this rotation a descriptive name</p>
           </div>
 
           {/* Rotation Length */}
@@ -238,17 +232,14 @@ export default function LayerCreateForm({
                     <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[280px]">
-                    <p>
-                      How often the on-call person changes. After this time, the next person in the
-                      rotation takes over.
-                    </p>
+                    <p>How often the on-call person changes.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                { hours: 12, label: '12 Hours' },
+                { hours: 12, label: '12h' },
                 { hours: 24, label: 'Daily' },
                 { hours: 168, label: 'Weekly' },
                 { hours: 336, label: '2 Weeks' },
@@ -277,7 +268,6 @@ export default function LayerCreateForm({
                 className="w-24 h-10"
               />
               <span className="text-sm text-slate-500">hours</span>
-              <span className="text-xs text-slate-400 ml-auto">{rotationInfo}</span>
             </div>
           </div>
 
@@ -289,20 +279,6 @@ export default function LayerCreateForm({
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 Optional
               </Badge>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[280px]">
-                    <p className="font-medium mb-1">Creates gaps in coverage</p>
-                    <p className="text-slate-400">
-                      Example: 12h shift with 24h rotation = person is on-call for 12 hours, then 12
-                      hours off before next person starts.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </Label>
             <div className="flex items-center gap-2">
               <Input
@@ -321,25 +297,20 @@ export default function LayerCreateForm({
 
           {/* Start Date */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-500" />
-              Start Date & Time
-            </Label>
+            <Label>Start Date & Time</Label>
             <input
               type="datetime-local"
               name="start"
-              defaultValue={defaultStartDate}
+              defaultValue={formatDateForInput(layer.start, timeZone)}
               required
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <p className="text-[11px] text-slate-500">First rotation starts at this time</p>
           </div>
 
           {/* End Date */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-slate-500" />
               End Date
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 Optional
@@ -348,10 +319,10 @@ export default function LayerCreateForm({
             <input
               type="datetime-local"
               name="end"
+              defaultValue={layer.end ? formatDateForInput(layer.end, timeZone) : ''}
               disabled={isPending}
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
-            <p className="text-[11px] text-slate-500">Leave empty for ongoing rotation</p>
           </div>
 
           {/* Restrictions Section */}
@@ -367,19 +338,6 @@ export default function LayerCreateForm({
                   Optional
                 </Badge>
               </Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-purple-400 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[280px]">
-                    <p>
-                      Limit when this layer is active. Great for business-hours-only or weekday
-                      coverage.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
 
             {/* Days of Week */}
@@ -532,17 +490,7 @@ export default function LayerCreateForm({
                   ))}
                 </select>
               </div>
-              <p className="text-[10px] text-purple-500">Leave empty for 24-hour coverage</p>
             </div>
-          </div>
-
-          {/* Tip */}
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/80 border border-blue-100 text-xs text-blue-700">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>
-              <strong>Next step:</strong> After creating, add team members to the rotation and set
-              their order.
-            </span>
           </div>
 
           {/* Submit */}
@@ -551,7 +499,7 @@ export default function LayerCreateForm({
               type="button"
               variant="outline"
               className="flex-1 h-10"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
               Cancel
@@ -560,10 +508,10 @@ export default function LayerCreateForm({
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  Saving...
                 </>
               ) : (
-                'Create Layer'
+                'Save Changes'
               )}
             </Button>
           </div>

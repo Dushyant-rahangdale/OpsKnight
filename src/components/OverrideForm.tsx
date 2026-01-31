@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from './ToastProvider';
+
 import {
   Sheet,
   SheetContent,
@@ -13,17 +14,8 @@ import {
 } from '@/components/ui/shadcn/sheet';
 import { Button } from '@/components/ui/shadcn/button';
 import { Label } from '@/components/ui/shadcn/label';
-import { Input } from '@/components/ui/shadcn/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/shadcn/select';
 import { AlertCircle, Clock, Loader2 } from 'lucide-react';
-import { addHours } from 'date-fns';
-import UserAvatar from '@/components/UserAvatar';
+import { addHours, format } from 'date-fns';
 
 type OverrideFormProps = {
   scheduleId: string;
@@ -46,15 +38,20 @@ export default function OverrideForm({
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
 
-  // Quick Time State
+  // Form state
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [replacesUserId, setReplacesUserId] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
 
   // Helper for datetime-local format: YYYY-MM-DDTHH:mm
   const toLocalISOString = (date: Date) => {
-    const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
-    const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
-    return localISOTime;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   const handleQuickDuration = (hours: number) => {
@@ -62,6 +59,8 @@ export default function OverrideForm({
     // Round up to next 15 mins for cleanliness
     const remainder = 15 - (now.getMinutes() % 15);
     now.setMinutes(now.getMinutes() + remainder);
+    now.setSeconds(0);
+    now.setMilliseconds(0);
 
     const end = addHours(now, hours);
 
@@ -71,20 +70,35 @@ export default function OverrideForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!selectedUserId) {
+      showToast('Please select a responder', 'error');
+      return;
+    }
+    if (!startTime || !endTime) {
+      showToast('Please set start and end times', 'error');
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
+
     startTransition(async () => {
       try {
         const result = await createOverride(scheduleId, formData);
         if (result?.error) {
           showToast(result.error, 'error');
         } else {
-          const userId = formData.get('userId') as string;
-          const userName = users.find(u => u.id === userId)?.name || 'User';
+          const userName = users.find(u => u.id === selectedUserId)?.name || 'User';
           showToast(`Override created for ${userName}`, 'success');
+          // Reset form
+          setSelectedUserId('');
+          setReplacesUserId('');
+          setStartTime('');
+          setEndTime('');
           router.refresh();
           setOpen(false);
         }
-      } catch (error) {
+      } catch {
         showToast('Failed to create override', 'error');
       }
     });
@@ -97,149 +111,197 @@ export default function OverrideForm({
       <SheetTrigger asChild>
         <Button
           variant="outline"
-          className="w-full h-10 gap-2 text-sm font-semibold border-slate-200/80 bg-white hover:bg-slate-50 hover:border-slate-300"
+          className="w-full h-10 gap-2 text-sm font-medium border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 shadow-sm"
         >
-          <Clock className="h-3.5 w-3.5" />
+          <Clock className="h-4 w-4" />
           Add Override
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-3 text-xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+        {/* Header */}
+        <SheetHeader className="pb-4 mb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
               <AlertCircle className="h-5 w-5" />
-            </span>
-            Add Coverage Override
-          </SheetTitle>
-          <SheetDescription>
-            Temporarily replace the on-call responder for a specific time window.
-          </SheetDescription>
+            </div>
+            <div>
+              <SheetTitle className="text-lg font-semibold">Add Coverage Override</SheetTitle>
+              <SheetDescription>Temporarily replace the on-call responder</SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4 p-4 bg-slate-50/70 rounded-lg border border-slate-200/80">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Quick Select
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Hidden inputs for FormData */}
+          <input type="hidden" name="userId" value={selectedUserId} />
+          <input type="hidden" name="replacesUserId" value={replacesUserId} />
+          <input type="hidden" name="start" value={startTime} />
+          <input type="hidden" name="end" value={endTime} />
+
+          {/* Who takes coverage - Dropdown */}
+          <div className="space-y-3">
+            <Label>Who takes coverage? *</Label>
+            <div className="relative">
+              <select
+                value={selectedUserId}
+                onChange={e => setSelectedUserId(e.target.value)}
+                className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white pl-4 pr-10 hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer font-medium appearance-none"
+                required
+              >
+                <option value="">Select responder...</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+              {/* Dropdown arrow */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg
+                  className="h-4 w-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Who are they replacing (Optional) - Dropdown */}
+          <div className="space-y-3">
+            <Label>
+              Replacing <span className="text-slate-400 font-normal">(Optional)</span>
             </Label>
+            <div className="relative">
+              <select
+                value={replacesUserId}
+                onChange={e => setReplacesUserId(e.target.value)}
+                className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white pl-4 pr-10 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer font-medium appearance-none"
+              >
+                <option value="">Everyone (override all)</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+              {/* Dropdown arrow */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg
+                  className="h-4 w-4 text-slate-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Duration */}
+          <div className="space-y-3">
+            <Label>Quick Duration</Label>
             <div className="grid grid-cols-4 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDuration(1)}
-              >
-                1h
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDuration(4)}
-              >
-                4h
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDuration(8)}
-              >
-                8h
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDuration(24)}
-              >
-                24h
-              </Button>
+              {[
+                { label: '1h', hours: 1 },
+                { label: '4h', hours: 4 },
+                { label: '8h', hours: 8 },
+                { label: '24h', hours: 24 },
+              ].map(({ label, hours }) => (
+                <Button
+                  key={hours}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickDuration(hours)}
+                  className="text-xs"
+                >
+                  {label}
+                </Button>
+              ))}
             </div>
           </div>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="userId">Who takes coverage?</Label>
-              <Select name="userId" required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select responder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className="flex items-center gap-2">
-                        <UserAvatar
-                          userId={user.id}
-                          name={user.name}
-                          gender={user.gender}
-                          size="xs"
-                        />
-                        {user.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="replacesUserId">Who are they replacing? (Optional)</Label>
-              <Select name="replacesUserId">
-                <SelectTrigger>
-                  <SelectValue placeholder="Anyone on-call (Override all)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className="flex items-center gap-2">
-                        <UserAvatar
-                          userId={user.id}
-                          name={user.name}
-                          gender={user.gender}
-                          size="xs"
-                        />
-                        {user.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Time</Label>
-                <Input
-                  type="datetime-local"
-                  name="start"
-                  required
-                  value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Time</Label>
-                <Input
-                  type="datetime-local"
-                  name="end"
-                  required
-                  value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
-                />
-              </div>
-            </div>
+          {/* Date/Time inputs - using native datetime-local */}
+          <div className="space-y-3">
+            <Label>Start Date & Time *</Label>
+            <input
+              type="datetime-local"
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              required
+              disabled={isPending}
+              className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            />
           </div>
 
-          <Button type="submit" disabled={isPending} className="w-full">
-            {isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Scheduling...
-              </>
-            ) : (
-              'Confirm Override'
-            )}
-          </Button>
+          <div className="space-y-3">
+            <Label>End Date & Time *</Label>
+            <input
+              type="datetime-local"
+              value={endTime}
+              onChange={e => setEndTime(e.target.value)}
+              required
+              disabled={isPending}
+              className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            />
+          </div>
+
+          {/* Preview */}
+          {startTime && endTime && selectedUserId && (
+            <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <p className="font-medium text-amber-800">
+                  {users.find(u => u.id === selectedUserId)?.name} will be on-call
+                </p>
+              </div>
+              <p className="text-amber-600 text-xs pl-6">
+                {format(new Date(startTime), 'MMM d, h:mm a')} →{' '}
+                {format(new Date(endTime), 'MMM d, h:mm a')}
+              </p>
+            </div>
+          )}
+
+          {/* Submit */}
+          <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 h-10"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || !selectedUserId || !startTime || !endTime}
+              className="flex-1 h-10 bg-amber-500 hover:bg-amber-600 shadow-sm"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Confirm Override'
+              )}
+            </Button>
+          </div>
         </form>
       </SheetContent>
     </Sheet>

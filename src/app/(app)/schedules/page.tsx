@@ -32,7 +32,7 @@ export default async function SchedulesPage() {
   });
 
   const totalLayers = schedules.reduce((sum, schedule) => sum + schedule.layers.length, 0);
-  const hasActiveCoverage = schedules.some(schedule =>
+  const hasConfiguredResponders = schedules.some(schedule =>
     schedule.layers.some(layer => layer.users.length > 0)
   );
 
@@ -70,14 +70,14 @@ export default async function SchedulesPage() {
             <Card
               className={cn(
                 'bg-white/10 border-white/20 backdrop-blur',
-                hasActiveCoverage ? 'text-green-100' : 'text-red-100'
+                hasConfiguredResponders ? 'text-green-100' : 'text-red-100'
               )}
             >
               <CardContent className="p-3 md:p-4 text-center">
                 <div className="text-xl md:text-2xl font-extrabold">
-                  {hasActiveCoverage ? 'Active' : 'Inactive'}
+                  {hasConfiguredResponders ? 'Configured' : 'Needs setup'}
                 </div>
-                <div className="text-[10px] md:text-xs opacity-90">Status</div>
+                <div className="text-[10px] md:text-xs opacity-90">Responder assignment</div>
               </CardContent>
             </Card>
           </div>
@@ -108,8 +108,8 @@ export default async function SchedulesPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {schedules.map(schedule => (
-                <ScheduleCard key={schedule.id} schedule={schedule} />
+              {schedules.map((schedule, index) => (
+                <ScheduleCard key={schedule.id} schedule={schedule} index={index} />
               ))}
             </div>
           )}

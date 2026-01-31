@@ -409,6 +409,21 @@ export async function updateIncidentPriority(id: string, priority: string | null
     },
   });
 
+  // Cancel pending escalation jobs when incident is acknowledged or resolved
+  if (status === 'ACKNOWLEDGED' || status === 'RESOLVED') {
+    try {
+      await prisma.$executeRawUnsafe(
+        `DELETE FROM "BackgroundJob" WHERE "type" = 'ESCALATION' AND "status" = 'PENDING' AND payload->>'incidentId' = $1`,
+        id
+      );
+    } catch (error) {
+      logger.error('Failed to cancel pending escalation jobs on status update', {
+        incidentId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   revalidatePath(`/incidents/${id}`);
   revalidatePath('/incidents');
   revalidatePath('/');
@@ -444,6 +459,11 @@ export async function createIncident(formData: FormData) {
   const visibility = (formData.get('visibility') as 'PUBLIC' | 'PRIVATE') || 'PUBLIC';
 
   const incident = await prisma.$transaction(async tx => {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User session not found. Please sign in again.');
+    }
+
     let assigneeName: string | null = null;
     if (assigneeId && assigneeId.length) {
       const assignee = await tx.user.findUnique({
@@ -469,7 +489,7 @@ export async function createIncident(formData: FormData) {
         await tx.incidentNote.create({
           data: {
             incidentId: existingOpenIncident.id,
-            userId: (await getCurrentUser())!.id, // Safe bang as assertResponderOrAbove checks user
+            userId: currentUser.id,
             content: `[Manual Report Merged] User reported recurrence.\n\nTitle: ${title}\nDescription: ${description}`,
           },
         });
@@ -519,7 +539,7 @@ export async function createIncident(formData: FormData) {
         await tx.incidentNote.create({
           data: {
             incidentId: reOpenedIncident.id,
-            userId: (await getCurrentUser())!.id,
+            userId: currentUser.id,
             content: `[Re-opened] User reported recurrence.\n\nTitle: ${title}\nDescription: ${description}`,
           },
         });
@@ -561,6 +581,29 @@ export async function createIncident(formData: FormData) {
 
     return createdIncident;
   });
+
+  // If we reopened a recently resolved incident, immediately schedule the first escalation step
+  if (incident.status === 'OPEN' && incident.resolvedAt === null && incident.currentEscalationStep === 0) {
+    try {
+      const { scheduleEscalation } = await import('@/lib/jobs/queue');
+      // Retry up to 3 times with short backoff to ensure the first escalation job is queued
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await scheduleEscalation(incident.id, 0, 0);
+          break;
+        } catch (err) {
+          if (attempt === 2) throw err;
+          await new Promise(res => setTimeout(res, 200 * Math.pow(2, attempt)));
+        }
+      }
+    } catch (e) {
+      logger.error('Failed to schedule escalation after reopen', {
+        component: 'incidents-actions',
+        error: e,
+        incidentId: incident.id,
+      });
+    }
+  }
 
   // Execute escalation policy if service has one
   let escalationResult: { escalated?: boolean; reason?: string } | null = null;

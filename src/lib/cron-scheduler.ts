@@ -364,6 +364,13 @@ export function startCronScheduler() {
     return;
   }
 
+  // Disable during Next.js build phase to avoid DB noise/failures
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    logger.info('[Cron] Skipping scheduler during build (NEXT_PHASE=phase-production-build)');
+    initialized = true;
+    return;
+  }
+
   const enableInternalCron = process.env.ENABLE_INTERNAL_CRON !== 'false';
   if (!enableInternalCron) {
     logger.info('[Cron] Scheduler disabled via ENABLE_INTERNAL_CRON=false');
