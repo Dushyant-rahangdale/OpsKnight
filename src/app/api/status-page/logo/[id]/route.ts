@@ -1,13 +1,3 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { logger } from '@/lib/logger';
-
-type RouteParams = {
-  params: {
-    id: string;
-  };
-};
-
 function parseDataImage(dataUrl: string): { mime: string; buffer: Buffer } | null {
   const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+)(;base64)?,(.*)$/);
   if (!match) return null;
@@ -25,7 +15,8 @@ function parseDataImage(dataUrl: string): { mime: string; buffer: Buffer } | nul
   }
 }
 
-export async function GET(_req: Request, { params }: RouteParams) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const statusPageId = params.id;
   if (!statusPageId) {
     return NextResponse.json({ error: 'Missing status page ID.' }, { status: 400 });
