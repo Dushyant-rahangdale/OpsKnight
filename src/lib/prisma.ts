@@ -15,8 +15,7 @@ import { PrismaClient } from '@prisma/client';
 const prismaClientSingleton = () => {
   // Log configuration for debugging
   const poolSize = process.env.DATABASE_POOL_SIZE || '40';
-  const logLevel =
-    process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['query', 'error', 'warn'];
+  const logLevel = process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn'];
 
   return new PrismaClient({
     log: logLevel as any,

@@ -11,7 +11,8 @@ const StatusSchema = z.object({
   status: z.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'SNOOZED', 'SUPPRESSED']),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getServerSession(await getAuthOptions());
     if (!session?.user?.email) {

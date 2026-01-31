@@ -77,3 +77,5 @@ ci_*.txt
 
 # Claude AI
 .claude/
+# pre-push build artifacts
+.next-pre-push/

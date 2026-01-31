@@ -34,7 +34,7 @@ describe('API Routes - Incidents', () => {
     vi.clearAllMocks();
 
     // Default rate limit to allowed
-    vi.mocked(rateLimit.checkRateLimit).mockReturnValue({
+    vi.mocked(rateLimit.checkRateLimit).mockResolvedValue({
       allowed: true,
       remaining: 59,
       resetAt: Date.now() + 60000,

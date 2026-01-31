@@ -31,6 +31,7 @@ import {
   FileWarning,
   Activity,
   ListTodo,
+  BarChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import UserAvatar from '@/components/UserAvatar';
@@ -121,6 +122,12 @@ const navigationItems: NavItem[] = [
     href: '/audit',
     label: 'Audit Log',
     icon: <ClipboardList />,
+    section: 'INSIGHTS',
+  },
+  {
+    href: '/reports',
+    label: 'Reports & Dashboards',
+    icon: <BarChart />,
     section: 'INSIGHTS',
   },
   {

@@ -12,6 +12,10 @@ vi.mock('@/lib/auth', () => ({
   getAuthOptions: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 10 }),
+}));
+
 vi.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {

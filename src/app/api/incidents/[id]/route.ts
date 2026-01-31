@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return jsonError('API key missing scope: incidents:read.', 403);
   }
 
-  const rate = checkRateLimit(
+  const rate = await checkRateLimit(
     `api:${apiKey.id}:incidents:get`,
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW_MS
@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return jsonError('API key missing scope: incidents:write.', 403);
   }
 
-  const rate = checkRateLimit(
+  const rate = await checkRateLimit(
     `api:${apiKey.id}:incidents:patch`,
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW_MS
