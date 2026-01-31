@@ -30,7 +30,6 @@ import ScheduleEditForm from '@/components/ScheduleEditForm';
 import ScheduleActionsPanel from '@/components/ScheduleActionsPanel';
 import ScheduleTimeline from '@/components/ScheduleTimeline';
 import ScheduleTimezoneNotice from '@/components/ScheduleTimezoneNotice';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/shadcn/avatar';
 import {
   Card,
@@ -59,6 +58,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getDefaultAvatar } from '@/lib/avatar';
+import { cn } from '@/lib/utils';
 
 // Revalidate every 30 seconds to ensure current coverage is up-to-date
 export const revalidate = 0;
@@ -173,7 +173,10 @@ export default async function ScheduleDetailPage({
 
   // Timezone-aware coverage windows
   const todayKey = formatDateKeyInTimeZone(now, schedule.timeZone);
-  const coverageRangeStart = startOfDayFromDateKey(addDaysToDateKey(todayKey, -1), schedule.timeZone);
+  const coverageRangeStart = startOfDayFromDateKey(
+    addDaysToDateKey(todayKey, -1),
+    schedule.timeZone
+  );
   const coverageRangeEnd = startOfDayFromDateKey(addDaysToDateKey(todayKey, 90), schedule.timeZone);
 
   const layerPriorities = new Map(schedule.layers.map(l => [l.id, l.priority ?? 0]));
@@ -181,7 +184,11 @@ export default async function ScheduleDetailPage({
   // Cast layers with proper restrictions type
   const typedLayers = schedule.layers.map(layer => ({
     ...layer,
-    restrictions: layer.restrictions as { daysOfWeek?: number[]; startHour?: number; endHour?: number } | null,
+    restrictions: layer.restrictions as {
+      daysOfWeek?: number[];
+      startHour?: number;
+      endHour?: number;
+    } | null,
   }));
 
   const scheduleBlocks = buildScheduleBlocks(
@@ -264,7 +271,7 @@ export default async function ScheduleDetailPage({
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
                   <Calendar className="h-5 w-5" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight tracking-tight text-white">
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
                   {schedule.name}
                 </h1>
               </div>
@@ -287,10 +294,10 @@ export default async function ScheduleDetailPage({
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25 transition hover:bg-white/25"
+                        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 shadow-sm transition hover:bg-amber-300"
                         aria-label="Timezone info"
                       >
-                        <Info className="h-3.5 w-3.5 text-white" />
+                        <Info className="h-3.5 w-3.5" strokeWidth={2.5} />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs">
@@ -338,7 +345,10 @@ export default async function ScheduleDetailPage({
                     </div>
                     <div>
                       <div
-                        className={`text-xl md:text-2xl font-extrabold ${activeBlocks.length > 0 ? 'text-emerald-200' : 'text-red-200'}`}
+                        className={cn(
+                          'text-xl md:text-2xl font-extrabold',
+                          activeBlocks.length > 0 ? 'text-emerald-200' : 'text-red-200'
+                        )}
                       >
                         {activeBlocks.length}
                       </div>
@@ -451,14 +461,18 @@ export default async function ScheduleDetailPage({
           />
 
           {/* What are Layers - Info Card */}
-          <Alert className="border-blue-200/80 bg-blue-50/70">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-sm text-blue-900">Layering basics</AlertTitle>
-            <AlertDescription className="text-xs text-blue-700">
-              Layers define on-call rotations. Higher layers override lower ones. Use a primary
-              layer for baseline coverage and add secondary layers for backup.
-            </AlertDescription>
-          </Alert>
+          <div className="rounded-lg border border-blue-200/80 bg-blue-50/50 p-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-900">How Layers Work</h4>
+                <p className="text-xs text-blue-700 mt-1">
+                  Each layer is an independent rotation. Higher priority layers override lower ones
+                  during overlaps. Use for primary + backup coverage.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Rotation Layers */}
           <Card className="overflow-hidden border-slate-200/80">
@@ -508,7 +522,11 @@ export default async function ScheduleDetailPage({
                       end: layer.end ? new Date(layer.end) : null,
                       rotationLengthHours: layer.rotationLengthHours,
                       shiftLengthHours: layer.shiftLengthHours,
-                      restrictions: layer.restrictions as { daysOfWeek?: number[]; startHour?: number; endHour?: number } | null,
+                      restrictions: layer.restrictions as {
+                        daysOfWeek?: number[];
+                        startHour?: number;
+                        endHour?: number;
+                      } | null,
                       users: layer.users,
                     }}
                     scheduleId={schedule.id}

@@ -64,42 +64,40 @@ export default function CurrentCoverageDisplay({
   const hasCoverage = activeBlocks.length > 0;
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 shadow-sm">
+    <Card className="overflow-hidden border-slate-200/80">
       <CardHeader
         className={cn(
           'pb-3 border-b',
-          hasCoverage
-            ? 'bg-emerald-50/70 border-emerald-100/70'
-            : 'bg-amber-50/70 border-amber-100/70'
+          hasCoverage ? 'bg-emerald-50/70 border-emerald-100' : 'bg-amber-50/70 border-amber-100'
         )}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-xl',
+                'flex h-10 w-10 items-center justify-center rounded-xl',
                 hasCoverage
-                  ? 'bg-emerald-500/15 text-emerald-700'
-                  : 'bg-amber-500/15 text-amber-700'
+                  ? 'bg-emerald-500/15 text-emerald-600'
+                  : 'bg-amber-500/15 text-amber-600'
               )}
             >
               {hasCoverage ? (
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck className="h-5 w-5" />
               ) : (
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangle className="h-5 w-5" />
               )}
             </div>
             <div>
               <CardTitle className="text-sm font-semibold">On-Call Now</CardTitle>
-              <p className="text-xs text-slate-500 flex items-center gap-1">
+              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                 <Clock className="h-3 w-3" />
                 {formatTime(currentTime)}
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-1.5">
             <Badge variant={hasCoverage ? 'success' : 'warning'} size="xs">
-              {hasCoverage ? 'Live coverage' : 'No coverage'}
+              {hasCoverage ? 'Active' : 'No coverage'}
             </Badge>
             <Badge variant="outline" size="xs">
               {scheduleTimeZone}
@@ -121,9 +119,9 @@ export default function CurrentCoverageDisplay({
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {activeBlocks.map((block, i) => (
+            {activeBlocks.map(block => (
               <div
-                key={i}
+                key={block.id}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
               >
                 <DirectUserAvatar

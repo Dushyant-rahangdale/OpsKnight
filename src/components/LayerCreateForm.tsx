@@ -22,7 +22,17 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
 import { Badge } from '@/components/ui/shadcn/badge';
-import { Layers, Loader2, Plus, Info, Clock, Calendar, Users, Repeat, AlertCircle } from 'lucide-react';
+import {
+  Layers,
+  Loader2,
+  Plus,
+  Info,
+  Clock,
+  Calendar,
+  Users,
+  Repeat,
+  AlertCircle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type LayerCreateFormProps = {
@@ -76,8 +86,10 @@ export default function LayerCreateForm({
     const parts: string[] = [];
 
     if (selectedDays.length > 0 && selectedDays.length < 7) {
-      const isWeekdays = selectedDays.length === 5 && [1, 2, 3, 4, 5].every(d => selectedDays.includes(d));
-      const isWeekends = selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6);
+      const isWeekdays =
+        selectedDays.length === 5 && [1, 2, 3, 4, 5].every(d => selectedDays.includes(d));
+      const isWeekends =
+        selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6);
 
       if (isWeekdays) parts.push('Weekdays only');
       else if (isWeekends) parts.push('Weekends only');
@@ -92,9 +104,7 @@ export default function LayerCreateForm({
   }, [selectedDays, startHour, endHour]);
 
   const toggleDay = (day: number) => {
-    setSelectedDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
+    setSelectedDays(prev => (prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]));
   };
 
   const setWeekdays = () => setSelectedDays([1, 2, 3, 4, 5]);
@@ -140,51 +150,61 @@ export default function LayerCreateForm({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="w-full h-10 gap-2 text-sm font-semibold bg-primary text-white hover:bg-primary/90 shadow-sm">
-          <Plus className="h-3.5 w-3.5" />
+        <Button className="w-full h-10 gap-2 text-sm font-medium shadow-sm">
+          <Plus className="h-4 w-4" />
           Add Rotation
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-3 text-xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        {/* Header */}
+        <SheetHeader className="pb-4 mb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Layers className="h-5 w-5" />
-            </span>
-            Add Rotation Layer
-          </SheetTitle>
-          <SheetDescription>
-            Create a new on-call rotation. Users take turns being on-call based on the schedule.
-          </SheetDescription>
+            </div>
+            <div>
+              <SheetTitle className="text-lg font-semibold">Add Rotation Layer</SheetTitle>
+              <SheetDescription>Create a new on-call rotation schedule</SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        {/* Preview Card */}
-        <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Repeat className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-slate-700">Rotation Preview</span>
+        {/* Live Preview Card */}
+        <div className="mb-6 p-4 rounded-xl bg-slate-50/80 border border-slate-200/80">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-slate-700">Live Preview</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase tracking-wide">Auto-updates</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 min-h-[28px]">
             {rotationInfo && (
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1.5">
                 <Clock className="h-3 w-3" />
                 {rotationInfo}
               </Badge>
             )}
             {shiftInfo && (
-              <Badge variant="outline" className="gap-1 border-orange-200 bg-orange-50 text-orange-700">
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-orange-200 bg-orange-50 text-orange-700"
+              >
                 <AlertCircle className="h-3 w-3" />
                 {shiftInfo}
               </Badge>
             )}
             {restrictionInfo && (
-              <Badge variant="outline" className="gap-1 border-purple-200 bg-purple-50 text-purple-700">
+              <Badge
+                variant="outline"
+                className="gap-1.5 border-purple-200 bg-purple-50 text-purple-700"
+              >
                 <Calendar className="h-3 w-3" />
                 {restrictionInfo}
               </Badge>
             )}
             {!rotationInfo && !shiftInfo && !restrictionInfo && (
-              <span className="text-xs text-slate-500 italic">Configure settings below...</span>
+              <span className="text-xs text-slate-400">Configure settings below...</span>
             )}
           </div>
         </div>
@@ -218,7 +238,10 @@ export default function LayerCreateForm({
                     <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[280px]">
-                    <p>How often the on-call person changes. After this time, the next person in the rotation takes over.</p>
+                    <p>
+                      How often the on-call person changes. After this time, the next person in the
+                      rotation takes over.
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -263,7 +286,9 @@ export default function LayerCreateForm({
             <Label className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-slate-500" />
               Shift Duration
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Optional</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                Optional
+              </Badge>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -271,7 +296,10 @@ export default function LayerCreateForm({
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[280px]">
                     <p className="font-medium mb-1">Creates gaps in coverage</p>
-                    <p className="text-slate-400">Example: 12h shift with 24h rotation = person is on-call for 12 hours, then 12 hours off before next person starts.</p>
+                    <p className="text-slate-400">
+                      Example: 12h shift with 24h rotation = person is on-call for 12 hours, then 12
+                      hours off before next person starts.
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -313,7 +341,9 @@ export default function LayerCreateForm({
             <Label className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-slate-500" />
               End Date
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Optional</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                Optional
+              </Badge>
             </Label>
             <input
               type="datetime-local"
@@ -330,7 +360,12 @@ export default function LayerCreateForm({
               <Label className="flex items-center gap-2 text-purple-900">
                 <AlertCircle className="h-4 w-4" />
                 Restrictions
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700">Optional</Badge>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 bg-purple-100 text-purple-700"
+                >
+                  Optional
+                </Badge>
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -338,7 +373,10 @@ export default function LayerCreateForm({
                     <Info className="h-3.5 w-3.5 text-purple-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[280px]">
-                    <p>Limit when this layer is active. Great for business-hours-only or weekday coverage.</p>
+                    <p>
+                      Limit when this layer is active. Great for business-hours-only or weekday
+                      coverage.
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -353,10 +391,11 @@ export default function LayerCreateForm({
                     type="button"
                     onClick={setWeekdays}
                     className={cn(
-                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
-                      selectedDays.length === 5 && [1,2,3,4,5].every(d => selectedDays.includes(d))
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                      'text-[10px] px-2 py-0.5 rounded font-medium transition-colors',
+                      selectedDays.length === 5 &&
+                        [1, 2, 3, 4, 5].every(d => selectedDays.includes(d))
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
                     )}
                   >
                     Weekdays
@@ -365,10 +404,12 @@ export default function LayerCreateForm({
                     type="button"
                     onClick={setWeekends}
                     className={cn(
-                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
-                      selectedDays.length === 2 && selectedDays.includes(0) && selectedDays.includes(6)
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                      'text-[10px] px-2 py-0.5 rounded font-medium transition-colors',
+                      selectedDays.length === 2 &&
+                        selectedDays.includes(0) &&
+                        selectedDays.includes(6)
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
                     )}
                   >
                     Weekends
@@ -392,10 +433,10 @@ export default function LayerCreateForm({
                     onClick={() => toggleDay(i)}
                     disabled={isPending}
                     className={cn(
-                      "h-10 rounded-lg text-sm font-semibold transition-all",
+                      'h-10 rounded-lg text-sm font-semibold transition-all',
                       selectedDays.includes(i)
-                        ? "bg-purple-600 text-white shadow-sm"
-                        : "bg-white border-2 border-purple-200 text-purple-400 hover:border-purple-300 hover:text-purple-600"
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-white border-2 border-purple-200 text-purple-400 hover:border-purple-300 hover:text-purple-600'
                     )}
                   >
                     {day}
@@ -404,7 +445,9 @@ export default function LayerCreateForm({
               </div>
               <div className="flex justify-between text-[10px] text-purple-500 px-1">
                 {DAY_LABELS.map((day, i) => (
-                  <span key={i} className="w-[calc(100%/7)] text-center">{day}</span>
+                  <span key={i} className="w-[calc(100%/7)] text-center">
+                    {day}
+                  </span>
                 ))}
               </div>
             </div>
@@ -416,24 +459,30 @@ export default function LayerCreateForm({
                 <div className="flex gap-1">
                   <button
                     type="button"
-                    onClick={() => { setStartHour('9'); setEndHour('17'); }}
+                    onClick={() => {
+                      setStartHour('9');
+                      setEndHour('17');
+                    }}
                     className={cn(
-                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      'text-[10px] px-2 py-0.5 rounded font-medium transition-colors',
                       startHour === '9' && endHour === '17'
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
                     )}
                   >
                     9-5
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setStartHour('18'); setEndHour('6'); }}
+                    onClick={() => {
+                      setStartHour('18');
+                      setEndHour('6');
+                    }}
                     className={cn(
-                      "text-[10px] px-2 py-0.5 rounded font-medium transition-colors",
+                      'text-[10px] px-2 py-0.5 rounded font-medium transition-colors',
                       startHour === '18' && endHour === '6'
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
                     )}
                   >
                     Nights
@@ -441,7 +490,10 @@ export default function LayerCreateForm({
                   {(startHour || endHour) && (
                     <button
                       type="button"
-                      onClick={() => { setStartHour(''); setEndHour(''); }}
+                      onClick={() => {
+                        setStartHour('');
+                        setEndHour('');
+                      }}
                       className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium"
                     >
                       Clear
@@ -485,22 +537,26 @@ export default function LayerCreateForm({
           </div>
 
           {/* Tip */}
-          <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700">
-            <strong>Next step:</strong> After creating, add team members to the rotation and set their order.
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50/80 border border-blue-100 text-xs text-blue-700">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>
+              <strong>Next step:</strong> After creating, add team members to the rotation and set
+              their order.
+            </span>
           </div>
 
           {/* Submit */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              className="flex-1 h-10"
               onClick={() => setOpen(false)}
               disabled={isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={isPending}>
+            <Button type="submit" className="flex-1 h-10 shadow-sm" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

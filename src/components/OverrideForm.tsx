@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Label } from '@/components/ui/shadcn/label';
 import { AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { addHours, format } from 'date-fns';
-import UserAvatar from '@/components/UserAvatar';
 
 type OverrideFormProps = {
   scheduleId: string;
@@ -110,25 +109,29 @@ export default function OverrideForm({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="w-full h-10 gap-2 text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 shadow-sm">
-          <Clock className="h-3.5 w-3.5" />
+        <Button
+          variant="outline"
+          className="w-full h-10 gap-2 text-sm font-medium border-amber-200 bg-amber-50/50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 shadow-sm"
+        >
+          <Clock className="h-4 w-4" />
           Add Override
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-3 text-xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+        {/* Header */}
+        <SheetHeader className="pb-4 mb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
               <AlertCircle className="h-5 w-5" />
-            </span>
-            Add Coverage Override
-          </SheetTitle>
-          <SheetDescription>
-            Temporarily replace the on-call responder for a specific time window.
-          </SheetDescription>
+            </div>
+            <div>
+              <SheetTitle className="text-lg font-semibold">Add Coverage Override</SheetTitle>
+              <SheetDescription>Temporarily replace the on-call responder</SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Hidden inputs for FormData */}
           <input type="hidden" name="userId" value={selectedUserId} />
           <input type="hidden" name="replacesUserId" value={replacesUserId} />
@@ -259,31 +262,46 @@ export default function OverrideForm({
 
           {/* Preview */}
           {startTime && endTime && selectedUserId && (
-            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
-              <p className="font-medium text-amber-800">
-                {users.find(u => u.id === selectedUserId)?.name} will be on-call
-              </p>
-              <p className="text-amber-600 text-xs mt-1">
+            <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <p className="font-medium text-amber-800">
+                  {users.find(u => u.id === selectedUserId)?.name} will be on-call
+                </p>
+              </div>
+              <p className="text-amber-600 text-xs pl-6">
                 {format(new Date(startTime), 'MMM d, h:mm a')} →{' '}
                 {format(new Date(endTime), 'MMM d, h:mm a')}
               </p>
             </div>
           )}
 
-          <Button
-            type="submit"
-            disabled={isPending || !selectedUserId || !startTime || !endTime}
-            className="w-full"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating Override...
-              </>
-            ) : (
-              'Confirm Override'
-            )}
-          </Button>
+          {/* Submit */}
+          <div className="flex gap-3 pt-4 mt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 h-10"
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || !selectedUserId || !startTime || !endTime}
+              className="flex-1 h-10 bg-amber-500 hover:bg-amber-600 shadow-sm"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Confirm Override'
+              )}
+            </Button>
+          </div>
         </form>
       </SheetContent>
     </Sheet>

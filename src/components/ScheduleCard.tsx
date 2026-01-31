@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Badge } from '@/components/ui/shadcn/badge';
-import { Clock, Layers, Users, ArrowRight } from 'lucide-react';
+import { Clock, Layers, Users, ArrowRight, Calendar } from 'lucide-react';
 
 type ScheduleCardProps = {
   schedule: {
@@ -14,6 +14,7 @@ type ScheduleCardProps = {
       }>;
     }>;
   };
+  index?: number;
 };
 
 export default function ScheduleCard({ schedule }: ScheduleCardProps) {
@@ -22,16 +23,24 @@ export default function ScheduleCard({ schedule }: ScheduleCardProps) {
     layer.users.forEach(user => uniqueUsers.add(user.userId));
   });
 
+  const hasLayers = schedule.layers.length > 0;
+  const hasResponders = uniqueUsers.size > 0;
+
   return (
     <Link href={`/schedules/${schedule.id}`} className="block group">
-      <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-[2px] border-slate-200 hover:border-primary/30 hover:bg-primary/5">
+      <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-slate-200/80 hover:border-primary/30">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3">
-            <CardTitle className="text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">
-              {schedule.name}
-            </CardTitle>
-            <Badge variant="outline" size="xs" className="gap-1.5 shrink-0 bg-white/50">
-              <Clock className="h-3 w-3 text-slate-500" />
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">
+                {schedule.name}
+              </CardTitle>
+            </div>
+            <Badge variant="outline" size="xs" className="gap-1.5 shrink-0">
+              <Clock className="h-3 w-3 text-slate-400" />
               {schedule.timeZone}
             </Badge>
           </div>
@@ -53,9 +62,17 @@ export default function ScheduleCard({ schedule }: ScheduleCardProps) {
                 </span>
               </div>
             </div>
-
-            <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-primary" />
+            <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-primary" />
           </div>
+
+          {/* Status indicator for incomplete schedules */}
+          {(!hasLayers || !hasResponders) && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <Badge variant="warning" size="xs">
+                Needs configuration
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

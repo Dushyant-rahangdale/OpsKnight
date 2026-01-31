@@ -87,7 +87,11 @@ const LAYER_COLORS = [
   },
 ];
 
-export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: ScheduleTimelineProps) {
+export default function ScheduleTimeline({
+  shifts,
+  timeZone,
+  layerPriorities,
+}: ScheduleTimelineProps) {
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);
   const todayKey = useMemo(() => formatDateKeyInTimeZone(new Date(), timeZone), [timeZone]);
   const [startDateKey, setStartDateKey] = useState<string>(todayKey);
@@ -100,6 +104,16 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
   const endDate = useMemo(
     () => startOfDayFromDateKey(addDaysToDateKey(startDateKey, daysToShow), timeZone),
     [startDateKey, daysToShow, timeZone]
+  );
+
+  // Memoized date formatters to avoid creating new instances in render loops
+  const dateFormatters = useMemo(
+    () => ({
+      weekday: new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone }),
+      dayNum: new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone }),
+      month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone }),
+    }),
+    [timeZone]
   );
 
   // Generate day columns
@@ -269,17 +283,16 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
           <div style={{ minWidth: daysToShow === 7 ? '700px' : '1000px' }}>
             {/* Day Headers */}
             <div className="flex sticky top-0 bg-white z-10 border-b border-slate-100">
-              {days.map((day, index) => {
-                const dayParts = {
-                  weekday: new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone }).format(day),
-                  dayNum: new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone }).format(day),
-                  month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone }).format(day),
-                };
-                const isCurrentDay = formatDateKeyInTimeZone(day, timeZone) === todayKey;
-                const isWeekend = dayParts.weekday === 'Sat' || dayParts.weekday === 'Sun';
+              {days.map(day => {
+                const dayKey = formatDateKeyInTimeZone(day, timeZone);
+                const weekday = dateFormatters.weekday.format(day);
+                const dayNum = dateFormatters.dayNum.format(day);
+                const month = dateFormatters.month.format(day);
+                const isCurrentDay = dayKey === todayKey;
+                const isWeekend = weekday === 'Sat' || weekday === 'Sun';
                 return (
                   <div
-                    key={index}
+                    key={dayKey}
                     className={cn(
                       'flex-1 py-3 px-2 text-center border-r border-slate-100 last:border-r-0 transition-colors',
                       isCurrentDay && 'bg-indigo-50/70',
@@ -292,7 +305,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-600' : 'text-slate-400'
                       )}
                     >
-                      {dayParts.weekday}
+                      {weekday}
                     </div>
                     <div
                       className={cn(
@@ -300,7 +313,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-700' : 'text-slate-800'
                       )}
                     >
-                      {dayParts.dayNum}
+                      {dayNum}
                     </div>
                     <div
                       className={cn(
@@ -308,7 +321,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-500' : 'text-slate-400'
                       )}
                     >
-                      {dayParts.month}
+                      {month}
                     </div>
                     {isCurrentDay && (
                       <div className="mt-1">
@@ -335,7 +348,9 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                   const color = layerColorMap.get(layerName) || LAYER_COLORS[0];
 
                   // Sort shifts by start time and assign rows to handle overlaps
-                  const sortedShifts = [...layerShifts].sort((a, b) => a.start.getTime() - b.start.getTime());
+                  const sortedShifts = [...layerShifts].sort(
+                    (a, b) => a.start.getTime() - b.start.getTime()
+                  );
                   const rows: TimelineShift[][] = [];
                   const shiftRowMap = new Map<string, number>();
 
@@ -379,17 +394,14 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
 
                       {/* Grid Background */}
                       <div className="absolute inset-0 flex pointer-events-none">
-                        {days.map((day, index) => {
+                        {days.map(day => {
                           const dayKey = formatDateKeyInTimeZone(day, timeZone);
-                          const dayWeekday = new Intl.DateTimeFormat('en-US', {
-                            weekday: 'short',
-                            timeZone,
-                          }).format(day);
+                          const dayWeekday = dateFormatters.weekday.format(day);
                           const isCurrentDay = dayKey === todayKey;
                           const isWeekend = dayWeekday === 'Sat' || dayWeekday === 'Sun';
                           return (
                             <div
-                              key={index}
+                              key={dayKey}
                               className={cn(
                                 'flex-1 border-r border-slate-100/50 last:border-r-0',
                                 isCurrentDay && 'bg-indigo-50/20',
@@ -401,7 +413,10 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                       </div>
 
                       {/* Shift Blocks */}
-                      <div className="relative px-3 pb-4 transition-all duration-300" style={{ height: `${containerHeight}px` }}>
+                      <div
+                        className="relative px-3 pb-4 transition-all duration-300"
+                        style={{ height: `${containerHeight}px` }}
+                      >
                         {sortedShifts.map(shift => {
                           const rowIndex = shiftRowMap.get(shift.id) || 0;
 
@@ -542,17 +557,14 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
 
                   {/* Grid Background */}
                   <div className="absolute inset-0 flex pointer-events-none">
-                    {days.map((day, index) => {
+                    {days.map(day => {
                       const dayKey = formatDateKeyInTimeZone(day, timeZone);
-                      const dayWeekday = new Intl.DateTimeFormat('en-US', {
-                        weekday: 'short',
-                        timeZone,
-                      }).format(day);
+                      const dayWeekday = dateFormatters.weekday.format(day);
                       const isCurrentDay = dayKey === todayKey;
                       const isWeekend = dayWeekday === 'Sat' || dayWeekday === 'Sun';
                       return (
                         <div
-                          key={index}
+                          key={dayKey}
                           className={cn(
                             'flex-1 border-r border-slate-100/50 last:border-r-0',
                             isCurrentDay && 'bg-indigo-50/20',
@@ -565,7 +577,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
 
                   {/* Final Schedule Blocks */}
                   <div className="relative px-3 pb-4" style={{ height: '70px' }}>
-                    {finalScheduleBlocks.map((block, index) => {
+                    {finalScheduleBlocks.map(block => {
                       const blockStart = block.start < startDate ? startDate : block.start;
                       const blockEnd = block.end > endDate ? endDate : block.end;
 
@@ -576,7 +588,10 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                       const widthPercent = ((endHours - startHours) / totalHours) * 100;
 
                       return (
-                        <TooltipProvider key={`final-${index}`} delayDuration={100}>
+                        <TooltipProvider
+                          key={`final-${block.id}-${block.start.getTime()}`}
+                          delayDuration={100}
+                        >
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div

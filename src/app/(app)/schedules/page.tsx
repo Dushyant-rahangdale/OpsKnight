@@ -108,8 +108,8 @@ export default async function SchedulesPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {schedules.map(schedule => (
-                <ScheduleCard key={schedule.id} schedule={schedule} />
+              {schedules.map((schedule, index) => (
+                <ScheduleCard key={schedule.id} schedule={schedule} index={index} />
               ))}
             </div>
           )}

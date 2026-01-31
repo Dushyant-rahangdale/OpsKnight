@@ -24,15 +24,13 @@ type QuickStatsProps = {
     end: Date;
   }>;
   overrideCount: number;
-  timeZone: string;
 };
 
 export default function ScheduleQuickStats({
   layers,
   activeBlocks,
   overrideCount,
-}: // timeZone prop unused in this component but kept for future use
-QuickStatsProps) {
+}: QuickStatsProps) {
   const stats = useMemo(() => {
     // Total responders across all layers (unique)
     const allResponders = new Set<string>();
