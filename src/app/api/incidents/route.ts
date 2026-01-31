@@ -15,6 +15,7 @@ function parseLimit(value: string | null) {
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_BURST = 120; // short burst protection
 
 async function getApiUserContext(apiKeyUserId: string) {
   const user = await prisma.user.findUnique({
@@ -102,6 +103,14 @@ export async function POST(req: NextRequest) {
     RATE_LIMIT_MAX,
     RATE_LIMIT_WINDOW_MS
   );
+  // Simple burst guard: if attempts exceed burst, block immediately
+  if (!rate.allowed || rate.count > RATE_LIMIT_BURST) {
+    const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
+    return NextResponse.json(
+      { error: 'Rate limit exceeded.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
+  }
   if (!rate.allowed) {
     const retryAfter = Math.ceil((rate.resetAt - Date.now()) / 1000);
     return NextResponse.json(
