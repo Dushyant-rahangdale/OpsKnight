@@ -40,6 +40,8 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig: NextConfig = {
+  // Allow overriding distDir for concurrent builds (e.g. pre-push checks)
+  distDir: process.env.BUILD_DIR || '.next',
   output: 'standalone',
   // Explicitly set root to avoid system-wide watching
   outputFileTracingRoot: path.join(__dirname),
