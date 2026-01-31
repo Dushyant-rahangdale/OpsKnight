@@ -30,6 +30,7 @@ import ScheduleEditForm from '@/components/ScheduleEditForm';
 import ScheduleActionsPanel from '@/components/ScheduleActionsPanel';
 import ScheduleTimeline from '@/components/ScheduleTimeline';
 import ScheduleTimezoneNotice from '@/components/ScheduleTimezoneNotice';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/shadcn/avatar';
 import {
   Card,
@@ -58,7 +59,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { getDefaultAvatar } from '@/lib/avatar';
-import { cn } from '@/lib/utils';
 
 // Revalidate every 30 seconds to ensure current coverage is up-to-date
 export const revalidate = 0;
@@ -289,22 +289,6 @@ export default async function ScheduleDetailPage({
                   <Users className="h-3.5 w-3.5" />
                   {totalParticipants} participants
                 </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-amber-950 shadow-sm transition hover:bg-amber-300"
-                        aria-label="Timezone info"
-                      >
-                        <Info className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      Schedule times, overrides, and calendars use {scheduleTimezoneLongLabel}.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             </div>
 
@@ -345,10 +329,7 @@ export default async function ScheduleDetailPage({
                     </div>
                     <div>
                       <div
-                        className={cn(
-                          'text-xl md:text-2xl font-extrabold',
-                          activeBlocks.length > 0 ? 'text-emerald-200' : 'text-red-200'
-                        )}
+                        className={`text-xl md:text-2xl font-extrabold ${activeBlocks.length > 0 ? 'text-emerald-200' : 'text-red-200'}`}
                       >
                         {activeBlocks.length}
                       </div>
@@ -461,18 +442,14 @@ export default async function ScheduleDetailPage({
           />
 
           {/* What are Layers - Info Card */}
-          <div className="rounded-lg border border-blue-200/80 bg-blue-50/50 p-3">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">How Layers Work</h4>
-                <p className="text-xs text-blue-700 mt-1">
-                  Each layer is an independent rotation. Higher priority layers override lower ones
-                  during overlaps. Use for primary + backup coverage.
-                </p>
-              </div>
-            </div>
-          </div>
+          <Alert className="border-blue-200/80 bg-blue-50/70">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-sm text-blue-900">Layering basics</AlertTitle>
+            <AlertDescription className="text-xs text-blue-700">
+              Layers define on-call rotations. Higher layers override lower ones. Use a primary
+              layer for baseline coverage and add secondary layers for backup.
+            </AlertDescription>
+          </Alert>
 
           {/* Rotation Layers */}
           <Card className="overflow-hidden border-slate-200/80">
