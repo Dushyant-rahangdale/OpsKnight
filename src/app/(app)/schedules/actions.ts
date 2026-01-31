@@ -137,10 +137,9 @@ export async function createLayer(scheduleId: string, formData: FormData): Promi
     if (shiftLength !== null && (Number.isNaN(shiftLength) || shiftLength <= 0)) {
         return { error: 'Shift length must be greater than 0 hours.' };
     }
-    if (shiftLength !== null && (Number.isNaN(shiftLength) || shiftLength <= 0)) {
-        return { error: 'Shift length must be greater than 0 hours.' };
+    if (shiftLength !== null && shiftLength > rotationLength) {
+        return { error: 'Shift length cannot exceed rotation length.' };
     }
-
     const schedule = await prisma.onCallSchedule.findUnique({
         where: { id: scheduleId },
         select: { timeZone: true }
@@ -324,6 +323,12 @@ export async function updateLayer(layerId: string, formData: FormData): Promise<
 
     if (!name || !start || Number.isNaN(rotationLength) || rotationLength <= 0) {
         return { error: 'Invalid layer data. Name, start date, and rotation length are required.' };
+    }
+    if (shiftLength !== null && (Number.isNaN(shiftLength) || shiftLength <= 0)) {
+        return { error: 'Shift length must be greater than 0 hours.' };
+    }
+    if (shiftLength !== null && shiftLength > rotationLength) {
+        return { error: 'Shift length cannot exceed rotation length.' };
     }
 
     const layerMeta = await prisma.onCallLayer.findUnique({

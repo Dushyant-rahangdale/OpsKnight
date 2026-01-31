@@ -21,7 +21,13 @@ import { getDefaultAvatar } from '@/lib/avatar';
 import { getFinalScheduleBlocks, type OnCallBlock } from '@/lib/oncall';
 import { ChevronLeft, ChevronRight, Calendar, Clock, Users, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { addDays, format, startOfDay, differenceInHours, isToday } from 'date-fns';
+import { differenceInHours } from 'date-fns';
+import {
+  addDaysToDateKey,
+  formatDateKeyInTimeZone,
+  formatDateTime,
+  startOfDayFromDateKey,
+} from '@/lib/timezone';
 
 type TimelineShift = {
   id: string;
@@ -83,19 +89,27 @@ const LAYER_COLORS = [
 
 export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: ScheduleTimelineProps) {
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);
-  const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
+  const todayKey = useMemo(() => formatDateKeyInTimeZone(new Date(), timeZone), [timeZone]);
+  const [startDateKey, setStartDateKey] = useState<string>(todayKey);
   const [showFinalSchedule, setShowFinalSchedule] = useState(true);
 
-  const endDate = useMemo(() => addDays(startDate, daysToShow), [startDate, daysToShow]);
+  const startDate = useMemo(
+    () => startOfDayFromDateKey(startDateKey, timeZone),
+    [startDateKey, timeZone]
+  );
+  const endDate = useMemo(
+    () => startOfDayFromDateKey(addDaysToDateKey(startDateKey, daysToShow), timeZone),
+    [startDateKey, daysToShow, timeZone]
+  );
 
   // Generate day columns
   const days = useMemo(() => {
     const result: Date[] = [];
     for (let i = 0; i < daysToShow; i++) {
-      result.push(addDays(startDate, i));
+      result.push(startOfDayFromDateKey(addDaysToDateKey(startDateKey, i), timeZone));
     }
     return result;
-  }, [startDate, daysToShow]);
+  }, [startDateKey, daysToShow, timeZone]);
 
   // Get unique layer names for color assignment
   const layerColorMap = useMemo(() => {
@@ -147,15 +161,15 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
   }, [visibleShifts, layerPriorities]);
 
   const handlePrevPeriod = () => {
-    setStartDate(prev => addDays(prev, -daysToShow));
+    setStartDateKey(prev => addDaysToDateKey(prev, -daysToShow));
   };
 
   const handleNextPeriod = () => {
-    setStartDate(prev => addDays(prev, daysToShow));
+    setStartDateKey(prev => addDaysToDateKey(prev, daysToShow));
   };
 
   const handleToday = () => {
-    setStartDate(startOfDay(new Date()));
+    setStartDateKey(todayKey);
   };
 
   const totalHours = daysToShow * 24;
@@ -171,7 +185,12 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
             <div>
               <CardTitle className="text-base">Schedule Timeline</CardTitle>
               <CardDescription className="text-xs">
-                {format(startDate, 'MMM d')} - {format(addDays(endDate, -1), 'MMM d, yyyy')}
+                {formatDateTime(startDate, timeZone, { format: 'date', hour12: false })} -{' '}
+                {formatDateTime(
+                  startOfDayFromDateKey(addDaysToDateKey(startDateKey, daysToShow - 1), timeZone),
+                  timeZone,
+                  { format: 'date', hour12: false }
+                )}
               </CardDescription>
             </div>
           </div>
@@ -251,8 +270,13 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
             {/* Day Headers */}
             <div className="flex sticky top-0 bg-white z-10 border-b border-slate-100">
               {days.map((day, index) => {
-                const isCurrentDay = isToday(day);
-                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                const dayParts = {
+                  weekday: new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone }).format(day),
+                  dayNum: new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone }).format(day),
+                  month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone }).format(day),
+                };
+                const isCurrentDay = formatDateKeyInTimeZone(day, timeZone) === todayKey;
+                const isWeekend = dayParts.weekday === 'Sat' || dayParts.weekday === 'Sun';
                 return (
                   <div
                     key={index}
@@ -268,7 +292,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-600' : 'text-slate-400'
                       )}
                     >
-                      {format(day, 'EEE')}
+                      {dayParts.weekday}
                     </div>
                     <div
                       className={cn(
@@ -276,7 +300,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-700' : 'text-slate-800'
                       )}
                     >
-                      {format(day, 'd')}
+                      {dayParts.dayNum}
                     </div>
                     <div
                       className={cn(
@@ -284,7 +308,7 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                         isCurrentDay ? 'text-indigo-500' : 'text-slate-400'
                       )}
                     >
-                      {format(day, 'MMM')}
+                      {dayParts.month}
                     </div>
                     {isCurrentDay && (
                       <div className="mt-1">
@@ -356,8 +380,13 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                       {/* Grid Background */}
                       <div className="absolute inset-0 flex pointer-events-none">
                         {days.map((day, index) => {
-                          const isCurrentDay = isToday(day);
-                          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                          const dayKey = formatDateKeyInTimeZone(day, timeZone);
+                          const dayWeekday = new Intl.DateTimeFormat('en-US', {
+                            weekday: 'short',
+                            timeZone,
+                          }).format(day);
+                          const isCurrentDay = dayKey === todayKey;
+                          const isWeekend = dayWeekday === 'Sat' || dayWeekday === 'Sun';
                           return (
                             <div
                               key={index}
@@ -423,8 +452,15 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                                         {widthPercent > 15 && (
                                           <div className="text-[10px] text-white/80 flex items-center gap-1 truncate">
                                             <Clock className="h-2.5 w-2.5" />
-                                            {format(shift.start, 'HH:mm')} -{' '}
-                                            {format(shift.end, 'HH:mm')}
+                                            {formatDateTime(shift.start, timeZone, {
+                                              format: 'time',
+                                              hour12: false,
+                                            })}{' '}
+                                            -{' '}
+                                            {formatDateTime(shift.end, timeZone, {
+                                              format: 'time',
+                                              hour12: false,
+                                            })}
                                           </div>
                                         )}
                                       </div>
@@ -453,8 +489,15 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                                     </div>
                                     <div className="text-xs text-slate-500 flex items-center gap-1.5">
                                       <Clock className="h-3 w-3" />
-                                      {format(shift.start, 'MMM d, HH:mm')} -{' '}
-                                      {format(shift.end, 'MMM d, HH:mm')}
+                                      {formatDateTime(shift.start, timeZone, {
+                                        format: 'short',
+                                        hour12: false,
+                                      })}{' '}
+                                      -{' '}
+                                      {formatDateTime(shift.end, timeZone, {
+                                        format: 'short',
+                                        hour12: false,
+                                      })}
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <span
@@ -561,7 +604,15 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                                     {widthPercent > 15 && (
                                       <div className="text-[10px] text-white/80 flex items-center gap-1 truncate">
                                         <Clock className="h-2.5 w-2.5" />
-                                        {format(block.start, 'HH:mm')} - {format(block.end, 'HH:mm')}
+                                        {formatDateTime(block.start, timeZone, {
+                                          format: 'time',
+                                          hour12: false,
+                                        })}{' '}
+                                        -{' '}
+                                        {formatDateTime(block.end, timeZone, {
+                                          format: 'time',
+                                          hour12: false,
+                                        })}
                                       </div>
                                     )}
                                   </div>
@@ -585,7 +636,15 @@ export default function ScheduleTimeline({ shifts, timeZone, layerPriorities }: 
                                 </div>
                                 <div className="text-xs text-slate-500 flex items-center gap-1.5">
                                   <Clock className="h-3 w-3" />
-                                  {format(block.start, 'MMM d, HH:mm')} - {format(block.end, 'MMM d, HH:mm')}
+                                  {formatDateTime(block.start, timeZone, {
+                                    format: 'short',
+                                    hour12: false,
+                                  })}{' '}
+                                  -{' '}
+                                  {formatDateTime(block.end, timeZone, {
+                                    format: 'short',
+                                    hour12: false,
+                                  })}
                                 </div>
                                 <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
                                   Effective On-Call
