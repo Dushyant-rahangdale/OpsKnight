@@ -223,7 +223,21 @@ async function main() {
     },
   });
 
-  const seededUsers: Array<{ id: string; name: string; email: string }> = [admin];
+  const testPasswordHash = await bcrypt.hash('testpassword123', 10);
+  const testUser = await prisma.user.create({
+    data: {
+      name: 'Test User',
+      email: 'test@example.com',
+      role: 'USER',
+      status: 'ACTIVE',
+      passwordHash: testPasswordHash,
+      timeZone: 'UTC',
+      incidentDigest: 'HIGH',
+      emailNotificationsEnabled: true,
+    },
+  });
+
+  const seededUsers: Array<{ id: string; name: string; email: string }> = [admin, testUser];
 
   for (let i = 0; i < seedConfig.teams * seedConfig.usersPerTeam; i++) {
     const firstName = randomPick(firstNames);
