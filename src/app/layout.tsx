@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="color-scheme" content="light dark" />
         <meta name="darkreader-lock" />
       </head>
-      <body className={`${manrope.variable} antialiased`}>
+      <body className={`${manrope.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           <VersionCheck />
           {children}
