@@ -942,10 +942,7 @@
 }
 
 .analytics-v2 {
-    background:
-        radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.05), transparent 55%),
-        radial-gradient(circle at 80% 10%, rgba(14, 116, 144, 0.05), transparent 50%),
-        radial-gradient(circle at 10% 80%, rgba(99, 102, 241, 0.05), transparent 45%);
+    background: transparent;
     padding-bottom: 4rem;
 }
 
@@ -4397,6 +4394,7 @@
 
 /* SLA panels responsive */
 @media (max-width: 768px) {
+
     .analytics-v2 .sla-coverage-header,
     .analytics-v2 .sla-summary-header,
     .analytics-v2 .sla-service-header,
@@ -4450,6 +4448,7 @@
 
 /* Insights and trends panels responsive */
 @media (max-width: 640px) {
+
     .analytics-v2 .insights-panel,
     .analytics-v2 .trends-panel {
         padding: 1rem;
