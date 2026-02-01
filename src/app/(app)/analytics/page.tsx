@@ -288,44 +288,59 @@ export default async function AnalyticsV2Page({
   );
 
   return (
-    <main className="page-shell analytics-shell analytics-v2 pb-16 sm:pb-20">
-      <div className="analytics-header">
-        <div className="analytics-header-left">
-          <div className="analytics-header-pill-row">
-            <span className="analytics-status-pill">
-              <span className="analytics-live-dot" aria-hidden="true" />
-              Live operations
-            </span>
-            <span className="analytics-window-pill">
-              Last {windowLabelDays} days{windowLabelSuffix}
-            </span>
-            <span className="analytics-update">Updated just now</span>
+    <div className="w-full px-4 py-6 space-y-6 [zoom:0.8] pb-16 sm:pb-20 analytics-v2">
+      {/* Header with Stats */}
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-white rounded-lg p-4 md:p-6 shadow-lg mb-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight flex items-center gap-4 text-white">
+              <LayoutDashboard className="h-10 w-10 md:h-12 md:w-12" />
+              Analytics & Insights
+            </h1>
+            <p className="text-xs md:text-sm opacity-90 mt-1 text-white">
+              Incident health, SLA performance, and on-call readiness
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2 text-[10px] md:text-xs uppercase tracking-wider text-white/80 font-medium">
+              <span className="bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+                Coverage outlook
+              </span>
+              <span className="bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+                SLA compliance
+              </span>
+              <span className="bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+                Ownership load
+              </span>
+              <span className="bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+                Service health
+              </span>
+            </div>
           </div>
-          <h1 className="analytics-header-title">Analytics &amp; Insights</h1>
-          <p className="analytics-header-subtitle">
-            Incident health, SLA performance, and on-call readiness.
-          </p>
-          <div className="analytics-header-highlights">
-            <span>Coverage outlook</span>
-            <span>SLA compliance</span>
-            <span>Ownership load</span>
-            <span>Service health</span>
-          </div>
-        </div>
 
-        <div className="analytics-header-actions">
-          <button className="analytics-ghost-button" type="button">
-            <Repeat className="w-4 h-4" />
-            Refresh
-          </button>
-          <button className="analytics-ghost-button" type="button">
-            <Bell className="w-4 h-4" />
-            Subscribe
-          </button>
-          <a href={exportUrl} className="analytics-primary-button">
-            <BarChart3 className="w-4 h-4" />
-            Export report
-          </a>
+          <div className="flex flex-wrap items-center gap-3 mt-4 lg:mt-0">
+            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide">Live Operations</span>
+            </div>
+
+            <button
+              className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm transition-all text-xs font-semibold"
+              type="button"
+            >
+              <Repeat className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+
+            <a
+              href={exportUrl}
+              className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-white text-primary hover:bg-gray-50 shadow-sm transition-all text-xs font-bold"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              Export
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1453,6 +1468,6 @@ export default async function AnalyticsV2Page({
           variant="analytics"
         />
       </section>
-    </main>
+    </div>
   );
 }
