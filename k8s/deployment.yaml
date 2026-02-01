@@ -22,7 +22,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: opsknight-app
-          image: ghcr.io/dushyant-rahangdale/opsknight-test:latest
+          image: ghcr.io/dushyant-rahangdale/opsknight:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
