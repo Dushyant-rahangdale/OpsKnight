@@ -23,6 +23,15 @@ export type WidgetDefinition = {
   config?: Record<string, any>;
 };
 
+export type DashboardWidgetInstance = {
+  id: string;
+  widgetType: string;
+  metricKey: string;
+  title?: string | null;
+  position: { x: number; y: number; w: number; h: number };
+  config: Record<string, unknown>;
+};
+
 /**
  * Complete registry of available widgets
  */

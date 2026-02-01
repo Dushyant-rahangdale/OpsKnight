@@ -7,6 +7,7 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { serializeSlaMetrics } from '@/lib/sla';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 import { getTemplateById, DASHBOARD_TEMPLATES } from '@/lib/reports/dashboard-templates';
+import { DashboardWidgetInstance } from '@/lib/reports/widget-registry';
 import DashboardViewer from './DashboardViewer';
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +53,7 @@ export default async function ExecutiveDashboardPage({
   const templateId = params?.template;
 
   // If template specified, use template widgets
-  let widgets: any[] = [];
+  let widgets: DashboardWidgetInstance[] = [];
   let dashboardName = 'Executive Dashboard';
   let dashboardDescription = 'Operational health overview';
 

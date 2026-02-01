@@ -18,6 +18,7 @@ import {
   Shield,
   Users,
   Minus,
+  LucideIcon,
 } from 'lucide-react';
 import { DASHBOARD_TEMPLATES } from '@/lib/reports/dashboard-templates';
 import CreateBlankDashboardButton from './CreateBlankDashboardButton';
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   description: 'Create a new custom dashboard',
 };
 
-const TEMPLATE_ICONS: Record<string, any> = {
+const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   'executive-summary': LayoutDashboard,
   'sre-operations': Terminal,
   'sla-performance': Shield,
