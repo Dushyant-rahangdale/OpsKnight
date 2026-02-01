@@ -29,6 +29,7 @@ export interface BreachWarning {
   slackWebhookUrl?: string | null;
   slackChannel?: string | null;
   serviceNotificationChannels?: string[];
+  webhookIntegrations?: any[];
 }
 
 export interface BreachCheckResult {
@@ -43,6 +44,7 @@ export interface BreachMonitorConfig {
   resolveWarningThresholdMs?: number;
   notifySlack?: boolean;
   notifyEmail?: boolean;
+  notifyWebhook?: boolean;
   alertEmail?: string;
 }
 
@@ -51,7 +53,7 @@ export interface BreachMonitorConfig {
  * Run every 5 minutes via scheduled job
  */
 export async function checkSLABreaches(
-  config: BreachMonitorConfig = {}
+  config: BreachMonitorConfig = { notifySlack: true, notifyEmail: true, notifyWebhook: true }
 ): Promise<BreachCheckResult> {
   const { default: prisma } = await import('./prisma');
 
@@ -85,6 +87,9 @@ export async function checkSLABreaches(
           slackChannel: true,
           serviceNotificationChannels: true,
           serviceNotifyOnSlaBreach: true,
+          webhookIntegrations: {
+            where: { enabled: true },
+          },
         },
       },
       assignee: {
@@ -149,6 +154,7 @@ export async function checkSLABreaches(
             slackWebhookUrl: incident.service.slackWebhookUrl,
             slackChannel: incident.service.slackChannel,
             serviceNotificationChannels: incident.service.serviceNotificationChannels,
+            webhookIntegrations: incident.service.webhookIntegrations,
           });
         }
       }
@@ -186,6 +192,7 @@ export async function checkSLABreaches(
           slackWebhookUrl: incident.service.slackWebhookUrl,
           slackChannel: incident.service.slackChannel,
           serviceNotificationChannels: incident.service.serviceNotificationChannels,
+          webhookIntegrations: incident.service.webhookIntegrations,
         });
       }
     }
@@ -226,8 +233,6 @@ async function notifyBreachWarning(
   config: BreachMonitorConfig
 ): Promise<void> {
   const remainingMinutes = Math.round(warning.timeRemainingMs / 60000);
-  const urgencyEmoji =
-    warning.urgency === 'HIGH' ? '🔴' : warning.urgency === 'MEDIUM' ? '🟡' : '🟢';
   const breachEmoji = warning.breachType === 'ack' ? '⏰' : '⚠️';
 
   const message = `${breachEmoji} SLA ${warning.breachType.toUpperCase()} Warning: "${warning.title}"`;
@@ -366,6 +371,46 @@ async function notifyBreachWarning(
           logger.error('[SLA Breach Monitor] Failed to send Global Slack notification', { error });
         }
       }
+    }
+  }
+
+  // Send Webhook notifications if enabled
+  if (config.notifyWebhook && warning.serviceNotificationChannels?.includes('WEBHOOK')) {
+    try {
+      const { sendIncidentWebhook } = await import('./webhooks');
+      const webhooks = warning.webhookIntegrations || [];
+
+      for (const webhook of webhooks) {
+        try {
+          const result = await sendIncidentWebhook(
+            webhook.url,
+            warning.incidentId,
+            'warning',
+            webhook.secret || undefined,
+            webhook.type,
+            (webhook as any).channel || undefined
+          );
+
+          if (result.success) {
+            logger.info('[SLA Breach Monitor] Webhook notification sent', {
+              webhookId: (webhook as any).id,
+              type: (webhook as any).type,
+            });
+          } else {
+            logger.warn('[SLA Breach Monitor] Webhook notification failed', {
+              webhookId: (webhook as any).id,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          logger.error('[SLA Breach Monitor] Error sending webhook notification', {
+            webhookId: (webhook as any).id,
+            error,
+          });
+        }
+      }
+    } catch (importError) {
+      logger.error('[SLA Breach Monitor] Failed to import webhooks module', { importError });
     }
   }
 

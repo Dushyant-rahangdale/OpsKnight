@@ -189,7 +189,7 @@ export function generateIncidentWebhookPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated'
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning'
 ): Record<string, any> {
   const baseUrl = getBaseUrl();
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
@@ -245,7 +245,7 @@ export function formatGoogleChatPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string
 ): Record<string, any> {
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
@@ -258,7 +258,9 @@ export function formatGoogleChatPayload(
         ? '⚠️'
         : eventType === 'resolved'
           ? '✅'
-          : 'ℹ️';
+          : eventType === 'warning'
+            ? '⏰'
+            : 'ℹ️';
 
   return {
     cards: [
@@ -267,7 +269,9 @@ export function formatGoogleChatPayload(
           title: `Incident ${eventType.charAt(0).toUpperCase() + eventType.slice(1)}`,
           subtitle: `${incident.service.name} • ${incident.urgency}`,
           imageUrl:
-            'https://raw.githubusercontent.com/google/material-design-icons/master/png/alert/error_outline/materialicons/24dp/2x/baseline_error_outline_black_24dp.png', // Generic alert icon
+            eventType === 'warning'
+              ? 'https://raw.githubusercontent.com/google/material-design-icons/master/png/action/schedule/materialicons/24dp/2x/baseline_schedule_black_24dp.png'
+              : 'https://raw.githubusercontent.com/google/material-design-icons/master/png/alert/error_outline/materialicons/24dp/2x/baseline_error_outline_black_24dp.png',
           imageStyle: 'AVATAR',
         },
         sections: [
@@ -351,14 +355,14 @@ export function formatMicrosoftTeamsPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string
 ): Record<string, any> {
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
   const accentColor =
     eventType === 'triggered'
       ? 'Attention' // Red
-      : eventType === 'acknowledged'
+      : eventType === 'acknowledged' || eventType === 'warning'
         ? 'Warning' // Yellow/Orange
         : eventType === 'resolved'
           ? 'Good' // Green
@@ -371,7 +375,9 @@ export function formatMicrosoftTeamsPayload(
         ? '⚠️'
         : eventType === 'resolved'
           ? '✅'
-          : 'ℹ️';
+          : eventType === 'warning'
+            ? '⏰'
+            : 'ℹ️';
 
   return {
     type: 'message',
@@ -483,14 +489,14 @@ export function formatDiscordPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string
 ): Record<string, any> {
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
   const color =
     eventType === 'triggered'
       ? 0xd32f2f // Red
-      : eventType === 'acknowledged'
+      : eventType === 'acknowledged' || eventType === 'warning'
         ? 0xf9a825 // Yellow
         : eventType === 'resolved'
           ? 0x388e3c // Green
@@ -499,7 +505,7 @@ export function formatDiscordPayload(
   const statusEmoji =
     eventType === 'triggered'
       ? '🔴'
-      : eventType === 'acknowledged'
+      : eventType === 'acknowledged' || eventType === 'warning'
         ? '🟡'
         : eventType === 'resolved'
           ? '🟢'
@@ -559,7 +565,7 @@ export function formatTelegramPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string,
   channel?: string
 ): Record<string, any> {
@@ -608,7 +614,7 @@ export function formatSlackPayload(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string
 ): Record<string, any> {
   const incidentUrl = `${baseUrl}/incidents/${incident.id}`;
@@ -703,7 +709,7 @@ export function formatWebhookPayloadByType(
     acknowledgedAt?: Date | null;
     resolvedAt?: Date | null;
   },
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   baseUrl: string,
   channel?: string
 ): Record<string, any> {
@@ -731,7 +737,7 @@ export function formatWebhookPayloadByType(
 export async function sendIncidentWebhook(
   webhookUrl: string,
   incidentId: string,
-  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated',
+  eventType: 'triggered' | 'acknowledged' | 'resolved' | 'updated' | 'warning',
   secret?: string,
   webhookType?: string,
   channel?: string
