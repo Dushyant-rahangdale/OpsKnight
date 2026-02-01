@@ -6,6 +6,7 @@ export default mergeConfig(baseConfig, defineConfig({
         include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
         exclude: [
             'tests/integration/**',
+            'tests/e2e/**',
             'node_modules/**',
             'dist/**',
             '.next/**'
