@@ -79,3 +79,7 @@ ci_*.txt
 .claude/
 # pre-push build artifacts
 .next-pre-push/
+
+# Playwright
+/playwright-report/
+/test-results/
