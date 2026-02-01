@@ -54,6 +54,7 @@ async function initializeSentry(): Promise<SentryHub | null> {
 
   try {
     // Dynamic import to keep Sentry optional
+    // @ts-expect-error - Sentry is an optional dependency
     const Sentry = await import('@sentry/nextjs');
 
     Sentry.init({

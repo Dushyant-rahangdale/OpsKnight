@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getCurrentUser } from '@/lib/rbac';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
@@ -152,12 +153,12 @@ export async function POST(req: NextRequest) {
         create: {
           provider: smsProvider,
           enabled: smsConfig.enabled as boolean,
-          config: smsConfig,
+          config: smsConfig as Prisma.InputJsonValue,
           updatedBy: user.id,
         },
         update: {
           enabled: smsConfig.enabled as boolean,
-          config: smsConfig,
+          config: smsConfig as Prisma.InputJsonValue,
           updatedBy: user.id,
         },
       });
@@ -192,12 +193,12 @@ export async function POST(req: NextRequest) {
         create: {
           provider: 'web-push',
           enabled: pushConfig.enabled as boolean,
-          config: pushConfig,
+          config: pushConfig as Prisma.InputJsonValue,
           updatedBy: user.id,
         },
         update: {
           enabled: pushConfig.enabled as boolean,
-          config: pushConfig,
+          config: pushConfig as Prisma.InputJsonValue,
           updatedBy: user.id,
         },
       });
@@ -224,7 +225,7 @@ export async function POST(req: NextRequest) {
         await prisma.notificationProvider.update({
           where: { provider: 'twilio' },
           data: {
-            config: updatedTwilioConfig,
+            config: updatedTwilioConfig as Prisma.InputJsonValue,
             updatedBy: user.id,
           },
         });
@@ -233,7 +234,7 @@ export async function POST(req: NextRequest) {
           data: {
             provider: 'twilio',
             enabled: false,
-            config: updatedTwilioConfig,
+            config: updatedTwilioConfig as Prisma.InputJsonValue,
             updatedBy: user.id,
           },
         });
