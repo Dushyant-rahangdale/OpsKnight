@@ -13,7 +13,7 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1/deployment/docker.md)
-[![Status](https://img.shields.io/badge/Status-Beta-orange?style=flat)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/Status-v1.0.0-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml)
 [![Security](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml)
@@ -60,7 +60,6 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 | **Custom Branding** |       ✅ Full Control       |        ❌ Limited        |
 | **Data Privacy**    |    ✅ 100% Owned by You     | ❌ Third-Party Processed |
 
-
 ---
 
 ## 🎥 Demo
@@ -105,8 +104,6 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
     </td>
   </tr>
 </table>
-
-
 
 </div>
 
@@ -196,11 +193,11 @@ Visit `http://localhost:3000` and start managing incidents.
 
 We support multiple deployment strategies to fit your infrastructure needs.
 
-| Method             | Best For                            | Guide                                          |
-| :----------------- | :---------------------------------- | :--------------------------------------------- |
-| ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose** | Local Development, small teams      | [Read Guide](docs/v1/deployment/docker.md)     |
-| ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart**     | Production Kubernetes (Recommended) | [Read Guide](docs/v1/deployment/helm.md)       |
-| ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**      | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1/deployment/kubernetes.md) |
+| Method                                                                                                        | Best For                            | Guide                                          |
+| :------------------------------------------------------------------------------------------------------------ | :---------------------------------- | :--------------------------------------------- |
+| ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose**     | Local Development, small teams      | [Read Guide](docs/v1/deployment/docker.md)     |
+| ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart** | Production Kubernetes (Recommended) | [Read Guide](docs/v1/deployment/helm.md)       |
+| ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**             | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1/deployment/kubernetes.md) |
 
 > **Note:** For production, we recommend using an external managed PostgreSQL database.
 
@@ -235,7 +232,9 @@ Everything you need to configure and extend OpsKnight.
 
 ## 🗺️ Roadmap
 
-We are actively building towards **Version 1.0 (February 2026)**.
+We are proud to announce **Version 1.0 (February 2026)**! 🚀
+
+We are now **Accepting Contributions** to help us build the next generation of open-source incident management.
 
 - [x] Core Incident Management & On-Call
 - [x] Slack Integration & Webhooks
@@ -249,6 +248,10 @@ See the full [ROADMAP.md](ROADMAP.md) for details.
 ---
 
 ## 🤝 Community & Support
+
+## 🤝 Community & Support
+
+**We are actively seeking contributors!** Whether you're a developer, designer, or technical writer, come help us build OpsKnight.
 
 Join the OpsKnight community to get help, suggest features, or contribute.
 

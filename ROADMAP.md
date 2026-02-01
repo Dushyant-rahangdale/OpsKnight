@@ -2,16 +2,16 @@
 
 This roadmap outlines our path to building the ultimate open-source incident management platform.
 
-> **Current Status:** We are laser-focused on **Stability** and **Reliability**.
+> **Current Status:** Version 1.0 is **RELEASED**! We are now focused on community contributions and advanced integrations.
 
-## 🏗 Phase 1: Foundation & Stability (Current Focus)
+## 🏗 Phase 1: Foundation & Stability (Completed)
 
-Our immediate goal is to stabilize the existing feature set and ensure rock-solid reliability for the V1 Release.
+We have stabilized the core feature set and ensured rock-solid reliability for the V1 Release.
 
-- [ ] **Core Reliability**: Exhaustive testing of the alerting pipeline and escalation engine.
-- [ ] **Mobile PWA**: Polish the existing Progressive Web App (Offline support & Notifications).
-- [ ] **Documentation**: Comprehensive guides for APIs, deployment, and configuration.
-- [ ] **User Experience**: Polishing the UI/UX for Schedules and Incident Command.
+- [x] **Core Reliability**: Exhaustive testing of the alerting pipeline and escalation engine.
+- [x] **Mobile PWA**: Polish the existing Progressive Web App (Offline support & Notifications).
+- [x] **Documentation**: Comprehensive guides for APIs, deployment, and configuration.
+- [x] **User Experience**: Polishing the UI/UX for Schedules and Incident Command.
 
 ## 🚀 Phase 2: Expanding Communication
 
