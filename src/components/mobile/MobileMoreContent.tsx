@@ -9,6 +9,7 @@ import { MobileAvatar } from '@/components/mobile/MobileUtils';
 import { useUserAvatarContextSafe } from '@/contexts/UserAvatarContext';
 import PwaInstallCard from '@/components/mobile/PwaInstallCard';
 import MobileSignOutButton from '@/components/mobile/MobileSignOutButton';
+import { APP_VERSION } from '@/lib/constants';
 
 type Tone = 'blue' | 'teal' | 'amber' | 'green' | 'slate' | 'red';
 
@@ -447,7 +448,7 @@ export default function MobileMoreContent({
         </div>
       </section>
 
-      <div className="mobile-more-footer">OpsKnight Mobile v1.0.0</div>
+      <div className="mobile-more-footer">OpsKnight Mobile {APP_VERSION}</div>
     </div>
   );
 }

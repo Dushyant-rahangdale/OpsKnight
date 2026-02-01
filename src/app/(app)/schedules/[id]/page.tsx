@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import { getUserPermissions } from '@/lib/rbac';
+import { assertCanViewSchedule, getUserPermissions } from '@/lib/rbac';
 import { buildScheduleBlocks, getFinalScheduleBlocks } from '@/lib/oncall';
 import {
   formatDateForInput,
@@ -167,6 +167,12 @@ export default async function ScheduleDetailPage({
     ]);
 
   if (!schedule) notFound();
+
+  try {
+    await assertCanViewSchedule(schedule.id);
+  } catch {
+    notFound();
+  }
 
   const permissions = await getUserPermissions();
   const canManageSchedules = permissions.isAdminOrResponder;
