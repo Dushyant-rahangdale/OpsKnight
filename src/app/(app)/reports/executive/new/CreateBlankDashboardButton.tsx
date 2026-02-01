@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CreateBlankDashboardButton() {
   const [isCreating, setIsCreating] = useState(false);
@@ -30,7 +31,7 @@ export default function CreateBlankDashboardButton() {
       window.location.href = `/reports/executive/${data.dashboard.id}`;
     } catch (error) {
       console.error('Failed to create dashboard:', error);
-      alert('Failed to create dashboard. Please try again.');
+      toast.error('Failed to create dashboard. Please try again.');
       setIsCreating(false);
     }
   };

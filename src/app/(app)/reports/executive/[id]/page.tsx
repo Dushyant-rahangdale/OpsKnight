@@ -7,6 +7,7 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { serializeSlaMetrics } from '@/lib/sla';
 import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
 import { DASHBOARD_TEMPLATES } from '@/lib/reports/dashboard-templates';
+import { DashboardWidget } from '@prisma/client';
 import DashboardViewer from '../DashboardViewer';
 
 export const dynamic = 'force-dynamic';
@@ -82,13 +83,13 @@ export default async function SavedDashboardPage({ params, searchParams }: PageP
   ]);
 
   // Transform widgets to expected format
-  const widgets = dashboard.widgets.map(w => ({
+  const widgets = dashboard.widgets.map((w: DashboardWidget) => ({
     id: w.id,
     widgetType: w.widgetType,
     metricKey: w.metricKey,
     title: w.title,
     position: w.position as { x: number; y: number; w: number; h: number },
-    config: w.config as Record<string, any>,
+    config: w.config as Record<string, unknown>,
   }));
 
   return (

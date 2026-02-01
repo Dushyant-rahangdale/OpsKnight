@@ -20,6 +20,17 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/shadcn/dropdown-menu';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/shadcn/alert-dialog';
+import { toast } from 'sonner';
+import {
   LayoutDashboard,
   Settings,
   Download,
@@ -44,7 +55,7 @@ type Widget = {
   metricKey: string;
   title?: string | null;
   position: { x: number; y: number; w: number; h: number };
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 };
 
 type DashboardViewerProps = {
@@ -97,6 +108,7 @@ export default function DashboardViewer({
   const [isWidgetLibraryOpen, setIsWidgetLibraryOpen] = useState(false);
   const [localWidgets, setLocalWidgets] = useState(widgets);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Handle adding a new widget from the library
   const handleAddWidget = (widgetDef: WidgetDefinition) => {
@@ -155,7 +167,7 @@ export default function DashboardViewer({
       router.push(`/reports/executive/${data.dashboard.id}`);
     } catch (error) {
       console.error('Failed to clone dashboard:', error);
-      alert('Failed to clone dashboard. Please try again.');
+      toast.error('Failed to clone dashboard. Please try again.');
     } finally {
       setIsCloning(false);
     }
@@ -264,34 +276,10 @@ export default function DashboardViewer({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={async () => {
-                        if (
-                          !confirm(
-                            'Are you sure you want to delete this dashboard? This action cannot be undone.'
-                          )
-                        ) {
-                          return;
-                        }
-                        setIsDeleting(true);
-                        try {
-                          const response = await fetch(`/api/dashboards/${dashboardId}`, {
-                            method: 'DELETE',
-                          });
-                          if (!response.ok) {
-                            throw new Error('Failed to delete dashboard');
-                          }
-                          router.push('/reports');
-                        } catch (error) {
-                          console.error('Failed to delete dashboard:', error);
-                          alert('Failed to delete dashboard. Please try again.');
-                        } finally {
-                          setIsDeleting(false);
-                        }
-                      }}
-                      disabled={isDeleting}
+                      onSelect={() => setShowDeleteDialog(true)}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      {isDeleting ? 'Deleting...' : 'Delete Dashboard'}
+                      Delete Dashboard
                     </DropdownMenuItem>
                   </>
                 )}
@@ -453,6 +441,46 @@ export default function DashboardViewer({
         onAddWidget={handleAddWidget}
         existingWidgetKeys={existingWidgetKeys}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the dashboard and remove it
+              from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              onClick={async e => {
+                e.preventDefault();
+                setIsDeleting(true);
+                try {
+                  const response = await fetch(`/api/dashboards/${dashboardId}`, {
+                    method: 'DELETE',
+                  });
+                  if (!response.ok) {
+                    throw new Error('Failed to delete dashboard');
+                  }
+                  toast.success('Dashboard deleted successfully');
+                  router.push('/reports');
+                } catch (error) {
+                  console.error('Failed to delete dashboard:', error);
+                  toast.error('Failed to delete dashboard. Please try again.');
+                  setIsDeleting(false);
+                  setShowDeleteDialog(false);
+                }
+              }}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

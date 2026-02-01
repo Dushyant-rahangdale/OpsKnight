@@ -50,7 +50,7 @@ export async function loginAs(page: Page, email: string, password: string): Prom
   await page.locator('input[type="password"]').fill(password);
 
   // Click Sign In button
-  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.locator('button[type="submit"]').click();
 
   // Wait for successful redirect (dashboard or home)
   await page.waitForURL(/\/(dashboard|home|incidents)?$/, { timeout: 15000 });

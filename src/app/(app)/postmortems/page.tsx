@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/shadcn/card';
 import { FileText } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import PostmortemsListTable from '@/components/postmortem/PostmortemsListTable';
-import { getUserTimeZone, formatDateTime } from '@/lib/timezone';
+import { getUserTimeZone } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
 
 export default async function PostmortemsPage({
