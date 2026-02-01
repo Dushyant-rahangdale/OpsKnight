@@ -191,20 +191,11 @@ export async function updatePreferences(
   try {
     const user = await getCurrentUser();
     const timeZone = (formData.get('timeZone') as string | null)?.trim() ?? 'UTC';
-    const dailySummary = formData.get('dailySummary') === 'on';
-    const digest = (formData.get('incidentDigest') as string | null)?.toUpperCase() ?? 'HIGH';
-    const allowedDigests = new Set(['HIGH', 'ALL', 'NONE']);
-
-    if (!allowedDigests.has(digest)) {
-      return { error: 'Invalid digest option.' };
-    }
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         timeZone,
-        dailySummary,
-        incidentDigest: digest as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       },
     });
 

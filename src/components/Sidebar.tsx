@@ -130,13 +130,6 @@ const navigationItems: NavItem[] = [
     icon: <BarChart />,
     section: 'INSIGHTS',
   },
-  {
-    href: '/reports/executive',
-    label: 'Executive Report',
-    icon: <PieChart />,
-    section: 'INSIGHTS',
-    requiresRole: ['ADMIN'],
-  },
 ];
 
 type SidebarProps = {
