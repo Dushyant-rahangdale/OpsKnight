@@ -1,6 +1,7 @@
 'use client';
 
 import { Book, Github, Globe, Mail, ChevronRight, ExternalLink, Heart } from 'lucide-react';
+import { APP_VERSION } from '@/lib/constants';
 // MobileHeader is provided by layout
 
 export const dynamic = 'force-dynamic';
@@ -107,7 +108,7 @@ export default function MobileHelpPage() {
 
       <div className="mt-auto py-6 text-center">
         <p className="text-xs font-medium text-[color:var(--text-muted)]">
-          OpsKnight Mobile v1.0.0
+          OpsKnight Mobile {APP_VERSION}
         </p>
       </div>
     </div>

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import UserAvatar from '@/components/UserAvatar';
+import { APP_VERSION } from '@/lib/constants';
 
 type NavItem = {
   href: string;
@@ -518,7 +519,7 @@ export default function Sidebar(
               <span className="text-xs text-white/20 font-medium hover:text-white/40 transition-colors cursor-default">
                 opsknight.com
               </span>
-              <span className="text-xs text-white/10 font-mono">v1.0.2</span>
+              <span className="text-xs text-white/10 font-mono">{APP_VERSION}</span>
             </div>
           )}
         </div>

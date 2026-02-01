@@ -232,3 +232,50 @@ export async function assertCanModifyService(serviceId: string) {
 
   throw new Error('Unauthorized. You do not have permission to modify this service.');
 }
+
+/**
+ * Check if user can view a schedule
+ * Users can view schedules if:
+ * - They are ADMIN or RESPONDER
+ * - They are assigned to a layer in the schedule
+ * - They are referenced in an override (as user or replacement)
+ */
+export async function assertCanViewSchedule(scheduleId: string) {
+  const user = await getCurrentUser();
+
+  if (user.role === 'ADMIN' || user.role === 'RESPONDER') {
+    return user;
+  }
+
+  const schedule = await prisma.onCallSchedule.findUnique({
+    where: { id: scheduleId },
+    select: {
+      id: true,
+      layers: {
+        select: {
+          users: {
+            where: { userId: user.id },
+            select: { id: true },
+          },
+        },
+      },
+      overrides: {
+        where: {
+          OR: [{ userId: user.id }, { replacesUserId: user.id }],
+        },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!schedule) {
+    throw new Error('Schedule not found');
+  }
+
+  const hasLayerAccess = schedule.layers.some(layer => layer.users.length > 0);
+  if (hasLayerAccess || schedule.overrides.length > 0) {
+    return user;
+  }
+
+  throw new Error('Unauthorized. You do not have permission to view this schedule.');
+}
