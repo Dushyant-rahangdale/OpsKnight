@@ -23,7 +23,7 @@ export function getBaseUrl(): string {
     if (process.env.NODE_ENV === 'production') {
       logger.warn(
         'NEXT_PUBLIC_APP_URL environment variable is not set. ' +
-          'Using localhost fallback. Set this to your application URL for correct notification links.'
+        'Using localhost fallback. Set this to your application URL for correct notification links.'
       );
     } else {
       // Development fallback
@@ -42,8 +42,11 @@ export function getBaseUrl(): string {
  * Call this early in application startup
  */
 export function validateProductionEnv(): void {
-  if (process.env.NODE_ENV !== 'production') {
-    return; // Skip validation in development
+  if (process.env.NODE_ENV !== 'production' || process.env.SKIP_ENV_VALIDATION) {
+    if (process.env.SKIP_ENV_VALIDATION) {
+      logger.warn('⚠️  Skipping environment validation due to SKIP_ENV_VALIDATION flag');
+    }
+    return; // Skip validation
   }
 
   const required: Array<{ name: string; description: string }> = [
