@@ -114,7 +114,8 @@ describe('Cron Scheduler - Lock Management', () => {
       await vi.advanceTimersByTimeAsync(100);
 
       const call = vi.mocked(prisma.cronSchedulerState.updateMany).mock.calls[0];
-      expect(call[0].where.OR).toContainEqual({ lockedBy: workerId });
+      expect(call).toBeDefined();
+      expect(call![0]!.where!.OR).toContainEqual({ lockedBy: workerId });
     });
 
     it('fails to acquire lock when another worker holds it', async () => {
@@ -152,7 +153,8 @@ describe('Cron Scheduler - Lock Management', () => {
 
       // Verify the lock timeout check is in the query
       const call = vi.mocked(prisma.cronSchedulerState.updateMany).mock.calls[0];
-      expect(call[0].where.OR).toContainEqual(
+      expect(call).toBeDefined();
+      expect(call![0]!.where!.OR).toContainEqual(
         expect.objectContaining({
           lockedAt: expect.objectContaining({ lt: expect.any(Date) }),
         })
@@ -202,8 +204,8 @@ describe('Cron Scheduler - Lock Management', () => {
 
       // Release should include lockedBy: workerId check
       const releaseCalls = vi.mocked(prisma.cronSchedulerState.updateMany).mock.calls;
-      const releaseCall = releaseCalls.find(call => call[0].data?.lockedBy === null);
-      if (releaseCall) {
+      const releaseCall = releaseCalls.find(call => call[0]?.data?.lockedBy === null);
+      if (releaseCall && releaseCall[0]?.where?.lockedBy) {
         expect(releaseCall[0].where.lockedBy).toMatch(/^worker-/);
       }
     });
