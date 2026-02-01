@@ -2,6 +2,14 @@ import { NextRequest } from 'next/server';
 import { getCurrentUser } from '@/lib/rbac';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import prisma from '@/lib/prisma';
+import { decryptProviderConfig } from '@/lib/encrypted-provider-config';
+
+/**
+ * Type guard for provider config
+ */
+function isProviderConfig(config: unknown): config is Record<string, unknown> {
+  return typeof config === 'object' && config !== null;
+}
 
 /**
  * GET /api/settings/email-providers
@@ -24,8 +32,8 @@ export async function GET(_req: NextRequest) {
 
     const providers = [];
 
-    if (resendProvider && resendProvider.enabled) {
-      const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (resendProvider && resendProvider.enabled && isProviderConfig(resendProvider.config)) {
+      const config = await decryptProviderConfig('resend', resendProvider.config);
       if (config?.apiKey) {
         providers.push({
           provider: 'resend',
@@ -34,8 +42,8 @@ export async function GET(_req: NextRequest) {
       }
     }
 
-    if (sendgridProvider && sendgridProvider.enabled) {
-      const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (sendgridProvider && sendgridProvider.enabled && isProviderConfig(sendgridProvider.config)) {
+      const config = await decryptProviderConfig('sendgrid', sendgridProvider.config);
       if (config?.apiKey) {
         providers.push({
           provider: 'sendgrid',
@@ -44,8 +52,8 @@ export async function GET(_req: NextRequest) {
       }
     }
 
-    if (smtpProvider && smtpProvider.enabled) {
-      const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (smtpProvider && smtpProvider.enabled && isProviderConfig(smtpProvider.config)) {
+      const config = await decryptProviderConfig('smtp', smtpProvider.config);
       if (config?.host && config?.user && config?.password) {
         providers.push({
           provider: 'smtp',
@@ -54,8 +62,8 @@ export async function GET(_req: NextRequest) {
       }
     }
 
-    if (sesProvider && sesProvider.enabled) {
-      const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (sesProvider && sesProvider.enabled && isProviderConfig(sesProvider.config)) {
+      const config = await decryptProviderConfig('ses', sesProvider.config);
       if (config?.accessKeyId && config?.secretAccessKey) {
         providers.push({
           provider: 'ses',
@@ -65,8 +73,7 @@ export async function GET(_req: NextRequest) {
     }
 
     return jsonOk({ providers });
-  } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
+  } catch (_error) {
     return jsonError('Failed to fetch email providers', 500);
   }
 }

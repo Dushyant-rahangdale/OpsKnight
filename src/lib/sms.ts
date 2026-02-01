@@ -195,8 +195,6 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
     }
 
     if (smsConfig.provider === 'aws-sns') {
-      // TODO: Implement AWS SNS when npm package is installed
-      // const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
       try {
         // Validate required AWS SNS config
         if (!smsConfig.accessKeyId || !smsConfig.secretAccessKey) {
@@ -207,31 +205,41 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
           };
         }
 
-        // Use runtime require to avoid build-time dependency
-        const requireFunc = eval('require') as (id: string) => unknown;
-        const { SNSClient, PublishCommand } = requireFunc('@aws-sdk/client-sns') as AwsSnsModule;
+        // Format phone number to E.164 if needed
+        let toNumber = options.to.trim();
+        if (!toNumber.startsWith('+')) {
+          const digits = toNumber.replace(/\D/g, '');
+          if (digits.length >= 10) {
+            toNumber = `+1${digits}`;
+            logger.warn('Phone number missing country code, assuming US', { to: toNumber });
+          } else {
+            return {
+              success: false,
+              error: `Invalid phone number format: ${options.to}. Must be in E.164 format (e.g., +1234567890)`,
+            };
+          }
+        } else {
+          toNumber = toNumber.replace(/[\s\-\(\)]/g, '');
+        }
 
-        const client = new SNSClient({
-          region: smsConfig.region || 'us-east-1',
-          credentials: {
-            accessKeyId: smsConfig.accessKeyId,
-            secretAccessKey: smsConfig.secretAccessKey,
-          },
-        });
-
-        const command = new PublishCommand({
-          PhoneNumber: options.to,
-          Message: options.message,
-        });
-
-        const result = await client.send(command);
-        logger.info('SMS sent via AWS SNS', { to: options.to, messageId: result.MessageId });
-        return { success: true };
-      } catch (error: unknown) {
-        const errorInfo =
-          error && typeof error === 'object' ? (error as { code?: string; message?: string }) : {};
-        // If AWS SDK package is not installed, fall back to console log
-        if (errorInfo.code === 'MODULE_NOT_FOUND') {
+        // Load AWS SNS dynamically (optional dependency)
+        let SNSClient: AwsSnsModule['SNSClient'];
+        let PublishCommand: AwsSnsModule['PublishCommand'];
+        try {
+          const loadAwsSns = () => {
+            try {
+              return require('@aws-sdk/client-sns'); // eslint-disable-line @typescript-eslint/no-require-imports
+            } catch {
+              return null;
+            }
+          };
+          const awsSns = loadAwsSns();
+          if (!awsSns) {
+            throw new Error('AWS SDK not installed');
+          }
+          SNSClient = awsSns.SNSClient;
+          PublishCommand = awsSns.PublishCommand;
+        } catch {
           logger.warn('AWS SDK package not installed', {
             component: 'sms',
             provider: 'aws-sns',
@@ -242,13 +250,74 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
             error: 'AWS SDK package not installed. Install with: npm install @aws-sdk/client-sns',
           };
         }
+
+        const client = new SNSClient({
+          region: smsConfig.region || 'us-east-1',
+          credentials: {
+            accessKeyId: smsConfig.accessKeyId,
+            secretAccessKey: smsConfig.secretAccessKey,
+          },
+        });
+
+        logger.info('Sending SMS via AWS SNS', {
+          to: toNumber,
+          region: smsConfig.region || 'us-east-1',
+          messageLength: options.message.length,
+        });
+
+        const command = new PublishCommand({
+          PhoneNumber: toNumber,
+          Message: options.message,
+        });
+
+        const result = await client.send(command);
+        logger.info('SMS sent successfully via AWS SNS', {
+          to: toNumber,
+          messageId: result.MessageId,
+        });
+        return { success: true };
+      } catch (error: unknown) {
+        const errorInfo =
+          error && typeof error === 'object'
+            ? (error as { code?: string; message?: string; name?: string })
+            : {};
+
         logger.error('AWS SNS SMS send error', {
           component: 'sms',
           provider: 'aws-sns',
-          error,
+          error: { message: errorInfo.message, code: errorInfo.code, name: errorInfo.name },
           to: options.to,
         });
-        return { success: false, error: errorInfo.message || 'AWS SNS error' };
+
+        // Provide user-friendly error messages for common AWS errors
+        let errorMessage = errorInfo.message || 'AWS SNS error';
+
+        // Handle authentication errors
+        if (
+          errorInfo.name === 'InvalidClientTokenId' ||
+          errorInfo.name === 'UnrecognizedClientException'
+        ) {
+          errorMessage =
+            'AWS authentication failed. Please check your Access Key ID and Secret Access Key in Settings → System → Notification Providers.';
+        }
+
+        // Handle invalid parameter errors
+        if (errorInfo.name === 'InvalidParameterValue') {
+          errorMessage = `Invalid phone number format: ${options.to}. Please ensure the number is in E.164 format (e.g., +1234567890).`;
+        }
+
+        // Handle opt-out (user blocked SMS)
+        if (errorInfo.code === 'OptedOut') {
+          errorMessage = `Phone number ${options.to} has opted out of receiving SMS messages.`;
+        }
+
+        // Handle spending limit exceeded
+        if (errorInfo.code === 'Throttling') {
+          errorMessage =
+            'AWS SNS spending limit reached. Please check your AWS SNS spending quota.';
+        }
+
+        return { success: false, error: errorMessage };
       }
     }
 
