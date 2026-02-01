@@ -3,6 +3,14 @@ import { getCurrentUser } from '@/lib/rbac';
 import { jsonError, jsonOk } from '@/lib/api-response';
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
 import prisma from '@/lib/prisma';
+import { encryptProviderConfig, decryptProviderConfig } from '@/lib/encrypted-provider-config';
+
+/**
+ * Type guard for provider config
+ */
+function isProviderConfig(config: unknown): config is Record<string, unknown> {
+  return typeof config === 'object' && config !== null;
+}
 
 /**
  * GET /api/settings/notifications
@@ -23,9 +31,9 @@ export async function GET(_req: NextRequest) {
     ]);
 
     // Build SMS config from database
-    let smsConfig: any = { enabled: false, provider: null }; // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (twilioProvider && twilioProvider.enabled) {
-      const config = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let smsConfig: Record<string, unknown> = { enabled: false, provider: null };
+    if (twilioProvider && twilioProvider.enabled && isProviderConfig(twilioProvider.config)) {
+      const config = await decryptProviderConfig('twilio', twilioProvider.config);
       smsConfig = {
         enabled: true,
         provider: 'twilio',
@@ -33,8 +41,8 @@ export async function GET(_req: NextRequest) {
         authToken: config.authToken || '',
         fromNumber: config.fromNumber || '',
       };
-    } else if (awsProvider && awsProvider.enabled) {
-      const config = awsProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    } else if (awsProvider && awsProvider.enabled && isProviderConfig(awsProvider.config)) {
+      const config = await decryptProviderConfig('aws-sns', awsProvider.config);
       smsConfig = {
         enabled: true,
         provider: 'aws-sns',
@@ -45,9 +53,9 @@ export async function GET(_req: NextRequest) {
     }
 
     // Build Push config from database
-    let pushConfig: any = { enabled: false, provider: null }; // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (webPushProvider && webPushProvider.enabled) {
-      const config = webPushProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let pushConfig: Record<string, unknown> = { enabled: false, provider: null };
+    if (webPushProvider && webPushProvider.enabled && isProviderConfig(webPushProvider.config)) {
+      const config = await decryptProviderConfig('web-push', webPushProvider.config);
       pushConfig = {
         enabled: true,
         provider: 'web-push',
@@ -58,17 +66,26 @@ export async function GET(_req: NextRequest) {
     }
 
     // Get WhatsApp config from Twilio provider config (independent of SMS enablement)
-    const whatsappProvider = twilioProvider?.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const whatsappNumber = whatsappProvider?.whatsappNumber || '';
-    const whatsappContentSid = whatsappProvider?.whatsappContentSid || '';
-    const whatsappEnabled = whatsappProvider?.whatsappEnabled ?? !!whatsappNumber;
-    const whatsappConfig = {
-      number: whatsappNumber,
-      contentSid: whatsappContentSid,
-      accountSid: whatsappProvider?.whatsappAccountSid || '',
-      authToken: whatsappProvider?.whatsappAuthToken || '',
-      enabled: !!whatsappEnabled && !!whatsappNumber,
+    let whatsappConfig: Record<string, unknown> = {
+      number: '',
+      contentSid: '',
+      accountSid: '',
+      authToken: '',
+      enabled: false,
     };
+    if (twilioProvider && isProviderConfig(twilioProvider.config)) {
+      const decryptedConfig = await decryptProviderConfig('twilio', twilioProvider.config);
+      const whatsappNumber = decryptedConfig.whatsappNumber || '';
+      const whatsappContentSid = decryptedConfig.whatsappContentSid || '';
+      const whatsappEnabled = decryptedConfig.whatsappEnabled ?? !!whatsappNumber;
+      whatsappConfig = {
+        number: whatsappNumber,
+        contentSid: whatsappContentSid,
+        accountSid: decryptedConfig.whatsappAccountSid || '',
+        authToken: decryptedConfig.whatsappAuthToken || '',
+        enabled: !!whatsappEnabled && !!whatsappNumber,
+      };
+    }
 
     return jsonOk({
       sms: smsConfig,
@@ -95,12 +112,14 @@ export async function POST(req: NextRequest) {
     const existingTwilioProvider = await prisma.notificationProvider.findUnique({
       where: { provider: 'twilio' },
     });
-    const existingTwilioConfig = (existingTwilioProvider?.config as any) || {}; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const existingTwilioConfig = isProviderConfig(existingTwilioProvider?.config)
+      ? await decryptProviderConfig('twilio', existingTwilioProvider.config)
+      : {};
 
     // Save SMS provider (Twilio or AWS SNS)
     if (body.sms) {
       const smsProvider = body.sms.provider === 'twilio' ? 'twilio' : 'aws-sns';
-      const smsConfig: any = {
+      let smsConfig: Record<string, unknown> = {
         enabled: body.sms.enabled || false,
       };
 
@@ -125,16 +144,19 @@ export async function POST(req: NextRequest) {
         smsConfig.secretAccessKey = body.sms.secretAccessKey || '';
       }
 
+      // Encrypt sensitive fields before storing
+      smsConfig = await encryptProviderConfig(smsProvider, smsConfig);
+
       await prisma.notificationProvider.upsert({
         where: { provider: smsProvider },
         create: {
           provider: smsProvider,
-          enabled: smsConfig.enabled,
+          enabled: smsConfig.enabled as boolean,
           config: smsConfig,
           updatedBy: user.id,
         },
         update: {
-          enabled: smsConfig.enabled,
+          enabled: smsConfig.enabled as boolean,
           config: smsConfig,
           updatedBy: user.id,
         },
@@ -155,24 +177,26 @@ export async function POST(req: NextRequest) {
 
     // Save Push provider (Web Push)
     if (body.push) {
-      const pushConfig: any = {
+      let pushConfig: Record<string, unknown> = {
         enabled: body.push.enabled || false,
+        vapidPublicKey: body.push.vapidPublicKey || '',
+        vapidPrivateKey: body.push.vapidPrivateKey || '',
+        vapidSubject: body.push.vapidSubject || '',
       };
 
-      pushConfig.vapidPublicKey = body.push.vapidPublicKey || '';
-      pushConfig.vapidPrivateKey = body.push.vapidPrivateKey || '';
-      pushConfig.vapidSubject = body.push.vapidSubject || '';
+      // Encrypt sensitive fields before storing
+      pushConfig = await encryptProviderConfig('web-push', pushConfig);
 
       await prisma.notificationProvider.upsert({
         where: { provider: 'web-push' },
         create: {
           provider: 'web-push',
-          enabled: pushConfig.enabled,
+          enabled: pushConfig.enabled as boolean,
           config: pushConfig,
           updatedBy: user.id,
         },
         update: {
-          enabled: pushConfig.enabled,
+          enabled: pushConfig.enabled as boolean,
           config: pushConfig,
           updatedBy: user.id,
         },
@@ -181,7 +205,7 @@ export async function POST(req: NextRequest) {
 
     if (body.whatsapp) {
       const whatsappNumber = body.whatsapp.number ?? existingTwilioConfig.whatsappNumber ?? '';
-      const updatedTwilioConfig = {
+      let updatedTwilioConfig: Record<string, unknown> = {
         ...existingTwilioConfig,
         whatsappNumber,
         whatsappContentSid:
@@ -192,6 +216,9 @@ export async function POST(req: NextRequest) {
           body.whatsapp.accountSid ?? existingTwilioConfig.whatsappAccountSid ?? '',
         whatsappAuthToken: body.whatsapp.authToken ?? existingTwilioConfig.whatsappAuthToken ?? '',
       };
+
+      // Encrypt sensitive fields before storing
+      updatedTwilioConfig = await encryptProviderConfig('twilio', updatedTwilioConfig);
 
       if (existingTwilioProvider) {
         await prisma.notificationProvider.update({

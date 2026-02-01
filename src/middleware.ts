@@ -136,16 +136,22 @@ function getSecurityHeaders(): Record<string, string> {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     // Permissions policy (formerly Feature-Policy)
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    // Content Security Policy (basic)
+    // Content Security Policy
+    // Note: 'unsafe-eval' is required by Next.js for development hot reloading
+    // Note: 'unsafe-inline' is required for styled-jsx and inline styles
+    // For stricter CSP, consider using nonce-based approach with next-safe package
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Allow Google Fonts
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
-      "font-src 'self' data: https://fonts.gstatic.com", // Allow Google Fonts
+      "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self'",
       "frame-ancestors 'none'",
       "manifest-src 'self'",
+      "object-src 'none'",
+      "form-action 'self'",
+      "base-uri 'self'",
     ].join('; '),
     // HSTS (only in production with HTTPS)
     ...(isProduction && {

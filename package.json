@@ -159,6 +159,7 @@
     "seed": "ts-node --project tsconfig.seed.json prisma/seed.ts"
   },
   "overrides": {
-    "fast-xml-parser": "^5.3.4"
+    "fast-xml-parser": "^5.3.4",
+    "eslint": "$eslint"
   }
 }

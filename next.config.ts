@@ -114,15 +114,34 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
+            // Content Security Policy configuration
+            // Note on 'unsafe-eval' and 'unsafe-inline':
+            // - 'unsafe-eval' is required by Next.js for development hot reloading
+            // - 'unsafe-inline' is required for styled-jsx and inline styles used by React
+            // - In a stricter environment, consider using nonce-based CSP with next-safe
+            // - See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
             value: [
               "default-src 'self'",
+              // Script sources: self + eval/inline for Next.js compatibility
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              // Style sources: self + inline for CSS-in-JS + Google Fonts
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              // Image sources: self + data URIs + HTTPS (for avatars, external images)
               "img-src 'self' data: https: https://api.dicebear.com",
+              // Font sources: self + data URIs + Google Fonts
               "font-src 'self' data: https://fonts.gstatic.com",
+              // Connect sources: self only (API calls, WebSocket for dev)
               "connect-src 'self'",
+              // Prevent embedding in frames (clickjacking protection)
               "frame-ancestors 'none'",
+              // PWA manifest
               "manifest-src 'self'",
+              // Block all objects (Flash, etc.)
+              "object-src 'none'",
+              // Restrict form submissions to self
+              "form-action 'self'",
+              // Restrict base URI to prevent base-tag hijacking
+              "base-uri 'self'",
             ].join('; '),
           },
         ],

@@ -1,5 +1,35 @@
 import prisma from './prisma';
 import { logger } from './logger';
+import { decryptProviderConfig } from './encrypted-provider-config';
+
+/**
+ * Type guard for provider config records
+ */
+function isProviderConfig(config: unknown): config is Record<string, unknown> {
+  return typeof config === 'object' && config !== null;
+}
+
+/**
+ * Helper to get and decrypt provider config
+ */
+async function getDecryptedConfig(
+  provider: string,
+  rawConfig: unknown
+): Promise<Record<string, unknown>> {
+  if (!isProviderConfig(rawConfig)) {
+    return {};
+  }
+  try {
+    return await decryptProviderConfig(provider, rawConfig);
+  } catch (error) {
+    logger.error('Failed to decrypt provider config', {
+      component: 'notification-providers',
+      provider,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return rawConfig;
+  }
+}
 
 export type SMSProvider = 'twilio' | 'aws-sns' | null;
 export type PushProvider = 'web-push' | null;
@@ -57,13 +87,13 @@ export async function getEmailConfig(): Promise<EmailConfig> {
     });
 
     if (resendProvider && resendProvider.enabled && resendProvider.config) {
-      const config = resendProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('resend', resendProvider.config);
       if (config.apiKey) {
         return {
           enabled: true,
           provider: 'resend',
-          apiKey: config.apiKey,
-          fromEmail: config.fromEmail || defaultFromEmail,
+          apiKey: config.apiKey as string,
+          fromEmail: (config.fromEmail as string) || defaultFromEmail,
           source: 'resend',
         };
       }
@@ -75,13 +105,13 @@ export async function getEmailConfig(): Promise<EmailConfig> {
     });
 
     if (sendgridProvider && sendgridProvider.enabled && sendgridProvider.config) {
-      const config = sendgridProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('sendgrid', sendgridProvider.config);
       if (config.apiKey) {
         return {
           enabled: true,
           provider: 'sendgrid',
-          apiKey: config.apiKey,
-          fromEmail: config.fromEmail || defaultFromEmail,
+          apiKey: config.apiKey as string,
+          fromEmail: (config.fromEmail as string) || defaultFromEmail,
           source: 'sendgrid',
         };
       }
@@ -93,18 +123,18 @@ export async function getEmailConfig(): Promise<EmailConfig> {
     });
 
     if (smtpProvider && smtpProvider.enabled && smtpProvider.config) {
-      const config = smtpProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('smtp', smtpProvider.config);
       if (config.host && config.user && config.password) {
         return {
           enabled: true,
           provider: 'smtp',
-          apiKey: config.password,
-          password: config.password,
-          fromEmail: config.fromEmail || defaultFromEmail,
+          apiKey: config.password as string,
+          password: config.password as string,
+          fromEmail: (config.fromEmail as string) || defaultFromEmail,
           source: 'smtp',
-          host: config.host,
-          user: config.user,
-          port: config.port,
+          host: config.host as string,
+          user: config.user as string,
+          port: config.port as string | number,
           secure: config.secure === true,
         };
       }
@@ -116,16 +146,16 @@ export async function getEmailConfig(): Promise<EmailConfig> {
     });
 
     if (sesProvider && sesProvider.enabled && sesProvider.config) {
-      const config = sesProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('ses', sesProvider.config);
       if (config.accessKeyId && config.secretAccessKey) {
         return {
           enabled: true,
           provider: 'ses',
-          apiKey: config.secretAccessKey,
-          accessKeyId: config.accessKeyId,
-          fromEmail: config.fromEmail || defaultFromEmail,
+          apiKey: config.secretAccessKey as string,
+          accessKeyId: config.accessKeyId as string,
+          fromEmail: (config.fromEmail as string) || defaultFromEmail,
           source: 'ses',
-          host: config.region || 'us-east-1',
+          host: (config.region as string) || 'us-east-1',
         };
       }
     }
@@ -168,45 +198,45 @@ export async function getStatusPageEmailConfig(statusPageId?: string): Promise<E
       });
 
       if (provider && provider.enabled && provider.config) {
-        const config = provider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const config = await getDecryptedConfig(preferredProvider, provider.config);
         if (preferredProvider === 'resend' && config.apiKey) {
           return {
             enabled: true,
             provider: 'resend',
-            apiKey: config.apiKey,
-            fromEmail: config.fromEmail || defaultFromEmail,
+            apiKey: config.apiKey as string,
+            fromEmail: (config.fromEmail as string) || defaultFromEmail,
             source: 'status-page-resend',
           };
         } else if (preferredProvider === 'sendgrid' && config.apiKey) {
           return {
             enabled: true,
             provider: 'sendgrid',
-            apiKey: config.apiKey,
-            fromEmail: config.fromEmail || defaultFromEmail,
+            apiKey: config.apiKey as string,
+            fromEmail: (config.fromEmail as string) || defaultFromEmail,
             source: 'status-page-sendgrid',
           };
         } else if (preferredProvider === 'smtp' && config.host && config.user && config.password) {
           return {
             enabled: true,
             provider: 'smtp',
-            apiKey: config.password,
-            password: config.password,
-            fromEmail: config.fromEmail || defaultFromEmail,
+            apiKey: config.password as string,
+            password: config.password as string,
+            fromEmail: (config.fromEmail as string) || defaultFromEmail,
             source: 'status-page-smtp',
-            host: config.host,
-            user: config.user,
-            port: config.port,
+            host: config.host as string,
+            user: config.user as string,
+            port: config.port as string | number,
             secure: config.secure === true,
           };
         } else if (preferredProvider === 'ses' && config.accessKeyId && config.secretAccessKey) {
           return {
             enabled: true,
             provider: 'ses',
-            apiKey: config.secretAccessKey,
-            accessKeyId: config.accessKeyId,
-            fromEmail: config.fromEmail || defaultFromEmail,
+            apiKey: config.secretAccessKey as string,
+            accessKeyId: config.accessKeyId as string,
+            fromEmail: (config.fromEmail as string) || defaultFromEmail,
             source: 'status-page-ses',
-            host: config.region || 'us-east-1',
+            host: (config.region as string) || 'us-east-1',
           };
         }
       }
@@ -249,11 +279,11 @@ export async function getWhatsAppConfig(): Promise<SMSConfig> {
     });
 
     if (twilioProvider && twilioProvider.config) {
-      const config = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('twilio', twilioProvider.config);
 
       // Prioritize specific WhatsApp credentials, fall back to global Twilio credentials
-      const accountSid = config.whatsappAccountSid || config.accountSid;
-      const authToken = config.whatsappAuthToken || config.authToken;
+      const accountSid = (config.whatsappAccountSid || config.accountSid) as string | undefined;
+      const authToken = (config.whatsappAuthToken || config.authToken) as string | undefined;
 
       // Check if WhatsApp is enabled (independent of Twilio SMS)
       const whatsappEnabled = config.whatsappEnabled !== undefined ? config.whatsappEnabled : true;
@@ -261,11 +291,11 @@ export async function getWhatsAppConfig(): Promise<SMSConfig> {
         return {
           enabled: true,
           provider: 'twilio',
-          accountSid: accountSid,
-          authToken: authToken,
-          fromNumber: config.fromNumber,
-          whatsappNumber: config.whatsappNumber,
-          whatsappContentSid: config.whatsappContentSid,
+          accountSid,
+          authToken,
+          fromNumber: config.fromNumber as string | undefined,
+          whatsappNumber: config.whatsappNumber as string,
+          whatsappContentSid: config.whatsappContentSid as string | undefined,
         };
       }
     }
@@ -292,16 +322,16 @@ export async function getSMSConfig(): Promise<SMSConfig> {
     });
 
     if (twilioProvider && twilioProvider.enabled && twilioProvider.config) {
-      const config = twilioProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('twilio', twilioProvider.config);
       if (config.accountSid && config.authToken) {
         return {
           enabled: true,
           provider: 'twilio',
-          accountSid: config.accountSid,
-          authToken: config.authToken,
-          fromNumber: config.fromNumber,
-          whatsappNumber: config.whatsappNumber,
-          whatsappContentSid: config.whatsappContentSid,
+          accountSid: config.accountSid as string,
+          authToken: config.authToken as string,
+          fromNumber: config.fromNumber as string | undefined,
+          whatsappNumber: config.whatsappNumber as string | undefined,
+          whatsappContentSid: config.whatsappContentSid as string | undefined,
         };
       }
     }
@@ -311,14 +341,14 @@ export async function getSMSConfig(): Promise<SMSConfig> {
     });
 
     if (awsProvider && awsProvider.enabled && awsProvider.config) {
-      const config = awsProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('aws-sns', awsProvider.config);
       if (config.accessKeyId && config.secretAccessKey) {
         return {
           enabled: true,
           provider: 'aws-sns',
-          region: config.region || 'us-east-1',
-          accessKeyId: config.accessKeyId,
-          secretAccessKey: config.secretAccessKey,
+          region: (config.region as string) || 'us-east-1',
+          accessKeyId: config.accessKeyId as string,
+          secretAccessKey: config.secretAccessKey as string,
         };
       }
     }
@@ -345,15 +375,17 @@ export async function getPushConfig(): Promise<PushConfig> {
     });
 
     if (webPushProvider && webPushProvider.enabled && webPushProvider.config) {
-      const config = webPushProvider.config as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const config = await getDecryptedConfig('web-push', webPushProvider.config);
       if (config.vapidPublicKey && config.vapidPrivateKey) {
         return {
           enabled: true,
           provider: 'web-push',
-          vapidPublicKey: config.vapidPublicKey,
-          vapidPrivateKey: config.vapidPrivateKey,
-          vapidSubject: config.vapidSubject,
-          vapidKeyHistory: Array.isArray(config.vapidKeyHistory) ? config.vapidKeyHistory : [],
+          vapidPublicKey: config.vapidPublicKey as string,
+          vapidPrivateKey: config.vapidPrivateKey as string,
+          vapidSubject: config.vapidSubject as string | undefined,
+          vapidKeyHistory: Array.isArray(config.vapidKeyHistory)
+            ? (config.vapidKeyHistory as Array<{ publicKey: string; privateKey: string }>)
+            : [],
         };
       }
     }

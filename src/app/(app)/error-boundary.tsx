@@ -3,6 +3,7 @@
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import ErrorState from '@/components/ui/ErrorState';
 import { logger } from '@/lib/logger';
+import { captureException, isSentryEnabled } from '@/lib/monitoring/sentry';
 
 /**
  * Global error boundary wrapper for the app
@@ -21,17 +22,19 @@ export default function AppErrorBoundary({ children }: { children: React.ReactNo
       onError={(error, errorInfo) => {
         // Log error for debugging
         logger.error('Application error', { component: 'error-boundary', error, errorInfo });
-        // TODO: Send to error tracking service (e.g., Sentry)
+
+        // Send to Sentry if configured
+        if (isSentryEnabled()) {
+          captureException(error, {
+            component: 'error-boundary',
+            extra: {
+              componentStack: errorInfo?.componentStack,
+            },
+          });
+        }
       }}
     >
       {children}
     </ErrorBoundary>
   );
 }
-
-
-
-
-
-
-
