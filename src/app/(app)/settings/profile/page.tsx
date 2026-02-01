@@ -28,8 +28,7 @@ export default async function ProfileSettingsPage() {
           gender: true,
           lastOidcSync: true,
           // Preferences fields
-          dailySummary: true,
-          incidentDigest: true,
+
           emailNotificationsEnabled: true,
           smsNotificationsEnabled: true,
           pushNotificationsEnabled: true,
@@ -79,11 +78,7 @@ export default async function ProfileSettingsPage() {
         title="General Preferences"
         description="Set your timezone and summary preferences."
       >
-        <PreferencesForm
-          timeZone={user?.timeZone ?? 'UTC'}
-          dailySummary={user?.dailySummary ?? true}
-          incidentDigest={(user?.incidentDigest as string) ?? 'HIGH'}
-        />
+        <PreferencesForm timeZone={user?.timeZone ?? 'UTC'} />
       </SettingsSection>
 
       <SettingsSection

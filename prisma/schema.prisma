@@ -78,11 +78,7 @@ enum InAppNotificationType {
   SERVICE
 }
 
-enum DigestLevel {
-  HIGH
-  ALL
-  NONE
-}
+
 
 enum IncidentUrgency {
   LOW
@@ -118,8 +114,6 @@ model User {
   status                       UserStatus  @default(INVITED)
   passwordHash                 String?
   timeZone                     String      @default("UTC")
-  dailySummary                 Boolean     @default(true)
-  incidentDigest               DigestLevel @default(HIGH)
   // Notification preferences (user-level, on-call tools)
   emailNotificationsEnabled    Boolean     @default(false)
   smsNotificationsEnabled      Boolean     @default(false)
