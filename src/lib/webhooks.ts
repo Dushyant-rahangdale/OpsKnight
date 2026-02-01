@@ -9,6 +9,7 @@
  * - Custom payload formatting
  */
 
+import 'server-only';
 import prisma from './prisma';
 import crypto from 'crypto';
 import { getBaseUrl } from './env-validation';

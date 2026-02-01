@@ -1,5 +1,6 @@
 import 'server-only';
 import { logger } from './logger';
+import { WebhookIntegration } from '@prisma/client';
 
 /**
  * SLA Breach Monitor - Proactive Breach Detection
@@ -29,7 +30,7 @@ export interface BreachWarning {
   slackWebhookUrl?: string | null;
   slackChannel?: string | null;
   serviceNotificationChannels?: string[];
-  webhookIntegrations?: any[];
+  webhookIntegrations?: WebhookIntegration[];
 }
 
 export interface BreachCheckResult {
@@ -388,23 +389,23 @@ async function notifyBreachWarning(
             'warning',
             webhook.secret || undefined,
             webhook.type,
-            (webhook as any).channel || undefined
+            webhook.channel || undefined
           );
 
           if (result.success) {
             logger.info('[SLA Breach Monitor] Webhook notification sent', {
-              webhookId: (webhook as any).id,
-              type: (webhook as any).type,
+              webhookId: webhook.id,
+              type: webhook.type,
             });
           } else {
             logger.warn('[SLA Breach Monitor] Webhook notification failed', {
-              webhookId: (webhook as any).id,
+              webhookId: webhook.id,
               error: result.error,
             });
           }
         } catch (error) {
           logger.error('[SLA Breach Monitor] Error sending webhook notification', {
-            webhookId: (webhook as any).id,
+            webhookId: webhook.id,
             error,
           });
         }
