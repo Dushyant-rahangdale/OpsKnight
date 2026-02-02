@@ -243,11 +243,7 @@ We are now **Accepting Contributions** to help us build the next generation of o
 - [ ] **Advanced Analytics & Reports**
 - [ ] **Jira/ServiceNow Integrations**
 
-See the full [ROADMAP.md](ROADMAP.md) for details.
-
----
-
-## 🤝 Community & Support
+See the full [ROADMAP.md](ROADMAP.md)
 
 ## 🤝 Community & Support
 
