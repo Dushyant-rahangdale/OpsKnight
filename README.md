@@ -277,13 +277,7 @@ OpsKnight is an independent open-source project. If it helps you sleep better at
 - **🌟 Star the repo**: It helps others find us.
 - **💝 Sponsor**: [Become a Sponsor](https://github.com/sponsors/dushyant-rahangdale)
 
-Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdale) and these amazing contributors:
-
-### ✨ Contributors
-
-<a href="https://github.com/dushyant-rahangdale/opsknight/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dushyant-rahangdale/opsknight" />
-</a>
+Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdale)
 
 <br>
 
