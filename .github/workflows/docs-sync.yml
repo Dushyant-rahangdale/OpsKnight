@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout app repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Checkout website repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: Dushyant-rahangdale/OpsKnight-website
           token: ${{ secrets.OPSKNIGHT_WEBSITE_PAT }}
