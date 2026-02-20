@@ -38,7 +38,11 @@ Rotate keys on a regular schedule (e.g., every 90 days):
 2. Re-encrypt data with the new key.
 3. Update the verification canary.
 
-> **Note:** If decryption fails, the rotation aborts and the old key remains active.
+### Resilient Recovery (Fallback Key)
+
+If you ever find that a corrupted secret from a previous rotation is causing your current rotation to fail, you can now input an **Old Key (Fallback)** during the rotation process. The system will automatically attempt to decrypt broken secrets with the fallback key and seamlessly upgrade them to the active key.
+
+> **Note:** OpsKnight uses **Envelope Encryption (V2)**. This means the Master Key encrypts a unique Data Encryption Key (DEK) for every secret, rather than encrypting the secret directly. This ensures extremely fast and scalable key rotations.
 
 ## Emergency Recovery
 
