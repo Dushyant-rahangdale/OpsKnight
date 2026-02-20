@@ -39,8 +39,8 @@ describe('Logger Buffer', () => {
 
 describe('Public Logs API', () => {
   it('returns log entries without stack traces', async () => {
-    // Mock authenticated session
-    vi.mocked(getServerSession).mockResolvedValue({ user: { name: 'Test User' } });
+    // Mock authenticated session as ADMIN
+    vi.mocked(getServerSession).mockResolvedValue({ user: { name: 'Test User', role: 'ADMIN' } });
 
     const message = `public-logs-${Date.now()}`;
     logger.error(message, { error: new Error('kaboom') });
