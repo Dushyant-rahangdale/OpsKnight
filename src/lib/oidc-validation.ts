@@ -19,6 +19,31 @@ export async function validateOidcConnection(issuer: string): Promise<OidcValida
       };
     }
 
+    // SSRF Mitigation: Block internal/private addresses
+    let hostname = '';
+    try {
+      const urlObj = new URL(normalizedIssuer);
+      hostname = urlObj.hostname.toLowerCase();
+    } catch {
+      return { isValid: false, error: 'Invalid Issuer URL format.' };
+    }
+
+    const isInternal =
+      ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname) ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal') ||
+      /^10\./.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+      /^192\.168\./.test(hostname);
+
+    if (isInternal) {
+      logger.warn(`[OIDC Validation] SSRF attempt blocked for internal hostname: ${hostname}`);
+      return {
+        isValid: false,
+        error: 'OIDC issuer cannot be an internal or private address.',
+      };
+    }
+
     const discoveryUrl = `${normalizedIssuer}/.well-known/openid-configuration`;
 
     logger.info(`[OIDC Validation] Checking discovery URL: ${discoveryUrl}`);

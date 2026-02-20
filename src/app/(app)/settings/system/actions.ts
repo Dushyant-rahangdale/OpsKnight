@@ -211,24 +211,53 @@ export async function saveOidcConfig(
 
   // Auto-detect provider type from Issuer URL
   function detectProviderType(issuerUrl: string): string {
-    const url = issuerUrl.toLowerCase();
+    if (!issuerUrl) return 'custom';
+
+    let hostname = '';
+    try {
+      const urlObj = new URL(issuerUrl);
+      hostname = urlObj.hostname.toLowerCase();
+    } catch {
+      // Fallback for non-URL identifier-like strings
+      hostname = issuerUrl.toLowerCase();
+    }
+
+    // Google: Specific hostnames or controlled suffix matches
     if (
-      url.includes('accounts.google.com') ||
-      url.includes('googleapis.com') ||
-      url.includes('google')
+      hostname === 'accounts.google.com' ||
+      hostname === 'googleapis.com' ||
+      hostname.endsWith('.google.com') ||
+      hostname.endsWith('.googleapis.com')
     ) {
       return 'google';
     }
-    if (url.includes('okta')) return 'okta';
+
+    // Okta: hostnames ending with .okta.com or containing .okta. as a segment
     if (
-      url.includes('login.microsoftonline.com') ||
-      url.includes('login.microsoft.com') ||
-      url.includes('sts.windows.net') ||
-      url.includes('microsoftonline')
+      hostname === 'okta.com' ||
+      hostname.endsWith('.okta.com') ||
+      hostname.endsWith('.okta-emea.com') ||
+      hostname.includes('.okta.')
     ) {
+      return 'okta';
+    }
+
+    // Azure AD / Microsoft identity platforms
+    const azureHosts = [
+      'login.microsoftonline.com',
+      'login.microsoft.com',
+      'sts.windows.net',
+      'microsoftonline.com',
+    ];
+    if (azureHosts.some(h => hostname === h || hostname.endsWith(`.${h}`))) {
       return 'azure';
     }
-    if (url.includes('auth0')) return 'auth0';
+
+    // Auth0: suffix match on .auth0.com
+    if (hostname === 'auth0.com' || hostname.endsWith('.auth0.com')) {
+      return 'auth0';
+    }
+
     return 'custom';
   }
   const providerType = detectProviderType(issuer);
