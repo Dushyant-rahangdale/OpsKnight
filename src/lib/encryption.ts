@@ -53,7 +53,7 @@ function isValidHexKey(value: string) {
   return /^[0-9a-f]{64}$/i.test(value);
 }
 
-const CANARY_Plaintext = 'OPS_KNIGHT_CRYPTO_CHECK';
+export const CANARY_Plaintext = 'OPS_KNIGHT_CRYPTO_CHECK';
 
 export async function validateCanary(keyHex: string): Promise<boolean> {
   try {
@@ -126,12 +126,27 @@ export async function encryptWithKey(text: string, keyHex: string): Promise<stri
   if (!keyHex || !isValidHexKey(keyHex)) {
     throw new Error('Invalid encryption key provided');
   }
-  const key = Buffer.from(keyHex, 'hex');
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
+
+  // V2 Envelope Encryption
+  // 1. Generate Data Encryption Key (DEK)
+  const dek = crypto.randomBytes(32);
+  const dekHex = dek.toString('hex');
+
+  // 2. Encrypt Payload with DEK
+  const payloadIv = crypto.randomBytes(16);
+  const payloadCipher = crypto.createCipheriv(algorithm, dek, payloadIv);
+  let encryptedPayload = payloadCipher.update(text, 'utf8', 'hex');
+  encryptedPayload += payloadCipher.final('hex');
+
+  // 3. Encrypt DEK with Master Key
+  const masterKey = Buffer.from(keyHex, 'hex');
+  const dekIv = crypto.randomBytes(16);
+  const dekCipher = crypto.createCipheriv(algorithm, masterKey, dekIv);
+  let encryptedDek = dekCipher.update(dekHex, 'utf8', 'hex');
+  encryptedDek += dekCipher.final('hex');
+
+  // Return formatted V2 Envelope string: v2:dekIv:encryptedDek:payloadIv:encryptedPayload
+  return `v2:${dekIv.toString('hex')}:${encryptedDek}:${payloadIv.toString('hex')}:${encryptedPayload}`;
 }
 
 export async function encrypt(text: string): Promise<string> {
@@ -145,7 +160,35 @@ export async function decryptWithKey(encryptedText: string, keyHex: string): Pro
   if (!keyHex || !isValidHexKey(keyHex)) {
     throw new Error('Invalid encryption key provided');
   }
-  const key = Buffer.from(keyHex, 'hex');
+  const masterKey = Buffer.from(keyHex, 'hex');
+
+  // V2 Envelope Encryption support
+  if (encryptedText.startsWith('v2:')) {
+    const parts = encryptedText.split(':');
+    if (parts.length !== 5) {
+      throw new Error('Invalid v2 encrypted text format');
+    }
+
+    const dekIv = Buffer.from(parts[1], 'hex');
+    const encryptedDek = parts[2];
+    const payloadIv = Buffer.from(parts[3], 'hex');
+    const encryptedPayload = parts[4];
+
+    // 1. Decrypt DEK using Master Key
+    const dekDecipher = crypto.createDecipheriv(algorithm, masterKey, dekIv);
+    let dekHex = dekDecipher.update(encryptedDek, 'hex', 'utf8');
+    dekHex += dekDecipher.final('utf8');
+    const dek = Buffer.from(dekHex, 'hex');
+
+    // 2. Decrypt Payload using DEK
+    const payloadDecipher = crypto.createDecipheriv(algorithm, dek, payloadIv);
+    let decrypted = payloadDecipher.update(encryptedPayload, 'hex', 'utf8');
+    decrypted += payloadDecipher.final('utf8');
+
+    return decrypted;
+  }
+
+  // Legacy format (v1 - no prefix)
   const parts = encryptedText.split(':');
 
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
@@ -154,7 +197,7 @@ export async function decryptWithKey(encryptedText: string, keyHex: string): Pro
 
   const iv = Buffer.from(parts[0], 'hex');
   const encrypted = parts[1];
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
+  const decipher = crypto.createDecipheriv(algorithm, masterKey, iv);
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;

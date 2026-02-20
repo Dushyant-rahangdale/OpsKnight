@@ -86,7 +86,7 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
   <tr>
     <td>
       <h3>📢 Global Escalations</h3>
-      <p>Never miss a critical alert. Multi-channel notifications via <strong>Slack, SMS, Voice, Email, and Push</strong> ensure the right person is woken up.</p>
+      <p>Never miss a critical alert. Multi-channel notifications via <strong>Slack, SMS, Email, and Push</strong> ensure the right person is woken up.</p>
     </td>
     <td>
       <h3>📱 Mobile PWA</h3>
@@ -239,7 +239,6 @@ We are now **Accepting Contributions** to help us build the next generation of o
 - [x] Core Incident Management & On-Call
 - [x] Slack Integration & Webhooks
 - [x] Basic Status Pages
-- [ ] **Voice/Call Escalations** (In Progress)
 - [ ] **Advanced Analytics & Reports**
 - [ ] **Jira/ServiceNow Integrations**
 

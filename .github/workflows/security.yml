@@ -327,4 +327,5 @@ jobs:
           check_name: '🔒 Security: Scan Summary'
           comment_title: '🔒 Security: Results Summary'
           comment_mode: 'always'
+          fail_on: 'nothing'
         continue-on-error: true

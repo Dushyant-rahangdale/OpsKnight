@@ -26,6 +26,7 @@ type Props = {
 type State = {
   error?: string | null;
   success?: boolean;
+  skippedCount?: number;
 };
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
@@ -176,6 +177,28 @@ export default function EncryptionKeyForm({ hasKey, isSystemLocked }: Props) {
                 I allow the system to re-encrypt my data.
               </label>
             </div>
+            {confirmed && (
+              <div className="pt-4 border-t mt-4 space-y-2">
+                <Label
+                  htmlFor="fallback-key"
+                  className="text-xs font-semibold uppercase text-muted-foreground"
+                >
+                  Recovery Mode (Optional)
+                </Label>
+                <p className="text-xs">
+                  If you suspect some secrets are corrupted or encrypted with a forgotten old key,
+                  paste that old key here. The system will use it as a fallback during decryption to
+                  recover your data.
+                </p>
+                <Input
+                  type="password"
+                  name="fallbackOldKey"
+                  id="fallback-key"
+                  placeholder="Paste old 32-byte hex key to attempt recovery"
+                  className="font-mono text-sm bg-background mt-1"
+                />
+              </div>
+            )}
           </div>
         </details>
       )}
@@ -325,12 +348,26 @@ export default function EncryptionKeyForm({ hasKey, isSystemLocked }: Props) {
       )}
 
       {state?.success && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700">
-            Encryption key saved successfully.
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-4">
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700">
+              Encryption key saved successfully.
+            </AlertDescription>
+          </Alert>
+
+          {state.skippedCount !== undefined && state.skippedCount > 0 && (
+            <Alert className="bg-orange-50 border-orange-200">
+              <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-900 text-sm">
+                <strong>Attention:</strong> {state.skippedCount} secret(s) could not be decrypted
+                with either the active or fallback key. They were skipped to prevent the rotation
+                from failing, but you will need to manually reconfigure those specific integrations
+                (SSO or Slack).
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       )}
 
       <div className="flex items-center justify-between text-sm border-t pt-4">

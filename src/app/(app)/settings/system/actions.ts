@@ -343,8 +343,8 @@ export async function saveEncryptionKey(
   });
 
   // Update Canary
-  const { encryptWithKey } = await import('@/lib/encryption');
-  const canaryCipher = await encryptWithKey('OPS_KNIGHT_CRYPTO_CHECK', key);
+  const { encryptWithKey, CANARY_Plaintext } = await import('@/lib/encryption');
+  const canaryCipher = await encryptWithKey(CANARY_Plaintext, key);
   await prisma.systemConfig.upsert({
     where: { key: 'encryption_canary' },
     create: { key: 'encryption_canary', value: { encrypted: canaryCipher } },
@@ -360,14 +360,15 @@ export async function saveEncryptionKey(
  * Decrypts all data with old key and re-encrypts with new key.
  */
 export async function rotateSystemEncryptionKey(
-  prevState: { error?: string | null; success?: boolean } | undefined,
+  prevState: { error?: string | null; success?: boolean; skippedCount?: number } | undefined,
   formData: FormData
-): Promise<{ error?: string | null; success?: boolean }> {
+): Promise<{ error?: string | null; success?: boolean; skippedCount?: number }> {
   try {
     await assertAdmin();
 
     const newKey = (formData.get('encryptionKey') as string | null)?.trim() ?? '';
     const confirm = formData.get('confirm') === 'on';
+    const fallbackOldKey = (formData.get('fallbackOldKey') as string | null)?.trim();
 
     if (!newKey || !/^[0-9a-fA-F]{64}$/.test(newKey)) {
       return { error: 'Invalid new key format.' };
@@ -396,18 +397,37 @@ export async function rotateSystemEncryptionKey(
     const slackOAuths = await prisma.slackOAuthConfig.findMany();
     const slackIntegrations = await prisma.slackIntegration.findMany();
 
+    // Helper to attempt decryption with active key first, then fallback key
+    const _decryptFallback = async (cipher: string, primaryKey: string, fallbackKey?: string) => {
+      try {
+        return await decryptWithKey(cipher, primaryKey);
+      } catch (err) {
+        if (fallbackKey && /^[0-9a-fA-F]{64}$/.test(fallbackKey)) {
+          return await decryptWithKey(cipher, fallbackKey);
+        }
+        throw err;
+      }
+    };
+
     // 2. Prepare updates (Fail Check first)
     const oidcUpdates: { id: string; clientSecret: string }[] = [];
+    let skippedCount = 0;
+
     for (const config of oidcConfigs) {
       if (!config.clientSecret) continue;
       try {
-        const plain = await decryptWithKey(config.clientSecret, oldKey);
+        const plain = await _decryptFallback(
+          config.clientSecret,
+          oldKey,
+          fallbackOldKey || undefined
+        );
         const reEncrypted = await encryptWithKey(plain, newKey);
         oidcUpdates.push({ id: config.id, clientSecret: reEncrypted });
       } catch (e) {
-        return {
-          error: `Rotation Aborted: Failed to decrypt OIDC Config (ID: ${config.id}). Data consistency check failed.`,
-        };
+        console.error(
+          `[Encryption Rotation] Skipped OIDC Config ${config.id}: Failed to decrypt with both active and fallback keys.`
+        );
+        skippedCount++;
       }
     }
 
@@ -415,30 +435,40 @@ export async function rotateSystemEncryptionKey(
     for (const config of slackOAuths) {
       if (!config.clientSecret) continue;
       try {
-        const plain = await decryptWithKey(config.clientSecret, oldKey);
+        const plain = await _decryptFallback(
+          config.clientSecret,
+          oldKey,
+          fallbackOldKey || undefined
+        );
         const reEncrypted = await encryptWithKey(plain, newKey);
         slackOUpdates.push({ id: config.id, clientSecret: reEncrypted });
       } catch (e) {
-        return { error: `Rotation Aborted: Failed to decrypt Slack OAuth (ID: ${config.id}).` };
+        console.error(`[Encryption Rotation] Skipped Slack OAuth ${config.id}: Failed to decrypt.`);
+        skippedCount++;
       }
     }
 
     const slackIntUpdates: { id: string; botToken: string; signingSecret: string | null }[] = [];
     for (const int of slackIntegrations) {
       try {
-        const plainBot = await decryptWithKey(int.botToken, oldKey);
+        const plainBot = await _decryptFallback(int.botToken, oldKey, fallbackOldKey || undefined);
         const reBot = await encryptWithKey(plainBot, newKey);
 
         let reSign = null;
         if (int.signingSecret) {
-          const plainSign = await decryptWithKey(int.signingSecret, oldKey);
+          const plainSign = await _decryptFallback(
+            int.signingSecret,
+            oldKey,
+            fallbackOldKey || undefined
+          );
           reSign = await encryptWithKey(plainSign, newKey);
         }
         slackIntUpdates.push({ id: int.id, botToken: reBot, signingSecret: reSign });
       } catch (e) {
-        return {
-          error: `Rotation Aborted: Failed to decrypt Slack Workspace (ID: ${int.workspaceId}).`,
-        };
+        console.error(
+          `[Encryption Rotation] Skipped Slack Integration ${int.workspaceId}: Failed to decrypt.`
+        );
+        skippedCount++;
       }
     }
 
@@ -486,7 +516,8 @@ export async function rotateSystemEncryptionKey(
       });
 
       // Update Canary (Re-encrypt static plaintext with NEW key)
-      const canaryCipher = await encryptWithKey('OPS_SENTINAL_CRYPTO_CHECK', newKey);
+      const { CANARY_Plaintext } = await import('@/lib/encryption');
+      const canaryCipher = await encryptWithKey(CANARY_Plaintext, newKey);
       await tx.systemConfig.upsert({
         where: { key: 'encryption_canary' },
         create: { key: 'encryption_canary', value: { encrypted: canaryCipher } },
@@ -506,7 +537,7 @@ export async function rotateSystemEncryptionKey(
     );
 
     revalidatePath('/settings/system');
-    return { success: true };
+    return { success: true, skippedCount };
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'Rotation failed.' };
   }
@@ -517,9 +548,9 @@ export async function rotateSystemEncryptionKey(
  * Handles: Bootstrap, Rotation, and Emergency Recovery
  */
 export async function manageEncryptionKey(
-  prevState: { error?: string | null; success?: boolean } | undefined,
+  prevState: { error?: string | null; success?: boolean; skippedCount?: number } | undefined,
   formData: FormData
-): Promise<{ error?: string | null; success?: boolean }> {
+): Promise<{ error?: string | null; success?: boolean; skippedCount?: number }> {
   try {
     await assertAdmin();
 
