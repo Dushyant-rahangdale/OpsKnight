@@ -5,6 +5,33 @@ export type OidcValidationResult = {
   error?: string;
 };
 
+function hasPathQueryOrHash(urlObj: URL): boolean {
+  const hasNonRootPath = urlObj.pathname && urlObj.pathname !== '/';
+  const hasQuery = !!urlObj.search;
+  const hasHash = !!urlObj.hash;
+  return hasNonRootPath || hasQuery || hasHash;
+}
+
+function isPrivateOrLocalHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+
+  // Disallow obvious local names
+  if (['localhost', '0.0.0.0', '127.0.0.1', '::1'].includes(lower)) {
+    return true;
+  }
+
+  if (lower.endsWith('.local') || lower.endsWith('.internal')) {
+    return true;
+  }
+
+  // Basic private IPv4 ranges
+  if (/^10\./.test(lower)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(lower)) return true;
+  if (/^192\.168\./.test(lower)) return true;
+
+  return false;
+}
+
 export async function validateOidcConnection(issuer: string): Promise<OidcValidationResult> {
   try {
     // 1. Discovery Check: Fetch .well-known configuration
@@ -19,22 +46,25 @@ export async function validateOidcConnection(issuer: string): Promise<OidcValida
       };
     }
 
-    // SSRF Mitigation: Block internal/private addresses
+    // SSRF Mitigation: Block internal/private addresses and malformed issuers
     let hostname = '';
+    let urlObj: URL;
     try {
-      const urlObj = new URL(normalizedIssuer);
+      urlObj = new URL(normalizedIssuer);
       hostname = urlObj.hostname.toLowerCase();
     } catch {
       return { isValid: false, error: 'Invalid Issuer URL format.' };
     }
 
-    const isInternal =
-      ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(hostname) ||
-      hostname.endsWith('.local') ||
-      hostname.endsWith('.internal') ||
-      /^10\./.test(hostname) ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
-      /^192\.168\./.test(hostname);
+    // OIDC issuer should be an origin, not a full path with query/fragment.
+    if (hasPathQueryOrHash(urlObj)) {
+      return {
+        isValid: false,
+        error: 'Issuer URL must not include a path, query string, or fragment.',
+      };
+    }
+
+    const isInternal = isPrivateOrLocalHostname(hostname);
 
     if (isInternal) {
       logger.warn(`[OIDC Validation] SSRF attempt blocked for internal hostname: ${hostname}`);
