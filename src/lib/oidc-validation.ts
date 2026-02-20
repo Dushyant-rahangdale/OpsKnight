@@ -74,7 +74,11 @@ export async function validateOidcConnection(issuer: string): Promise<OidcValida
       };
     }
 
-    const discoveryUrl = `${normalizedIssuer}/.well-known/openid-configuration`;
+    // Reconstruct the URL from validated parts to break the taint chain.
+    // This ensures that the fetch target is derived from the parsed,
+    // validated hostname — NOT from the raw user-provided string.
+    const safeOrigin = `${urlObj.protocol}//${urlObj.host}`;
+    const discoveryUrl = `${safeOrigin}/.well-known/openid-configuration`;
 
     logger.info(`[OIDC Validation] Checking discovery URL: ${discoveryUrl}`);
 
