@@ -17,10 +17,7 @@ import {
 } from '@/components/ui/shadcn/card';
 import { AlertTriangle, CheckCircle2, Loader2, Copy, ExternalLink, Settings } from 'lucide-react';
 import RoleMappingEditor, { type RoleMappingRule } from '@/components/settings/RoleMappingEditor';
-import {
-  saveOidcConfig,
-  validateOidcConnectionAction,
-} from '@/app/(app)/settings/security/actions';
+import { saveOidcConfig, validateOidcConnectionAction } from '@/app/(app)/settings/system/actions';
 
 type ProfileMapping = {
   department?: string;
