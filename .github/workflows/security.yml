@@ -65,7 +65,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload SAST Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: sast-reports
@@ -187,7 +187,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload SCA Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: sca-reports
@@ -204,7 +204,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: sbom
@@ -270,7 +270,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload IaC Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: iac-reports

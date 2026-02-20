@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload test report artifact (JUnit)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vitest-junit
           path: reports/*.xml
