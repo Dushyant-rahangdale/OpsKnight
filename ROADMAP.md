@@ -17,7 +17,6 @@ We have stabilized the core feature set and ensured rock-solid reliability for t
 
 Once the core is stable, we will expand our alerting capabilities to make OpsKnight more "feature-rich".
 
-- [ ] **Voice Call Alerts**: Native support for phone call escalations ([#9](https://github.com/dushyant-rahangdale/opsknight/issues/9)).
 - [ ] **Conference Bridge**: Auto-create Jitsi/Zoom rooms for incidents ([#10](https://github.com/dushyant-rahangdale/opsknight/issues/10)).
 - [ ] **Two-Way Slack**: Interactive Slack messages (Ack/Resolve directly from Slack).
 
