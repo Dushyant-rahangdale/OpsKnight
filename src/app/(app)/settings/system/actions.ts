@@ -191,17 +191,85 @@ export async function saveOidcConfig(
     };
   }
 
-  const { getEncryptionKey, encrypt } = await import('@/lib/encryption');
+  const { getEncryptionKey, encrypt, validateEncryptionFingerprint } =
+    await import('@/lib/encryption');
 
   const issuer = (formData.get('issuer') as string | null)?.trim() ?? '';
   const clientId = (formData.get('clientId') as string | null)?.trim() ?? '';
   const clientSecret = (formData.get('clientSecret') as string | null)?.trim() ?? '';
   const enabledValue = formData.get('enabled');
   const autoProvisionValue = formData.get('autoProvision');
-  const enabled = enabledValue === 'on' || enabledValue === 'true';
-  const autoProvision = autoProvisionValue === 'on' || autoProvisionValue === 'true';
+  const enabled = enabledValue === 'on' || enabledValue === 'true' || enabledValue === 'checked';
+  const autoProvision =
+    autoProvisionValue === 'on' ||
+    autoProvisionValue === 'true' ||
+    autoProvisionValue === 'checked';
   const allowedDomainsInput = (formData.get('allowedDomains') as string | null) ?? '';
   const allowedDomains = normalizeDomains(allowedDomainsInput);
+  const customScopes = (formData.get('customScopes') as string | null)?.trim() ?? null;
+  const providerLabel = (formData.get('providerLabel') as string | null)?.trim() ?? null;
+
+  // Auto-detect provider type from Issuer URL
+  function detectProviderType(issuerUrl: string): string {
+    if (!issuerUrl) return 'custom';
+
+    let hostname = '';
+    try {
+      const urlObj = new URL(issuerUrl);
+      hostname = urlObj.hostname.toLowerCase();
+    } catch {
+      // Fallback for non-URL identifier-like strings
+      hostname = issuerUrl.toLowerCase();
+    }
+
+    // Google: Specific hostnames or controlled suffix matches
+    if (
+      hostname === 'accounts.google.com' ||
+      hostname === 'googleapis.com' ||
+      hostname.endsWith('.google.com') ||
+      hostname.endsWith('.googleapis.com')
+    ) {
+      return 'google';
+    }
+
+    // Okta: hostnames ending with .okta.com or containing .okta. as a segment
+    if (
+      hostname === 'okta.com' ||
+      hostname.endsWith('.okta.com') ||
+      hostname.endsWith('.okta-emea.com') ||
+      hostname.includes('.okta.')
+    ) {
+      return 'okta';
+    }
+
+    // Azure AD / Microsoft identity platforms
+    const azureHosts = [
+      'login.microsoftonline.com',
+      'login.microsoft.com',
+      'sts.windows.net',
+      'microsoftonline.com',
+    ];
+    if (azureHosts.some(h => hostname === h || hostname.endsWith(`.${h}`))) {
+      return 'azure';
+    }
+
+    // Auth0: suffix match on .auth0.com
+    if (hostname === 'auth0.com' || hostname.endsWith('.auth0.com')) {
+      return 'auth0';
+    }
+
+    return 'custom';
+  }
+  const providerType = detectProviderType(issuer);
+
+  // Profile Mapping - collect individual fields
+  const profileMapping: Record<string, string> = {};
+  const pmDepartment = (formData.get('profileMapping.department') as string | null)?.trim();
+  const pmJobTitle = (formData.get('profileMapping.jobTitle') as string | null)?.trim();
+  const pmAvatarUrl = (formData.get('profileMapping.avatarUrl') as string | null)?.trim();
+  if (pmDepartment) profileMapping.department = pmDepartment;
+  if (pmJobTitle) profileMapping.jobTitle = pmJobTitle;
+  if (pmAvatarUrl) profileMapping.avatarUrl = pmAvatarUrl;
 
   if (!issuer || !isValidIssuer(issuer)) {
     return { error: 'Issuer URL must be a valid HTTPS URL.' };
@@ -225,6 +293,15 @@ export async function saveOidcConfig(
     return { error: 'ENCRYPTION_KEY must be set before enabling SSO.' };
   }
 
+  // Fingerprint Check: Ensure we aren't using a "rogue" key
+  const isKeyValid = await validateEncryptionFingerprint();
+  if (!isKeyValid && encryptionKey) {
+    return {
+      error:
+        'CRITICAL: Encryption Key integrity check failed. The active key does not match the stored fingerprint. Writes blocked.',
+    };
+  }
+
   if (clientSecret && !encryptionKey) {
     return { error: 'ENCRYPTION_KEY must be set before saving the client secret.' };
   }
@@ -237,7 +314,7 @@ export async function saveOidcConfig(
   if (clientSecret && clientSecret !== '********') {
     encryptedSecret = await encrypt(clientSecret);
   } else if (enabled && !encryptedSecret) {
-    return { error: 'Client Secret is required for new configuration.' };
+    return { error: 'Client Secret is required for configuration.' };
   }
 
   const user = await getCurrentUser();
@@ -253,6 +330,10 @@ export async function saveOidcConfig(
       enabled,
       autoProvision,
       allowedDomains,
+      customScopes,
+      providerType,
+      providerLabel,
+      profileMapping: Object.keys(profileMapping).length > 0 ? profileMapping : {},
       updatedBy: actorId,
     },
     update: {
@@ -262,6 +343,10 @@ export async function saveOidcConfig(
       enabled,
       autoProvision,
       allowedDomains,
+      customScopes,
+      providerType,
+      providerLabel,
+      profileMapping: Object.keys(profileMapping).length > 0 ? profileMapping : {},
       updatedBy: actorId,
     },
   });
@@ -285,6 +370,12 @@ export async function saveOidcConfig(
   revalidatePath('/login');
 
   return { success: true };
+}
+
+export async function validateOidcConnectionAction(issuer: string) {
+  if (!issuer) return { isValid: false, error: 'Issuer URL is missing' };
+  const { validateOidcConnection } = await import('@/lib/oidc-validation');
+  return await validateOidcConnection(issuer);
 }
 
 /**

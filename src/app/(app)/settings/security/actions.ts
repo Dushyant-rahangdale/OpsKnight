@@ -242,12 +242,6 @@ export async function saveOidcConfig(
   return { success: true };
 }
 
-export async function validateOidcConnectionAction(issuer: string) {
-  if (!issuer) return { isValid: false, error: 'Issuer URL is missing' };
-  const { validateOidcConnection } = await import('@/lib/oidc-validation');
-  return await validateOidcConnection(issuer);
-}
-
 export async function revokeAllSessions(): Promise<{ success?: boolean; error?: string }> {
   try {
     const user = await getCurrentUser();
