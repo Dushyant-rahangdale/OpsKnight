@@ -201,7 +201,7 @@ jobs:
 
       - name: Post results to PR conversation (sticky)
         if: github.event_name == 'pull_request' && always()
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: vitest
           message: ${{ steps.junit_summary.outputs.markdown }}
