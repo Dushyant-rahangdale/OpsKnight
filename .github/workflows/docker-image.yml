@@ -46,7 +46,7 @@ jobs:
       - name: Docker metadata (test channel - PR)
         if: github.event_name == 'pull_request'
         id: meta_test_pr
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME_TEST }}
           tags: |
@@ -55,7 +55,7 @@ jobs:
       - name: Docker metadata (test channel - main)
         if: github.ref == 'refs/heads/main'
         id: meta_test_main
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME_TEST }}
           tags: |
@@ -65,7 +65,7 @@ jobs:
       - name: Docker metadata (release channel - version tag)
         if: startsWith(github.ref, 'refs/tags/v')
         id: meta_release_tag
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_NAME_RELEASE }}
           tags: |
