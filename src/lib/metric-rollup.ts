@@ -7,6 +7,7 @@ import {
   isIncidentAfterHours,
 } from './business-hours';
 import { incidentEventWhereFor } from './incident-event-classifier';
+import { acquireAdvisoryLock, LOCK_KEYS } from './db-locks';
 
 /**
  * Metric Rollup Service
@@ -128,9 +129,12 @@ export async function generateDailyRollup(
   const businessHoursTimeZone = policyForTz.businessHoursTimeZone;
 
   try {
-    // Use transaction for atomic rollup generation
+    // Use transaction for atomic rollup generation. The advisory lock
+    // serializes against `cleanupOldRollups` so cleanup can't delete a
+    // row mid-write — see src/lib/db-locks.ts for the lock contract.
     await prisma.$transaction(
       async tx => {
+        await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
         // Fetch all incidents for the day
         const incidents = await tx.incident.findMany({
           where: whereClause,
@@ -681,7 +685,13 @@ export async function queryRollupMetrics(
 }
 
 /**
- * Cleanup old rollups beyond retention period
+ * Cleanup old rollups beyond retention period.
+ *
+ * Wraps the delete in a transaction that holds
+ * `LOCK_KEYS.ROLLUP_WRITE`. This serializes against `generateDailyRollup`
+ * which acquires the same lock — so cleanup can't delete a rollup row
+ * that a concurrent rollup-generation transaction is in the middle of
+ * upserting.
  */
 export async function cleanupOldRollups(): Promise<number> {
   const { default: prisma } = await import('./prisma');
@@ -690,16 +700,18 @@ export async function cleanupOldRollups(): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - policy.metricsRetentionDays);
 
-  const result = await prisma.incidentMetricRollup.deleteMany({
-    where: {
-      date: { lt: cutoffDate },
-    },
+  const deletedCount = await prisma.$transaction(async tx => {
+    await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
+    const result = await tx.incidentMetricRollup.deleteMany({
+      where: { date: { lt: cutoffDate } },
+    });
+    return result.count;
   });
 
   logger.info('[MetricRollup] Cleanup completed', {
-    deletedCount: result.count,
+    deletedCount,
     cutoffDate: cutoffDate.toISOString(),
   });
 
-  return result.count;
+  return deletedCount;
 }
