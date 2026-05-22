@@ -27,13 +27,6 @@ export async function saveSlackOAuthConfig(
     return { error: 'Client ID is required' };
   }
 
-  // Fingerprint Check
-  const { validateEncryptionFingerprint } = await import('@/lib/encryption');
-  const isKeyValid = await validateEncryptionFingerprint();
-  if (!isKeyValid) {
-    return { error: 'CRITICAL: Encryption Key mismatch. Writes blocked.' };
-  }
-
   // Get existing config to preserve secret if not provided
   const existing = await prisma.slackOAuthConfig.findFirst({
     orderBy: { updatedAt: 'desc' },

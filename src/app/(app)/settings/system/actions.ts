@@ -191,8 +191,7 @@ export async function saveOidcConfig(
     };
   }
 
-  const { getEncryptionKey, encrypt, validateEncryptionFingerprint } =
-    await import('@/lib/encryption');
+  const { encrypt } = await import('@/lib/encryption');
 
   const issuer = (formData.get('issuer') as string | null)?.trim() ?? '';
   const clientId = (formData.get('clientId') as string | null)?.trim() ?? '';
@@ -222,7 +221,6 @@ export async function saveOidcConfig(
       hostname = issuerUrl.toLowerCase();
     }
 
-    // Google: Specific hostnames or controlled suffix matches
     if (
       hostname === 'accounts.google.com' ||
       hostname === 'googleapis.com' ||
@@ -232,7 +230,6 @@ export async function saveOidcConfig(
       return 'google';
     }
 
-    // Okta: hostnames ending with .okta.com or containing .okta. as a segment
     if (
       hostname === 'okta.com' ||
       hostname.endsWith('.okta.com') ||
@@ -242,7 +239,6 @@ export async function saveOidcConfig(
       return 'okta';
     }
 
-    // Azure AD / Microsoft identity platforms
     const azureHosts = [
       'login.microsoftonline.com',
       'login.microsoft.com',
@@ -253,7 +249,6 @@ export async function saveOidcConfig(
       return 'azure';
     }
 
-    // Auth0: suffix match on .auth0.com
     if (hostname === 'auth0.com' || hostname.endsWith('.auth0.com')) {
       return 'auth0';
     }
@@ -286,25 +281,6 @@ export async function saveOidcConfig(
   const existing = await prisma.oidcConfig.findFirst({
     orderBy: { updatedAt: 'desc' },
   });
-
-  const encryptionKey = await getEncryptionKey();
-
-  if (enabled && !encryptionKey) {
-    return { error: 'ENCRYPTION_KEY must be set before enabling SSO.' };
-  }
-
-  // Fingerprint Check: Ensure we aren't using a "rogue" key
-  const isKeyValid = await validateEncryptionFingerprint();
-  if (!isKeyValid && encryptionKey) {
-    return {
-      error:
-        'CRITICAL: Encryption Key integrity check failed. The active key does not match the stored fingerprint. Writes blocked.',
-    };
-  }
-
-  if (clientSecret && !encryptionKey) {
-    return { error: 'ENCRYPTION_KEY must be set before saving the client secret.' };
-  }
 
   if (!existing && !clientSecret) {
     return { error: 'Client Secret is required for new configuration.' };
@@ -376,299 +352,4 @@ export async function validateOidcConnectionAction(issuer: string) {
   if (!issuer) return { isValid: false, error: 'Issuer URL is missing' };
   const { validateOidcConnection } = await import('@/lib/oidc-validation');
   return await validateOidcConnection(issuer);
-}
-
-/**
- * Save System Encryption Key
- */
-export async function saveEncryptionKey(
-  prevState: { error?: string | null; success?: boolean } | undefined,
-  formData: FormData
-): Promise<{ error?: string | null; success?: boolean }> {
-  try {
-    await assertAdmin();
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : 'Unauthorized. Admin access required.',
-    };
-  }
-
-  const key = (formData.get('encryptionKey') as string | null)?.trim() ?? '';
-
-  if (!key) {
-    return { error: 'Encryption key is required.' };
-  }
-
-  // Validate hex format (32 bytes = 64 hex chars)
-  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
-    return { error: 'Invalid key format. Must be a 32-byte (64 character) hex string.' };
-  }
-
-  await prisma.systemSettings.upsert({
-    where: { id: 'default' },
-    create: { encryptionKey: key },
-    update: { encryptionKey: key },
-  });
-
-  const user = await getCurrentUser();
-  await import('@/lib/audit').then(m =>
-    m.logAudit({
-      action: 'system.encryption_key.updated',
-      entityType: 'USER',
-      entityId: user.id,
-      actorId: user.id,
-      details: {
-        keyLength: key.length,
-      },
-    })
-  );
-
-  // CRITICAL: Update the fingerprint to match the new key
-  // Otherwise the system will lock out writes due to mismatch
-  const { getFingerprint } = await import('@/lib/encryption');
-  const fingerprint = getFingerprint(key);
-  await prisma.systemConfig.upsert({
-    where: { key: 'encryption_fingerprint' },
-    create: { key: 'encryption_fingerprint', value: { fingerprint } },
-    update: { value: { fingerprint } },
-  });
-
-  // Update Canary
-  const { encryptWithKey, CANARY_Plaintext } = await import('@/lib/encryption');
-  const canaryCipher = await encryptWithKey(CANARY_Plaintext, key);
-  await prisma.systemConfig.upsert({
-    where: { key: 'encryption_canary' },
-    create: { key: 'encryption_canary', value: { encrypted: canaryCipher } },
-    update: { value: { encrypted: canaryCipher } },
-  });
-
-  revalidatePath('/settings/system');
-  return { success: true };
-}
-
-/**
- * Rotate System Encryption Key (Advanced)
- * Decrypts all data with old key and re-encrypts with new key.
- */
-export async function rotateSystemEncryptionKey(
-  prevState: { error?: string | null; success?: boolean; skippedCount?: number } | undefined,
-  formData: FormData
-): Promise<{ error?: string | null; success?: boolean; skippedCount?: number }> {
-  try {
-    await assertAdmin();
-
-    const newKey = (formData.get('encryptionKey') as string | null)?.trim() ?? '';
-    const confirm = formData.get('confirm') === 'on';
-    const fallbackOldKey = (formData.get('fallbackOldKey') as string | null)?.trim();
-
-    if (!newKey || !/^[0-9a-fA-F]{64}$/.test(newKey)) {
-      return { error: 'Invalid new key format.' };
-    }
-    if (!confirm) {
-      return { error: 'Please confirm that you understand the risks.' };
-    }
-
-    const { getEncryptionKey, decryptWithKey, encryptWithKey, getFingerprint } =
-      await import('@/lib/encryption');
-    const oldKey = await getEncryptionKey();
-
-    if (!oldKey) {
-      // If no old key exists, just save the new one (bootstrap mode)
-      // But we should use saveEncryptionKey for that.
-      // Rotation implies shifting data.
-      return { error: 'No existing key found to rotate from. Use standard save.' };
-    }
-
-    if (oldKey === newKey) {
-      return { error: 'New key must be different from current key.' };
-    }
-
-    // 1. Fetch all encrypted data
-    const oidcConfigs = await prisma.oidcConfig.findMany();
-    const slackOAuths = await prisma.slackOAuthConfig.findMany();
-    const slackIntegrations = await prisma.slackIntegration.findMany();
-
-    // Helper to attempt decryption with active key first, then fallback key
-    const _decryptFallback = async (cipher: string, primaryKey: string, fallbackKey?: string) => {
-      try {
-        return await decryptWithKey(cipher, primaryKey);
-      } catch (err) {
-        if (fallbackKey && /^[0-9a-fA-F]{64}$/.test(fallbackKey)) {
-          return await decryptWithKey(cipher, fallbackKey);
-        }
-        throw err;
-      }
-    };
-
-    // 2. Prepare updates (Fail Check first)
-    const oidcUpdates: { id: string; clientSecret: string }[] = [];
-    let skippedCount = 0;
-
-    for (const config of oidcConfigs) {
-      if (!config.clientSecret) continue;
-      try {
-        const plain = await _decryptFallback(
-          config.clientSecret,
-          oldKey,
-          fallbackOldKey || undefined
-        );
-        const reEncrypted = await encryptWithKey(plain, newKey);
-        oidcUpdates.push({ id: config.id, clientSecret: reEncrypted });
-      } catch (e) {
-        console.error(
-          `[Encryption Rotation] Skipped OIDC Config ${config.id}: Failed to decrypt with both active and fallback keys.`
-        );
-        skippedCount++;
-      }
-    }
-
-    const slackOUpdates: { id: string; clientSecret: string }[] = [];
-    for (const config of slackOAuths) {
-      if (!config.clientSecret) continue;
-      try {
-        const plain = await _decryptFallback(
-          config.clientSecret,
-          oldKey,
-          fallbackOldKey || undefined
-        );
-        const reEncrypted = await encryptWithKey(plain, newKey);
-        slackOUpdates.push({ id: config.id, clientSecret: reEncrypted });
-      } catch (e) {
-        console.error(`[Encryption Rotation] Skipped Slack OAuth ${config.id}: Failed to decrypt.`);
-        skippedCount++;
-      }
-    }
-
-    const slackIntUpdates: { id: string; botToken: string; signingSecret: string | null }[] = [];
-    for (const int of slackIntegrations) {
-      try {
-        const plainBot = await _decryptFallback(int.botToken, oldKey, fallbackOldKey || undefined);
-        const reBot = await encryptWithKey(plainBot, newKey);
-
-        let reSign = null;
-        if (int.signingSecret) {
-          const plainSign = await _decryptFallback(
-            int.signingSecret,
-            oldKey,
-            fallbackOldKey || undefined
-          );
-          reSign = await encryptWithKey(plainSign, newKey);
-        }
-        slackIntUpdates.push({ id: int.id, botToken: reBot, signingSecret: reSign });
-      } catch (e) {
-        console.error(
-          `[Encryption Rotation] Skipped Slack Integration ${int.workspaceId}: Failed to decrypt.`
-        );
-        skippedCount++;
-      }
-    }
-
-    // 3. Execute Transaction
-    await prisma.$transaction(async tx => {
-      // Update OIDC
-      for (const up of oidcUpdates) {
-        await tx.oidcConfig.update({
-          where: { id: up.id },
-          data: { clientSecret: up.clientSecret },
-        });
-      }
-      // Update Slack OAuth
-      for (const up of slackOUpdates) {
-        await tx.slackOAuthConfig.update({
-          where: { id: up.id },
-          data: { clientSecret: up.clientSecret },
-        });
-      }
-      // Update Slack Integrations
-      for (const up of slackIntUpdates) {
-        await tx.slackIntegration.update({
-          where: { id: up.id },
-          data: {
-            botToken: up.botToken,
-            ...(up.signingSecret ? { signingSecret: up.signingSecret } : {}),
-          },
-        });
-      }
-
-      // Update System Key and Fingerprint
-      const fingerprint = getFingerprint(newKey);
-      await tx.systemSettings.upsert({
-        where: { id: 'default' },
-        create: { encryptionKey: newKey },
-        update: { encryptionKey: newKey },
-      });
-
-      // Update Fingerprint (using untyped `any` for value field since it's JSON)
-      // Update Fingerprint
-      await tx.systemConfig.upsert({
-        where: { key: 'encryption_fingerprint' },
-        create: { key: 'encryption_fingerprint', value: { fingerprint } },
-        update: { value: { fingerprint } },
-      });
-
-      // Update Canary (Re-encrypt static plaintext with NEW key)
-      const { CANARY_Plaintext } = await import('@/lib/encryption');
-      const canaryCipher = await encryptWithKey(CANARY_Plaintext, newKey);
-      await tx.systemConfig.upsert({
-        where: { key: 'encryption_canary' },
-        create: { key: 'encryption_canary', value: { encrypted: canaryCipher } },
-        update: { value: { encrypted: canaryCipher } },
-      });
-    });
-
-    const user = await getCurrentUser();
-    await import('@/lib/audit').then(m =>
-      m.logAudit({
-        action: 'system.encryption_key.rotated',
-        entityType: 'USER',
-        entityId: user.id,
-        actorId: user.id,
-        details: { countOidc: oidcUpdates.length, countSlack: slackIntUpdates.length },
-      })
-    );
-
-    revalidatePath('/settings/system');
-    return { success: true, skippedCount };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Rotation failed.' };
-  }
-}
-
-/**
- * Smart Router for Encryption Key Management
- * Handles: Bootstrap, Rotation, and Emergency Recovery
- */
-export async function manageEncryptionKey(
-  prevState: { error?: string | null; success?: boolean; skippedCount?: number } | undefined,
-  formData: FormData
-): Promise<{ error?: string | null; success?: boolean; skippedCount?: number }> {
-  try {
-    await assertAdmin();
-
-    const { getEncryptionKey, validateCanary } = await import('@/lib/encryption');
-    const existingKey = await getEncryptionKey(); // Returns null if invalid/canary-fail
-
-    // Case 1: Recovery Mode (System Locked)
-    // getEncryptionKey returns null if canary fails, BUT we need to check if a key actually EXISTS in DB to distinguish from Bootstrap.
-    // We can check prisma directly or rely on the fact that if getEncryptionKey is null but DB has data...
-    const dbSettings = await prisma.systemSettings.findUnique({ where: { id: 'default' } });
-    const hasRawKey = !!dbSettings?.encryptionKey;
-
-    if (hasRawKey && !existingKey) {
-      // Key exists but is invalid (Canary failed).
-      // Action: Emergency Restore (Overwrite Key)
-      return saveEncryptionKey(prevState, formData);
-    }
-
-    // Case 2: Bootstrap (First Time Setup)
-    if (!hasRawKey) {
-      return saveEncryptionKey(prevState, formData);
-    }
-
-    // Case 3: Rotation (Normal Operation)
-    // Key exists and is valid. Use Rotation Logic.
-    return rotateSystemEncryptionKey(prevState, formData);
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : 'Operation failed' };
-  }
 }

@@ -129,6 +129,8 @@ readinessProbe:
 secrets:
   # -- NextAuth secret for session encryption (generate with: openssl rand -base64 32)
   nextauthSecret: 'change_this_to_a_random_secret_in_production'
+  # -- Encryption key for integration secrets (must be 64-char hex, generate with: openssl rand -hex 32)
+  encryptionKey: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
   # -- Cron job authentication secret
   cronSecret: 'change_me_to_a_secure_token'
 

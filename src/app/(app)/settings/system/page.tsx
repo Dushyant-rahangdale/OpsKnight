@@ -5,7 +5,6 @@ import AppUrlSettings from '@/components/settings/AppUrlSettings';
 import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader';
 import { SettingsSection } from '@/components/settings/layout/SettingsSection';
 import SsoSettingsForm from '@/components/settings/SsoSettingsForm';
-import EncryptionKeyForm from '@/components/settings/EncryptionKeyForm';
 import RetentionPolicySettings from '@/components/settings/RetentionPolicySettings';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
 import { Badge } from '@/components/ui/shadcn/badge';
@@ -68,16 +67,14 @@ export default async function SystemSettingsPage() {
 
     let systemSettings: {
       appUrl: string | null;
-      encryptionKey: string | null;
     } | null = null;
     let oidcConfig: any = null;
 
     const prisma = (await import('@/lib/prisma')).default;
 
-    // Fetch encryption key (sensitive, only check existence or masked)
     systemSettings = await prisma.systemSettings.findUnique({
       where: { id: 'default' },
-      select: { appUrl: true, encryptionKey: true },
+      select: { appUrl: true },
     });
 
     const rawOidcConfig = await prisma.oidcConfig.findFirst({
@@ -104,22 +101,8 @@ export default async function SystemSettingsPage() {
       appUrlData.appUrl = systemSettings.appUrl;
     }
 
-    const encryptionKeySet = Boolean(systemSettings?.encryptionKey);
-
-    // Check for System Lockout (Safe Mode)
-    let isSystemLocked = false;
-    if (systemSettings?.encryptionKey) {
-      const { validateCanary } = await import('@/lib/encryption');
-      const isSafe = await validateCanary(systemSettings.encryptionKey);
-      isSystemLocked = !isSafe;
-    }
-
-    const integrityCheck = await import('@/lib/oidc-config').then(m => m.checkOidcIntegrity());
-    const encryptionStatus = isSystemLocked
-      ? 'Needs attention'
-      : encryptionKeySet
-        ? 'Configured'
-        : 'Missing';
+    // Encryption key is now sourced from ENCRYPTION_KEY env var only
+    const encryptionKeySet = Boolean(process.env.ENCRYPTION_KEY);
     const ssoStatus = oidcConfig?.enabled ? 'Enabled' : 'Disabled';
     const appUrlStatus = appUrlData.appUrl ? 'Custom' : 'Fallback';
 
@@ -134,15 +117,15 @@ export default async function SystemSettingsPage() {
           />
         </div>
 
-        {/* Dynamic Warning for System Lockout */}
-        {isSystemLocked && (
+        {/* Dynamic Warning: Encryption key not configured in production */}
+        {!encryptionKeySet && process.env.NODE_ENV !== 'development' && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>System Locked</AlertTitle>
+            <AlertTitle>Encryption Key Missing</AlertTitle>
             <AlertDescription>
-              A major encryption key mismatch has been detected. The system is in{' '}
-              <strong>Emergency Recovery Mode</strong>. Writes to encrypted fields are restricted
-              until the correct key is provided below.
+              The <strong>ENCRYPTION_KEY</strong> environment variable is not set. SSO secrets and
+              integration credentials cannot be stored securely. Set this variable in your
+              deployment environment.
             </AlertDescription>
           </Alert>
         )}
@@ -197,16 +180,6 @@ export default async function SystemSettingsPage() {
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Encryption</span>
-                      <Badge
-                        variant={
-                          isSystemLocked ? 'danger' : encryptionKeySet ? 'success' : 'neutral'
-                        }
-                      >
-                        {encryptionStatus}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
                       <span className="text-sm">SSO</span>
                       <Badge variant={oidcConfig?.enabled ? 'success' : 'neutral'}>
                         {ssoStatus}
@@ -244,29 +217,6 @@ export default async function SystemSettingsPage() {
           <AppUrlSettings appUrl={appUrlData.appUrl} fallback={appUrlData.fallback} />
         </SettingsSection>
 
-        {/* Encryption Key */}
-        <SettingsSection
-          title="Encryption Key"
-          description="Required for securing sensitive credentials like SSO secrets"
-          action={
-            <div className="flex gap-2">
-              <Badge variant="danger">Sensitive</Badge>
-              <Badge variant="outline">Backups</Badge>
-            </div>
-          }
-          footer={
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Handle with care</AlertTitle>
-              <AlertDescription>
-                Rotate only when you have the current key and a backup plan.
-              </AlertDescription>
-            </Alert>
-          }
-        >
-          <EncryptionKeyForm hasKey={encryptionKeySet} isSystemLocked={isSystemLocked} />
-        </SettingsSection>
-
         {/* Single Sign-On */}
         <SettingsSection
           title="Single Sign-On (OIDC)"
@@ -293,7 +243,6 @@ export default async function SystemSettingsPage() {
             initialConfig={oidcConfig}
             callbackUrl={`${appUrlData.appUrl || appUrlData.fallback}/api/auth/callback/oidc`}
             hasEncryptionKey={encryptionKeySet}
-            configError={integrityCheck.ok ? undefined : integrityCheck.error}
           />
         </SettingsSection>
 
