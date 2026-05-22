@@ -118,7 +118,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       // No adapter - using pure JWT sessions (industry standard for OIDC)
       session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
       jwt: { maxAge: sessionMaxAgeSeconds },
-      // Enforce stable cookie name and attributes for reverse proxy compatibility (Cloudflare Tunnel)
+      // Enforce stable cookie name and attributes for reverse proxy compatibility (Cloudflare Tunnel).
+      // `secure` is derived from NEXTAUTH_URL so non-HTTPS test/dev envs can still set the cookie.
       cookies: {
         sessionToken: {
           name: 'next-auth.session-token',
@@ -126,7 +127,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             httpOnly: true,
             sameSite: 'lax',
             path: '/',
-            secure: true,
+            secure: (process.env.NEXTAUTH_URL ?? '').startsWith('https://'),
           },
         },
       },
