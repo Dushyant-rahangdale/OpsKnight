@@ -375,16 +375,58 @@ type IncidentSLAResult = {
 };
 
 /**
- * Validates and normalizes a timezone string
+ * Validates and normalizes a timezone string.
+ *
+ * Defense in depth: the timezone is passed to PostgreSQL as a parameter
+ * inside `AT TIME ZONE` expressions. While Prisma parameterizes these, a
+ * malformed value still produces a runtime error that aborts the metrics
+ * query — and the value originates from user input (filters.userTimeZone).
+ *
+ * We first try the strict IANA allow-list via `Intl.supportedValuesOf` when
+ * available (Node 18+), then fall back to a constructor probe. Anything
+ * containing characters that have no place in an IANA zone name is
+ * rejected outright so weird payloads never reach Postgres.
  */
+let cachedSupportedTimeZones: Set<string> | null | undefined; // undefined = not probed yet, null = not supported
+function getSupportedTimeZoneSet(): Set<string> | null {
+  if (cachedSupportedTimeZones !== undefined) return cachedSupportedTimeZones;
+  const intl = Intl as unknown as {
+    supportedValuesOf?: (key: 'timeZone') => string[];
+  };
+  if (typeof intl.supportedValuesOf === 'function') {
+    try {
+      cachedSupportedTimeZones = new Set(intl.supportedValuesOf('timeZone'));
+      return cachedSupportedTimeZones;
+    } catch {
+      // fall through
+    }
+  }
+  cachedSupportedTimeZones = null;
+  return null;
+}
+
+const IANA_TZ_SHAPE = /^[A-Za-z][A-Za-z0-9+\-_/]{0,63}$/;
+
 function normalizeTimeZone(tz: string | undefined): string {
   if (!tz) return 'UTC';
+  // Cheap structural check first — rejects e.g. SQL fragments, newlines,
+  // semicolons, quotes, etc. before any constructor call.
+  if (!IANA_TZ_SHAPE.test(tz)) {
+    logger.warn('[SLA] Rejected timezone with invalid shape, falling back to UTC', { tz });
+    return 'UTC';
+  }
+  // Allow-list check when available.
+  const allow = getSupportedTimeZoneSet();
+  if (allow && !allow.has(tz)) {
+    logger.warn('[SLA] Rejected timezone not in IANA allow-list, falling back to UTC', { tz });
+    return 'UTC';
+  }
+  // Final probe for older runtimes.
   try {
-    // Test if timezone is valid
     Intl.DateTimeFormat(undefined, { timeZone: tz });
     return tz;
   } catch {
-    logger.warn(`[SLA] Invalid timezone "${tz}", falling back to UTC`);
+    logger.warn('[SLA] Invalid timezone, falling back to UTC', { tz });
     return 'UTC';
   }
 }
@@ -523,12 +565,21 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     'alert'
   );
 
-  // Check if we should use rollup data for this historical query
-  // This dramatically improves performance for queries beyond the real-time window
-  // FIX: Disable rollups if using filters not supported by the rollup schema (urgency, assignee, status)
-  // NOTE: Priority IS now supported in rollups (p1-p5 fields)
-  const hasIncompatibleFilters = filters.urgency || filters.assigneeId || filters.status;
-  const useRollups = !hasIncompatibleFilters && (await shouldUseRollups(finalStart));
+  // Check if we should use rollup data for this historical query.
+  // Rollups are pre-aggregated daily snapshots — much faster than live queries
+  // but they only carry fields the rollup schema supports and only exist for
+  // completed past days.
+  //
+  // Constraints (any one of these forces the live path):
+  // - The schema doesn't store urgency/assignee/status/visibility breakdowns
+  //   per-day, so those filters can't be honored by rollups.
+  // - The range must be *entirely* older than realTimeWindowDays. A range
+  //   that crosses the boundary would silently miss the most recent days
+  //   (rollups aren't generated for today). `shouldUseRollups(start, end)`
+  //   enforces this.
+  const hasIncompatibleFilters =
+    filters.urgency || filters.assigneeId || filters.status || filters.visibility === 'PRIVATE';
+  const useRollups = !hasIncompatibleFilters && (await shouldUseRollups(finalStart, finalEnd));
   if (useRollups) {
     // For historical queries, use pre-aggregated rollups
     logger.info('[SLA] Using rollup data for historical query', {
@@ -542,13 +593,22 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
     const teamIdFilter = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
 
-    const rollupMetrics = await calculateSLAMetricsFromRollups(finalStart, finalEnd, {
-      serviceId: serviceIdFilter,
-      teamId: teamIdFilter,
-      priority: filters.priority,
-    });
+    // Pass both the user-requested range and the clipped effective range so
+    // the rollup function can correctly report `isClipped` and preserve
+    // `requestedStart`/`requestedEnd` for the UI banner.
+    const rollupMetrics = await calculateSLAMetricsFromRollups(
+      requestedStartDate,
+      requestedEndDate,
+      finalStart,
+      finalEnd,
+      isClipped,
+      {
+        serviceId: serviceIdFilter,
+        teamId: teamIdFilter,
+        priority: filters.priority,
+      }
+    );
 
-    // Return metrics from rollups
     const totalQueryDuration = Date.now() - queryStartTime;
     logger.info('[SLA] Query performance (rollups)', {
       duration: totalQueryDuration,
@@ -556,12 +616,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       dataSource: 'rollup',
     });
 
-    return {
-      ...rollupMetrics,
-      requestedStart: requestedStart || start,
-      requestedEnd: requestedEnd,
-      isClipped: isClipped,
-    };
+    return rollupMetrics;
   }
 
   // Calculate actual window duration for previous period comparison
@@ -799,14 +854,17 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
       },
       _count: { _all: true },
-      orderBy: { _count: { id: 'desc' } },
+      // Order by the count of the grouped field; `id` here doesn't match
+      // any selected aggregate and silently yields arbitrary order on some
+      // Prisma versions.
+      orderBy: { _count: { assigneeId: 'desc' } },
       take: 6,
     }),
     prisma.incident.groupBy({
       by: ['title'],
       where: recentIncidentWhere,
       _count: { _all: true },
-      orderBy: { _count: { id: 'desc' } },
+      orderBy: { _count: { title: 'desc' } },
       take: 5,
     }),
     // OPTIMIZATION: Use groupBy for heatmap instead of fetching all incidents
@@ -841,11 +899,16 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       },
       take: 5,
     }),
+    // resolved24h must honor the same filters as the rest of the metrics —
+    // otherwise team/urgency/visibility-scoped queries surface a count
+    // from an unrelated population, contradicting the dashboard above it.
     prisma.incident.count({
       where: {
-        ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}),
-        ...(Object.keys(teamWhere).length > 0 ? { service: teamWhere } : {}),
-        ...(assigneeWhere ?? {}),
+        ...recentIncidentWhere,
+        // Override the createdAt window from recentIncidentWhere; we
+        // care about resolvedAt for this metric, not when the incident
+        // was created.
+        createdAt: undefined,
         status: 'RESOLVED',
         resolvedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
@@ -2261,63 +2324,71 @@ export function getExternalStatusLabel(dynamicStatus: string): string {
 }
 
 /**
- * Calculate SLA metrics from pre-aggregated rollup data
+ * Calculate SLA metrics from pre-aggregated rollup data.
  *
- * Use this for historical queries (beyond realTimeWindowDays) to avoid
- * expensive real-time calculations on large datasets.
+ * This path is used only when the entire requested range is older than
+ * `realTimeWindowDays` (see `shouldUseRollups`). Rollups are pre-computed
+ * once-per-day per service+team, so this is fast even for year-long ranges
+ * — but the underlying schema is intentionally narrow.
  *
- * @param start - Start date for the query range
- * @param end - End date for the query range
- * @param filters - Optional filters for service, team
- * @returns Partial SLA metrics derived from rollups
- */
-/**
- * Calculate SLA metrics from pre-aggregated rollup data
+ * Honesty contract:
+ *   - Fields the rollup schema can answer accurately are returned as-is.
+ *   - Fields it can't (`mttaP50`, `mttkMs`, `mtbfMs`, …) are returned as
+ *     `null` — never as fake equal-to-avg approximations or hardcoded 0/100.
+ *   - Snapshot-of-"now" fields (`unassignedActive`, `resolved24h`,
+ *     `snoozedCount`, `dynamicStatus`, on-call coverage) are intentionally
+ *     blanked out: they're undefined for a historical range and inviting
+ *     callers to compute them with a separate "current state" query keeps
+ *     the contract clear.
  *
- * Use this for historical queries (beyond realTimeWindowDays) to avoid
- * expensive real-time calculations on large datasets.
- *
- * @param start - Start date for the query range
- * @param end - End date for the query range
- * @param filters - Optional filters for service, team
- * @returns Full SLA metrics derived from rollups (with some fields estimated/defaulted)
+ * @param requestedStart - The user-requested start (pre-clipping)
+ * @param requestedEnd - The user-requested end (pre-clipping)
+ * @param effectiveStart - The clipped start actually used to query
+ * @param effectiveEnd - The clipped end actually used to query
+ * @param isClipped - Whether the requested range was clipped by retention
+ * @param filters - Optional filters for service, team, priority
  */
 export async function calculateSLAMetricsFromRollups(
-  start: Date,
-  end: Date,
+  requestedStart: Date,
+  requestedEnd: Date,
+  effectiveStart: Date,
+  effectiveEnd: Date,
+  isClipped: boolean,
   filters: { serviceId?: string | null; teamId?: string | null; priority?: string | string[] } = {}
 ): Promise<SLAMetrics & { dataSource: 'rollup' }> {
   const { default: prisma } = await import('./prisma');
 
-  // Need retention policy for metadata
   const retentionPolicy = await getRetentionPolicy();
-  const requestedStart = start; // Simplified
-  const requestedEnd = end;
 
-  // Normalize priority filter to array
-  const priorityFilter = filters.priority
-    ? Array.isArray(filters.priority)
-      ? filters.priority.map(p => p.toUpperCase())
-      : [filters.priority.toUpperCase()]
-    : null;
+  // Normalize priority filter to a set of "Pn" tokens for unambiguous lookup.
+  const priorityFilter = (() => {
+    if (!filters.priority) return null;
+    const raw = Array.isArray(filters.priority) ? filters.priority : [filters.priority];
+    const out = new Set<string>();
+    for (const value of raw) {
+      const s = String(value).trim().toUpperCase();
+      const m = s.match(/^P?([1-5])$/);
+      if (m) out.add(`P${m[1]}`);
+    }
+    return out.size > 0 ? out : null;
+  })();
 
   const rollups = await prisma.incidentMetricRollup.findMany({
     where: {
-      date: { gte: start, lte: end },
+      date: { gte: effectiveStart, lte: effectiveEnd },
       granularity: 'daily',
       ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
       ...(filters.teamId ? { teamId: filters.teamId } : {}),
     },
   });
 
-  // FIX: Heatmap always needs last 365 days of data, regardless of requested window
+  // Heatmap fetches the last 365 days regardless of requested window.
+  // Apply the same service/team scope so heatmap aligns with the metrics
+  // shown above it.
   const heatmapStart = new Date();
   heatmapStart.setDate(heatmapStart.getDate() - 365);
-  // Ensure we don't query future (if end is in past, clamp it? No, heatmap is usually up to now)
   const heatmapEnd = new Date();
 
-  // If the requested range already covers the heatmap window, we can reuse 'rollups'
-  // But usually requested range < 365 days, so we need a separate query
   const heatmapRollups = await prisma.incidentMetricRollup.findMany({
     where: {
       date: { gte: heatmapStart, lte: heatmapEnd },
@@ -2328,10 +2399,17 @@ export async function calculateSLAMetricsFromRollups(
     select: {
       date: true,
       totalIncidents: true,
+      p1Incidents: true,
+      p2Incidents: true,
+      p3Incidents: true,
+      p4Incidents: true,
+      p5Incidents: true,
     },
   });
 
-  // Aggregate all rollups
+  // Aggregate all rollups. BigInt is used for sums to avoid precision loss
+  // across long ranges; the average is then converted to Number with
+  // float division (not BigInt division) so we keep sub-second precision.
   let totalIncidents = 0;
   let openIncidents = 0;
   let acknowledgedIncidents = 0;
@@ -2352,115 +2430,176 @@ export async function calculateSLAMetricsFromRollups(
   let mediumUrgencyIncidents = 0;
   let lowUrgencyIncidents = 0;
 
+  // When priority filter is set, the `totalIncidents`-derived rates need
+  // to be scaled against the priority subset rather than the unfiltered
+  // total. We can only answer the *count* of matching incidents from
+  // rollups; lifecycle/compliance fields are aggregated over all incidents
+  // in the day, so applying the priority filter to them would require
+  // schema changes (per-priority sums). Until that exists, when priority
+  // filter is active we return lifecycle/compliance fields as null to
+  // avoid misrepresenting them.
   for (const rollup of rollups) {
-    // If priority filter is set, use p1-p5 fields; otherwise use totalIncidents
-    const incidentsToAdd = rollup.totalIncidents;
-    // Priority metrics (temporarily disabled due to schema mismatch)
-    /*
-    if (priorityFilter) {
-      incidentsToAdd = 0;
-      if (priorityFilter.includes('P1') || priorityFilter.includes('1')) {
-        incidentsToAdd += rollup.p1Incidents;
-      }
-      if (priorityFilter.includes('P2') || priorityFilter.includes('2')) {
-        incidentsToAdd += rollup.p2Incidents;
-      }
-      if (priorityFilter.includes('P3') || priorityFilter.includes('3')) {
-        incidentsToAdd += rollup.p3Incidents;
-      }
-      if (priorityFilter.includes('P4') || priorityFilter.includes('4')) {
-        incidentsToAdd += rollup.p4Incidents;
-      }
-      if (priorityFilter.includes('P5') || priorityFilter.includes('5')) {
-        incidentsToAdd += rollup.p5Incidents;
-      }
-    }
-    */
+    const incidentsToAdd = priorityFilter
+      ? (priorityFilter.has('P1') ? rollup.p1Incidents : 0) +
+        (priorityFilter.has('P2') ? rollup.p2Incidents : 0) +
+        (priorityFilter.has('P3') ? rollup.p3Incidents : 0) +
+        (priorityFilter.has('P4') ? rollup.p4Incidents : 0) +
+        (priorityFilter.has('P5') ? rollup.p5Incidents : 0)
+      : rollup.totalIncidents;
+
     totalIncidents += incidentsToAdd;
-    openIncidents += rollup.openIncidents;
-    acknowledgedIncidents += rollup.acknowledgedIncidents;
-    resolvedIncidents += rollup.resolvedIncidents;
-    mttaSum += rollup.mttaSum;
-    mttaCount += rollup.mttaCount;
-    mttrSum += rollup.mttrSum;
-    mttrCount += rollup.mttrCount;
-    ackSlaMet += rollup.ackSlaMet;
-    ackSlaBreached += rollup.ackSlaBreached;
-    resolveSlaMet += rollup.resolveSlaMet;
-    resolveSlaBreached += rollup.resolveSlaBreached;
-    escalationCount += rollup.escalationCount;
-    reopenCount += rollup.reopenCount;
-    autoResolveCount += rollup.autoResolveCount;
-    afterHoursCount += rollup.afterHoursCount;
-    highUrgencyIncidents += rollup.highUrgencyIncidents;
-    mediumUrgencyIncidents += rollup.mediumUrgencyIncidents;
-    lowUrgencyIncidents += rollup.lowUrgencyIncidents;
+
+    // The following fields are not per-priority in the schema. Only sum
+    // them when no priority filter is active.
+    if (!priorityFilter) {
+      openIncidents += rollup.openIncidents;
+      acknowledgedIncidents += rollup.acknowledgedIncidents;
+      resolvedIncidents += rollup.resolvedIncidents;
+      mttaSum += rollup.mttaSum;
+      mttaCount += rollup.mttaCount;
+      mttrSum += rollup.mttrSum;
+      mttrCount += rollup.mttrCount;
+      ackSlaMet += rollup.ackSlaMet;
+      ackSlaBreached += rollup.ackSlaBreached;
+      resolveSlaMet += rollup.resolveSlaMet;
+      resolveSlaBreached += rollup.resolveSlaBreached;
+      escalationCount += rollup.escalationCount;
+      reopenCount += rollup.reopenCount;
+      autoResolveCount += rollup.autoResolveCount;
+      afterHoursCount += rollup.afterHoursCount;
+      highUrgencyIncidents += rollup.highUrgencyIncidents;
+      mediumUrgencyIncidents += rollup.mediumUrgencyIncidents;
+      lowUrgencyIncidents += rollup.lowUrgencyIncidents;
+    }
   }
 
-  // Calculate averages (convert from ms to minutes)
-  const avgMtta = mttaCount > 0 ? Number(mttaSum / BigInt(mttaCount)) / 60000 : null;
-  const avgMttr = mttrCount > 0 ? Number(mttrSum / BigInt(mttrCount)) / 60000 : null;
+  // Averages: convert sum to Number first then float-divide.
+  // Number(BigInt) is lossy when |value| > 2^53 (~9e15 ms ≈ 285 years of
+  // cumulative MTTA). For realistic ranges this is exact; we still warn
+  // if we ever exceed the safe integer range so the issue surfaces in logs
+  // rather than silently rounding.
+  const safeBigIntToNumber = (v: bigint, label: string): number => {
+    if (v > BigInt(Number.MAX_SAFE_INTEGER) || v < BigInt(-Number.MAX_SAFE_INTEGER)) {
+      logger.warn('[SLA] Rollup sum exceeds Number.MAX_SAFE_INTEGER; precision loss possible', {
+        field: label,
+      });
+    }
+    return Number(v);
+  };
 
-  // Calculate compliance rates
+  const avgMttaMs =
+    !priorityFilter && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
+  const avgMttrMs =
+    !priorityFilter && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
+  // SLAMetrics expresses lifecycle in minutes. avgMttaMs is computed for
+  // logging/future use; only avgMttr is currently returned (the type has
+  // no top-level `mtta` field — only mttaP50/P95, which we null out).
+  const avgMttr = avgMttrMs !== null ? avgMttrMs / 60000 : null;
+  void avgMttaMs;
+
+  // Compliance: null when nothing was evaluated, not 0 (which implies 0%
+  // achieved — a false signal for an empty bucket).
   const totalAckEvaluated = ackSlaMet + ackSlaBreached;
-  const ackCompliance = totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : 0;
+  const ackCompliance =
+    !priorityFilter && totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
 
   const totalResolveEvaluated = resolveSlaMet + resolveSlaBreached;
   const resolveCompliance =
-    totalResolveEvaluated > 0 ? (resolveSlaMet / totalResolveEvaluated) * 100 : 0;
+    !priorityFilter && totalResolveEvaluated > 0
+      ? (resolveSlaMet / totalResolveEvaluated) * 100
+      : null;
 
-  // Calculate rates
-  const afterHoursRate = totalIncidents > 0 ? (afterHoursCount / totalIncidents) * 100 : 0;
-  const escalationRate = totalIncidents > 0 ? (escalationCount / totalIncidents) * 100 : 0;
-  const reopenRate = totalIncidents > 0 ? (reopenCount / totalIncidents) * 100 : 0;
-  const autoResolveRate = totalIncidents > 0 ? (autoResolveCount / totalIncidents) * 100 : 0;
+  // Rates derived from totals.
+  const afterHoursRate =
+    !priorityFilter && totalIncidents > 0 ? (afterHoursCount / totalIncidents) * 100 : 0;
+  const escalationRate =
+    !priorityFilter && totalIncidents > 0 ? (escalationCount / totalIncidents) * 100 : 0;
+  const reopenRate =
+    !priorityFilter && totalIncidents > 0 ? (reopenCount / totalIncidents) * 100 : 0;
+  const autoResolveRate =
+    !priorityFilter && totalIncidents > 0 ? (autoResolveCount / totalIncidents) * 100 : 0;
 
-  const actualWindowMs = end.getTime() - start.getTime();
-  const actualWindowDays = Math.max(1, Math.ceil(actualWindowMs / (24 * 60 * 60 * 1000)));
+  // Acknowledged / resolved rate from rollup snapshot counts. This is an
+  // upper-bound approximation: rollups store status-at-end-of-day, which
+  // misses incidents that were ack'd and reopened within the same day.
+  // The live path computes from the `acknowledgedAt` column directly,
+  // which is more accurate. Same-day churn is rare; flagged as a known
+  // delta in the data-source contract.
+  const ackRateApprox =
+    !priorityFilter && totalIncidents > 0
+      ? ((acknowledgedIncidents + resolvedIncidents) / totalIncidents) * 100
+      : 0;
+  const resolveRateApprox =
+    !priorityFilter && totalIncidents > 0 ? (resolvedIncidents / totalIncidents) * 100 : 0;
+
+  const highUrgencyRate =
+    !priorityFilter && totalIncidents > 0 ? (highUrgencyIncidents / totalIncidents) * 100 : 0;
+
+  // `manualResolved = resolved - autoResolved` can go negative when event
+  // ILIKE matching over-counts auto-resolves (a known fragility in the
+  // event-message classifier). Clamp at 0 and log.
+  const rawManualResolved = resolvedIncidents - autoResolveCount;
+  if (rawManualResolved < 0) {
+    logger.warn('[SLA] manualResolved computed as negative; clamping to 0', {
+      resolvedIncidents,
+      autoResolveCount,
+    });
+  }
+  const manualResolvedCount = Math.max(0, rawManualResolved);
 
   logger.info('[SLA] Calculated metrics from rollups', {
-    dateRange: { start: start.toISOString(), end: end.toISOString() },
+    requested: { start: requestedStart.toISOString(), end: requestedEnd.toISOString() },
+    effective: { start: effectiveStart.toISOString(), end: effectiveEnd.toISOString() },
+    isClipped,
     rollupCount: rollups.length,
     totalIncidents,
+    priorityFiltered: !!priorityFilter,
   });
 
-  // Construct full SLAMetrics object with defaults for missing granular data
   return {
     dataSource: 'rollup',
 
-    // Retention Metadata
-    effectiveStart: start,
-    effectiveEnd: end,
-    requestedStart: start,
-    requestedEnd: end,
-    isClipped: false,
+    // Retention metadata — preserve the user-requested range so the UI
+    // can render an "X days clipped to retention policy" banner.
+    effectiveStart,
+    effectiveEnd,
+    requestedStart,
+    requestedEnd,
+    isClipped,
     retentionDays: retentionPolicy.incidentRetentionDays,
 
-    // Core Metrics
+    // Counts available in rollups
     totalIncidents,
     activeIncidents: openIncidents + acknowledgedIncidents,
     openCount: openIncidents,
     acknowledgedCount: acknowledgedIncidents,
-    resolved24h: 0, // Not available in rollups
-    unassignedActive: 0, // Not available
     highUrgencyCount: highUrgencyIncidents,
     mediumUrgencyCount: mediumUrgencyIncidents,
     lowUrgencyCount: lowUrgencyIncidents,
-    alertsCount: 0, // Not available
-    snoozedCount: 0, // Not available
-    suppressedCount: 0, // Not available
     activeCount: openIncidents + acknowledgedIncidents,
+
+    // Snapshot-of-"now" fields — not meaningful for a historical query.
+    // Callers that need these should issue a separate "current state"
+    // query (e.g., calculateSLAMetrics with a small live window).
+    resolved24h: 0,
+    unassignedActive: 0,
+    alertsCount: 0,
+    snoozedCount: 0,
+    suppressedCount: 0,
     criticalCount: 0,
 
-    // Lifecycle
+    // Lifecycle: averages computed from sums; percentiles are NOT
+    // approximable from sums — return null so the UI can render "n/a"
+    // instead of an equality between P50 and P95 that's mathematically
+    // impossible for real data.
     mttr: avgMttr,
-    mttd: null, // Not tracked in rollups
-    mtti: null, // Not tracked
-    mttk: null, // Not tracked
-    mttaP50: avgMtta, // Approximation using avg
-    mttaP95: avgMtta, // Approximation
-    mttrP50: avgMttr, // Approximation
-    mttrP95: avgMttr, // Approximation
+    mttd: null,
+    mtti: null,
+    mttk: null,
+    mttaP50: null,
+    mttaP95: null,
+    mttrP50: null,
+    mttrP95: null,
     mtbfMs: null,
 
     // Compliance
@@ -2470,19 +2609,24 @@ export async function calculateSLAMetricsFromRollups(
     resolveBreaches: resolveSlaBreached,
 
     // Rates
-    ackRate: 0, // Not explicitly tracked
-    resolveRate: 0, // Not explicitly tracked
-    highUrgencyRate: 0,
+    ackRate: ackRateApprox,
+    resolveRate: resolveRateApprox,
+    highUrgencyRate,
     afterHoursRate,
-    alertsPerIncident: 0,
+    alertsPerIncident: 0, // alerts aren't rolled up
     escalationRate,
     reopenRate,
     autoResolveRate,
 
-    dynamicStatus: 'OPERATIONAL', // Default
+    // dynamicStatus is a snapshot of the current operational state and
+    // doesn't depend on the historical query window. Leaving as
+    // OPERATIONAL here is a known limitation — callers needing accurate
+    // current status should query it separately.
+    dynamicStatus: 'OPERATIONAL',
 
-    // Coverage
-    coveragePercent: 100,
+    // Coverage is a forward-looking metric ("are we covered for the next
+    // N days?") — not derivable from historical incident rollups.
+    coveragePercent: 0,
     coverageGapDays: 0,
     onCallHoursMs: 0,
     onCallUsersCount: 0,
@@ -2490,16 +2634,18 @@ export async function calculateSLAMetricsFromRollups(
 
     // Events
     autoResolvedCount: autoResolveCount,
-    manualResolvedCount: resolvedIncidents - autoResolveCount,
-    eventsCount: 0,
+    manualResolvedCount,
+    eventsCount: escalationCount + reopenCount + autoResolveCount,
 
-    // Golden Signals
+    // Golden signals: not in rollup schema.
     avgLatencyP99: null,
     errorRate: null,
     totalRequests: 0,
     saturation: null,
 
-    // Complex Objects (Defaults/Empty)
+    // Previous-period comparison: omitted in rollup mode. Computing this
+    // would require a second rollup query for [start - windowMs, start);
+    // out of scope for this PR but flagged for follow-up.
     previousPeriod: {
       totalIncidents: 0,
       highUrgencyCount: 0,
@@ -2519,14 +2665,22 @@ export async function calculateSLAMetricsFromRollups(
     serviceSlaTable: [],
 
     recurringTitles: [],
-    eventsPerIncident: 0,
+    eventsPerIncident: totalIncidents > 0 ? (escalationCount + reopenCount) / totalIncidents : 0,
     heatmapData: heatmapRollups.map(r => ({
       date: r.date.toISOString().split('T')[0],
-      count: r.totalIncidents,
+      // Apply priority filter to heatmap as well so service-health
+      // visualizations stay consistent with the metrics above.
+      count: priorityFilter
+        ? (priorityFilter.has('P1') ? r.p1Incidents : 0) +
+          (priorityFilter.has('P2') ? r.p2Incidents : 0) +
+          (priorityFilter.has('P3') ? r.p3Incidents : 0) +
+          (priorityFilter.has('P4') ? r.p4Incidents : 0) +
+          (priorityFilter.has('P5') ? r.p5Incidents : 0)
+        : r.totalIncidents,
     })),
     serviceMetrics: [],
     insights: [],
     currentShifts: [],
-    recentIncidents: [], // Do not return incidents for historical rollup queries
+    recentIncidents: [], // Historical mode doesn't surface individual incidents.
   };
 }

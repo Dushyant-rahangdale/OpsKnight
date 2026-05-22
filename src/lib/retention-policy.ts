@@ -205,12 +205,25 @@ export async function getRealTimeWindowStart(): Promise<Date> {
 }
 
 /**
- * Helper: Determines if a date range should use rollups
- * Returns true if the start date is before the real-time window
+ * Helper: Determines if a date range should use pre-aggregated rollups.
+ *
+ * Rollups are only safe to use when the *entire* range is older than the
+ * real-time window. Daily rollups are generated for completed past days,
+ * so a range that extends into the real-time window (or up to "now") would
+ * silently miss the most recent days when answered from rollups alone.
+ *
+ * Callers that want to serve a range crossing the boundary should query the
+ * live path for the whole range, or implement an explicit hybrid (rollups
+ * for `[start, realtimeStart)` + live for `[realtimeStart, end]` with
+ * weighted aggregation). Until that exists, returning `false` for any
+ * boundary-crossing range trades query performance for correctness.
  */
-export async function shouldUseRollups(startDate: Date): Promise<boolean> {
+export async function shouldUseRollups(startDate: Date, endDate?: Date): Promise<boolean> {
   const realTimeStart = await getRealTimeWindowStart();
-  return startDate < realTimeStart;
+  if (startDate >= realTimeStart) return false;
+  // If no end date provided (legacy callers), be conservative and assume "now"
+  const effectiveEnd = endDate ?? new Date();
+  return effectiveEnd < realTimeStart;
 }
 
 /**

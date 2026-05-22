@@ -3,6 +3,7 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { serializeSlaMetrics } from '@/lib/sla';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
+import { assertCanReadServiceMetrics } from '@/lib/rbac';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,16 @@ export async function GET(request: NextRequest) {
       | 'SUPPRESSED'
       | 'RESOLVED'
       | undefined;
+
+    // Enforce that the caller is allowed to read metrics for the requested
+    // scope. ADMIN/RESPONDER pass through; regular USERs must have a team
+    // membership covering every serviceId/teamId in the filter.
+    try {
+      await assertCanReadServiceMetrics({ serviceId, teamId });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unauthorized';
+      return NextResponse.json({ error: message }, { status: 403 });
+    }
 
     // Calculate metrics using the centralized SLA server
     const metrics = await calculateSLAMetrics({
