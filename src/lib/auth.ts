@@ -29,11 +29,14 @@ type AugmentedJWT = JWT & {
   avatarUrl?: string | null;
   gender?: string | null;
   role?: string;
+  /** True when user opted into "Remember Me" at login. Used to pick the JWT exp cap. */
+  rememberMe?: boolean;
 };
 
 type AugmentedUser = User & {
   tokenVersion?: number;
   role?: string;
+  rememberMe?: boolean;
 };
 
 function isOidcEmailVerifiedStrict() {
@@ -106,7 +109,22 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
   authOptionsInFlight = (async () => {
     const oidcConfig = await getOidcConfig();
-    const sessionMaxAgeSeconds = 60 * 60 * 24 * 7;
+    // Session design (modelled on PagerDuty / Linear / Slack):
+    //   - No time-based "you've been idle, log back in" on any client.
+    //   - Mobile clients ALWAYS get the long ceiling so push-notification
+    //     listeners don't silently fall off because a timer expired
+    //     without the user noticing. Mobile UA forces rememberMe=true
+    //     in the authorize() call below.
+    //   - Web without "Remember Me" still gets 7 days (matches most ops
+    //     tools' default), but with sliding refresh — any activity in
+    //     that window resets the timer.
+    //   - Web with "Remember Me" gets the long ceiling.
+    //   - The only way to log a user out is server-side revocation:
+    //     `tokenVersion` is bumped (user disabled, password reset,
+    //     deletion) and the next JWT callback rejects the stale token.
+    const sessionMaxAgeSeconds = 60 * 60 * 24 * 7; // 7 days (web, no Remember Me)
+    const rememberMeMaxAgeSeconds = 60 * 60 * 24 * 365; // 1 year (web + RM, all mobile)
+    const sessionUpdateAgeSeconds = 60 * 60; // sliding refresh at most hourly
 
     if (oidcConfig) {
       logger.info('[Auth] OIDC provider will be enabled', {
@@ -122,8 +140,16 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
     return {
       // No adapter - using pure JWT sessions (industry standard for OIDC)
-      session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
-      jwt: { maxAge: sessionMaxAgeSeconds },
+      // Session cap is `rememberMeMaxAgeSeconds` (30 days) so a
+      // remember-me JWT can outlive 7 days. Non-remember-me sessions
+      // are still pinned to 7 days via the JWT's own `exp` set in the
+      // jwt callback below — NextAuth respects whichever is shorter.
+      session: {
+        strategy: 'jwt',
+        maxAge: rememberMeMaxAgeSeconds,
+        updateAge: sessionUpdateAgeSeconds,
+      },
+      jwt: { maxAge: rememberMeMaxAgeSeconds },
       // Explicit cookie config (see src/lib/auth-cookies.ts).
       // We derive `secure` and the `__Secure-` / `__Host-` prefixes from
       // NEXTAUTH_URL rather than relying on NextAuth's request-based protocol
@@ -186,13 +212,22 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
 
             const email = credentials?.email?.toLowerCase().trim() || '';
             const password = credentials?.password || '';
-            const rememberMe = credentials?.rememberMe === 'true';
+            const userAgentHeader = (req?.headers?.['user-agent'] as string) || '';
+            // Mobile clients (PWA on iOS/Android, native wrappers, etc.)
+            // are forced into Remember Me. We never want push-notification
+            // listeners to silently fall off because a 7-day timer expired
+            // — see the session-design comment in getAuthOptions().
+            const isMobileClient =
+              /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(
+                userAgentHeader
+              );
+            const rememberMe = credentials?.rememberMe === 'true' || isMobileClient;
 
             // Get IP from request headers (best effort)
             const forwardedFor = req?.headers?.['x-forwarded-for'];
             const ip =
               typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : '0.0.0.0';
-            const userAgent = (req?.headers?.['user-agent'] as string) || 'Unknown';
+            const userAgent = userAgentHeader || 'Unknown';
 
             logger.warn('[Auth-Debug] Authorize started', {
               component: 'auth:credentials',
@@ -298,13 +333,17 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               tokenVersion: user.tokenVersion,
             });
 
+            // Stash the rememberMe flag onto the user object so the
+            // jwt callback can pick it up and cap the JWT exp at the
+            // appropriate value (7d default, 30d when set).
             return {
               id: user.id,
               name: user.name,
               email: user.email,
               role: user.role,
               tokenVersion: user.tokenVersion,
-            };
+              rememberMe,
+            } as User & { rememberMe: boolean };
           },
         }),
       ],
@@ -379,7 +418,17 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               token.name = user.name;
               token.email = user.email;
               (token as AugmentedJWT).tokenVersion = (user as AugmentedUser).tokenVersion ?? 0;
+              (token as AugmentedJWT).rememberMe = (user as AugmentedUser).rememberMe === true;
             }
+
+            // Pick the JWT exp cap based on rememberMe. The session
+            // cookie itself uses the 30-day NextAuth maxAge so the
+            // browser will hold either token; the JWT's own `exp`
+            // claim is what makes verification fail at 7 days for
+            // non-remember-me sessions.
+            const remember = (token as AugmentedJWT).rememberMe === true;
+            const ttlSeconds = remember ? rememberMeMaxAgeSeconds : sessionMaxAgeSeconds;
+            token.exp = Math.floor(Date.now() / 1000) + ttlSeconds;
           }
           // The user provided in the jwt callback is the one returned by the `authorize` function
           // or the OIDC provider. We need to ensure `token.sub` is set to our internal user ID

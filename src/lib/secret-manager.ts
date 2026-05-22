@@ -56,58 +56,163 @@ function generateSecret(): string {
 }
 
 /**
- * Get the NextAuth secret
+ * Why this changed: the ephemeral-secret fallback silently broke
+ * sessions in production. NextAuth runs in two separate runtimes —
+ * Node (auth API routes) and Edge (middleware) — each with its own
+ * module instance and therefore its own `cachedSecret`. If
+ * NEXTAUTH_SECRET is absent, the Node runtime mints JWTs with secret
+ * A while middleware tries to verify them with secret B, and every
+ * navigation past `/` 302s back to `/login`. The user looks logged
+ * in (page-level `getServerSession` works in Node) but middleware
+ * disagrees on every other route.
  *
- * This function:
- * 1. Returns env var if set
- * 2. Returns cached value if available
- * 3. Returns ephemeral generated secret (logging a warning)
+ * Fix: when NODE_ENV === 'production', refuse to fall back. Throw
+ * loudly so the deploy fails immediately instead of shipping a broken
+ * session layer. Dev and test still get the auto-generated secret so
+ * `npm run dev` works without configuration.
+ */
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+const MISSING_SECRET_MESSAGE =
+  'NEXTAUTH_SECRET is not set, and no derivable fallback (ENCRYPTION_KEY) is ' +
+  'available. In production this is a fatal misconfiguration: NextAuth runs in two ' +
+  'runtimes (Node for API routes, Edge for middleware), each generating its own ' +
+  'ephemeral secret if none is provided — so JWTs minted in one runtime cannot be ' +
+  'verified in the other, and every navigation past `/` redirects back to /login. ' +
+  'Set NEXTAUTH_SECRET to a stable value (e.g., `openssl rand -base64 32`).';
+
+// Cache the derived secret so we don't recompute the hash on every call.
+let derivedSecretCache: string | null = null;
+
+/**
+ * Derive a stable NextAuth secret from an existing deploy-stable input
+ * (`ENCRYPTION_KEY`) when no explicit NEXTAUTH_SECRET is set. Used as a
+ * graceful fallback so an operator who forgot to set NEXTAUTH_SECRET but
+ * did set ENCRYPTION_KEY still gets working sessions instead of the
+ * silent two-runtime divergence described above.
+ *
+ * Properties:
+ *   - Deterministic: Node and Edge runtimes compute the same value.
+ *   - Stable across restarts: `ENCRYPTION_KEY` doesn't change between
+ *     deploys.
+ *   - Domain-separated: the digest input includes a fixed namespace
+ *     prefix so the derived secret can't be misused as the encryption
+ *     key itself.
+ *   - Uses Web Crypto (`crypto.subtle`), which is available in both
+ *     Node 18+ and Edge runtimes.
+ *
+ * Caveat: deriving an auth secret from another secret shares the blast
+ * radius of either. ENCRYPTION_KEY compromise already grants full DB
+ * read access, so the marginal risk is small — but explicit
+ * NEXTAUTH_SECRET (separate secret) is still the recommended setup.
+ */
+async function deriveSecretFromEncryptionKey(seed: string): Promise<string> {
+  if (derivedSecretCache) return derivedSecretCache;
+  const enc = new TextEncoder().encode('opsknight:nextauth-secret:v1:' + seed);
+  const buf = await globalThis.crypto.subtle.digest('SHA-256', enc);
+  // base64url to keep it safe in env / cookie contexts.
+  if (typeof Buffer !== 'undefined') {
+    derivedSecretCache = Buffer.from(buf).toString('base64');
+  } else {
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    derivedSecretCache = btoa(bin);
+  }
+  return derivedSecretCache;
+}
+
+function getEncryptionKeySeed(): string | null {
+  const seed = process.env.ENCRYPTION_KEY;
+  // Require a minimum entropy floor — refuse to derive from an obviously
+  // weak ENCRYPTION_KEY (e.g., development placeholder).
+  if (!seed || seed.length < 32) return null;
+  return seed;
+}
+
+/**
+ * Get the NextAuth secret.
+ *
+ * Priority chain:
+ *   1. `NEXTAUTH_SECRET` env var — explicit, recommended.
+ *   2. Derived from `ENCRYPTION_KEY` env var — deterministic across
+ *      Node + Edge runtimes; lets a deploy that already has
+ *      ENCRYPTION_KEY (which is required for the encryption pipeline)
+ *      get working sessions without a separate operator action. Logs a
+ *      warning so the explicit-secret recommendation isn't forgotten.
+ *   3. Production with neither set → throw. Better to fail the deploy
+ *      than ship the broken two-runtime divergence.
+ *   4. Dev/test → in-memory ephemeral generation, with a warn.
  */
 export async function getNextAuthSecret(): Promise<string> {
-  // Priority 1: Environment variable override
   const envSecret = process.env.NEXTAUTH_SECRET;
   if (envSecret) {
     return envSecret;
   }
 
-  // Priority 2: Return cached value
+  const seed = getEncryptionKeySeed();
+  if (seed) {
+    if (!derivedSecretCache) {
+      logger.warn(
+        '[SecretManager] NEXTAUTH_SECRET not set; deriving deterministically from ' +
+          'ENCRYPTION_KEY. Sessions will be stable, but set NEXTAUTH_SECRET explicitly ' +
+          'for cleaner key separation.'
+      );
+    }
+    return deriveSecretFromEncryptionKey(seed);
+  }
+
+  if (isProduction()) {
+    logger.error('[SecretManager] ' + MISSING_SECRET_MESSAGE);
+    throw new Error('[SecretManager] ' + MISSING_SECRET_MESSAGE);
+  }
+
   if (cachedSecret) {
     return cachedSecret;
   }
 
-  // NOTE: We removed Prisma database fallback for Edge Runtime compatibility.
-  // Middleware (running on Edge) uses this file and cannot run Prisma Client.
-
-  // Priority 3: Generate ephemeral secret
   logger.warn(
-    '[SecretManager] NEXTAUTH_SECRET is not set in environment. Generating a TEMPORARY secret. Sessions will be invalidated on server restart. Please set NEXTAUTH_SECRET in your .env file.'
+    '[SecretManager] NEXTAUTH_SECRET missing; generating an ephemeral secret. ' +
+      'This is OK for `npm run dev` but will break sessions on restart. ' +
+      'Set NEXTAUTH_SECRET in `.env` to keep sessions stable.'
   );
   cachedSecret = generateSecret();
-
   return cachedSecret;
 }
 
 /**
- * Synchronous version that returns cached value or env var
- * Used in places where async is not possible (e.g., middleware configuration or legacy code)
+ * Synchronous version. Same priority chain except the ENCRYPTION_KEY
+ * derivation is sync-only (the cache must already be warm from a prior
+ * async call). Used where async isn't possible.
  *
- * IMPORTANT: Call getNextAuthSecret() first to populate the cache if relying on generated secrets
+ * For the rolling-deploy + middleware case the cache priming happens at
+ * the first authenticated request; this sync path is mostly a legacy
+ * surface kept for compatibility.
  */
 export function getNextAuthSecretSync(): string {
-  // Priority 1: Environment variable
   const envSecret = process.env.NEXTAUTH_SECRET;
   if (envSecret) {
     return envSecret;
   }
 
-  // Priority 2: Cached value
+  if (derivedSecretCache) {
+    return derivedSecretCache;
+  }
+
+  if (isProduction()) {
+    logger.error('[SecretManager] ' + MISSING_SECRET_MESSAGE);
+    throw new Error('[SecretManager] ' + MISSING_SECRET_MESSAGE);
+  }
+
   if (cachedSecret) {
     return cachedSecret;
   }
 
-  // Fallback: Generate temporary secret
   logger.warn(
-    '[SecretManager] getNextAuthSecretSync called without cached secret. Generating temporary.'
+    '[SecretManager] getNextAuthSecretSync called without env var or cache; generating ephemeral.'
   );
   cachedSecret = generateSecret();
   return cachedSecret;

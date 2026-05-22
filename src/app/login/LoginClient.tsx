@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Spinner from '@/components/ui/Spinner';
 import SsoButton from '@/components/auth/SsoButton';
 import LoginTicker from '@/components/auth/LoginTicker';
@@ -38,6 +38,7 @@ export default function LoginClient({
   ssoProviderType,
   ssoProviderLabel,
 }: Props) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -100,20 +101,26 @@ export default function LoginClient({
       } else if (result?.ok) {
         setIsSubmitting(false);
         setIsSuccess(true);
-        // `result.url` from NextAuth's credentials provider (with redirect:false)
-        // is unreliable — depending on the original callbackUrl it can come back
-        // pointing at the signin page itself, which prevents the post-login
-        // navigation. Use the validated `callbackUrl` prop instead, guarding
-        // against any value that would loop back to /login.
+        // `result.url` from NextAuth's credentials provider (with
+        // redirect:false) is unreliable — depending on the original
+        // callbackUrl it can come back pointing at the signin page
+        // itself, breaking the post-login navigation. Use the
+        // validated `callbackUrl` prop, guarded against /login loop.
         const safeTarget =
           callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
             ? callbackUrl
             : '/';
+        // Soft transition: `router.push` is significantly snappier
+        // than a full-page reload, and we follow with `router.refresh`
+        // to make sure the new (app) layout server-renders against the
+        // freshly-issued session cookie rather than a cached RSC tree.
+        // Short delay (250ms) gives the success animation a beat
+        // without loitering — the prior 1200ms was a perceptible
+        // pause that felt slow vs. Amazon/Linear/etc.
         setTimeout(() => {
-          // Hard navigation to ensure the new session cookie is picked up
-          // by the next server render.
-          window.location.href = safeTarget;
-        }, 1200);
+          router.push(safeTarget);
+          router.refresh();
+        }, 250);
       }
     } catch {
       setError('Unexpected error');
