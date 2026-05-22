@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import SsoButton from '@/components/auth/SsoButton';
@@ -48,9 +49,15 @@ export default function MobileLoginClient({
   ssoProviderType,
   ssoProviderLabel,
 }: Props) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  // Mobile defaults Remember Me ON: on mobile, server-side revocation
+  // (tokenVersion bump) is the only way to log out — matches the
+  // PagerDuty/Linear model. The auth.ts authorize() also forces this
+  // for any mobile UA as a defense in depth, but reflecting it in the
+  // UI lets the user know.
+  const [rememberMe, setRememberMe] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -155,10 +162,13 @@ export default function MobileLoginClient({
       } else if (result?.ok) {
         setIsSubmitting(false);
         setIsSuccess(true);
+        // Soft navigation matches the desktop client: faster perceived
+        // transition + `router.refresh()` ensures the (app) layout
+        // server-renders against the fresh session cookie.
         setTimeout(() => {
-          // Force use of sanitized URL to prevent 404s from bad callbacks
-          window.location.href = safeCallbackUrl;
-        }, 800);
+          router.push(safeCallbackUrl);
+          router.refresh();
+        }, 250);
       }
     } catch {
       setError('Unexpected error');

@@ -98,24 +98,64 @@ function buildSubdomainHost(subdomain: string, appHost: string) {
 const INTERNAL_API_BASE =
   process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-async function fetchStatusDomainConfig() {
-  try {
-    const response = await fetch(`${INTERNAL_API_BASE}/api/status-page/domains`, {
-      cache: 'no-store',
-      headers: { 'x-internal-request': 'status-domain-check' },
-    });
-    if (!response.ok) {
-      return null;
-    }
-    return (await response.json()) as {
-      enabled: boolean;
-      subdomain?: string | null;
-      customDomain?: string | null;
-      appHost?: string | null;
-    };
-  } catch {
-    return null;
+type StatusDomainConfig = {
+  enabled: boolean;
+  subdomain?: string | null;
+  customDomain?: string | null;
+  appHost?: string | null;
+};
+
+// In-process cache so we don't fire an HTTP+DB call on every page
+// navigation. The DB-backed config changes only when an admin edits
+// status-page settings; STATUS_PAGE_DOMAIN_CACHE_TTL (default 60s) is
+// the worst-case staleness for a custom-domain change to take effect.
+// Edge runtime: each isolate has its own cache — that's fine since
+// 60s is short enough to keep them within a reasonable drift window.
+type CachedDomainConfig = {
+  value: StatusDomainConfig | null;
+  expiresAt: number;
+};
+let cachedStatusDomain: CachedDomainConfig | null = null;
+let inflightStatusDomainFetch: Promise<StatusDomainConfig | null> | null = null;
+
+async function fetchStatusDomainConfig(): Promise<StatusDomainConfig | null> {
+  const now = Date.now();
+  if (cachedStatusDomain && cachedStatusDomain.expiresAt > now) {
+    return cachedStatusDomain.value;
   }
+
+  // Coalesce concurrent navigations behind a single in-flight fetch
+  // (a typical post-login burst can land 3-4 navigations in <100ms).
+  if (inflightStatusDomainFetch) {
+    return inflightStatusDomainFetch;
+  }
+
+  inflightStatusDomainFetch = (async () => {
+    try {
+      const response = await fetch(`${INTERNAL_API_BASE}/api/status-page/domains`, {
+        cache: 'no-store',
+        headers: { 'x-internal-request': 'status-domain-check' },
+      });
+      const value = response.ok ? ((await response.json()) as StatusDomainConfig) : null;
+      cachedStatusDomain = {
+        value,
+        expiresAt: Date.now() + STATUS_DOMAIN_CACHE_TTL * 1000,
+      };
+      return value;
+    } catch {
+      // Negative-cache failures for a short window too, so a flapping
+      // backend doesn't get hammered by every page hit.
+      cachedStatusDomain = {
+        value: null,
+        expiresAt: Date.now() + Math.min(STATUS_DOMAIN_CACHE_TTL, 10) * 1000,
+      };
+      return null;
+    } finally {
+      inflightStatusDomainFetch = null;
+    }
+  })();
+
+  return inflightStatusDomainFetch;
 }
 
 /**
