@@ -139,8 +139,95 @@ export async function decrypt(encryptedText: string): Promise<string> {
     const keyHex = getEncryptionKey();
     if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
     return await decryptWithKey(encryptedText, keyHex);
-  } catch (error) {
-    logger.error('[Encryption] Decryption error', { error });
+  } catch (primaryError) {
+    // If primary decryption fails, attempt legacy database-backed key fallback
+    try {
+      const prismaModule = await import('./prisma');
+      const prisma = prismaModule.default;
+      const settings = await prisma.systemSettings.findUnique({
+        where: { id: 'default' },
+        select: { encryptionKey: true },
+      });
+
+      if (settings?.encryptionKey) {
+        logger.warn(
+          '[Encryption] Primary decryption failed. Attempting legacy database key fallback...'
+        );
+        const decryptedLegacy = await decryptWithKey(encryptedText, settings.encryptionKey);
+        logger.info(
+          '[Encryption] Legacy decryption succeeded. Initiating background transparent migration to new key...'
+        );
+
+        // Asynchronously migrate this specific ciphertext to the new key in the database
+        // without blocking the returned result:
+        const keyHex = getEncryptionKey();
+        if (keyHex) {
+          Promise.resolve().then(async () => {
+            try {
+              const newEncrypted = await encryptWithKey(decryptedLegacy, keyHex);
+
+              // 1. Check OidcConfig
+              await prisma.oidcConfig.updateMany({
+                where: { clientSecret: encryptedText },
+                data: { clientSecret: newEncrypted },
+              });
+
+              // 2. Check SlackIntegration
+              await prisma.slackIntegration.updateMany({
+                where: { botToken: encryptedText },
+                data: { botToken: newEncrypted },
+              });
+              await prisma.slackIntegration.updateMany({
+                where: { signingSecret: encryptedText },
+                data: { signingSecret: newEncrypted },
+              });
+
+              // 3. Check SlackOAuthConfig
+              await prisma.slackOAuthConfig.updateMany({
+                where: { clientSecret: encryptedText },
+                data: { clientSecret: newEncrypted },
+              });
+
+              // For provider JSON configs, it's prefixed by "enc:". So we search for "enc:" + encryptedText.
+              const oldEncPrefixed = 'enc:' + encryptedText;
+              const newEncPrefixed = 'enc:' + newEncrypted;
+
+              // 4. Check NotificationProvider config values
+              const notifProviders = await prisma.notificationProvider.findMany();
+              for (const np of notifProviders) {
+                if (np.config && typeof np.config === 'object') {
+                  let updated = false;
+                  const cfg = { ...(np.config as Record<string, any>) };
+                  for (const [k, v] of Object.entries(cfg)) {
+                    if (v === oldEncPrefixed) {
+                      cfg[k] = newEncPrefixed;
+                      updated = true;
+                    }
+                  }
+                  if (updated) {
+                    await prisma.notificationProvider.update({
+                      where: { id: np.id },
+                      data: { config: cfg },
+                    });
+                    logger.info(
+                      `[Encryption] Dynamic migration: updated NotificationProvider ${np.id} configuration.`
+                    );
+                  }
+                }
+              }
+            } catch (migrationError) {
+              logger.error('[Encryption] Dynamic on-the-fly migration error', { migrationError });
+            }
+          });
+        }
+
+        return decryptedLegacy;
+      }
+    } catch (fallbackError) {
+      logger.error('[Encryption] Legacy fallback decryption failed or skipped', { fallbackError });
+    }
+
+    logger.error('[Encryption] Decryption error', { error: primaryError });
     throw new Error('Failed to decrypt token');
   }
 }
