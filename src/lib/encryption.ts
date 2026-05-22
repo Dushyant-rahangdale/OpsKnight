@@ -1,160 +1,86 @@
 /**
  * Encryption utilities for sensitive data
- * Uses AES-256-CBC encryption
+ * Uses AES-256-CBC encryption with envelope encryption (v2).
+ *
+ * Key resolution order:
+ *  1. ENCRYPTION_KEY environment variable (required in production)
+ *  2. Static development fallback key (only when NODE_ENV === 'development')
  */
 
 import crypto from 'crypto';
-import prisma from '@/lib/prisma';
 import { logger } from './logger';
 
-/**
- * Encrypt text using AES-256-CBC
- */
-let cachedKey: string | null = null;
-let cachedAt = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+// Stable, well-known fallback key for local development only.
+// This is intentionally public knowledge — it is NOT a secret.
+const DEV_FALLBACK_KEY = '0000000000000000000000000000000000000000000000000000000000000000';
 
-export function getFingerprint(key: string): string {
-  return crypto.createHash('sha256').update(key).digest('hex');
-}
-
-export async function validateEncryptionFingerprint(): Promise<boolean> {
-  const currentKey = await getEncryptionKey();
-  if (!currentKey) return false;
-
-  const fingerprint = getFingerprint(currentKey);
-
-  // Fetch stored fingerprint from SystemConfig (JSON store) to avoid schema changes
-  const storedConfig = await prisma.systemConfig.findUnique({
-    where: { key: 'encryption_fingerprint' },
-  });
-
-  if (!storedConfig) {
-    // First run or migration: trust the current key and save its fingerprint
-    await prisma.systemConfig.upsert({
-      where: { key: 'encryption_fingerprint' },
-      create: { key: 'encryption_fingerprint', value: { fingerprint } },
-      update: { value: { fingerprint } },
-    });
-    return true;
-  }
-
-  const storedFingerprint = (storedConfig.value as any).fingerprint;
-
-  if (storedFingerprint !== fingerprint) {
-    logger.error('[Encryption] Key Mismatch! Current key does not match stored fingerprint.');
-    return false;
-  }
-
-  return true;
-}
-
-function isValidHexKey(value: string) {
+function isValidHexKey(value: string): boolean {
   return /^[0-9a-f]{64}$/i.test(value);
 }
 
-export const CANARY_Plaintext = 'OPS_KNIGHT_CRYPTO_CHECK';
+/**
+ * Resolve the active encryption key.
+ * Returns null only in production when ENCRYPTION_KEY is not set.
+ */
+export function getEncryptionKey(): string | null {
+  const envKey = process.env.ENCRYPTION_KEY;
 
-export async function validateCanary(keyHex: string): Promise<boolean> {
-  try {
-    const config = await prisma.systemConfig.findUnique({ where: { key: 'encryption_canary' } });
-
-    // Bootstrap: If no canary exists, create one with the current key
-    if (!config) {
-      const encrypted = await encryptWithKey(CANARY_Plaintext, keyHex);
-      await prisma.systemConfig.create({
-        data: { key: 'encryption_canary', value: { encrypted } },
-      });
-      return true;
+  if (envKey) {
+    if (!isValidHexKey(envKey)) {
+      logger.error(
+        '[Encryption] ENCRYPTION_KEY is set but is not a valid 32-byte hex string (64 hex chars). Encryption disabled.'
+      );
+      return null;
     }
-
-    // Validate: Try to decrypt
-    const encrypted = (config.value as any).encrypted;
-    if (!encrypted) return false; // Should not happen
-
-    const decrypted = await decryptWithKey(encrypted, keyHex);
-    return decrypted === CANARY_Plaintext;
-  } catch (error) {
-    logger.error('[Encryption] Canary validation failed', { error });
-    return false;
+    return envKey;
   }
+
+  if (process.env.NODE_ENV === 'development') {
+    logger.warn(
+      '[Encryption] ENCRYPTION_KEY not set. Using development fallback key. DO NOT use this in production.'
+    );
+    return DEV_FALLBACK_KEY;
+  }
+
+  logger.error(
+    '[Encryption] ENCRYPTION_KEY environment variable is not set. Encryption features are disabled.'
+  );
+  return null;
 }
 
-export async function getEncryptionKey(): Promise<string | null> {
-  const now = Date.now();
-  if (cachedKey && now - cachedAt < CACHE_TTL_MS) {
-    return cachedKey;
-  }
-
-  let activeKey: string | null = null;
-
-  // 1. Try DB first (Source of Truth)
-  try {
-    const settings = await prisma.systemSettings.findUnique({
-      where: { id: 'default' },
-      select: { encryptionKey: true },
-    });
-    if (settings?.encryptionKey && isValidHexKey(settings.encryptionKey)) {
-      activeKey = settings.encryptionKey;
-    }
-  } catch (e) {
-    logger.error('Failed to fetch DB key', { error: e });
-  }
-
-  // 2. Fallback to Env
-  if (!activeKey && process.env.ENCRYPTION_KEY) {
-    activeKey = process.env.ENCRYPTION_KEY;
-  }
-
-  if (!activeKey) return null;
-
-  // 3. Canary Check (The Safety Gate)
-  // We only cache if the canary passes.
-  const isSafe = await validateCanary(activeKey);
-  if (!isSafe) {
-    logger.error('CRITICAL: Encryption Key failed canary check. Entering Safe Mode.');
-    return null; // Return null to disable encryption features rather than returning a bad key
-  }
-
-  cachedKey = activeKey;
-  cachedAt = now;
-  return activeKey;
-}
-
+/**
+ * Encrypt text using AES-256-CBC envelope encryption (v2 format).
+ */
 export async function encryptWithKey(text: string, keyHex: string): Promise<string> {
   const algorithm = 'aes-256-cbc';
   if (!keyHex || !isValidHexKey(keyHex)) {
     throw new Error('Invalid encryption key provided');
   }
 
-  // V2 Envelope Encryption
   // 1. Generate Data Encryption Key (DEK)
   const dek = crypto.randomBytes(32);
   const dekHex = dek.toString('hex');
 
-  // 2. Encrypt Payload with DEK
+  // 2. Encrypt payload with DEK
   const payloadIv = crypto.randomBytes(16);
   const payloadCipher = crypto.createCipheriv(algorithm, dek, payloadIv);
   let encryptedPayload = payloadCipher.update(text, 'utf8', 'hex');
   encryptedPayload += payloadCipher.final('hex');
 
-  // 3. Encrypt DEK with Master Key
+  // 3. Encrypt DEK with master key
   const masterKey = Buffer.from(keyHex, 'hex');
   const dekIv = crypto.randomBytes(16);
   const dekCipher = crypto.createCipheriv(algorithm, masterKey, dekIv);
   let encryptedDek = dekCipher.update(dekHex, 'utf8', 'hex');
   encryptedDek += dekCipher.final('hex');
 
-  // Return formatted V2 Envelope string: v2:dekIv:encryptedDek:payloadIv:encryptedPayload
+  // v2:dekIv:encryptedDek:payloadIv:encryptedPayload
   return `v2:${dekIv.toString('hex')}:${encryptedDek}:${payloadIv.toString('hex')}:${encryptedPayload}`;
 }
 
-export async function encrypt(text: string): Promise<string> {
-  const keyHex = await getEncryptionKey();
-  if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
-  return encryptWithKey(text, keyHex);
-}
-
+/**
+ * Decrypt ciphertext using AES-256-CBC. Supports both v1 (legacy) and v2 (envelope) formats.
+ */
 export async function decryptWithKey(encryptedText: string, keyHex: string): Promise<string> {
   const algorithm = 'aes-256-cbc';
   if (!keyHex || !isValidHexKey(keyHex)) {
@@ -162,50 +88,55 @@ export async function decryptWithKey(encryptedText: string, keyHex: string): Pro
   }
   const masterKey = Buffer.from(keyHex, 'hex');
 
-  // V2 Envelope Encryption support
+  // V2 envelope format
   if (encryptedText.startsWith('v2:')) {
     const parts = encryptedText.split(':');
     if (parts.length !== 5) {
       throw new Error('Invalid v2 encrypted text format');
     }
-
     const dekIv = Buffer.from(parts[1], 'hex');
     const encryptedDek = parts[2];
     const payloadIv = Buffer.from(parts[3], 'hex');
     const encryptedPayload = parts[4];
 
-    // 1. Decrypt DEK using Master Key
     const dekDecipher = crypto.createDecipheriv(algorithm, masterKey, dekIv);
     let dekHex = dekDecipher.update(encryptedDek, 'hex', 'utf8');
     dekHex += dekDecipher.final('utf8');
     const dek = Buffer.from(dekHex, 'hex');
 
-    // 2. Decrypt Payload using DEK
     const payloadDecipher = crypto.createDecipheriv(algorithm, dek, payloadIv);
     let decrypted = payloadDecipher.update(encryptedPayload, 'hex', 'utf8');
     decrypted += payloadDecipher.final('utf8');
-
     return decrypted;
   }
 
-  // Legacy format (v1 - no prefix)
+  // Legacy v1 format: iv:ciphertext
   const parts = encryptedText.split(':');
-
   if (parts.length !== 2 || !parts[0] || !parts[1]) {
     throw new Error('Invalid encrypted text format');
   }
-
   const iv = Buffer.from(parts[0], 'hex');
-  const encrypted = parts[1];
   const decipher = crypto.createDecipheriv(algorithm, masterKey, iv);
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  let decrypted = decipher.update(parts[1], 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;
 }
 
+/**
+ * Encrypt using the active system key.
+ */
+export async function encrypt(text: string): Promise<string> {
+  const keyHex = getEncryptionKey();
+  if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
+  return encryptWithKey(text, keyHex);
+}
+
+/**
+ * Decrypt using the active system key.
+ */
 export async function decrypt(encryptedText: string): Promise<string> {
   try {
-    const keyHex = await getEncryptionKey();
+    const keyHex = getEncryptionKey();
     if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
     return await decryptWithKey(encryptedText, keyHex);
   } catch (error) {

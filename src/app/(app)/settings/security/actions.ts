@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getCurrentUser } from '@/lib/rbac';
 import { logAudit } from '@/lib/audit';
-import { encrypt, getEncryptionKey } from '@/lib/encryption';
+import { encrypt } from '@/lib/encryption';
 
 function normalizeDomains(value: string) {
   if (!value) return [];
@@ -153,26 +153,6 @@ export async function saveOidcConfig(
   const existing = await prisma.oidcConfig.findFirst({
     orderBy: { updatedAt: 'desc' },
   });
-
-  const encryptionKey = await getEncryptionKey();
-
-  if (enabled && !encryptionKey) {
-    return { error: 'ENCRYPTION_KEY must be set before enabling SSO.' };
-  }
-
-  // Fingerprint Check: Ensure we aren't using a "rogue" key (e.g. accidental env var change)
-  const { validateEncryptionFingerprint: checkFingerprint } = await import('@/lib/encryption');
-  const isKeyValid = await checkFingerprint();
-  if (!isKeyValid) {
-    return {
-      error:
-        'CRITICAL: Encryption Key integrity check failed. The active key does not match the stored fingerprint. Writes blocked to prevent data corruption.',
-    };
-  }
-
-  if (clientSecret && !encryptionKey) {
-    return { error: 'ENCRYPTION_KEY must be set before saving the client secret.' };
-  }
 
   if (!existing && !clientSecret) {
     return { error: 'Client Secret is required for new configuration.' };
