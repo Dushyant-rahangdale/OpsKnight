@@ -87,27 +87,29 @@ function buildIncidentFilterSql(
   return fragments.length > 0 ? Prisma.join(fragments, ' ') : Prisma.empty;
 }
 
-/**
- * Single source of truth for the timezone in which "business hours" is
- * evaluated for after-hours / weekend classification.
- *
- * Currently fixed at UTC so that:
- *   1. The live SQL path (`calculateDbAggregateMetrics`) and the
- *      rollup-generation path (`metric-rollup.ts`) agree on whether a
- *      given incident is after-hours — previously they disagreed because
- *      live used `userTimeZone` and rollup used UTC, so the same incident
- *      yielded different `afterHoursCount` depending on which path served
- *      the query.
- *   2. Two operators in different timezones see the same numbers for the
- *      same incident set (a precondition for shared dashboards).
- *
- * Follow-up: expose this as a tenant-level `businessHoursTimeZone` setting
- * (`systemSettings.businessHoursTimeZone`) and thread it through both
- * paths so each org can pick its own definition (HQ city, etc).
- */
-export const BUSINESS_HOURS_TIMEZONE = 'UTC';
-export const BUSINESS_HOURS_START = 8; // inclusive
-export const BUSINESS_HOURS_END = 18; // exclusive
+// Business-hours constants moved to `./business-hours.ts` to break the
+// implicit dependency from `metric-rollup.ts` back into `sla-server.ts`.
+// Imported here so the SQL fragments below and the in-memory classifier
+// can use them directly, and re-exported for backwards-compatibility
+// with any callers that imported these names from sla-server.
+import {
+  DEFAULT_BUSINESS_HOURS_TIMEZONE,
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+} from './business-hours';
+
+export {
+  DEFAULT_BUSINESS_HOURS_TIMEZONE,
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+};
+export const BUSINESS_HOURS_START = DEFAULT_BUSINESS_HOURS_START;
+export const BUSINESS_HOURS_END = DEFAULT_BUSINESS_HOURS_END;
+
+// Deprecated alias. Existing code that read this constant will keep
+// working; new code should resolve the tenant value at the call site
+// via `getRetentionPolicy().businessHoursTimeZone`.
+export const BUSINESS_HOURS_TIMEZONE = DEFAULT_BUSINESS_HOURS_TIMEZONE;
 
 /**
  * Validates that an ID is a safe identifier (UUID or CUID format)
@@ -213,7 +215,8 @@ async function calculateDbAggregateMetrics(
   whereClause: Prisma.IncidentWhereInput,
   start: Date,
   end: Date,
-  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>
+  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>,
+  businessHoursTimeZone: string
 ): Promise<DbAggregateMetrics> {
   const { default: prisma } = await import('./prisma');
 
@@ -340,9 +343,9 @@ async function calculateDbAggregateMetrics(
         -- BUSINESS_HOURS_TIMEZONE comment for follow-up to make this
         -- tenant-configurable.
         COUNT(*) FILTER (
-          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) IN (0, 6)
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) < ${BUSINESS_HOURS_START}
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) >= ${BUSINESS_HOURS_END}
+          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) IN (0, 6)
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) < ${BUSINESS_HOURS_START}
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) >= ${BUSINESS_HOURS_END}
         ) as after_hours_count
       FROM "Incident"
       WHERE "createdAt" >= ${start}
@@ -1148,7 +1151,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       recentIncidentWhere,
       finalStart,
       finalEnd,
-      serviceTargetMap
+      serviceTargetMap,
+      retentionPolicy.businessHoursTimeZone
     );
 
     // Check if DB aggregation failed (signaled by totalIncidents = -1)
@@ -1790,23 +1794,23 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // Coverage & Others
   const mtbfMs = calculateMtbfMs(recentIncidents.map(i => i.createdAt));
 
-  // After-hours: use the shared `BUSINESS_HOURS_TIMEZONE` so the in-memory
-  // computation agrees with both the SQL aggregate path and the rollup
-  // generator. Was using `userTimeZone` — see BUSINESS_HOURS_TIMEZONE
-  // comment for the tenant-configurable follow-up.
+  // Resolved tenant business-hours TZ. The same value flows into the
+  // SQL aggregate above and the rollup generator, so all three paths
+  // agree on whether any given incident is after-hours.
+  const tenantBusinessHoursTz = retentionPolicy.businessHoursTimeZone;
+
   const afterHoursCount = dbAggMetrics
     ? dbAggMetrics.afterHoursCount
-    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, BUSINESS_HOURS_TIMEZONE))
+    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, tenantBusinessHoursTz))
         .length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
   // Coverage day counter.
   // - Uses ms-arithmetic increments instead of `setDate(+1)` to be DST-safe
   //   (setDate over a DST transition lands on the same calendar day).
-  // - Bucket keys are built in `BUSINESS_HOURS_TIMEZONE` so two operators
+  // - Bucket keys are built in `tenantBusinessHoursTz` so two operators
   //   in different server TZs (or running on hosts with different local
-  //   TZs) compute the same coverage day set. Was using `toDateString()`
-  //   which is locale/server-TZ dependent.
+  //   TZs) compute the same coverage day set.
   const coverageDays = new Set<string>();
   let onCallHoursMs = 0;
   for (const shift of futureShifts) {
@@ -1817,7 +1821,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       let cursorMs = shiftStart.getTime();
       const endMs = shiftEnd.getTime();
       while (cursorMs <= endMs) {
-        coverageDays.add(toDateKeyInTimeZone(new Date(cursorMs), BUSINESS_HOURS_TIMEZONE));
+        coverageDays.add(toDateKeyInTimeZone(new Date(cursorMs), tenantBusinessHoursTz));
         cursorMs += 24 * 60 * 60 * 1000;
       }
     }

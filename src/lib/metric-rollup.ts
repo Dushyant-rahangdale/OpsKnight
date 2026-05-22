@@ -1,6 +1,11 @@
 // import 'server-only';
 import { logger } from './logger';
 import { getRetentionPolicy } from './retention-policy';
+import {
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+  isIncidentAfterHours,
+} from './business-hours';
 
 /**
  * Metric Rollup Service
@@ -114,6 +119,12 @@ export async function generateDailyRollup(
   };
   if (serviceId) whereClause.serviceId = serviceId;
   if (teamId) whereClause.teamId = teamId;
+
+  // Resolve the tenant business-hours TZ once per rollup so all
+  // incidents in this day are classified consistently — and so this
+  // path agrees with the live SQL path which reads the same setting.
+  const policyForTz = await getRetentionPolicy();
+  const businessHoursTimeZone = policyForTz.businessHoursTimeZone;
 
   try {
     // Use transaction for atomic rollup generation
@@ -238,18 +249,19 @@ export async function generateDailyRollup(
 
           // After-hours classification.
           //
-          // Uses UTC business hours (Mon-Fri 08:00-18:00 UTC) intentionally —
-          // matches `BUSINESS_HOURS_TIMEZONE` in `sla-server.ts` so the
-          // live aggregate path and the rollup path agree on the same
-          // incident's after-hours classification. Was previously fine in
-          // isolation but disagreed with the live path which used
-          // `userTimeZone`. See the BUSINESS_HOURS_TIMEZONE comment in
-          // sla-server.ts for the tenant-configurable follow-up.
-          const hour = incident.createdAt.getUTCHours();
-          const day = incident.createdAt.getUTCDay();
-          const isWeekend = day === 0 || day === 6;
-          const isAfterHours = hour < 8 || hour >= 18;
-          if (isWeekend || isAfterHours) {
+          // Uses the tenant-configured `businessHoursTimeZone` (defaults
+          // to UTC) so this matches the live aggregate path
+          // (`calculateDbAggregateMetrics`) and the in-memory classifier
+          // in `sla-server.ts`. All three paths must agree on the same
+          // incident's classification or rollup/live numbers diverge.
+          if (
+            isIncidentAfterHours(
+              incident.createdAt,
+              businessHoursTimeZone,
+              DEFAULT_BUSINESS_HOURS_START,
+              DEFAULT_BUSINESS_HOURS_END
+            )
+          ) {
             afterHoursCount++;
           }
         }

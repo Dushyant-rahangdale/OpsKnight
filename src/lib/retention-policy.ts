@@ -21,6 +21,12 @@ export interface RetentionPolicy {
   logRetentionDays: number;
   metricsRetentionDays: number;
   realTimeWindowDays: number;
+  /**
+   * Tenant-configured IANA timezone used to classify incidents as
+   * after-hours (Mon-Fri 08:00-18:00 in this zone). Defaults to `'UTC'`
+   * so an unconfigured tenant matches the pre-tenant behaviour.
+   */
+  businessHoursTimeZone: string;
 }
 
 // Default retention policy (used if settings not found)
@@ -30,6 +36,7 @@ const DEFAULT_POLICY: RetentionPolicy = {
   logRetentionDays: 90, // 90 days
   metricsRetentionDays: 365, // 1 year
   realTimeWindowDays: 90, // 90 days for real-time, older uses rollups
+  businessHoursTimeZone: 'UTC',
 };
 
 // Cache for retention policy
@@ -61,16 +68,51 @@ export async function getRetentionPolicy(): Promise<RetentionPolicy> {
 
     if (!prisma) return DEFAULT_POLICY;
 
-    const settings = await prisma.systemSettings.findUnique({
-      where: { id: 'default' },
-      select: {
-        incidentRetentionDays: true,
-        alertRetentionDays: true,
-        logRetentionDays: true,
-        metricsRetentionDays: true,
-        realTimeWindowDays: true,
-      },
-    });
+    // `businessHoursTimeZone` was added by the SLA tier-2 migration. To
+    // stay rolling-deploy safe (e.g., the case where new code starts
+    // serving before the migration has applied to all replicas), we
+    // attempt to read it, and fall back to UTC on any column-missing
+    // error. Wrapped separately so an unrelated DB error still fails
+    // the outer try/catch as before.
+    let settings: {
+      incidentRetentionDays: number | null;
+      alertRetentionDays: number | null;
+      logRetentionDays: number | null;
+      metricsRetentionDays: number | null;
+      realTimeWindowDays: number | null;
+      businessHoursTimeZone?: string | null;
+    } | null = null;
+    try {
+      settings = await prisma.systemSettings.findUnique({
+        where: { id: 'default' },
+        select: {
+          incidentRetentionDays: true,
+          alertRetentionDays: true,
+          logRetentionDays: true,
+          metricsRetentionDays: true,
+          realTimeWindowDays: true,
+          businessHoursTimeZone: true,
+        },
+      });
+    } catch (err) {
+      // Treat as "column not present yet" — re-read without the new
+      // column so existing behaviour is preserved during a rolling
+      // deploy.
+      logger.warn(
+        '[RetentionPolicy] businessHoursTimeZone read failed (likely pre-migration); falling back',
+        { error: err instanceof Error ? err.message : String(err) }
+      );
+      settings = await prisma.systemSettings.findUnique({
+        where: { id: 'default' },
+        select: {
+          incidentRetentionDays: true,
+          alertRetentionDays: true,
+          logRetentionDays: true,
+          metricsRetentionDays: true,
+          realTimeWindowDays: true,
+        },
+      });
+    }
 
     if (settings) {
       cachedPolicy = {
@@ -80,6 +122,8 @@ export async function getRetentionPolicy(): Promise<RetentionPolicy> {
         logRetentionDays: settings.logRetentionDays ?? DEFAULT_POLICY.logRetentionDays,
         metricsRetentionDays: settings.metricsRetentionDays ?? DEFAULT_POLICY.metricsRetentionDays,
         realTimeWindowDays: settings.realTimeWindowDays ?? DEFAULT_POLICY.realTimeWindowDays,
+        businessHoursTimeZone:
+          settings.businessHoursTimeZone ?? DEFAULT_POLICY.businessHoursTimeZone,
       };
     } else {
       // Create default settings if not exists
@@ -107,7 +151,7 @@ export async function getRetentionPolicy(): Promise<RetentionPolicy> {
     }
 
     cacheTimestamp = now;
-    return cachedPolicy;
+    return cachedPolicy ?? DEFAULT_POLICY;
   } catch (error) {
     if (process.env.NODE_ENV !== 'test') {
       logger.error('[RetentionPolicy] Failed to fetch settings, using defaults', {
@@ -152,6 +196,17 @@ export async function updateRetentionPolicy(
   if (policy.realTimeWindowDays !== undefined) {
     validated.realTimeWindowDays = Math.max(7, Math.min(365, policy.realTimeWindowDays)); // 7 days to 1 year
   }
+  if (policy.businessHoursTimeZone !== undefined) {
+    // Defense in depth: only persist values that look like an IANA name.
+    // Final validation also happens in the SLA pipeline before use.
+    if (/^[A-Za-z][A-Za-z0-9+\-_/]{0,63}$/.test(policy.businessHoursTimeZone)) {
+      validated.businessHoursTimeZone = policy.businessHoursTimeZone;
+    } else {
+      logger.warn('[RetentionPolicy] Rejected businessHoursTimeZone with invalid shape', {
+        value: policy.businessHoursTimeZone,
+      });
+    }
+  }
 
   const updated = await prisma.systemSettings.upsert({
     where: { id: 'default' },
@@ -167,6 +222,7 @@ export async function updateRetentionPolicy(
       logRetentionDays: true,
       metricsRetentionDays: true,
       realTimeWindowDays: true,
+      businessHoursTimeZone: true,
     },
   });
 
@@ -181,6 +237,7 @@ export async function updateRetentionPolicy(
     logRetentionDays: updated.logRetentionDays ?? DEFAULT_POLICY.logRetentionDays,
     metricsRetentionDays: updated.metricsRetentionDays ?? DEFAULT_POLICY.metricsRetentionDays,
     realTimeWindowDays: updated.realTimeWindowDays ?? DEFAULT_POLICY.realTimeWindowDays,
+    businessHoursTimeZone: updated.businessHoursTimeZone ?? DEFAULT_POLICY.businessHoursTimeZone,
   };
 }
 
