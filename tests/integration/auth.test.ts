@@ -118,6 +118,11 @@ describeIfRealDB('Authentication Logic (Real DB)', () => {
         email: 'test@example.com',
         role: 'ADMIN',
         tokenVersion: 0,
+        // authorize() now also returns rememberMe so the jwt callback
+        // can pick the right session-ttl cap. The test call above
+        // doesn't pass a User-Agent or rememberMe flag, so this should
+        // be false (mobile UA / explicit rememberMe would flip it).
+        rememberMe: false,
       });
     });
 
