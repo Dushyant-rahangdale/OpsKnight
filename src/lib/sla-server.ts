@@ -2592,14 +2592,50 @@ export async function calculateSLAMetricsFromRollups(
   let mediumUrgencyIncidents = 0;
   let lowUrgencyIncidents = 0;
 
-  // When priority filter is set, the `totalIncidents`-derived rates need
-  // to be scaled against the priority subset rather than the unfiltered
-  // total. We can only answer the *count* of matching incidents from
-  // rollups; lifecycle/compliance fields are aggregated over all incidents
-  // in the day, so applying the priority filter to them would require
-  // schema changes (per-priority sums). Until that exists, when priority
-  // filter is active we return lifecycle/compliance fields as null to
-  // avoid misrepresenting them.
+  // When priority filter is set, pull per-priority sums from the side
+  // table so MTTA/MTTR/compliance can be answered honestly. Falls back
+  // to the legacy aggregate-only flow (null lifecycle for filtered
+  // queries) when the side table isn't populated yet — keeps a deploy
+  // safe for the window between the migration and full backfill.
+  type PrioritySideRow = {
+    rollupId: string;
+    priority: string;
+    incidents: number;
+    mttaSum: bigint;
+    mttaCount: number;
+    mttrSum: bigint;
+    mttrCount: number;
+    ackSlaMet: number;
+    ackSlaBreached: number;
+    resolveSlaMet: number;
+    resolveSlaBreached: number;
+  };
+  let perPriorityRows: PrioritySideRow[] = [];
+  let perPriorityAvailable = false;
+  if (priorityFilter && rollups.length > 0) {
+    try {
+      perPriorityRows = await prisma.incidentMetricRollupByPriority.findMany({
+        where: {
+          rollupId: { in: rollups.map(r => r.id) },
+          priority: { in: Array.from(priorityFilter) },
+        },
+      });
+      // Available only if at least *some* rows came back — otherwise we
+      // can't tell "not yet backfilled" from "no incidents of this
+      // priority", and the conservative choice is to fall back to null
+      // lifecycle rather than report 0% for un-backfilled days.
+      perPriorityAvailable = perPriorityRows.length > 0;
+    } catch (perPriorityErr) {
+      logger.warn(
+        '[SLA] per-priority side-table read failed; falling back to aggregate rollups',
+        {
+          error:
+            perPriorityErr instanceof Error ? perPriorityErr.message : String(perPriorityErr),
+        }
+      );
+    }
+  }
+
   for (const rollup of rollups) {
     const incidentsToAdd = priorityFilter
       ? (priorityFilter.has('P1') ? rollup.p1Incidents : 0) +
@@ -2611,8 +2647,11 @@ export async function calculateSLAMetricsFromRollups(
 
     totalIncidents += incidentsToAdd;
 
-    // The following fields are not per-priority in the schema. Only sum
-    // them when no priority filter is active.
+    // Aggregate-only fields. Sum them when no priority filter is
+    // active OR when per-priority rows aren't available (in which case
+    // we'll still null out lifecycle in the response shape below — but
+    // afterHoursCount / urgency counts on the parent row remain useful
+    // as a proxy).
     if (!priorityFilter) {
       openIncidents += rollup.openIncidents;
       acknowledgedIncidents += rollup.acknowledgedIncidents;
@@ -2635,6 +2674,23 @@ export async function calculateSLAMetricsFromRollups(
     }
   }
 
+  // Sum per-priority side rows when the filter is active and they're
+  // available. These drive MTTA/MTTR/compliance for the filtered
+  // subset; the rest of the response stays null for fields the side
+  // table doesn't carry.
+  if (priorityFilter && perPriorityAvailable) {
+    for (const row of perPriorityRows) {
+      mttaSum += row.mttaSum;
+      mttaCount += row.mttaCount;
+      mttrSum += row.mttrSum;
+      mttrCount += row.mttrCount;
+      ackSlaMet += row.ackSlaMet;
+      ackSlaBreached += row.ackSlaBreached;
+      resolveSlaMet += row.resolveSlaMet;
+      resolveSlaBreached += row.resolveSlaBreached;
+    }
+  }
+
   // Averages: convert sum to Number first then float-divide.
   // Number(BigInt) is lossy when |value| > 2^53 (~9e15 ms ≈ 285 years of
   // cumulative MTTA). For realistic ranges this is exact; we still warn
@@ -2649,10 +2705,19 @@ export async function calculateSLAMetricsFromRollups(
     return Number(v);
   };
 
+  // Lifecycle availability rule:
+  //   - No priority filter → sums came from parent rollup rows (always
+  //     valid). Compute lifecycle/compliance as usual.
+  //   - Priority filter + per-priority side-table rows available → sums
+  //     reflect the filtered subset. Compute as usual.
+  //   - Priority filter + no per-priority data → can't honestly compute
+  //     filtered lifecycle, return null.
+  const lifecycleAvailable = !priorityFilter || perPriorityAvailable;
+
   const avgMttaMs =
-    !priorityFilter && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
+    lifecycleAvailable && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
   const avgMttrMs =
-    !priorityFilter && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
+    lifecycleAvailable && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
   // SLAMetrics expresses lifecycle in minutes. avgMttaMs is computed for
   // logging/future use; only avgMttr is currently returned (the type has
   // no top-level `mtta` field — only mttaP50/P95, which we null out).
@@ -2663,11 +2728,11 @@ export async function calculateSLAMetricsFromRollups(
   // achieved — a false signal for an empty bucket).
   const totalAckEvaluated = ackSlaMet + ackSlaBreached;
   const ackCompliance =
-    !priorityFilter && totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
+    lifecycleAvailable && totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
 
   const totalResolveEvaluated = resolveSlaMet + resolveSlaBreached;
   const resolveCompliance =
-    !priorityFilter && totalResolveEvaluated > 0
+    lifecycleAvailable && totalResolveEvaluated > 0
       ? (resolveSlaMet / totalResolveEvaluated) * 100
       : null;
 
