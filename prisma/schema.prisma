@@ -103,6 +103,29 @@ enum EscalationTargetType {
   SCHEDULE
 }
 
+/// Strongly-typed event taxonomy for IncidentEvent rows.
+///
+/// Pre-existing rows have `type = NULL`. Callers that classify events
+/// (escalation/reopen/auto-resolve detection) must continue to fall
+/// back to ILIKE message matching when `type` is NULL — this keeps the
+/// rolling deploy safe: old writers still produce untyped rows, and a
+/// follow-up release will backfill + flip readers to typed-only.
+///
+/// `LEGACY_OTHER` is the explicit "writer knew, but it's none of the
+/// specific kinds we track" tag — distinct from NULL ("writer didn't
+/// know, infer from message").
+enum IncidentEventType {
+  ACKNOWLEDGED
+  ESCALATED
+  REOPENED
+  AUTO_RESOLVED
+  MANUAL_RESOLVED
+  COMMENT
+  STATUS_CHANGE
+  ASSIGNMENT
+  LEGACY_OTHER
+}
+
 model User {
   id                           String      @id @default(cuid())
   name                         String
@@ -541,12 +564,18 @@ model IncidentEvent {
   id         String   @id @default(cuid())
   incidentId String
   message    String
+  // Strongly-typed event taxonomy. Nullable for rolling-deploy
+  // compatibility: pre-existing rows have NULL, and readers MUST
+  // continue to fall back to ILIKE message matching when type is NULL.
+  // A follow-up release will backfill and flip readers to typed-only.
+  type       IncidentEventType?
   createdAt  DateTime @default(now())
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId, createdAt]) // For querying events by incident chronologically
   @@index([incidentId, message, createdAt], name: "idx_event_ack_search") // For ack event searches with message filtering
+  @@index([incidentId, type], name: "idx_event_type") // For typed event classification (escalation/reopen/auto-resolve)
 }
 
 model IncidentNote {
@@ -1064,14 +1093,21 @@ model SystemSettings {
   id        String   @id @default("default")
   appUrl    String?  // Application base URL for links in emails, webhooks, etc.
   encryptionKey String? // Hex-encoded 32-byte key for encrypting secrets
-  
+
   // Data Retention Policy (days)
   incidentRetentionDays  Int @default(730)  // 2 years - how long to keep incident data
   alertRetentionDays     Int @default(365)  // 1 year - how long to keep alert data
   logRetentionDays       Int @default(90)   // 90 days - how long to keep log entries
   metricsRetentionDays   Int @default(365)  // 1 year - how long to keep metric rollups
   realTimeWindowDays     Int @default(90)   // 90 days - real-time queries, older uses rollups
-  
+
+  // Tenant-level after-hours definition. IANA timezone name; defaults to
+  // "UTC" so existing deployments keep current behavior. Used by the SLA
+  // metrics pipeline (live SQL aggregate, in-memory classifier, and the
+  // daily rollup generator) to decide whether an incident's createdAt
+  // falls outside business hours (Mon-Fri 08:00-18:00 in this zone).
+  businessHoursTimeZone  String @default("UTC")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1124,12 +1160,46 @@ model IncidentMetricRollup {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
+  perPriority IncidentMetricRollupByPriority[]
+
   @@index([date])
   @@index([granularity, date])
   @@index([serviceId, date])
   @@index([teamId, date])
+  // NOTE: This unique constraint does not enforce uniqueness when
+  // `serviceId` and/or `teamId` are NULL (Postgres treats NULLs as
+  // distinct). Partial unique indexes are added in raw SQL by the
+  // accompanying migration to close that hole — search the migration
+  // for `idx_rollup_unique_*`.
   @@unique([date, granularity, serviceId, teamId])
+}
+
+/// Per-priority sums attached to an `IncidentMetricRollup`. One row per
+/// priority bucket (P1-P5) per rollup. Lets priority-filtered queries
+/// return real `mttr`/`ackCompliance`/`resolveCompliance` instead of
+/// null. Optional (additive, rolling-safe): historical rollups won't
+/// have these rows until backfilled, so readers must tolerate the empty
+/// case and fall back to the aggregate values on the parent row.
+model IncidentMetricRollupByPriority {
+  id        String @id @default(cuid())
+  rollupId  String
+  priority  String // 'P1' | 'P2' | 'P3' | 'P4' | 'P5'
+
+  incidents          Int    @default(0)
+  mttaSum            BigInt @default(0)
+  mttaCount          Int    @default(0)
+  mttrSum            BigInt @default(0)
+  mttrCount          Int    @default(0)
+  ackSlaMet          Int    @default(0)
+  ackSlaBreached     Int    @default(0)
+  resolveSlaMet      Int    @default(0)
+  resolveSlaBreached Int    @default(0)
+
+  rollup IncidentMetricRollup @relation(fields: [rollupId], references: [id], onDelete: Cascade)
+
+  @@unique([rollupId, priority])
+  @@index([priority])
 }
 
 // ⚙️ Governance / System Config

@@ -191,25 +191,30 @@ export async function performDataCleanup(dryRun: boolean = false): Promise<Clean
  */
 export async function cleanupOldSLARollups(): Promise<number> {
   const { default: prisma } = await import('./prisma');
+  const { acquireAdvisoryLock, LOCK_KEYS } = await import('./db-locks');
   const policy = await getRetentionPolicy();
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - policy.metricsRetentionDays);
 
   try {
-    const deleted = await prisma.incidentMetricRollup.deleteMany({
-      where: {
-        date: { lt: cutoffDate },
-      },
+    // Acquire the rollup-write lock so a concurrent rollup generator
+    // can't have a partial upsert killed mid-flight.
+    const deletedCount = await prisma.$transaction(async tx => {
+      await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
+      const result = await tx.incidentMetricRollup.deleteMany({
+        where: { date: { lt: cutoffDate } },
+      });
+      return result.count;
     });
 
     logger.info('[DataCleanup] Old SLA rollups deleted', {
-      count: deleted.count,
+      count: deletedCount,
       cutoffDate: cutoffDate.toISOString(),
       retentionDays: policy.metricsRetentionDays,
     });
 
-    return deleted.count;
+    return deletedCount;
   } catch (error) {
     logger.error('[DataCleanup] Failed to cleanup old SLA rollups', { error });
     return 0;

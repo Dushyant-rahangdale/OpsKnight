@@ -17,6 +17,11 @@ import {
   shouldUseRollups,
   type RetentionPolicy,
 } from './retention-policy';
+import {
+  incidentEventSqlPredicate,
+  incidentEventWhereFor,
+} from './incident-event-classifier';
+import { mergeHybridMetrics } from './sla-hybrid-merge';
 
 // UUID validation regex - prevents SQL injection in dynamic CASE statements
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -87,27 +92,29 @@ function buildIncidentFilterSql(
   return fragments.length > 0 ? Prisma.join(fragments, ' ') : Prisma.empty;
 }
 
-/**
- * Single source of truth for the timezone in which "business hours" is
- * evaluated for after-hours / weekend classification.
- *
- * Currently fixed at UTC so that:
- *   1. The live SQL path (`calculateDbAggregateMetrics`) and the
- *      rollup-generation path (`metric-rollup.ts`) agree on whether a
- *      given incident is after-hours — previously they disagreed because
- *      live used `userTimeZone` and rollup used UTC, so the same incident
- *      yielded different `afterHoursCount` depending on which path served
- *      the query.
- *   2. Two operators in different timezones see the same numbers for the
- *      same incident set (a precondition for shared dashboards).
- *
- * Follow-up: expose this as a tenant-level `businessHoursTimeZone` setting
- * (`systemSettings.businessHoursTimeZone`) and thread it through both
- * paths so each org can pick its own definition (HQ city, etc).
- */
-export const BUSINESS_HOURS_TIMEZONE = 'UTC';
-export const BUSINESS_HOURS_START = 8; // inclusive
-export const BUSINESS_HOURS_END = 18; // exclusive
+// Business-hours constants moved to `./business-hours.ts` to break the
+// implicit dependency from `metric-rollup.ts` back into `sla-server.ts`.
+// Imported here so the SQL fragments below and the in-memory classifier
+// can use them directly, and re-exported for backwards-compatibility
+// with any callers that imported these names from sla-server.
+import {
+  DEFAULT_BUSINESS_HOURS_TIMEZONE,
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+} from './business-hours';
+
+export {
+  DEFAULT_BUSINESS_HOURS_TIMEZONE,
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+};
+export const BUSINESS_HOURS_START = DEFAULT_BUSINESS_HOURS_START;
+export const BUSINESS_HOURS_END = DEFAULT_BUSINESS_HOURS_END;
+
+// Deprecated alias. Existing code that read this constant will keep
+// working; new code should resolve the tenant value at the call site
+// via `getRetentionPolicy().businessHoursTimeZone`.
+export const BUSINESS_HOURS_TIMEZONE = DEFAULT_BUSINESS_HOURS_TIMEZONE;
 
 /**
  * Validates that an ID is a safe identifier (UUID or CUID format)
@@ -154,6 +161,14 @@ export type SLAMetricsFilter = {
   // Pagination support for large datasets
   page?: number;
   pageSize?: number;
+  /**
+   * Include each recent incident's `description` field in the
+   * response. Defaults to false. Descriptions can contain customer-
+   * facing PII; callers that need them (e.g., the incident-detail
+   * panel) must opt in explicitly. API routes should only set this
+   * when the requester has elevated read access.
+   */
+  includeDescription?: boolean;
 };
 
 const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'] as const;
@@ -213,7 +228,8 @@ async function calculateDbAggregateMetrics(
   whereClause: Prisma.IncidentWhereInput,
   start: Date,
   end: Date,
-  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>
+  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>,
+  businessHoursTimeZone: string
 ): Promise<DbAggregateMetrics> {
   const { default: prisma } = await import('./prisma');
 
@@ -340,9 +356,9 @@ async function calculateDbAggregateMetrics(
         -- BUSINESS_HOURS_TIMEZONE comment for follow-up to make this
         -- tenant-configurable.
         COUNT(*) FILTER (
-          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) IN (0, 6)
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) < ${BUSINESS_HOURS_START}
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) >= ${BUSINESS_HOURS_END}
+          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) IN (0, 6)
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) < ${BUSINESS_HOURS_START}
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) >= ${BUSINESS_HOURS_END}
         ) as after_hours_count
       FROM "Incident"
       WHERE "createdAt" >= ${start}
@@ -382,7 +398,17 @@ async function calculateDbAggregateMetrics(
         ${statusFilterSql}
     `;
 
-    // Event counts query - for escalation, reopen, auto-resolve rates
+    // Event counts query — for escalation, reopen, auto-resolve rates.
+    //
+    // Uses the typed-first / ILIKE-fallback classifier so rows written
+    // by post-migration code are matched by `IncidentEvent.type` (no
+    // wording fragility, no overlapping-pattern double counts) while
+    // pre-backfill rows still match via the legacy substring. Once
+    // backfill is complete, a follow-up release flips this to
+    // typed-only.
+    const escalatedPredicate = incidentEventSqlPredicate('ESCALATED', 'e');
+    const reopenedPredicate = incidentEventSqlPredicate('REOPENED', 'e');
+    const autoResolvedPredicate = incidentEventSqlPredicate('AUTO_RESOLVED', 'e');
     const eventCountsResult = await prisma.$queryRaw<
       Array<{
         escalation_count: bigint;
@@ -391,9 +417,9 @@ async function calculateDbAggregateMetrics(
       }>
     >`
       SELECT
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%escalated to%') as escalation_count,
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%reopen%') as reopen_count,
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%auto-resolved%') as auto_resolve_count
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${escalatedPredicate}) as escalation_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${reopenedPredicate}) as reopen_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${autoResolvedPredicate}) as auto_resolve_count
       FROM "IncidentEvent" e
       INNER JOIN "Incident" i ON e."incidentId" = i."id"
       WHERE i."createdAt" >= ${start}
@@ -678,6 +704,72 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const hasIncompatibleFilters =
     filters.urgency || filters.assigneeId || filters.status || filters.visibility === 'PRIVATE';
   const useRollups = !hasIncompatibleFilters && (await shouldUseRollups(finalStart, finalEnd));
+
+  // Hybrid path: requested range straddles the real-time / rollup
+  // boundary. Fan out to the rollup function for the historical
+  // partition and recurse into this function (with adjusted dates)
+  // for the live partition, then merge. Only safe when filters are
+  // rollup-compatible (same `hasIncompatibleFilters` check that gates
+  // the pure-rollup path above).
+  const realtimeStart = await (async () => {
+    const r = new Date(now);
+    r.setDate(r.getDate() - retentionPolicy.realTimeWindowDays);
+    return r;
+  })();
+  const rangeCrossesBoundary =
+    !useRollups &&
+    !hasIncompatibleFilters &&
+    finalStart < realtimeStart &&
+    finalEnd > realtimeStart;
+
+  if (rangeCrossesBoundary) {
+    logger.info('[SLA] Using hybrid (rollup + live) query for boundary-crossing range', {
+      requested: { start: finalStart.toISOString(), end: finalEnd.toISOString() },
+      boundary: realtimeStart.toISOString(),
+    });
+
+    const serviceIdFilter = Array.isArray(filters.serviceId)
+      ? filters.serviceId[0]
+      : filters.serviceId;
+    const teamIdFilter = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
+
+    // Historical partition: [finalStart, realtimeStart). The end is
+    // exclusive of `realtimeStart` so an incident at exactly that
+    // instant lands in the live partition and isn't double-counted.
+    const historicalEnd = new Date(realtimeStart.getTime() - 1);
+    const historicalMetrics = await calculateSLAMetricsFromRollups(
+      requestedStartDate,
+      historicalEnd,
+      finalStart,
+      historicalEnd,
+      isClipped,
+      { serviceId: serviceIdFilter, teamId: teamIdFilter, priority: filters.priority }
+    );
+
+    // Live partition: [realtimeStart, finalEnd]. Recursive call with
+    // explicit dates so this branch isn't re-triggered (the range is
+    // entirely within the real-time window).
+    const liveMetrics = await calculateSLAMetrics({
+      ...filters,
+      startDate: realtimeStart,
+      endDate: finalEnd,
+      // Drop windowDays so the dates above take precedence.
+      windowDays: undefined,
+      includeAllTime: false,
+    });
+
+    const merged = mergeHybridMetrics(historicalMetrics, liveMetrics);
+    const totalQueryDuration = Date.now() - queryStartTime;
+    logger.info('[SLA] Query performance (hybrid)', {
+      duration: totalQueryDuration,
+      historicalIncidents: historicalMetrics.totalIncidents,
+      liveIncidents: liveMetrics.totalIncidents,
+      mergedIncidents: merged.totalIncidents,
+      dataSource: 'hybrid',
+    });
+    return merged;
+  }
+
   if (useRollups) {
     // For historical queries, use pre-aggregated rollups
     logger.info('[SLA] Using rollup data for historical query', {
@@ -1148,7 +1240,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       recentIncidentWhere,
       finalStart,
       finalEnd,
-      serviceTargetMap
+      serviceTargetMap,
+      retentionPolicy.businessHoursTimeZone
     );
 
     // Check if DB aggregation failed (signaled by totalIncidents = -1)
@@ -1201,28 +1294,31 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   // Note: serviceTargetMap was already built above for DB aggregation
 
-  // 4. Fetch Incident Events
-  // OPTIMIZATION: For large datasets, we only need events for display incidents
-  // Event counts for metrics are handled by DB aggregation
+  // 4. Fetch Incident Events.
+  //
+  // Each event-kind query uses the typed-first / ILIKE-fallback
+  // classifier so new (typed) rows and old (untyped, message-only) rows
+  // are both matched during the rolling-deploy window. After the
+  // backfill release the fallback can be deleted.
   const recentIncidentIds = recentIncidents.map(i => i.id);
   const [ackEvents, escalationEvents, reopenEvents, autoResolveEvents] = recentIncidentIds.length
     ? await Promise.all([
-        // FIX: Add ordering to get EARLIEST ack event, not random
+        // CRITICAL: Get earliest ack event first so MTTA is deterministic.
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'acknowledged', mode: 'insensitive' },
+            ...incidentEventWhereFor('ACKNOWLEDGED'),
           },
           select: { incidentId: true, createdAt: true },
-          orderBy: { createdAt: 'asc' }, // CRITICAL: Get earliest event first
+          orderBy: { createdAt: 'asc' },
         }),
-        // For large datasets using DB aggregation, escalation/reopen/autoResolve counts
-        // come from the aggregate query. We still fetch for display incidents for
-        // trend calculations on the visible data.
+        // Escalation / reopen / auto-resolve are used for in-memory
+        // rate calculation on the displayed (potentially-truncated)
+        // window; DB-aggregation counts come from the raw-SQL query.
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'escalated to', mode: 'insensitive' },
+            ...incidentEventWhereFor('ESCALATED'),
           },
           select: { incidentId: true, createdAt: true },
           orderBy: { createdAt: 'asc' },
@@ -1230,14 +1326,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'reopen', mode: 'insensitive' },
+            ...incidentEventWhereFor('REOPENED'),
           },
           select: { incidentId: true },
         }),
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'auto-resolved', mode: 'insensitive' },
+            ...incidentEventWhereFor('AUTO_RESOLVED'),
           },
           select: { incidentId: true },
         }),
@@ -1790,23 +1886,23 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // Coverage & Others
   const mtbfMs = calculateMtbfMs(recentIncidents.map(i => i.createdAt));
 
-  // After-hours: use the shared `BUSINESS_HOURS_TIMEZONE` so the in-memory
-  // computation agrees with both the SQL aggregate path and the rollup
-  // generator. Was using `userTimeZone` — see BUSINESS_HOURS_TIMEZONE
-  // comment for the tenant-configurable follow-up.
+  // Resolved tenant business-hours TZ. The same value flows into the
+  // SQL aggregate above and the rollup generator, so all three paths
+  // agree on whether any given incident is after-hours.
+  const tenantBusinessHoursTz = retentionPolicy.businessHoursTimeZone;
+
   const afterHoursCount = dbAggMetrics
     ? dbAggMetrics.afterHoursCount
-    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, BUSINESS_HOURS_TIMEZONE))
+    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, tenantBusinessHoursTz))
         .length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
   // Coverage day counter.
   // - Uses ms-arithmetic increments instead of `setDate(+1)` to be DST-safe
   //   (setDate over a DST transition lands on the same calendar day).
-  // - Bucket keys are built in `BUSINESS_HOURS_TIMEZONE` so two operators
+  // - Bucket keys are built in `tenantBusinessHoursTz` so two operators
   //   in different server TZs (or running on hosts with different local
-  //   TZs) compute the same coverage day set. Was using `toDateString()`
-  //   which is locale/server-TZ dependent.
+  //   TZs) compute the same coverage day set.
   const coverageDays = new Set<string>();
   let onCallHoursMs = 0;
   for (const shift of futureShifts) {
@@ -1817,7 +1913,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       let cursorMs = shiftStart.getTime();
       const endMs = shiftEnd.getTime();
       while (cursorMs <= endMs) {
-        coverageDays.add(toDateKeyInTimeZone(new Date(cursorMs), BUSINESS_HOURS_TIMEZONE));
+        coverageDays.add(toDateKeyInTimeZone(new Date(cursorMs), tenantBusinessHoursTz));
         cursorMs += 24 * 60 * 60 * 1000;
       }
     }
@@ -2097,6 +2193,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     previousPeriod: {
       totalIncidents: prevStatsDetailed.count,
       highUrgencyCount: prevStatsDetailed.highUrg,
+      // Medium/low previous-period counts come from the same aggregate
+      // raw-SQL query as `highUrgencyCount`. Surfaced so the
+      // dashboard's previous-period urgency comparison reflects the
+      // full breakdown.
+      mediumUrgencyCount: prevStatsDetailed.mediumUrg,
+      lowUrgencyCount: prevStatsDetailed.lowUrg,
       mtta: prevStatsDetailed.mtta ? prevStatsDetailed.mtta / 60000 : null,
       mttr: prevStatsDetailed.mttr ? prevStatsDetailed.mttr / 60000 : null,
       ackRate: Math.round(prevStatsDetailed.ackRate * 100) / 100,
@@ -2161,11 +2263,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       schedule: { name: s.schedule.name },
     })),
     activeIncidentSummaries,
+    // `description` is opt-in (see SLAMetricsFilter.includeDescription).
+    // Descriptions can contain PII; only callers with elevated read
+    // access should request them. Default response is description-less.
     recentIncidents: filters.includeIncidents
       ? displayIncidents.map(inc => ({
           id: inc.id,
           title: inc.title,
-          description: inc.description,
+          description: filters.includeDescription ? inc.description : null,
           status: inc.status,
           urgency: inc.urgency,
           createdAt: inc.createdAt,
@@ -2523,6 +2628,33 @@ export async function calculateSLAMetricsFromRollups(
     },
   });
 
+  // `dynamicStatus` is a snapshot of *now*, not of the historical
+  // window. Compute it via a small current-state query scoped to the
+  // same service/team filter. Worst case (DB error / no scope match)
+  // falls back to OPERATIONAL.
+  const currentDynamicStatus = await (async () => {
+    try {
+      const where: Record<string, unknown> = {
+        status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
+      };
+      if (filters.serviceId) where.serviceId = filters.serviceId;
+      if (filters.teamId) where.service = { teamId: filters.teamId };
+      const [openCount, criticalCount] = await Promise.all([
+        prisma.incident.count({ where }),
+        prisma.incident.count({ where: { ...where, urgency: 'HIGH' } }),
+      ]);
+      return getServiceDynamicStatus({
+        openIncidentCount: openCount,
+        hasCritical: criticalCount > 0,
+      });
+    } catch (err) {
+      logger.warn('[SLA] dynamicStatus current-state query failed; defaulting to OPERATIONAL', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return 'OPERATIONAL' as const;
+    }
+  })();
+
   // Heatmap fetches the last 365 days regardless of requested window.
   // Apply the same service/team scope so heatmap aligns with the metrics
   // shown above it.
@@ -2571,14 +2703,50 @@ export async function calculateSLAMetricsFromRollups(
   let mediumUrgencyIncidents = 0;
   let lowUrgencyIncidents = 0;
 
-  // When priority filter is set, the `totalIncidents`-derived rates need
-  // to be scaled against the priority subset rather than the unfiltered
-  // total. We can only answer the *count* of matching incidents from
-  // rollups; lifecycle/compliance fields are aggregated over all incidents
-  // in the day, so applying the priority filter to them would require
-  // schema changes (per-priority sums). Until that exists, when priority
-  // filter is active we return lifecycle/compliance fields as null to
-  // avoid misrepresenting them.
+  // When priority filter is set, pull per-priority sums from the side
+  // table so MTTA/MTTR/compliance can be answered honestly. Falls back
+  // to the legacy aggregate-only flow (null lifecycle for filtered
+  // queries) when the side table isn't populated yet — keeps a deploy
+  // safe for the window between the migration and full backfill.
+  type PrioritySideRow = {
+    rollupId: string;
+    priority: string;
+    incidents: number;
+    mttaSum: bigint;
+    mttaCount: number;
+    mttrSum: bigint;
+    mttrCount: number;
+    ackSlaMet: number;
+    ackSlaBreached: number;
+    resolveSlaMet: number;
+    resolveSlaBreached: number;
+  };
+  let perPriorityRows: PrioritySideRow[] = [];
+  let perPriorityAvailable = false;
+  if (priorityFilter && rollups.length > 0) {
+    try {
+      perPriorityRows = await prisma.incidentMetricRollupByPriority.findMany({
+        where: {
+          rollupId: { in: rollups.map(r => r.id) },
+          priority: { in: Array.from(priorityFilter) },
+        },
+      });
+      // Available only if at least *some* rows came back — otherwise we
+      // can't tell "not yet backfilled" from "no incidents of this
+      // priority", and the conservative choice is to fall back to null
+      // lifecycle rather than report 0% for un-backfilled days.
+      perPriorityAvailable = perPriorityRows.length > 0;
+    } catch (perPriorityErr) {
+      logger.warn(
+        '[SLA] per-priority side-table read failed; falling back to aggregate rollups',
+        {
+          error:
+            perPriorityErr instanceof Error ? perPriorityErr.message : String(perPriorityErr),
+        }
+      );
+    }
+  }
+
   for (const rollup of rollups) {
     const incidentsToAdd = priorityFilter
       ? (priorityFilter.has('P1') ? rollup.p1Incidents : 0) +
@@ -2590,8 +2758,11 @@ export async function calculateSLAMetricsFromRollups(
 
     totalIncidents += incidentsToAdd;
 
-    // The following fields are not per-priority in the schema. Only sum
-    // them when no priority filter is active.
+    // Aggregate-only fields. Sum them when no priority filter is
+    // active OR when per-priority rows aren't available (in which case
+    // we'll still null out lifecycle in the response shape below — but
+    // afterHoursCount / urgency counts on the parent row remain useful
+    // as a proxy).
     if (!priorityFilter) {
       openIncidents += rollup.openIncidents;
       acknowledgedIncidents += rollup.acknowledgedIncidents;
@@ -2614,6 +2785,23 @@ export async function calculateSLAMetricsFromRollups(
     }
   }
 
+  // Sum per-priority side rows when the filter is active and they're
+  // available. These drive MTTA/MTTR/compliance for the filtered
+  // subset; the rest of the response stays null for fields the side
+  // table doesn't carry.
+  if (priorityFilter && perPriorityAvailable) {
+    for (const row of perPriorityRows) {
+      mttaSum += row.mttaSum;
+      mttaCount += row.mttaCount;
+      mttrSum += row.mttrSum;
+      mttrCount += row.mttrCount;
+      ackSlaMet += row.ackSlaMet;
+      ackSlaBreached += row.ackSlaBreached;
+      resolveSlaMet += row.resolveSlaMet;
+      resolveSlaBreached += row.resolveSlaBreached;
+    }
+  }
+
   // Averages: convert sum to Number first then float-divide.
   // Number(BigInt) is lossy when |value| > 2^53 (~9e15 ms ≈ 285 years of
   // cumulative MTTA). For realistic ranges this is exact; we still warn
@@ -2628,10 +2816,19 @@ export async function calculateSLAMetricsFromRollups(
     return Number(v);
   };
 
+  // Lifecycle availability rule:
+  //   - No priority filter → sums came from parent rollup rows (always
+  //     valid). Compute lifecycle/compliance as usual.
+  //   - Priority filter + per-priority side-table rows available → sums
+  //     reflect the filtered subset. Compute as usual.
+  //   - Priority filter + no per-priority data → can't honestly compute
+  //     filtered lifecycle, return null.
+  const lifecycleAvailable = !priorityFilter || perPriorityAvailable;
+
   const avgMttaMs =
-    !priorityFilter && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
+    lifecycleAvailable && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
   const avgMttrMs =
-    !priorityFilter && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
+    lifecycleAvailable && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
   // SLAMetrics expresses lifecycle in minutes. avgMttaMs is computed for
   // logging/future use; only avgMttr is currently returned (the type has
   // no top-level `mtta` field — only mttaP50/P95, which we null out).
@@ -2642,11 +2839,11 @@ export async function calculateSLAMetricsFromRollups(
   // achieved — a false signal for an empty bucket).
   const totalAckEvaluated = ackSlaMet + ackSlaBreached;
   const ackCompliance =
-    !priorityFilter && totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
+    lifecycleAvailable && totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
 
   const totalResolveEvaluated = resolveSlaMet + resolveSlaBreached;
   const resolveCompliance =
-    !priorityFilter && totalResolveEvaluated > 0
+    lifecycleAvailable && totalResolveEvaluated > 0
       ? (resolveSlaMet / totalResolveEvaluated) * 100
       : null;
 
@@ -2759,11 +2956,10 @@ export async function calculateSLAMetricsFromRollups(
     reopenRate,
     autoResolveRate,
 
-    // dynamicStatus is a snapshot of the current operational state and
-    // doesn't depend on the historical query window. Leaving as
-    // OPERATIONAL here is a known limitation — callers needing accurate
-    // current status should query it separately.
-    dynamicStatus: 'OPERATIONAL',
+    // dynamicStatus is a snapshot of the current operational state,
+    // independent of the historical query window. Computed via a
+    // small "now"-scoped query above. See `currentDynamicStatus`.
+    dynamicStatus: currentDynamicStatus,
 
     // Coverage is a forward-looking metric ("are we covered for the next
     // N days?") — not derivable from historical incident rollups.

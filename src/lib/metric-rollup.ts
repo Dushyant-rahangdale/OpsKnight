@@ -1,6 +1,13 @@
 // import 'server-only';
 import { logger } from './logger';
 import { getRetentionPolicy } from './retention-policy';
+import {
+  DEFAULT_BUSINESS_HOURS_START,
+  DEFAULT_BUSINESS_HOURS_END,
+  isIncidentAfterHours,
+} from './business-hours';
+import { incidentEventWhereFor } from './incident-event-classifier';
+import { acquireAdvisoryLock, LOCK_KEYS } from './db-locks';
 
 /**
  * Metric Rollup Service
@@ -115,10 +122,19 @@ export async function generateDailyRollup(
   if (serviceId) whereClause.serviceId = serviceId;
   if (teamId) whereClause.teamId = teamId;
 
+  // Resolve the tenant business-hours TZ once per rollup so all
+  // incidents in this day are classified consistently — and so this
+  // path agrees with the live SQL path which reads the same setting.
+  const policyForTz = await getRetentionPolicy();
+  const businessHoursTimeZone = policyForTz.businessHoursTimeZone;
+
   try {
-    // Use transaction for atomic rollup generation
+    // Use transaction for atomic rollup generation. The advisory lock
+    // serializes against `cleanupOldRollups` so cleanup can't delete a
+    // row mid-write — see src/lib/db-locks.ts for the lock contract.
     await prisma.$transaction(
       async tx => {
+        await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
         // Fetch all incidents for the day
         const incidents = await tx.incident.findMany({
           where: whereClause,
@@ -166,6 +182,48 @@ export async function generateDailyRollup(
         const DEFAULT_ACK_TARGET = 15;
         const DEFAULT_RESOLVE_TARGET = 120;
 
+        // Per-priority sums for the IncidentMetricRollupByPriority side
+        // table. Accumulated alongside the aggregate sums so a single
+        // pass over `incidents` populates both. Empty (all zeros) means
+        // no incidents matched that priority — we still write the row
+        // so readers can distinguish "no priority data" from "no
+        // priority-N incidents this day".
+        type PrioritySums = {
+          incidents: number;
+          mttaSum: bigint;
+          mttaCount: number;
+          mttrSum: bigint;
+          mttrCount: number;
+          ackSlaMet: number;
+          ackSlaBreached: number;
+          resolveSlaMet: number;
+          resolveSlaBreached: number;
+        };
+        const emptyPrioritySums = (): PrioritySums => ({
+          incidents: 0,
+          mttaSum: BigInt(0),
+          mttaCount: 0,
+          mttrSum: BigInt(0),
+          mttrCount: 0,
+          ackSlaMet: 0,
+          ackSlaBreached: 0,
+          resolveSlaMet: 0,
+          resolveSlaBreached: 0,
+        });
+        const perPriority: Record<'P1' | 'P2' | 'P3' | 'P4' | 'P5', PrioritySums> = {
+          P1: emptyPrioritySums(),
+          P2: emptyPrioritySums(),
+          P3: emptyPrioritySums(),
+          P4: emptyPrioritySums(),
+          P5: emptyPrioritySums(),
+        };
+        const priorityKeyOf = (raw: string | null | undefined): keyof typeof perPriority | null => {
+          if (!raw) return null;
+          const s = raw.toUpperCase().trim();
+          const m = s.match(/^P?([1-5])$/);
+          return m ? (`P${m[1]}` as keyof typeof perPriority) : null;
+        };
+
         for (const incident of incidents) {
           // Status counts
           switch (incident.status) {
@@ -193,13 +251,17 @@ export async function generateDailyRollup(
               break;
           }
 
-          // Priority counts (P1-P5)
-          const priority = incident.priority?.toUpperCase() || '';
-          if (priority === 'P1' || priority === '1') p1Incidents++;
-          else if (priority === 'P2' || priority === '2') p2Incidents++;
-          else if (priority === 'P3' || priority === '3') p3Incidents++;
-          else if (priority === 'P4' || priority === '4') p4Incidents++;
-          else if (priority === 'P5' || priority === '5') p5Incidents++;
+          // Priority bucket (normalized to canonical "P1".."P5" or null
+          // for unprioritized incidents).
+          const priorityBucket = priorityKeyOf(incident.priority);
+          if (priorityBucket === 'P1') p1Incidents++;
+          else if (priorityBucket === 'P2') p2Incidents++;
+          else if (priorityBucket === 'P3') p3Incidents++;
+          else if (priorityBucket === 'P4') p4Incidents++;
+          else if (priorityBucket === 'P5') p5Incidents++;
+          if (priorityBucket) {
+            perPriority[priorityBucket].incidents++;
+          }
 
           // MTTA calculation
           if (incident.acknowledgedAt) {
@@ -208,12 +270,17 @@ export async function generateDailyRollup(
               mttaSum += BigInt(mtta);
               mttaCount++;
 
-              // SLA compliance
               const targetAck = incident.service?.targetAckMinutes || DEFAULT_ACK_TARGET;
-              if (mtta / 60000 <= targetAck) {
-                ackSlaMet++;
-              } else {
-                ackSlaBreached++;
+              const ackMet = mtta / 60000 <= targetAck;
+              if (ackMet) ackSlaMet++;
+              else ackSlaBreached++;
+
+              if (priorityBucket) {
+                const p = perPriority[priorityBucket];
+                p.mttaSum += BigInt(mtta);
+                p.mttaCount++;
+                if (ackMet) p.ackSlaMet++;
+                else p.ackSlaBreached++;
               }
             }
           }
@@ -225,55 +292,64 @@ export async function generateDailyRollup(
               mttrSum += BigInt(mttr);
               mttrCount++;
 
-              // SLA compliance
               const targetResolve =
                 incident.service?.targetResolveMinutes || DEFAULT_RESOLVE_TARGET;
-              if (mttr / 60000 <= targetResolve) {
-                resolveSlaMet++;
-              } else {
-                resolveSlaBreached++;
+              const resolveMet = mttr / 60000 <= targetResolve;
+              if (resolveMet) resolveSlaMet++;
+              else resolveSlaBreached++;
+
+              if (priorityBucket) {
+                const p = perPriority[priorityBucket];
+                p.mttrSum += BigInt(mttr);
+                p.mttrCount++;
+                if (resolveMet) p.resolveSlaMet++;
+                else p.resolveSlaBreached++;
               }
             }
           }
 
           // After-hours classification.
           //
-          // Uses UTC business hours (Mon-Fri 08:00-18:00 UTC) intentionally —
-          // matches `BUSINESS_HOURS_TIMEZONE` in `sla-server.ts` so the
-          // live aggregate path and the rollup path agree on the same
-          // incident's after-hours classification. Was previously fine in
-          // isolation but disagreed with the live path which used
-          // `userTimeZone`. See the BUSINESS_HOURS_TIMEZONE comment in
-          // sla-server.ts for the tenant-configurable follow-up.
-          const hour = incident.createdAt.getUTCHours();
-          const day = incident.createdAt.getUTCDay();
-          const isWeekend = day === 0 || day === 6;
-          const isAfterHours = hour < 8 || hour >= 18;
-          if (isWeekend || isAfterHours) {
+          // Uses the tenant-configured `businessHoursTimeZone` (defaults
+          // to UTC) so this matches the live aggregate path
+          // (`calculateDbAggregateMetrics`) and the in-memory classifier
+          // in `sla-server.ts`. All three paths must agree on the same
+          // incident's classification or rollup/live numbers diverge.
+          if (
+            isIncidentAfterHours(
+              incident.createdAt,
+              businessHoursTimeZone,
+              DEFAULT_BUSINESS_HOURS_START,
+              DEFAULT_BUSINESS_HOURS_END
+            )
+          ) {
             afterHoursCount++;
           }
         }
 
         // Fetch event counts (use tx for transaction consistency)
+        // Event counts use the shared typed-first / ILIKE-fallback
+        // classifier so the rollup numbers match the live aggregate's
+        // classification for the same day.
         const incidentIds = incidents.map(i => i.id);
         const [escalationCount, reopenCount, autoResolveCount, alertCount] = incidentIds.length
           ? await Promise.all([
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'escalated to', mode: 'insensitive' },
+                  ...incidentEventWhereFor('ESCALATED'),
                 },
               }),
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'reopen', mode: 'insensitive' },
+                  ...incidentEventWhereFor('REOPENED'),
                 },
               }),
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'auto-resolved', mode: 'insensitive' },
+                  ...incidentEventWhereFor('AUTO_RESOLVED'),
                 },
               }),
               tx.alert.count({
@@ -295,7 +371,9 @@ export async function generateDailyRollup(
           },
         });
 
+        let rollupId: string;
         if (existingRollup) {
+          rollupId = existingRollup.id;
           await tx.incidentMetricRollup.update({
             where: { id: existingRollup.id },
             data: {
@@ -327,7 +405,7 @@ export async function generateDailyRollup(
             },
           });
         } else {
-          await tx.incidentMetricRollup.create({
+          const created = await tx.incidentMetricRollup.create({
             data: {
               date: dayStart,
               granularity: 'daily',
@@ -360,6 +438,62 @@ export async function generateDailyRollup(
               afterHoursCount,
             },
           });
+          rollupId = created.id;
+        }
+
+        // Upsert the per-priority side rows. One row per P1..P5 bucket.
+        // Always writing all 5 rows (even all-zero) lets readers
+        // distinguish "no priority data for this rollup yet" (no rows)
+        // from "no incidents in this priority on this day" (row with
+        // zeros). Tolerates the side table not existing (e.g., pre-
+        // migration) by wrapping in try/catch — readers fall back to
+        // aggregate-only when per-priority rows aren't found.
+        try {
+          for (const priority of ['P1', 'P2', 'P3', 'P4', 'P5'] as const) {
+            const sums = perPriority[priority];
+            await tx.incidentMetricRollupByPriority.upsert({
+              where: { rollupId_priority: { rollupId, priority } },
+              create: {
+                rollupId,
+                priority,
+                incidents: sums.incidents,
+                mttaSum: sums.mttaSum,
+                mttaCount: sums.mttaCount,
+                mttrSum: sums.mttrSum,
+                mttrCount: sums.mttrCount,
+                ackSlaMet: sums.ackSlaMet,
+                ackSlaBreached: sums.ackSlaBreached,
+                resolveSlaMet: sums.resolveSlaMet,
+                resolveSlaBreached: sums.resolveSlaBreached,
+              },
+              update: {
+                incidents: sums.incidents,
+                mttaSum: sums.mttaSum,
+                mttaCount: sums.mttaCount,
+                mttrSum: sums.mttrSum,
+                mttrCount: sums.mttrCount,
+                ackSlaMet: sums.ackSlaMet,
+                ackSlaBreached: sums.ackSlaBreached,
+                resolveSlaMet: sums.resolveSlaMet,
+                resolveSlaBreached: sums.resolveSlaBreached,
+              },
+            });
+          }
+        } catch (perPriorityErr) {
+          // Pre-migration deploy (side table doesn't exist yet) — log
+          // and continue. The main rollup is already written; readers
+          // fall back to aggregate-only lifecycle in that case.
+          logger.warn(
+            '[MetricRollup] Per-priority rollup write failed (likely pre-migration); skipping',
+            {
+              error:
+                perPriorityErr instanceof Error
+                  ? perPriorityErr.message
+                  : String(perPriorityErr),
+              date: dayStart.toISOString(),
+              rollupId,
+            }
+          );
         }
 
         logger.info('[MetricRollup] Daily rollup generated', {
@@ -551,7 +685,13 @@ export async function queryRollupMetrics(
 }
 
 /**
- * Cleanup old rollups beyond retention period
+ * Cleanup old rollups beyond retention period.
+ *
+ * Wraps the delete in a transaction that holds
+ * `LOCK_KEYS.ROLLUP_WRITE`. This serializes against `generateDailyRollup`
+ * which acquires the same lock — so cleanup can't delete a rollup row
+ * that a concurrent rollup-generation transaction is in the middle of
+ * upserting.
  */
 export async function cleanupOldRollups(): Promise<number> {
   const { default: prisma } = await import('./prisma');
@@ -560,16 +700,18 @@ export async function cleanupOldRollups(): Promise<number> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - policy.metricsRetentionDays);
 
-  const result = await prisma.incidentMetricRollup.deleteMany({
-    where: {
-      date: { lt: cutoffDate },
-    },
+  const deletedCount = await prisma.$transaction(async tx => {
+    await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
+    const result = await tx.incidentMetricRollup.deleteMany({
+      where: { date: { lt: cutoffDate } },
+    });
+    return result.count;
   });
 
   logger.info('[MetricRollup] Cleanup completed', {
-    deletedCount: result.count,
+    deletedCount,
     cutoffDate: cutoffDate.toISOString(),
   });
 
-  return result.count;
+  return deletedCount;
 }
