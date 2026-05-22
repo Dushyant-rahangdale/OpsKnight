@@ -139,8 +139,31 @@ export async function decrypt(encryptedText: string): Promise<string> {
     const keyHex = getEncryptionKey();
     if (!keyHex) throw new Error('ENCRYPTION_KEY not configured');
     return await decryptWithKey(encryptedText, keyHex);
-  } catch (error) {
-    logger.error('[Encryption] Decryption error', { error });
+  } catch (primaryError) {
+    // If primary decryption fails, attempt legacy database-backed key fallback
+    try {
+      const prismaModule = await import('./prisma');
+      const prisma = prismaModule.default;
+      const settings = await prisma.systemSettings.findUnique({
+        where: { id: 'default' },
+        select: { encryptionKey: true },
+      });
+
+      if (settings?.encryptionKey) {
+        logger.warn(
+          '[Encryption] Primary decryption failed. Attempting legacy database key fallback...'
+        );
+        const decryptedLegacy = await decryptWithKey(encryptedText, settings.encryptionKey);
+        logger.info(
+          '[Encryption] Legacy decryption succeeded. Data decrypted cleanly using legacy database key.'
+        );
+        return decryptedLegacy;
+      }
+    } catch (fallbackError) {
+      logger.error('[Encryption] Legacy fallback decryption failed or skipped', { fallbackError });
+    }
+
+    logger.error('[Encryption] Decryption error', { error: primaryError });
     throw new Error('Failed to decrypt token');
   }
 }
