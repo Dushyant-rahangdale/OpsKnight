@@ -121,6 +121,34 @@ describe('retention-policy', () => {
             expect(result.end.getTime()).toBeGreaterThanOrEqual(before);
             expect(result.end.getTime()).toBeLessThanOrEqual(after);
         });
+
+        it('marks isClipped when end date is in the future (clock-skew safety)', async () => {
+            // Future endDates (client clock drift, copy-paste of stale URL, etc.)
+            // are silently clamped to now. Previously this clamp didn't set
+            // `isClipped`, so the UI couldn't tell that the requested range
+            // wasn't fully honored.
+            const start = new Date();
+            start.setDate(start.getDate() - 7);
+            const futureEnd = new Date();
+            futureEnd.setDate(futureEnd.getDate() + 5);
+
+            const result = await getQueryDateBounds(start, futureEnd);
+
+            expect(result.isClipped).toBe(true);
+            expect(result.end.getTime()).toBeLessThan(futureEnd.getTime());
+        });
+
+        it('does not mark isClipped when end date is in the past', async () => {
+            const start = new Date();
+            start.setDate(start.getDate() - 14);
+            const end = new Date();
+            end.setDate(end.getDate() - 7);
+
+            const result = await getQueryDateBounds(start, end);
+
+            expect(result.isClipped).toBe(false);
+            expect(result.end.getTime()).toBe(end.getTime());
+        });
     });
 
     describe('getPaginationRecommendation', () => {
