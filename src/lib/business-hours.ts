@@ -52,3 +52,8 @@ export function isIncidentAfterHours(
   const isBusinessHours = hour >= startHour && hour < endHour;
   return isWeekend || !isBusinessHours;
 }
+
+// (Note: incident-event classification helpers live in
+// `./incident-event-classifier.ts` — kept separate to avoid pulling
+// Prisma types into this module, which must stay lightweight enough
+// to be safely imported by rollup-generation and aggregation code.)

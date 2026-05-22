@@ -6,6 +6,7 @@ import {
   DEFAULT_BUSINESS_HOURS_END,
   isIncidentAfterHours,
 } from './business-hours';
+import { incidentEventWhereFor } from './incident-event-classifier';
 
 /**
  * Metric Rollup Service
@@ -267,25 +268,28 @@ export async function generateDailyRollup(
         }
 
         // Fetch event counts (use tx for transaction consistency)
+        // Event counts use the shared typed-first / ILIKE-fallback
+        // classifier so the rollup numbers match the live aggregate's
+        // classification for the same day.
         const incidentIds = incidents.map(i => i.id);
         const [escalationCount, reopenCount, autoResolveCount, alertCount] = incidentIds.length
           ? await Promise.all([
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'escalated to', mode: 'insensitive' },
+                  ...incidentEventWhereFor('ESCALATED'),
                 },
               }),
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'reopen', mode: 'insensitive' },
+                  ...incidentEventWhereFor('REOPENED'),
                 },
               }),
               tx.incidentEvent.count({
                 where: {
                   incidentId: { in: incidentIds },
-                  message: { contains: 'auto-resolved', mode: 'insensitive' },
+                  ...incidentEventWhereFor('AUTO_RESOLVED'),
                 },
               }),
               tx.alert.count({

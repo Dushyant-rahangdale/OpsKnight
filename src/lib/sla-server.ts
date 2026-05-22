@@ -17,6 +17,10 @@ import {
   shouldUseRollups,
   type RetentionPolicy,
 } from './retention-policy';
+import {
+  incidentEventSqlPredicate,
+  incidentEventWhereFor,
+} from './incident-event-classifier';
 
 // UUID validation regex - prevents SQL injection in dynamic CASE statements
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -385,7 +389,17 @@ async function calculateDbAggregateMetrics(
         ${statusFilterSql}
     `;
 
-    // Event counts query - for escalation, reopen, auto-resolve rates
+    // Event counts query — for escalation, reopen, auto-resolve rates.
+    //
+    // Uses the typed-first / ILIKE-fallback classifier so rows written
+    // by post-migration code are matched by `IncidentEvent.type` (no
+    // wording fragility, no overlapping-pattern double counts) while
+    // pre-backfill rows still match via the legacy substring. Once
+    // backfill is complete, a follow-up release flips this to
+    // typed-only.
+    const escalatedPredicate = incidentEventSqlPredicate('ESCALATED', 'e');
+    const reopenedPredicate = incidentEventSqlPredicate('REOPENED', 'e');
+    const autoResolvedPredicate = incidentEventSqlPredicate('AUTO_RESOLVED', 'e');
     const eventCountsResult = await prisma.$queryRaw<
       Array<{
         escalation_count: bigint;
@@ -394,9 +408,9 @@ async function calculateDbAggregateMetrics(
       }>
     >`
       SELECT
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%escalated to%') as escalation_count,
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%reopen%') as reopen_count,
-        COUNT(DISTINCT e."incidentId") FILTER (WHERE e."message" ILIKE '%auto-resolved%') as auto_resolve_count
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${escalatedPredicate}) as escalation_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${reopenedPredicate}) as reopen_count,
+        COUNT(DISTINCT e."incidentId") FILTER (WHERE ${autoResolvedPredicate}) as auto_resolve_count
       FROM "IncidentEvent" e
       INNER JOIN "Incident" i ON e."incidentId" = i."id"
       WHERE i."createdAt" >= ${start}
@@ -1205,28 +1219,31 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   // Note: serviceTargetMap was already built above for DB aggregation
 
-  // 4. Fetch Incident Events
-  // OPTIMIZATION: For large datasets, we only need events for display incidents
-  // Event counts for metrics are handled by DB aggregation
+  // 4. Fetch Incident Events.
+  //
+  // Each event-kind query uses the typed-first / ILIKE-fallback
+  // classifier so new (typed) rows and old (untyped, message-only) rows
+  // are both matched during the rolling-deploy window. After the
+  // backfill release the fallback can be deleted.
   const recentIncidentIds = recentIncidents.map(i => i.id);
   const [ackEvents, escalationEvents, reopenEvents, autoResolveEvents] = recentIncidentIds.length
     ? await Promise.all([
-        // FIX: Add ordering to get EARLIEST ack event, not random
+        // CRITICAL: Get earliest ack event first so MTTA is deterministic.
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'acknowledged', mode: 'insensitive' },
+            ...incidentEventWhereFor('ACKNOWLEDGED'),
           },
           select: { incidentId: true, createdAt: true },
-          orderBy: { createdAt: 'asc' }, // CRITICAL: Get earliest event first
+          orderBy: { createdAt: 'asc' },
         }),
-        // For large datasets using DB aggregation, escalation/reopen/autoResolve counts
-        // come from the aggregate query. We still fetch for display incidents for
-        // trend calculations on the visible data.
+        // Escalation / reopen / auto-resolve are used for in-memory
+        // rate calculation on the displayed (potentially-truncated)
+        // window; DB-aggregation counts come from the raw-SQL query.
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'escalated to', mode: 'insensitive' },
+            ...incidentEventWhereFor('ESCALATED'),
           },
           select: { incidentId: true, createdAt: true },
           orderBy: { createdAt: 'asc' },
@@ -1234,14 +1251,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'reopen', mode: 'insensitive' },
+            ...incidentEventWhereFor('REOPENED'),
           },
           select: { incidentId: true },
         }),
         prisma.incidentEvent.findMany({
           where: {
             incidentId: { in: recentIncidentIds },
-            message: { contains: 'auto-resolved', mode: 'insensitive' },
+            ...incidentEventWhereFor('AUTO_RESOLVED'),
           },
           select: { incidentId: true },
         }),
