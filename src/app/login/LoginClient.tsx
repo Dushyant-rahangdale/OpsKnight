@@ -100,9 +100,19 @@ export default function LoginClient({
       } else if (result?.ok) {
         setIsSubmitting(false);
         setIsSuccess(true);
+        // `result.url` from NextAuth's credentials provider (with redirect:false)
+        // is unreliable — depending on the original callbackUrl it can come back
+        // pointing at the signin page itself, which prevents the post-login
+        // navigation. Use the validated `callbackUrl` prop instead, guarding
+        // against any value that would loop back to /login.
+        const safeTarget =
+          callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('/login')
+            ? callbackUrl
+            : '/';
         setTimeout(() => {
-          // Use hard navigation to ensure session is properly picked up
-          window.location.href = result?.url || callbackUrl;
+          // Hard navigation to ensure the new session cookie is picked up
+          // by the next server render.
+          window.location.href = safeTarget;
         }, 1200);
       }
     } catch {
