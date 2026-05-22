@@ -6,6 +6,31 @@ import { calculateSLAMetrics } from '@/lib/sla-server';
 import { logger } from '@/lib/logger';
 
 /**
+ * Restricts the visible SLA-definition set to ones whose service belongs to
+ * a team the user is a member of. ADMIN/RESPONDER see everything (including
+ * org-wide definitions with `serviceId = null`); regular USERs only see
+ * service-scoped definitions whose owning team they're in.
+ */
+async function getDefinitionWhereForUser(userId: string, role: string) {
+  if (role === 'ADMIN' || role === 'RESPONDER') {
+    return { activeTo: null } as const;
+  }
+  const memberships = await prisma.teamMember.findMany({
+    where: { userId },
+    select: { teamId: true },
+  });
+  const teamIds = memberships.map(m => m.teamId);
+  if (teamIds.length === 0) {
+    // No team membership — no scoped definitions visible.
+    return { activeTo: null, id: { in: [] as string[] } };
+  }
+  return {
+    activeTo: null,
+    service: { is: { teamId: { in: teamIds } } },
+  } as const;
+}
+
+/**
  * SLA Compliance API
  *
  * Returns live compliance stats for all active SLA definitions.
@@ -17,14 +42,24 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(await getAuthOptions());
-  if (!session?.user) {
+  if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // Fetch all active SLA definitions
+    // Resolve current user role to scope the visible SLA-definition set.
+    const sessionUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
+    });
+    if (!sessionUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const whereClause = await getDefinitionWhereForUser(sessionUser.id, sessionUser.role);
+
     const definitions = await prisma.sLADefinition.findMany({
-      where: { activeTo: null },
+      where: whereClause,
       include: {
         service: { select: { id: true, name: true } },
       },

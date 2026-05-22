@@ -72,6 +72,75 @@ export async function assertNotSelf(currentUserId: string, targetUserId: string,
   }
 }
 
+/**
+ * Verifies the current user can read metrics scoped to the given service /
+ * team filter. ADMIN and RESPONDER roles see everything (consistent with
+ * incident-modify semantics elsewhere in this file). For regular USERs, the
+ * service must belong to a team they are a member of, and any teamId filter
+ * must be a team they are a member of.
+ *
+ * Pass a single id or an array; an empty/undefined filter means "no scope
+ * constraint" and is allowed only when the user has global read.
+ *
+ * Throws on denial — callers should let it surface as 403 to clients.
+ */
+export async function assertCanReadServiceMetrics(opts: {
+  serviceId?: string | string[] | null;
+  teamId?: string | string[] | null;
+}) {
+  const user = await getCurrentUser();
+
+  // ADMIN/RESPONDER bypass — they have global read for ops dashboards.
+  if (user.role === 'ADMIN' || user.role === 'RESPONDER') {
+    return user;
+  }
+
+  const serviceIds = Array.isArray(opts.serviceId)
+    ? opts.serviceId
+    : opts.serviceId
+      ? [opts.serviceId]
+      : [];
+  const teamIds = Array.isArray(opts.teamId) ? opts.teamId : opts.teamId ? [opts.teamId] : [];
+
+  // No scope constraint and not admin/responder → deny. Forces callers to
+  // pass an explicit scope rather than reading global metrics by omission.
+  if (serviceIds.length === 0 && teamIds.length === 0) {
+    throw new Error('Unauthorized. Specify serviceId or teamId to view metrics.');
+  }
+
+  // Collect the teams the user belongs to once.
+  const memberships = await prisma.teamMember.findMany({
+    where: { userId: user.id },
+    select: { teamId: true },
+  });
+  const userTeamIds = new Set(memberships.map(m => m.teamId));
+
+  // Every team in the filter must be one the user is in.
+  for (const teamId of teamIds) {
+    if (!userTeamIds.has(teamId)) {
+      throw new Error('Unauthorized. You are not a member of the requested team.');
+    }
+  }
+
+  // Every service must be owned by a team the user is in.
+  if (serviceIds.length > 0) {
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, teamId: true },
+    });
+    if (services.length !== serviceIds.length) {
+      throw new Error('One or more services not found.');
+    }
+    for (const s of services) {
+      if (!s.teamId || !userTeamIds.has(s.teamId)) {
+        throw new Error('Unauthorized. Service belongs to a team you are not in.');
+      }
+    }
+  }
+
+  return user;
+}
+
 export async function getUserPermissions() {
   try {
     const user = await getCurrentUser();

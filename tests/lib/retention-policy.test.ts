@@ -33,28 +33,45 @@ describe('retention-policy', () => {
     });
 
     describe('shouldUseRollups', () => {
-        it('returns true for dates older than real-time window', async () => {
-            // 100 days ago (beyond default 90 day real-time window)
+        it('returns true only when the entire range is older than the real-time window', async () => {
+            // start = 200 days ago, end = 100 days ago — both beyond 90-day window
+            const start = new Date();
+            start.setDate(start.getDate() - 200);
+            const end = new Date();
+            end.setDate(end.getDate() - 100);
+
+            expect(await shouldUseRollups(start, end)).toBe(true);
+        });
+
+        it('returns false when range crosses the real-time boundary (the original >90-day bug)', async () => {
+            // start = 180 days ago, end = now — this would have silently
+            // routed to rollups before and dropped the last 90 days of data
+            // because rollups don't exist for today.
+            const start = new Date();
+            start.setDate(start.getDate() - 180);
+
+            expect(await shouldUseRollups(start, new Date())).toBe(false);
+        });
+
+        it('returns false for ranges entirely within the real-time window', async () => {
+            const start = new Date();
+            start.setDate(start.getDate() - 30);
+
+            expect(await shouldUseRollups(start, new Date())).toBe(false);
+        });
+
+        it('returns false for current date with no end (defaults end to now)', async () => {
+            expect(await shouldUseRollups(new Date())).toBe(false);
+        });
+
+        it('legacy single-arg call: returns false when start is historical but end defaults to now', async () => {
+            // Backwards-compat: existing callers that pass only `start` should
+            // get the safe answer (no rollups) rather than the broken old
+            // behaviour where any historical start triggered rollup mode.
             const oldDate = new Date();
             oldDate.setDate(oldDate.getDate() - 100);
 
-            const result = await shouldUseRollups(oldDate);
-            expect(result).toBe(true);
-        });
-
-        it('returns false for recent dates within real-time window', async () => {
-            // 30 days ago (within default 90 day window)
-            const recentDate = new Date();
-            recentDate.setDate(recentDate.getDate() - 30);
-
-            const result = await shouldUseRollups(recentDate);
-            expect(result).toBe(false);
-        });
-
-        it('returns false for current date', async () => {
-            const now = new Date();
-            const result = await shouldUseRollups(now);
-            expect(result).toBe(false);
+            expect(await shouldUseRollups(oldDate)).toBe(false);
         });
     });
 
