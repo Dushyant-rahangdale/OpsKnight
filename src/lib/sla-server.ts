@@ -21,6 +21,7 @@ import {
   incidentEventSqlPredicate,
   incidentEventWhereFor,
 } from './incident-event-classifier';
+import { mergeHybridMetrics } from './sla-hybrid-merge';
 
 // UUID validation regex - prevents SQL injection in dynamic CASE statements
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -695,6 +696,72 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const hasIncompatibleFilters =
     filters.urgency || filters.assigneeId || filters.status || filters.visibility === 'PRIVATE';
   const useRollups = !hasIncompatibleFilters && (await shouldUseRollups(finalStart, finalEnd));
+
+  // Hybrid path: requested range straddles the real-time / rollup
+  // boundary. Fan out to the rollup function for the historical
+  // partition and recurse into this function (with adjusted dates)
+  // for the live partition, then merge. Only safe when filters are
+  // rollup-compatible (same `hasIncompatibleFilters` check that gates
+  // the pure-rollup path above).
+  const realtimeStart = await (async () => {
+    const r = new Date(now);
+    r.setDate(r.getDate() - retentionPolicy.realTimeWindowDays);
+    return r;
+  })();
+  const rangeCrossesBoundary =
+    !useRollups &&
+    !hasIncompatibleFilters &&
+    finalStart < realtimeStart &&
+    finalEnd > realtimeStart;
+
+  if (rangeCrossesBoundary) {
+    logger.info('[SLA] Using hybrid (rollup + live) query for boundary-crossing range', {
+      requested: { start: finalStart.toISOString(), end: finalEnd.toISOString() },
+      boundary: realtimeStart.toISOString(),
+    });
+
+    const serviceIdFilter = Array.isArray(filters.serviceId)
+      ? filters.serviceId[0]
+      : filters.serviceId;
+    const teamIdFilter = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
+
+    // Historical partition: [finalStart, realtimeStart). The end is
+    // exclusive of `realtimeStart` so an incident at exactly that
+    // instant lands in the live partition and isn't double-counted.
+    const historicalEnd = new Date(realtimeStart.getTime() - 1);
+    const historicalMetrics = await calculateSLAMetricsFromRollups(
+      requestedStartDate,
+      historicalEnd,
+      finalStart,
+      historicalEnd,
+      isClipped,
+      { serviceId: serviceIdFilter, teamId: teamIdFilter, priority: filters.priority }
+    );
+
+    // Live partition: [realtimeStart, finalEnd]. Recursive call with
+    // explicit dates so this branch isn't re-triggered (the range is
+    // entirely within the real-time window).
+    const liveMetrics = await calculateSLAMetrics({
+      ...filters,
+      startDate: realtimeStart,
+      endDate: finalEnd,
+      // Drop windowDays so the dates above take precedence.
+      windowDays: undefined,
+      includeAllTime: false,
+    });
+
+    const merged = mergeHybridMetrics(historicalMetrics, liveMetrics);
+    const totalQueryDuration = Date.now() - queryStartTime;
+    logger.info('[SLA] Query performance (hybrid)', {
+      duration: totalQueryDuration,
+      historicalIncidents: historicalMetrics.totalIncidents,
+      liveIncidents: liveMetrics.totalIncidents,
+      mergedIncidents: merged.totalIncidents,
+      dataSource: 'hybrid',
+    });
+    return merged;
+  }
+
   if (useRollups) {
     // For historical queries, use pre-aggregated rollups
     logger.info('[SLA] Using rollup data for historical query', {
