@@ -23,6 +23,93 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 const CUID_REGEX = /^c[a-z0-9]{24,}$/i;
 
 /**
+ * Build a parameterized SQL `WHERE`-clause fragment that mirrors the full
+ * `recentIncidentWhere` filter shape used elsewhere in this module. This
+ * keeps raw-SQL queries (previous-period aggregate, heatmap, etc.) in lock
+ * step with the Prisma-shaped filter object so team/urgency/status/
+ * visibility/assignee scopes are honored consistently.
+ *
+ * @param filters - User-supplied filter object.
+ * @param tableAlias - Optional SQL alias prefix (e.g. `i` for `i."status"`).
+ *   Pass an empty string to produce un-aliased column references.
+ */
+function buildIncidentFilterSql(
+  filters: SLAMetricsFilter,
+  tableAlias: string = ''
+): Prisma.Sql {
+  const prefix = tableAlias ? `${tableAlias}.` : '';
+  const fragments: Prisma.Sql[] = [];
+
+  // serviceId — scalar or array
+  if (filters.serviceId) {
+    if (Array.isArray(filters.serviceId)) {
+      fragments.push(
+        Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} = ANY(${filters.serviceId}::text[])`
+      );
+    } else {
+      fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} = ${filters.serviceId}`);
+    }
+  }
+
+  // teamId — uses the Service table via subquery since Incident has no
+  // direct teamId column (Incident.teamId may exist but Service.teamId is
+  // the source of truth elsewhere in the code). The `useOrScope` flag is
+  // intentionally NOT honored here — historical aggregates use AND scope
+  // for consistency with the rest of the metrics; OR-scope is a UI
+  // affordance for the recent window only.
+  if (filters.teamId) {
+    const teamIds = Array.isArray(filters.teamId) ? filters.teamId : [filters.teamId];
+    fragments.push(
+      Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} IN (
+        SELECT id FROM "Service" WHERE "teamId" = ANY(${teamIds}::text[])
+      )`
+    );
+  }
+
+  if (filters.urgency) {
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"urgency"`)} = ${filters.urgency}`);
+  }
+
+  if (filters.status) {
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"status"`)} = ${filters.status}`);
+  }
+
+  if (filters.visibility && filters.visibility !== 'ALL') {
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"visibility"`)} = ${filters.visibility}`);
+  }
+
+  if (filters.assigneeId) {
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"assigneeId"`)} = ${filters.assigneeId}`);
+  }
+
+  // `Prisma.join([])` throws — return empty SQL when there are no filters
+  // so the call site can splice the fragment unconditionally.
+  return fragments.length > 0 ? Prisma.join(fragments, ' ') : Prisma.empty;
+}
+
+/**
+ * Single source of truth for the timezone in which "business hours" is
+ * evaluated for after-hours / weekend classification.
+ *
+ * Currently fixed at UTC so that:
+ *   1. The live SQL path (`calculateDbAggregateMetrics`) and the
+ *      rollup-generation path (`metric-rollup.ts`) agree on whether a
+ *      given incident is after-hours — previously they disagreed because
+ *      live used `userTimeZone` and rollup used UTC, so the same incident
+ *      yielded different `afterHoursCount` depending on which path served
+ *      the query.
+ *   2. Two operators in different timezones see the same numbers for the
+ *      same incident set (a precondition for shared dashboards).
+ *
+ * Follow-up: expose this as a tenant-level `businessHoursTimeZone` setting
+ * (`systemSettings.businessHoursTimeZone`) and thread it through both
+ * paths so each org can pick its own definition (HQ city, etc).
+ */
+export const BUSINESS_HOURS_TIMEZONE = 'UTC';
+export const BUSINESS_HOURS_START = 8; // inclusive
+export const BUSINESS_HOURS_END = 18; // exclusive
+
+/**
  * Validates that an ID is a safe identifier (UUID or CUID format)
  * Used to prevent SQL injection when building dynamic CASE statements
  */
@@ -115,15 +202,18 @@ type DbAggregateMetrics = {
  * @param start - Start date of the window
  * @param end - End date of the window
  * @param serviceTargetMap - Map of service IDs to their SLA targets
- * @param userTimeZone - User's timezone for after-hours calculation
  * @returns Aggregated metrics calculated in the database
+ *
+ * Note: after-hours classification uses `BUSINESS_HOURS_TIMEZONE` (UTC)
+ * for parity with the rollup-generation path. The `userTimeZone` parameter
+ * was removed for that reason — see `BUSINESS_HOURS_TIMEZONE` for the
+ * tenant-configurable follow-up.
  */
 async function calculateDbAggregateMetrics(
   whereClause: Prisma.IncidentWhereInput,
   start: Date,
   end: Date,
-  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>,
-  userTimeZone: string
+  serviceTargetMap: Map<string, { ackMinutes: number; resolveMinutes: number }>
 ): Promise<DbAggregateMetrics> {
   const { default: prisma } = await import('./prisma');
 
@@ -245,10 +335,14 @@ async function calculateDbAggregateMetrics(
         COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
         COUNT(*) FILTER (WHERE "urgency" = 'MEDIUM') as medium_urgency_count,
         COUNT(*) FILTER (WHERE "urgency" = 'LOW') as low_urgency_count,
+        -- After-hours classification uses BUSINESS_HOURS_TIMEZONE (UTC)
+        -- so this aggregate agrees with the rollup-generation path. See
+        -- BUSINESS_HOURS_TIMEZONE comment for follow-up to make this
+        -- tenant-configurable.
         COUNT(*) FILTER (
-          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${userTimeZone}) IN (0, 6)
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${userTimeZone}) < 8
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${userTimeZone}) >= 18
+          WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) IN (0, 6)
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) < ${BUSINESS_HOURS_START}
+          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${BUSINESS_HOURS_TIMEZONE}) >= ${BUSINESS_HOURS_END}
         ) as after_hours_count
       FROM "Incident"
       WHERE "createdAt" >= ${start}
@@ -516,6 +610,10 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // 2. Validate and normalize inputs
   const now = new Date();
   const windowDays = Math.max(1, filters.windowDays || 7);
+  // Coverage is forward-looking ("are we covered for the next N days?")
+  // and intentionally independent of the historical query window. 14 days
+  // is the default outlook for the on-call coverage widget; expose as a
+  // tenant setting in a follow-up if needed.
   const coverageWindowDays = 14;
   const userTimeZone = normalizeTimeZone(filters.userTimeZone);
 
@@ -737,22 +835,18 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     });
   }
 
-  // Heatmap query (last 365 days, clipped to retention policy)
+  // Heatmap query (last 365 days, clipped to retention policy).
+  // Filter set is applied via `fullIncidentFilterSql` in the raw SQL below
+  // rather than a Prisma-shape where, so no in-memory where is needed here.
   const heatmapStartRequested = new Date(now);
   heatmapStartRequested.setDate(now.getDate() - 365);
   const { start: heatmapStart } = await getQueryDateBounds(heatmapStartRequested, now, 'incident');
-  const heatmapWhere: Prisma.IncidentWhereInput = {
-    ...recentIncidentWhere,
-    createdAt: { gte: heatmapStart, lte: now },
-  } as any;
 
-  // Previous Period Query - FIX: Use actual window duration, not fixed windowDays
+  // Previous-period window — same duration as the current window, ending
+  // exactly where the current one starts. Filters live in
+  // `fullIncidentFilterSql`.
   const previousStart = new Date(finalStart.getTime() - actualWindowMs);
   const previousEnd = new Date(finalStart);
-  const previousWhere: Prisma.IncidentWhereInput = {
-    ...recentIncidentWhere,
-    createdAt: { gte: previousStart, lt: previousEnd },
-  } as any;
 
   // 3. Parallel Data Fetching - PERFORMANCE OPTIMIZED
   // Step 1: Get incident count first to determine aggregation strategy
@@ -768,13 +862,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     });
   }
 
-  // Build service filter SQL fragment for raw queries
-  // This avoids parameter numbering issues with conditional Prisma.sql in templates
-  const rawQueryServiceId = filters.serviceId
-    ? Array.isArray(filters.serviceId)
-      ? filters.serviceId[0]
-      : filters.serviceId
-    : null;
+  // Full-filter SQL fragment for raw queries that need to mirror the
+  // Prisma-shaped `recentIncidentWhere`. The previous-period aggregate and
+  // the heatmap both used to apply only `serviceId`, so any
+  // team/urgency/status/visibility/assignee scope produced wrong numbers
+  // for those widgets relative to the headline metrics above them.
+  const fullIncidentFilterSql = buildIncidentFilterSql(filters);
 
   // Step 3: Parallel fetch - lightweight queries that work at any scale
   const [
@@ -819,11 +912,16 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
           _count: { _all: true },
         })
       : Promise.resolve([]),
-    // FIX: alertsCount now uses both start AND end date
+    // Alerts count.
+    // Honors service/team scope via the `service` relation; without this,
+    // team-scoped dashboards reported `alertsCount` from the entire org
+    // (since Alert has no direct teamId column), making
+    // `alertsPerIncident` numerically incoherent.
     prisma.alert.count({
       where: {
         createdAt: { gte: alertStart, lte: alertEnd },
         ...(Object.keys(serviceWhere).length > 0 ? serviceWhere : {}),
+        ...(Object.keys(teamWhere).length > 0 ? { service: teamWhere } : {}),
       },
     }),
     prisma.onCallShift.findMany({
@@ -840,10 +938,18 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       where: recentIncidentWhere,
       _count: { _all: true },
     }),
+    // Service-target map for SLA target lookup.
+    // When the user passes `teamId` (without serviceId), we must still
+    // load the services owned by that team — otherwise per-service SLA
+    // targets fall back to global defaults (15m ack / 120m resolve)
+    // instead of the configured per-service targets, silently producing
+    // wrong SLA compliance numbers for team-scoped dashboards.
     prisma.service.findMany({
       where: filters.serviceId
         ? { id: Array.isArray(filters.serviceId) ? { in: filters.serviceId } : filters.serviceId }
-        : {},
+        : filters.teamId
+          ? { teamId: Array.isArray(filters.teamId) ? { in: filters.teamId } : filters.teamId }
+          : {},
       select: { id: true, name: true, targetAckMinutes: true, targetResolveMinutes: true },
     }),
     prisma.incident.groupBy({
@@ -867,24 +973,19 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       orderBy: { _count: { title: 'desc' } },
       take: 5,
     }),
-    // OPTIMIZATION: Use groupBy for heatmap instead of fetching all incidents
-    // Note: Using conditional query to avoid parameter numbering issues with Prisma.empty
-    rawQueryServiceId
-      ? prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-          SELECT DATE("createdAt") as date, COUNT(*) as count
-          FROM "Incident"
-          WHERE "createdAt" >= ${heatmapStart} AND "createdAt" <= ${now}
-          AND "serviceId" = ${rawQueryServiceId}
-          GROUP BY DATE("createdAt")
-          ORDER BY date
-        `
-      : prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
-          SELECT DATE("createdAt") as date, COUNT(*) as count
-          FROM "Incident"
-          WHERE "createdAt" >= ${heatmapStart} AND "createdAt" <= ${now}
-          GROUP BY DATE("createdAt")
-          ORDER BY date
-        `,
+    // Heatmap: per-day incident counts over the last 365 days. The filter
+    // set must mirror `recentIncidentWhere` so the heatmap visualization
+    // doesn't contradict the metrics above it (team/urgency/status/
+    // visibility/assignee).
+    prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
+      SELECT DATE("createdAt") as date, COUNT(*) as count
+      FROM "Incident"
+      WHERE "createdAt" >= ${heatmapStart}
+        AND "createdAt" <= ${now}
+        ${fullIncidentFilterSql}
+      GROUP BY DATE("createdAt")
+      ORDER BY date
+    `,
     prisma.incident.groupBy({
       by: ['urgency'],
       where: recentIncidentWhere,
@@ -945,56 +1046,39 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         ? Math.max(filters.incidentLimit || DEFAULT_INCIDENT_DISPLAY_LIMIT, DEFAULT_PAGE_SIZE)
         : undefined,
     }),
-    // OPTIMIZATION: Use aggregate query for previous period instead of fetching all rows
-    // Note: Using conditional query to avoid parameter numbering issues with Prisma.empty
-    rawQueryServiceId
-      ? prisma.$queryRaw<
-          Array<{
-            total_count: bigint;
-            high_urgency_count: bigint;
-            avg_mtta_ms: number | null;
-            avg_mttr_ms: number | null;
-            ack_count: bigint;
-            resolve_count: bigint;
-          }>
-        >`
-          SELECT
-            COUNT(*) as total_count,
-            COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
-            AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
-              FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
-            AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
-              FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
-            COUNT(*) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as ack_count,
-            COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolve_count
-          FROM "Incident"
-          WHERE "createdAt" >= ${previousStart}
-            AND "createdAt" < ${previousEnd}
-            AND "serviceId" = ${rawQueryServiceId}
-        `
-      : prisma.$queryRaw<
-          Array<{
-            total_count: bigint;
-            high_urgency_count: bigint;
-            avg_mtta_ms: number | null;
-            avg_mttr_ms: number | null;
-            ack_count: bigint;
-            resolve_count: bigint;
-          }>
-        >`
-          SELECT
-            COUNT(*) as total_count,
-            COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
-            AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
-              FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
-            AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
-              FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
-            COUNT(*) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as ack_count,
-            COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolve_count
-          FROM "Incident"
-          WHERE "createdAt" >= ${previousStart}
-            AND "createdAt" < ${previousEnd}
-        `,
+    // Previous-period aggregate. Mirrors `recentIncidentWhere` filter set
+    // via `fullIncidentFilterSql` so previousPeriod numbers compare like-
+    // for-like against the current window (was: only serviceId honored,
+    // so team/urgency/etc-scoped queries returned a previousPeriod from
+    // an unrelated population).
+    prisma.$queryRaw<
+      Array<{
+        total_count: bigint;
+        high_urgency_count: bigint;
+        medium_urgency_count: bigint;
+        low_urgency_count: bigint;
+        avg_mtta_ms: number | null;
+        avg_mttr_ms: number | null;
+        ack_count: bigint;
+        resolve_count: bigint;
+      }>
+    >`
+      SELECT
+        COUNT(*) as total_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'MEDIUM') as medium_urgency_count,
+        COUNT(*) FILTER (WHERE "urgency" = 'LOW') as low_urgency_count,
+        AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
+          FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
+        AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
+          FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
+        COUNT(*) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as ack_count,
+        COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolve_count
+      FROM "Incident"
+      WHERE "createdAt" >= ${previousStart}
+        AND "createdAt" < ${previousEnd}
+        ${fullIncidentFilterSql}
+    `,
   ]);
 
   // Convert heatmap aggregates to expected format
@@ -1007,20 +1091,19 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const prevAgg = previousPeriodAggregates[0];
   const previousIncidentsCount = Number(prevAgg?.total_count ?? 0);
   const prevHighUrgCount = Number(prevAgg?.high_urgency_count ?? 0);
+  const prevMediumUrgCount = Number(prevAgg?.medium_urgency_count ?? 0);
+  const prevLowUrgCount = Number(prevAgg?.low_urgency_count ?? 0);
   const prevMttaMs = prevAgg?.avg_mtta_ms ?? null;
   const prevMttrMs = prevAgg?.avg_mttr_ms ?? null;
   const prevAckCount = Number(prevAgg?.ack_count ?? 0);
   const prevResolveCount = Number(prevAgg?.resolve_count ?? 0);
 
-  // For backwards compatibility, create previousIncidents array (empty for large datasets)
-  const previousIncidents: Array<{
-    id: string;
-    createdAt: Date;
-    acknowledgedAt: Date | null;
-    resolvedAt: Date | null;
-    urgency: string;
-    status: string;
-  }> = [];
+  // NOTE: The legacy `previousIncidents` array (typed Array<{id, createdAt, ...}>)
+  // used to be hydrated from a separate findMany. It was switched to an
+  // aggregate-only flow but the array was left declared-empty and several
+  // downstream summary fields (medium/low urgency, ack/resolve rate)
+  // silently read from it. Those readers have been migrated to the
+  // `prev*` aggregate values above; the empty array is no longer needed.
 
   // For small datasets, we use displayIncidentsRaw for all processing
   // For large datasets, we use DB aggregation + limited display incidents
@@ -1065,8 +1148,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       recentIncidentWhere,
       finalStart,
       finalEnd,
-      serviceTargetMap,
-      userTimeZone
+      serviceTargetMap
     );
 
     // Check if DB aggregation failed (signaled by totalIncidents = -1)
@@ -1234,28 +1316,48 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       .map(entry => [entry.incidentId, entry._min.createdAt as Date])
   );
 
+  // MTTI: time from incident creation to first note. A note before the
+  // incident was created should never happen physically — if it does it's
+  // clock skew or data corruption, so we drop the sample rather than
+  // clamping to 0 (which would bias MTTI downward).
   const mttiSamples = recentIncidents
     .map(incident => {
       const noteAt = firstNoteMap.get(incident.id);
       if (!noteAt) return null;
-      return Math.max(0, noteAt.getTime() - incident.createdAt.getTime());
+      const diff = noteAt.getTime() - incident.createdAt.getTime();
+      return diff >= 0 ? diff : null;
     })
     .filter((diff): diff is number => diff !== null);
 
+  // MTTK: time from first alert to incident creation. Same physical
+  // constraint — alerts must precede incident creation. Drop instead of
+  // clamping; clamping at 0 silently biased MTTK low when an alert was
+  // mis-timestamped or attached after the fact.
   const mttkSamples = recentIncidents
     .map(incident => {
       const alertAt = firstAlertMap.get(incident.id);
       if (!alertAt) return null;
-      return Math.max(0, incident.createdAt.getTime() - alertAt.getTime());
+      const diff = incident.createdAt.getTime() - alertAt.getTime();
+      return diff >= 0 ? diff : null;
     })
     .filter((diff): diff is number => diff !== null);
 
-  const mttiMs = mttiSamples.length
-    ? mttiSamples.reduce((sum, diff) => sum + diff, 0) / mttiSamples.length
-    : null;
-  const mttkMs = mttkSamples.length
-    ? mttkSamples.reduce((sum, diff) => sum + diff, 0) / mttkSamples.length
-    : null;
+  // When DB aggregation was used, `recentIncidents` is the *displayed*
+  // truncated set rather than the full population. MTTI / MTTK computed
+  // from a truncated, most-recent-N sample is biased relative to the
+  // headline MTTA/MTTR which use the full DB aggregate. Return null in
+  // that case so the UI can render "n/a" instead of a misleading number.
+  const mttiSampleIsTruncated = useDbAggregation;
+  const mttkSampleIsTruncated = useDbAggregation;
+
+  const mttiMs =
+    !mttiSampleIsTruncated && mttiSamples.length
+      ? mttiSamples.reduce((sum, diff) => sum + diff, 0) / mttiSamples.length
+      : null;
+  const mttkMs =
+    !mttkSampleIsTruncated && mttkSamples.length
+      ? mttkSamples.reduce((sum, diff) => sum + diff, 0) / mttkSamples.length
+      : null;
 
   // Calc Metrics Helper
   const calculateSetMetrics = (
@@ -1346,8 +1448,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const prevStatsDetailed = {
     count: previousIncidentsCount,
     highUrg: prevHighUrgCount,
-    mediumUrg: 0, // Not tracked in aggregate query
-    lowUrg: 0, // Not tracked in aggregate query
+    mediumUrg: prevMediumUrgCount,
+    lowUrg: prevLowUrgCount,
     mtta: prevMttaMs ?? 0,
     mttr: prevMttrMs ?? 0,
     ackRate: previousIncidentsCount > 0 ? (prevAckCount / previousIncidentsCount) * 100 : 0,
@@ -1688,13 +1790,23 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // Coverage & Others
   const mtbfMs = calculateMtbfMs(recentIncidents.map(i => i.createdAt));
 
-  // FIX: Use userTimeZone for after-hours calculation
-  // For large datasets, use DB aggregation result
+  // After-hours: use the shared `BUSINESS_HOURS_TIMEZONE` so the in-memory
+  // computation agrees with both the SQL aggregate path and the rollup
+  // generator. Was using `userTimeZone` — see BUSINESS_HOURS_TIMEZONE
+  // comment for the tenant-configurable follow-up.
   const afterHoursCount = dbAggMetrics
     ? dbAggMetrics.afterHoursCount
-    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, userTimeZone)).length;
+    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, BUSINESS_HOURS_TIMEZONE))
+        .length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
+  // Coverage day counter.
+  // - Uses ms-arithmetic increments instead of `setDate(+1)` to be DST-safe
+  //   (setDate over a DST transition lands on the same calendar day).
+  // - Bucket keys are built in `BUSINESS_HOURS_TIMEZONE` so two operators
+  //   in different server TZs (or running on hosts with different local
+  //   TZs) compute the same coverage day set. Was using `toDateString()`
+  //   which is locale/server-TZ dependent.
   const coverageDays = new Set<string>();
   let onCallHoursMs = 0;
   for (const shift of futureShifts) {
@@ -1702,10 +1814,11 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     const shiftEnd = shift.end > coverageWindowEnd ? coverageWindowEnd : shift.end;
     if (shiftEnd > shiftStart) {
       onCallHoursMs += shiftEnd.getTime() - shiftStart.getTime();
-      const cursor = new Date(shiftStart);
-      while (cursor <= shiftEnd) {
-        coverageDays.add(cursor.toDateString());
-        cursor.setDate(cursor.getDate() + 1);
+      let cursorMs = shiftStart.getTime();
+      const endMs = shiftEnd.getTime();
+      while (cursorMs <= endMs) {
+        coverageDays.add(toDateKeyInTimeZone(new Date(cursorMs), BUSINESS_HOURS_TIMEZONE));
+        cursorMs += 24 * 60 * 60 * 1000;
       }
     }
   }
@@ -1726,16 +1839,38 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     : solvedIncidents.filter(i => autoResolvedIds.has(i.id)).length;
 
   const escalationRate = totalRecent ? (escalationCountFinal / totalRecent) * 100 : 0;
-  const reopenRate = solvedIncidents.length
-    ? (reopenCountFinal / solvedIncidents.length) * 100
-    : totalRecent > 0
-      ? (reopenCountFinal / totalRecent) * 100
-      : 0;
-  const autoResolvedCount = autoResolveCountFinal;
+
+  // Reopen rate denominator must be the resolved-incident population
+  // (since "reopen" by definition implies "previously resolved"). Use
+  // `resolvedCountForCalc` consistently — falling back to `totalRecent`
+  // when there are no resolved incidents (as the previous code did) gave
+  // mathematically nonsense values like ">100% reopen rate" when a
+  // truncated `solvedIncidents` list mismatched DB-aggregated
+  // `reopenCountFinal`.
   const resolvedCountForCalc = dbAggMetrics ? dbAggMetrics.resolvedCount : solvedIncidents.length;
-  const manualResolvedCount = Math.max(0, resolvedCountForCalc - autoResolvedCount);
-  const eventsCount =
-    ackEvents.length + escalationEvents.length + reopenEvents.length + autoResolveEvents.length;
+  const autoResolvedCount = autoResolveCountFinal;
+  const reopenRate =
+    resolvedCountForCalc > 0 ? (reopenCountFinal / resolvedCountForCalc) * 100 : 0;
+  const rawManualResolved = resolvedCountForCalc - autoResolvedCount;
+  if (rawManualResolved < 0) {
+    logger.warn('[SLA] manualResolved computed as negative in live path; clamping to 0', {
+      resolvedCountForCalc,
+      autoResolvedCount,
+    });
+  }
+  const manualResolvedCount = Math.max(0, rawManualResolved);
+
+  // `eventsCount` is "distinct incidents with notable events" — i.e. the
+  // union of escalated/reopened/auto-resolved incident IDs. Previously
+  // summed raw event rows across four separately-queried sets, which
+  // double-counted any incident matching multiple ILIKE patterns (a known
+  // fragility of the message-classifier; see follow-up to replace with an
+  // enumerated IncidentEvent.type).
+  const eventfulIncidentIds = new Set<string>();
+  for (const e of escalationEvents) eventfulIncidentIds.add(e.incidentId);
+  for (const e of reopenEvents) eventfulIncidentIds.add(e.incidentId);
+  for (const e of autoResolveEvents) eventfulIncidentIds.add(e.incidentId);
+  const eventsCount = eventfulIncidentIds.size;
   const autoResolveRate = resolvedCountForCalc
     ? (autoResolvedCount / resolvedCountForCalc) * 100
     : 0;
@@ -1865,16 +2000,22 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   const teamIdValue = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId || null;
   const perfId = `perf_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-  prisma.$executeRaw`
-    INSERT INTO sla_performance_logs (id, timestamp, "serviceId", "teamId", "windowDays", "durationMs", "incidentCount")
-    VALUES (${perfId}, NOW(), ${serviceIdValue}, ${teamIdValue}, ${actualWindowDays}, ${totalQueryDuration}, ${totalIncidentCount})
-  `
-    .then(() => {
+  // Fire-and-forget perf log. Explicitly `void`-wrapped so a rejected
+  // promise can't surface as an unhandled rejection if the .catch above
+  // ever throws synchronously, and so static analyzers don't flag the
+  // dangling promise. The internal try/catch ensures we never abort the
+  // metrics response on a logging failure.
+  void (async () => {
+    try {
+      await prisma.$executeRaw`
+        INSERT INTO sla_performance_logs (id, timestamp, "serviceId", "teamId", "windowDays", "durationMs", "incidentCount")
+        VALUES (${perfId}, NOW(), ${serviceIdValue}, ${teamIdValue}, ${actualWindowDays}, ${totalQueryDuration}, ${totalIncidentCount})
+      `;
       logger.info('[SLA] Performance log written', { id: perfId });
-    })
-    .catch((err: unknown) => {
+    } catch (err) {
       logger.error('[SLA] Failed to log performance', { err: String(err) });
-    });
+    }
+  })();
 
   // Slow query alert (>10s threshold)
   if (totalQueryDuration > 10000) {

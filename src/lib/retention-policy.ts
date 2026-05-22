@@ -258,12 +258,16 @@ export async function getQueryDateBounds(
   const retentionBoundary = new Date(now);
   retentionBoundary.setDate(retentionBoundary.getDate() - retentionDays);
 
-  // End date defaults to now
+  // End date defaults to now. If the caller passed a future end date
+  // (e.g., clock skew between client and server), it gets clamped — and
+  // this counts as clipping so the UI can render a "range was clamped"
+  // banner instead of silently appearing to honor the requested range.
+  const requestedEndExceedsNow = !!requestedEnd && requestedEnd > now;
   const end = requestedEnd && requestedEnd <= now ? requestedEnd : now;
 
   // Start date defaults to retention boundary, but can't go before it
   let start: Date;
-  let isClipped = false;
+  let isClipped = requestedEndExceedsNow;
 
   if (requestedStart) {
     if (requestedStart < retentionBoundary) {

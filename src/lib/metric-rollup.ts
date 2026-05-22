@@ -236,7 +236,15 @@ export async function generateDailyRollup(
             }
           }
 
-          // After hours check (using UTC for consistency in rollups)
+          // After-hours classification.
+          //
+          // Uses UTC business hours (Mon-Fri 08:00-18:00 UTC) intentionally —
+          // matches `BUSINESS_HOURS_TIMEZONE` in `sla-server.ts` so the
+          // live aggregate path and the rollup path agree on the same
+          // incident's after-hours classification. Was previously fine in
+          // isolation but disagreed with the live path which used
+          // `userTimeZone`. See the BUSINESS_HOURS_TIMEZONE comment in
+          // sla-server.ts for the tenant-configurable follow-up.
           const hour = incident.createdAt.getUTCHours();
           const day = incident.createdAt.getUTCDay();
           const isWeekend = day === 0 || day === 6;
