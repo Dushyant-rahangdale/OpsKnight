@@ -6,6 +6,12 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getOidcConfig } from '@/lib/oidc-config';
 import { getDefaultAvatar } from '@/lib/avatar';
+import {
+  SESSION_TOKEN_COOKIE_NAME,
+  CALLBACK_URL_COOKIE_NAME,
+  CSRF_TOKEN_COOKIE_NAME,
+  useSecureCookies,
+} from '@/lib/auth-cookies';
 
 function getJwtUserRefreshTtlMs() {
   const raw = process.env.JWT_USER_REFRESH_TTL_MS ?? '60000';
@@ -118,15 +124,36 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       // No adapter - using pure JWT sessions (industry standard for OIDC)
       session: { strategy: 'jwt', maxAge: sessionMaxAgeSeconds },
       jwt: { maxAge: sessionMaxAgeSeconds },
-      // Enforce stable cookie name and attributes for reverse proxy compatibility (Cloudflare Tunnel)
+      // Explicit cookie config (see src/lib/auth-cookies.ts).
+      // We derive `secure` and the `__Secure-` / `__Host-` prefixes from
+      // NEXTAUTH_URL rather than relying on NextAuth's request-based protocol
+      // detection, which is unreliable behind Cloudflare Tunnel.
+      useSecureCookies,
       cookies: {
         sessionToken: {
-          name: 'next-auth.session-token',
+          name: SESSION_TOKEN_COOKIE_NAME,
           options: {
             httpOnly: true,
             sameSite: 'lax',
             path: '/',
-            secure: true,
+            secure: useSecureCookies,
+          },
+        },
+        callbackUrl: {
+          name: CALLBACK_URL_COOKIE_NAME,
+          options: {
+            sameSite: 'lax',
+            path: '/',
+            secure: useSecureCookies,
+          },
+        },
+        csrfToken: {
+          name: CSRF_TOKEN_COOKIE_NAME,
+          options: {
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/',
+            secure: useSecureCookies,
           },
         },
       },

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { logger } from '@/lib/logger';
 import { getNextAuthSecret } from '@/lib/secret-manager';
+import { SESSION_TOKEN_COOKIE_NAME, useSecureCookies } from '@/lib/auth-cookies';
 
 const PUBLIC_PATH_PREFIXES = [
   '/login',
@@ -328,7 +329,8 @@ export default async function middleware(req: NextRequest) {
   const token = await getToken({
     req,
     secret: await getNextAuthSecret(),
-    cookieName: 'next-auth.session-token',
+    cookieName: SESSION_TOKEN_COOKIE_NAME,
+    secureCookie: useSecureCookies,
   });
   // Check if token exists AND is valid (not revoked/errored)
   const isAuthenticated = !!token && !token.error && !!token.sub;
