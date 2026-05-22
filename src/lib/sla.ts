@@ -59,6 +59,9 @@ export type SLAMetrics = {
   previousPeriod: {
     totalIncidents: number;
     highUrgencyCount: number;
+    /** Optional for backwards-compat — pre-PR consumers may not read these. */
+    mediumUrgencyCount?: number;
+    lowUrgencyCount?: number;
     mtta: number | null;
     mttr: number | null;
     ackRate: number;

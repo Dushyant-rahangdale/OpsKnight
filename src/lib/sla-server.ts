@@ -161,6 +161,14 @@ export type SLAMetricsFilter = {
   // Pagination support for large datasets
   page?: number;
   pageSize?: number;
+  /**
+   * Include each recent incident's `description` field in the
+   * response. Defaults to false. Descriptions can contain customer-
+   * facing PII; callers that need them (e.g., the incident-detail
+   * panel) must opt in explicitly. API routes should only set this
+   * when the requester has elevated read access.
+   */
+  includeDescription?: boolean;
 };
 
 const allowedStatus = ['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'SUPPRESSED', 'RESOLVED'] as const;
@@ -2185,6 +2193,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     previousPeriod: {
       totalIncidents: prevStatsDetailed.count,
       highUrgencyCount: prevStatsDetailed.highUrg,
+      // Medium/low previous-period counts come from the same aggregate
+      // raw-SQL query as `highUrgencyCount`. Surfaced so the
+      // dashboard's previous-period urgency comparison reflects the
+      // full breakdown.
+      mediumUrgencyCount: prevStatsDetailed.mediumUrg,
+      lowUrgencyCount: prevStatsDetailed.lowUrg,
       mtta: prevStatsDetailed.mtta ? prevStatsDetailed.mtta / 60000 : null,
       mttr: prevStatsDetailed.mttr ? prevStatsDetailed.mttr / 60000 : null,
       ackRate: Math.round(prevStatsDetailed.ackRate * 100) / 100,
@@ -2249,11 +2263,14 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       schedule: { name: s.schedule.name },
     })),
     activeIncidentSummaries,
+    // `description` is opt-in (see SLAMetricsFilter.includeDescription).
+    // Descriptions can contain PII; only callers with elevated read
+    // access should request them. Default response is description-less.
     recentIncidents: filters.includeIncidents
       ? displayIncidents.map(inc => ({
           id: inc.id,
           title: inc.title,
-          description: inc.description,
+          description: filters.includeDescription ? inc.description : null,
           status: inc.status,
           urgency: inc.urgency,
           createdAt: inc.createdAt,
@@ -2611,6 +2628,33 @@ export async function calculateSLAMetricsFromRollups(
     },
   });
 
+  // `dynamicStatus` is a snapshot of *now*, not of the historical
+  // window. Compute it via a small current-state query scoped to the
+  // same service/team filter. Worst case (DB error / no scope match)
+  // falls back to OPERATIONAL.
+  const currentDynamicStatus = await (async () => {
+    try {
+      const where: Record<string, unknown> = {
+        status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
+      };
+      if (filters.serviceId) where.serviceId = filters.serviceId;
+      if (filters.teamId) where.service = { teamId: filters.teamId };
+      const [openCount, criticalCount] = await Promise.all([
+        prisma.incident.count({ where }),
+        prisma.incident.count({ where: { ...where, urgency: 'HIGH' } }),
+      ]);
+      return getServiceDynamicStatus({
+        openIncidentCount: openCount,
+        hasCritical: criticalCount > 0,
+      });
+    } catch (err) {
+      logger.warn('[SLA] dynamicStatus current-state query failed; defaulting to OPERATIONAL', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return 'OPERATIONAL' as const;
+    }
+  })();
+
   // Heatmap fetches the last 365 days regardless of requested window.
   // Apply the same service/team scope so heatmap aligns with the metrics
   // shown above it.
@@ -2912,11 +2956,10 @@ export async function calculateSLAMetricsFromRollups(
     reopenRate,
     autoResolveRate,
 
-    // dynamicStatus is a snapshot of the current operational state and
-    // doesn't depend on the historical query window. Leaving as
-    // OPERATIONAL here is a known limitation — callers needing accurate
-    // current status should query it separately.
-    dynamicStatus: 'OPERATIONAL',
+    // dynamicStatus is a snapshot of the current operational state,
+    // independent of the historical query window. Computed via a
+    // small "now"-scoped query above. See `currentDynamicStatus`.
+    dynamicStatus: currentDynamicStatus,
 
     // Coverage is a forward-looking metric ("are we covered for the next
     // N days?") — not derivable from historical incident rollups.

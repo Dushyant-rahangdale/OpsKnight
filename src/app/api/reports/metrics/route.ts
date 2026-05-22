@@ -44,16 +44,36 @@ export async function GET(request: NextRequest) {
       | 'SUPPRESSED'
       | 'RESOLVED'
       | undefined;
+    // Description is opt-in (PII). The `?include=description` shape
+    // lets us extend with more opt-in fields later (e.g.
+    // `?include=description,internal-notes`) without churning the
+    // route signature.
+    const includeParam = searchParams.get('include') ?? '';
+    const includeTokens = new Set(
+      includeParam
+        .split(',')
+        .map(t => t.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const includeDescription = includeTokens.has('description');
 
     // Enforce that the caller is allowed to read metrics for the requested
     // scope. ADMIN/RESPONDER pass through; regular USERs must have a team
     // membership covering every serviceId/teamId in the filter.
+    let user;
     try {
-      await assertCanReadServiceMetrics({ serviceId, teamId });
+      user = await assertCanReadServiceMetrics({ serviceId, teamId });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unauthorized';
       return NextResponse.json({ error: message }, { status: 403 });
     }
+
+    // `?include=description` is opt-in PII. Only honored for ADMIN /
+    // RESPONDER — regular USERs get description=null even when they
+    // pass the flag, since their team scope might still expose them to
+    // descriptions they shouldn't read.
+    const effectiveIncludeDescription =
+      includeDescription && (user.role === 'ADMIN' || user.role === 'RESPONDER');
 
     // Calculate metrics using the centralized SLA server
     const metrics = await calculateSLAMetrics({
@@ -63,6 +83,7 @@ export async function GET(request: NextRequest) {
       assigneeId,
       urgency,
       status,
+      includeDescription: effectiveIncludeDescription,
     });
 
     // Serialize dates for JSON response
