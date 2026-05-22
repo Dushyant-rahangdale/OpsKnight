@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getEncryptionKey, encrypt, decrypt, encryptWithKey, decryptWithKey } from '../encryption';
 
+const mockFindUnique = vi.fn();
+vi.mock('../prisma', () => ({
+  default: {
+    systemSettings: {
+      findUnique: (...args: any[]) => mockFindUnique(...args),
+    },
+  },
+}));
+
 describe('Encryption Utility Tests', () => {
   const originalEnv = { ...process.env };
   const VALID_KEY = 'a3f1c2e4b5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2';
@@ -8,6 +17,8 @@ describe('Encryption Utility Tests', () => {
 
   beforeEach(() => {
     vi.resetModules();
+    mockFindUnique.mockReset();
+    mockFindUnique.mockResolvedValue(null);
     process.env = { ...originalEnv };
   });
 
@@ -116,6 +127,19 @@ describe('Encryption Utility Tests', () => {
       await expect(decrypt('v2:some:encrypted:payload:here')).rejects.toThrow(
         'Failed to decrypt token'
       );
+    });
+
+    it('should fall back dynamically to legacy database key when primary key decryption fails', async () => {
+      process.env.ENCRYPTION_KEY = VALID_KEY;
+      const LEGACY_KEY = 'b3f1c2e4b5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f3';
+
+      const plaintext = 'My Legacy Secret';
+      const encryptedWithLegacy = await encryptWithKey(plaintext, LEGACY_KEY);
+
+      mockFindUnique.mockResolvedValue({ encryptionKey: LEGACY_KEY });
+
+      const decrypted = await decrypt(encryptedWithLegacy);
+      expect(decrypted).toBe(plaintext);
     });
   });
 });
