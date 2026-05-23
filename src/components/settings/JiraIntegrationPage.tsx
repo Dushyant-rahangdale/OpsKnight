@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { saveJiraConfig } from '@/app/(app)/settings/integrations/jira/actions';
 import { SettingsSection } from '@/components/settings/layout/SettingsSection';
@@ -47,6 +47,13 @@ export default function JiraIntegrationPage({
   });
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState<string>('/api/jira/webhook');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWebhookUrl(`${window.location.origin}/api/jira/webhook`);
+    }
+  }, []);
 
   const testConnection = async () => {
     setTesting(true);
@@ -164,7 +171,30 @@ export default function JiraIntegrationPage({
                 disabled={!isAdmin}
               />
             </div>
-            <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+            <div className="space-y-2 md:col-span-2 mt-4 pt-4 border-t">
+              <Label>Webhook URL (for Jira configuration)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={webhookUrl}
+                  readOnly
+                  className="bg-slate-50 font-mono text-xs text-muted-foreground"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigator.clipboard.writeText(webhookUrl)}
+                >
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                In Jira, create a webhook for <strong>issue_updated</strong> and{' '}
+                <strong>issue_deleted</strong> events and point it to this URL. If you set a secret
+                above, Jira must send it in an <code>x-jira-webhook-secret</code> header.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-3 rounded-md border p-3 text-sm md:col-span-2 mt-2">
               <input
                 type="checkbox"
                 name="enabled"
