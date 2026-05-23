@@ -20,10 +20,21 @@ export default function AppErrorBoundary({ children }: { children: React.ReactNo
         />
       }
       onError={(error, errorInfo) => {
-        // Log error for debugging
-        logger.error('Application error', { component: 'error-boundary', error, errorInfo });
+        // JS Error has non-enumerable `message`/`stack` properties that
+        // JSON.stringify silently drops — explicitly extract them so the
+        // server-side log actually carries the diagnostic payload.
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
 
-        // Send to Sentry if configured
+        logger.error('Application error', {
+          component: 'error-boundary',
+          errorName,
+          errorMessage,
+          errorStack,
+          componentStack: errorInfo?.componentStack,
+        });
+
         if (isSentryEnabled()) {
           captureException(error, {
             component: 'error-boundary',
