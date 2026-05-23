@@ -9,6 +9,8 @@ import { assertAdminOrResponder, assertAdmin } from '@/lib/rbac';
 import { assertServiceNameAvailable, UniqueNameConflictError } from '@/lib/unique-names';
 import { assertJiraIssueType, assertJiraProjectKey, parseLabels } from '@/lib/jira-validation';
 
+const JIRA_AUTO_CREATE_URGENCIES = new Set(['HIGH', 'MEDIUM', 'LOW']);
+
 export async function createIntegration(formData: FormData) {
   try {
     await assertAdminOrResponder();
@@ -179,7 +181,18 @@ export async function saveJiraServiceMapping(
     const defaultComponent =
       ((formData.get('defaultComponent') as string | null) ?? '').trim() || null;
     const autoCreateIncidentIssue = formData.get('autoCreateIncidentIssue') === 'on';
+    const autoCreateIncidentUrgencies = formData
+      .getAll('autoCreateIncidentUrgencies')
+      .map(value => String(value).trim().toUpperCase())
+      .filter(value => JIRA_AUTO_CREATE_URGENCIES.has(value));
     const syncEnabled = formData.get('syncEnabled') === 'on';
+
+    if (autoCreateIncidentIssue && autoCreateIncidentUrgencies.length === 0) {
+      return {
+        error:
+          'Select at least one incident urgency for Jira auto-create, or turn auto-create off.',
+      };
+    }
 
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -197,6 +210,7 @@ export async function saveJiraServiceMapping(
         defaultLabels,
         defaultComponent,
         autoCreateIncidentIssue,
+        autoCreateIncidentUrgencies,
         syncEnabled,
       },
       update: {
@@ -206,6 +220,7 @@ export async function saveJiraServiceMapping(
         defaultLabels,
         defaultComponent,
         autoCreateIncidentIssue,
+        autoCreateIncidentUrgencies,
         syncEnabled,
       },
     });
@@ -222,6 +237,7 @@ export async function saveJiraServiceMapping(
         defaultLabels,
         defaultComponent,
         autoCreateIncidentIssue,
+        autoCreateIncidentUrgencies,
         syncEnabled,
       },
     });

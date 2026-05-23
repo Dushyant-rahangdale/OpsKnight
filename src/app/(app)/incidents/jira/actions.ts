@@ -29,13 +29,15 @@ export async function createJiraIssueFromIncident(incidentId: string) {
 
   const jiraConfig = await prisma.jiraConfig.findUnique({
     where: { id: 'default' },
-    select: { defaultProjectKey: true, enabled: true },
+    select: { enabled: true },
   });
 
   if (!jiraConfig?.enabled) throw new Error('Jira is not configured or is disabled.');
 
-  const projectKey = mapping?.projectKey ?? jiraConfig.defaultProjectKey;
-  if (!projectKey) throw new Error('No Jira project key configured for this service or workspace.');
+  const projectKey = mapping?.projectKey;
+  if (!projectKey) {
+    throw new Error('Configure a Jira project for this service before creating Jira issues.');
+  }
 
   const issueType = mapping?.incidentIssueType ?? 'Bug';
   const labels = mapping?.defaultLabels ?? ['opsknight'];

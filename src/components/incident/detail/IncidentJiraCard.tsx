@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
@@ -34,8 +35,10 @@ type JiraLink = {
 
 interface IncidentJiraCardProps {
   incidentId: string;
+  serviceSettingsHref: string;
   jiraLinks: JiraLink[];
   jiraEnabled: boolean;
+  serviceJiraMapped: boolean;
   canManage: boolean;
 }
 
@@ -52,16 +55,16 @@ function statusColor(status: string | null): string {
 
 export default function IncidentJiraCard({
   incidentId,
+  serviceSettingsHref,
   jiraLinks,
   jiraEnabled,
+  serviceJiraMapped,
   canManage,
 }: IncidentJiraCardProps) {
   const [isPending, startTransition] = useTransition();
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [linkKey, setLinkKey] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  if (!jiraEnabled) return null;
 
   const handleCreate = () => {
     setError(null);
@@ -119,6 +122,29 @@ export default function IncidentJiraCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!jiraEnabled && (
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-muted-foreground">
+            <p className="mb-3">Connect Jira to create or link issues from this incident.</p>
+            {canManage && (
+              <Button asChild variant="outline" size="sm" className="h-8">
+                <Link href="/settings/integrations/jira">Configure Jira</Link>
+              </Button>
+            )}
+          </div>
+        )}
+        {jiraEnabled && !serviceJiraMapped && (
+          <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <p className="mb-3">
+              Add a Jira project mapping for this service before creating new Jira issues.
+            </p>
+            {canManage && (
+              <Button asChild variant="outline" size="sm" className="h-8 bg-white">
+                <Link href={serviceSettingsHref}>Configure Service Jira</Link>
+              </Button>
+            )}
+          </div>
+        )}
+
         {error && (
           <Alert variant="destructive" className="py-2">
             <XCircle className="h-3 w-3" />
@@ -216,14 +242,14 @@ export default function IncidentJiraCard({
         )}
 
         {/* Action buttons */}
-        {canManage && !showLinkForm && (
+        {canManage && jiraEnabled && !showLinkForm && (
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               className="flex-1 h-8 text-xs"
               onClick={handleCreate}
-              disabled={isPending}
+              disabled={isPending || !serviceJiraMapped}
             >
               {isPending ? (
                 <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />

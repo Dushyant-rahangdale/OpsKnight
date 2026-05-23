@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getCurrentUser, assertResponderOrAbove } from '@/lib/rbac';
 import {
   getStoredActionItemId,
+  normalizeLegacyActionItems,
   parseActionItemDueDate,
   resolveStoredActionItems,
   type ActionItem,
@@ -208,7 +209,71 @@ export async function getPostmortem(incidentId: string) {
     return null;
   }
 
-  const { actionItemRecords, actionItems, ...rest } = postmortem;
+  let { actionItemRecords } = postmortem;
+  const { actionItems, ...rest } = postmortem;
+
+  // Rolling migration aid: old postmortems may still only have JSON action
+  // items. Hydrate normalized rows on first read so Jira linking works without
+  // requiring a maintenance window.
+  if (actionItemRecords.length === 0) {
+    const legacyItems = normalizeLegacyActionItems(actionItems, {
+      legacyIdPrefix: `postmortem-${postmortem.id}`,
+    });
+
+    if (legacyItems.length > 0) {
+      await prisma.$transaction(async tx => {
+        for (const [index, item] of legacyItems.entries()) {
+          await tx.actionItem.upsert({
+            where: {
+              id: getStoredActionItemId({
+                postmortemId: postmortem.id,
+                legacyId: item.id,
+                index,
+              }),
+            },
+            update: {},
+            create: {
+              id: getStoredActionItemId({
+                postmortemId: postmortem.id,
+                legacyId: item.id,
+                index,
+              }),
+              postmortemId: postmortem.id,
+              incidentId: postmortem.incident.id,
+              title: item.title.trim() || 'Untitled action item',
+              description: item.description.trim() || null,
+              ownerId: item.owner || null,
+              dueDate: parseActionItemDueDate(item.dueDate) ?? null,
+              status: item.status,
+              priority: item.priority,
+              source: 'POSTMORTEM',
+              completedAt: item.status === 'COMPLETED' ? new Date() : null,
+            },
+          });
+        }
+      });
+
+      actionItemRecords = await prisma.actionItem.findMany({
+        where: { postmortemId: postmortem.id },
+        include: {
+          externalIssueLinks: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              provider: true,
+              externalKey: true,
+              externalUrl: true,
+              externalStatus: true,
+              externalAssignee: true,
+              syncState: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+  }
 
   return {
     ...rest,

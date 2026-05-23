@@ -15,7 +15,6 @@ type JiraConfigView = {
   baseUrl: string;
   userEmail: string;
   enabled: boolean;
-  defaultProjectKey: string | null;
   webhookSecretEncrypted: string | null;
   updatedAt: Date;
   updatedByUser: {
@@ -148,16 +147,6 @@ export default function JiraIntegrationPage({
                 placeholder="Paste Jira API token"
                 disabled={!isAdmin}
                 required={!config}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="defaultProjectKey">Default Project Key</Label>
-              <Input
-                id="defaultProjectKey"
-                name="defaultProjectKey"
-                defaultValue={config?.defaultProjectKey ?? ''}
-                placeholder="OPS"
-                disabled={!isAdmin}
               />
             </div>
             <div className="space-y-2">

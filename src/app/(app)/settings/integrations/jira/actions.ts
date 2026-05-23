@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { logAudit } from '@/lib/audit';
 import { assertAdmin, getCurrentUser } from '@/lib/rbac';
-import { normalizeJiraBaseUrl, assertJiraProjectKey } from '@/lib/jira-validation';
+import { normalizeJiraBaseUrl } from '@/lib/jira-validation';
 import { revalidatePath } from 'next/cache';
 
 type JiraConfigState = {
@@ -28,7 +28,6 @@ export async function saveJiraConfig(
     const baseUrl = normalizeJiraBaseUrl((formData.get('baseUrl') as string | null) ?? '');
     const userEmail = ((formData.get('userEmail') as string | null) ?? '').trim().toLowerCase();
     const apiToken = ((formData.get('apiToken') as string | null) ?? '').trim();
-    const defaultProjectInput = ((formData.get('defaultProjectKey') as string | null) ?? '').trim();
     const webhookSecret = ((formData.get('webhookSecret') as string | null) ?? '').trim();
     const enabledValue = formData.get('enabled');
     const enabled = enabledValue === 'on' || enabledValue === 'true';
@@ -36,10 +35,6 @@ export async function saveJiraConfig(
     if (!userEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
       return { error: 'A valid Jira user email is required.' };
     }
-
-    const defaultProjectKey = defaultProjectInput
-      ? assertJiraProjectKey(defaultProjectInput)
-      : null;
 
     const existing = await prisma.jiraConfig.findUnique({ where: { id: 'default' } });
     if (!existing && !apiToken) {
@@ -67,7 +62,7 @@ export async function saveJiraConfig(
         userEmail,
         apiTokenEncrypted,
         enabled,
-        defaultProjectKey,
+        defaultProjectKey: null,
         webhookSecretEncrypted,
         updatedBy: user.id,
       },
@@ -76,7 +71,7 @@ export async function saveJiraConfig(
         userEmail,
         apiTokenEncrypted,
         enabled,
-        defaultProjectKey,
+        defaultProjectKey: null,
         webhookSecretEncrypted,
         updatedBy: user.id,
       },
@@ -91,7 +86,6 @@ export async function saveJiraConfig(
         enabled,
         baseUrl,
         userEmail,
-        defaultProjectKey,
         hasWebhookSecret: Boolean(webhookSecretEncrypted),
       },
     });

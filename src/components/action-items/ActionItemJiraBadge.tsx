@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { ExternalLink, Link2, Loader2, Plus, RefreshCw, Tickets, Trash2 } from 'lucide-react';
@@ -47,6 +48,7 @@ export default function ActionItemJiraBadge({
     return (
       <div
         className="inline-flex items-center gap-1.5 group relative"
+        onClick={event => event.stopPropagation()}
         onMouseEnter={() => setShowActions(true)}
         onMouseLeave={() => setShowActions(false)}
       >
@@ -116,7 +118,7 @@ export default function ActionItemJiraBadge({
 
   if (showLinkForm) {
     return (
-      <div className="inline-flex items-center gap-1.5">
+      <div className="inline-flex items-center gap-1.5" onClick={event => event.stopPropagation()}>
         <Input
           value={linkKey}
           onChange={e => setLinkKey(e.target.value)}
@@ -170,7 +172,7 @@ export default function ActionItemJiraBadge({
   }
 
   return (
-    <div className="inline-flex items-center gap-1">
+    <div className="inline-flex items-center gap-1" onClick={event => event.stopPropagation()}>
       <button
         className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"
         onClick={() => {
@@ -187,7 +189,7 @@ export default function ActionItemJiraBadge({
         title="Create Jira issue"
       >
         {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-        Jira
+        Create Jira
       </button>
       <button
         className="rounded p-0.5 text-muted-foreground hover:text-blue-600 transition-colors"
@@ -198,6 +200,14 @@ export default function ActionItemJiraBadge({
         <Link2 className="h-3 w-3" />
       </button>
       {error && <span className="text-xs text-destructive ml-1">{error}</span>}
+      {error?.includes('not configured') && (
+        <Link
+          href="/settings/integrations/jira"
+          className="text-[10px] font-medium text-blue-600 hover:underline"
+        >
+          Configure
+        </Link>
+      )}
     </div>
   );
 }

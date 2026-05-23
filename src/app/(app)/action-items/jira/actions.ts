@@ -33,13 +33,15 @@ export async function createJiraIssueFromActionItem(actionItemId: string) {
 
   const jiraConfig = await prisma.jiraConfig.findUnique({
     where: { id: 'default' },
-    select: { defaultProjectKey: true, enabled: true },
+    select: { enabled: true },
   });
 
   if (!jiraConfig?.enabled) throw new Error('Jira is not configured or is disabled.');
 
-  const projectKey = mapping?.projectKey ?? jiraConfig.defaultProjectKey;
-  if (!projectKey) throw new Error('No Jira project key configured.');
+  const projectKey = mapping?.projectKey;
+  if (!projectKey) {
+    throw new Error('Configure a Jira project for this action item service first.');
+  }
 
   const issueType = mapping?.actionItemIssueType ?? 'Task';
   const labels = mapping?.defaultLabels ?? ['opsknight'];

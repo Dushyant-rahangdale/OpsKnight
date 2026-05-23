@@ -2,7 +2,6 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
 import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from '@/lib/rbac';
 import { getUserFriendlyError } from '@/lib/user-friendly-errors';
@@ -583,7 +582,11 @@ export async function createIncident(formData: FormData) {
   });
 
   // If we reopened a recently resolved incident, immediately schedule the first escalation step
-  if (incident.status === 'OPEN' && incident.resolvedAt === null && incident.currentEscalationStep === 0) {
+  if (
+    incident.status === 'OPEN' &&
+    incident.resolvedAt === null &&
+    incident.currentEscalationStep === 0
+  ) {
     try {
       const { scheduleEscalation } = await import('@/lib/jobs/queue');
       // Retry up to 3 times with short backoff to ensure the first escalation job is queued
@@ -679,6 +682,60 @@ export async function createIncident(formData: FormData) {
     await notifyStatusPageSubscribers(incident.id, 'triggered');
   } catch (e) {
     logger.error('Status page subscriber notification failed', {
+      component: 'incidents-actions',
+      error: e,
+      incidentId: incident.id,
+    });
+  }
+
+  // Optional Jira automation. This is intentionally best-effort so Jira
+  // outages never block incident creation during rolling deployments.
+  try {
+    const incidentForJira = await prisma.incident.findUnique({
+      where: { id: incident.id },
+      include: {
+        service: { include: { jiraServiceMapping: true } },
+        externalIssueLinks: { where: { provider: 'JIRA' }, select: { id: true } },
+      },
+    });
+
+    const mapping = incidentForJira?.service?.jiraServiceMapping;
+    if (
+      incidentForJira &&
+      mapping?.autoCreateIncidentIssue &&
+      (mapping.autoCreateIncidentUrgencies.length === 0 ||
+        mapping.autoCreateIncidentUrgencies.includes(incidentForJira.urgency)) &&
+      incidentForJira.externalIssueLinks.length === 0
+    ) {
+      const jiraConfig = await prisma.jiraConfig.findUnique({
+        where: { id: 'default' },
+        select: { enabled: true },
+      });
+
+      if (jiraConfig?.enabled) {
+        const { createJiraIssueAndLink } = await import('@/lib/jira-sync');
+        const { issue } = await createJiraIssueAndLink({
+          incidentId: incident.id,
+          projectKey: mapping.projectKey,
+          issueType: mapping.incidentIssueType || 'Bug',
+          summary: `[Incident] ${incidentForJira.title}`,
+          description:
+            incidentForJira.description || `OpsKnight Incident: ${incidentForJira.title}`,
+          labels: mapping.defaultLabels.length > 0 ? mapping.defaultLabels : ['opsknight'],
+          component: mapping.defaultComponent,
+        });
+
+        await prisma.incidentEvent.create({
+          data: {
+            incidentId: incident.id,
+            type: 'COMMENT',
+            message: `Jira issue ${issue.key} auto-created`,
+          },
+        });
+      }
+    }
+  } catch (e) {
+    logger.error('Jira issue auto-create failed', {
       component: 'incidents-actions',
       error: e,
       incidentId: incident.id,
