@@ -1,5 +1,9 @@
-import PageLoadingSkeleton from '@/components/ui/PageLoadingSkeleton';
+import AnalyticsSkeleton from '@/components/analytics/AnalyticsSkeleton';
 
 export default function AnalyticsLoading() {
-  return <PageLoadingSkeleton type="dashboard" />;
+  return (
+    <div className="w-full px-4 py-6 [zoom:0.8]">
+      <AnalyticsSkeleton />
+    </div>
+  );
 }
