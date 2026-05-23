@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 import { getDefaultActorId, logAudit } from '@/lib/audit';
 import { assertAdminOrResponder, assertAdmin } from '@/lib/rbac';
 import { assertServiceNameAvailable, UniqueNameConflictError } from '@/lib/unique-names';
+import { assertJiraIssueType, assertJiraProjectKey, parseLabels } from '@/lib/jira-validation';
 
 export async function createIntegration(formData: FormData) {
   try {
@@ -150,6 +151,87 @@ export async function updateService(serviceId: string, formData: FormData) {
     }
 
     throw error;
+  }
+}
+
+export async function saveJiraServiceMapping(
+  _prevState: { success?: boolean; error?: string | null } | undefined,
+  formData: FormData
+): Promise<{ success?: boolean; error?: string | null }> {
+  try {
+    await assertAdminOrResponder();
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Unauthorized' };
+  }
+
+  try {
+    const serviceId = ((formData.get('serviceId') as string | null) ?? '').trim();
+    const projectKey = assertJiraProjectKey((formData.get('projectKey') as string | null) ?? '');
+    const incidentIssueType = assertJiraIssueType(
+      (formData.get('incidentIssueType') as string | null) ?? '',
+      'Incident issue type'
+    );
+    const actionItemIssueType = assertJiraIssueType(
+      (formData.get('actionItemIssueType') as string | null) ?? '',
+      'Action item issue type'
+    );
+    const defaultLabels = parseLabels((formData.get('defaultLabels') as string | null) ?? '');
+    const defaultComponent =
+      ((formData.get('defaultComponent') as string | null) ?? '').trim() || null;
+    const autoCreateIncidentIssue = formData.get('autoCreateIncidentIssue') === 'on';
+    const syncEnabled = formData.get('syncEnabled') === 'on';
+
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true },
+    });
+    if (!service) return { error: 'Service not found.' };
+
+    await prisma.jiraServiceMapping.upsert({
+      where: { serviceId },
+      create: {
+        serviceId,
+        projectKey,
+        incidentIssueType,
+        actionItemIssueType,
+        defaultLabels,
+        defaultComponent,
+        autoCreateIncidentIssue,
+        syncEnabled,
+      },
+      update: {
+        projectKey,
+        incidentIssueType,
+        actionItemIssueType,
+        defaultLabels,
+        defaultComponent,
+        autoCreateIncidentIssue,
+        syncEnabled,
+      },
+    });
+
+    await logAudit({
+      action: 'jira.service_mapping.updated',
+      entityType: 'SERVICE',
+      entityId: serviceId,
+      actorId: await getDefaultActorId(),
+      details: {
+        projectKey,
+        incidentIssueType,
+        actionItemIssueType,
+        defaultLabels,
+        defaultComponent,
+        autoCreateIncidentIssue,
+        syncEnabled,
+      },
+    });
+
+    revalidatePath(`/services/${serviceId}/settings`);
+    revalidatePath(`/services/${serviceId}`);
+
+    return { success: true, error: null };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Failed to save Jira mapping.' };
   }
 }
 

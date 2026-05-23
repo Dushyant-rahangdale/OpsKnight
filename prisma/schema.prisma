@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url       = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -78,8 +78,6 @@ enum InAppNotificationType {
   SERVICE
 }
 
-
-
 enum IncidentUrgency {
   LOW
   MEDIUM
@@ -126,22 +124,50 @@ enum IncidentEventType {
   LEGACY_OTHER
 }
 
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum ActionItemPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ActionItemSource {
+  POSTMORTEM
+  MANUAL
+}
+
+enum ExternalIssueProvider {
+  JIRA
+}
+
+enum ExternalIssueSyncState {
+  PENDING
+  SYNCED
+  FAILED
+}
+
 model User {
-  id                           String      @id @default(cuid())
+  id                           String     @id @default(cuid())
   name                         String
-  email                        String      @unique
-  emailVerified               DateTime?
+  email                        String     @unique
+  emailVerified                DateTime?
   // Session revocation marker: increment to force-logout all JWT sessions
-  tokenVersion                 Int         @default(0)
-  role                         Role        @default(USER)
-  status                       UserStatus  @default(INVITED)
+  tokenVersion                 Int        @default(0)
+  role                         Role       @default(USER)
+  status                       UserStatus @default(INVITED)
   passwordHash                 String?
-  timeZone                     String      @default("UTC")
+  timeZone                     String     @default("UTC")
   // Notification preferences (user-level, on-call tools)
-  emailNotificationsEnabled    Boolean     @default(false)
-  smsNotificationsEnabled      Boolean     @default(false)
-  pushNotificationsEnabled     Boolean     @default(false)
-  whatsappNotificationsEnabled Boolean     @default(false)
+  emailNotificationsEnabled    Boolean    @default(false)
+  smsNotificationsEnabled      Boolean    @default(false)
+  pushNotificationsEnabled     Boolean    @default(false)
+  whatsappNotificationsEnabled Boolean    @default(false)
   phoneNumber                  String? // For SMS notifications
   // JIT Profile Sync - synced from OIDC provider
   department                   String?
@@ -151,8 +177,8 @@ model User {
   lastOidcSync                 DateTime?
   invitedAt                    DateTime?
   deactivatedAt                DateTime?
-  createdAt                    DateTime    @default(now())
-  updatedAt                    DateTime    @updatedAt
+  createdAt                    DateTime   @default(now())
+  updatedAt                    DateTime   @updatedAt
 
   assignedIncidents    Incident[]
   teamMemberships      TeamMember[]
@@ -165,20 +191,22 @@ model User {
   devices              UserDevice[]
   incidentWatchers     IncidentWatcher[]
   auditLogs            AuditLog[]
-  overrides            OnCallOverride[]       @relation("OverrideUser")
-  overrideReplacements OnCallOverride[]       @relation("OverrideReplacesUser")
+  overrides            OnCallOverride[]    @relation("OverrideUser")
+  overrideReplacements OnCallOverride[]    @relation("OverrideReplacesUser")
   layerAssignments     OnCallLayerUser[]
 
-  apiKeys              ApiKey[]
-  incidentTemplates    IncidentTemplate[]
-  updatedProviders     NotificationProvider[]
-  teamsLed             Team[]                 @relation("TeamLead")
-  slackIntegrations    SlackIntegration[]
-  slackOAuthConfigs    SlackOAuthConfig[]     @relation("SlackOAuthConfigUpdater")
-  oidcConfigs          OidcConfig[]
-  oidcIdentities       OidcIdentity[]
-  avatar               UserAvatar?
-  dashboards           Dashboard[]
+  apiKeys             ApiKey[]
+  incidentTemplates   IncidentTemplate[]
+  updatedProviders    NotificationProvider[]
+  teamsLed            Team[]                 @relation("TeamLead")
+  slackIntegrations   SlackIntegration[]
+  slackOAuthConfigs   SlackOAuthConfig[]     @relation("SlackOAuthConfigUpdater")
+  jiraConfigsUpdated  JiraConfig[]           @relation("JiraConfigUpdater")
+  oidcConfigs         OidcConfig[]
+  oidcIdentities      OidcIdentity[]
+  avatar              UserAvatar?
+  dashboards          Dashboard[]
+  assignedActionItems ActionItem[]
 
   @@index([email]) // CRITICAL: Performance index for email lookups (fixes 2-4s queries)
   @@index([role, status]) // For filtering users by role and status
@@ -198,11 +226,11 @@ model UserAvatar {
 // Stable link between an IdP identity (issuer+sub) and an internal user.
 // Avoids unsafe "email-only" linking for OIDC sign-in.
 model OidcIdentity {
-  id      String @id @default(cuid())
-  issuer  String
-  subject String
-  email   String?
-  userId  String
+  id        String   @id @default(cuid())
+  issuer    String
+  subject   String
+  email     String?
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -215,7 +243,7 @@ model OidcIdentity {
 
 model Team {
   id          String   @id @default(cuid())
-    name        String   @unique
+  name        String   @unique
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -225,17 +253,17 @@ model Team {
   escalationRules   EscalationRule[]
   incidentTemplates IncidentTemplate[]
   incidents         Incident[] // Team-assigned incidents
-  dashboards        Dashboard[]        // Team-shared dashboards
+  dashboards        Dashboard[] // Team-shared dashboards
   teamLeadId        String?
   teamLead          User?              @relation("TeamLead", fields: [teamLeadId], references: [id])
 }
 
 model TeamMember {
-  id     String   @id @default(cuid())
-  userId String
-  teamId String
-  role   TeamRole @default(MEMBER)
-  receiveTeamNotifications Boolean @default(true) // Team-specific notification preference
+  id                       String   @id @default(cuid())
+  userId                   String
+  teamId                   String
+  role                     TeamRole @default(MEMBER)
+  receiveTeamNotifications Boolean  @default(true) // Team-specific notification preference
 
   user User @relation(fields: [userId], references: [id])
   team Team @relation(fields: [teamId], references: [id])
@@ -245,7 +273,7 @@ model TeamMember {
 
 model Service {
   id                          String                @id @default(cuid())
-    name                        String                @unique
+  name                        String                @unique
   description                 String?
   region                      String? // Service hosting region (e.g., US-East, EU-West)
   slaTier                     String? // e.g., Gold, Silver, Bronze
@@ -278,6 +306,7 @@ model Service {
   statusPageServices  StatusPageService[]
   webhookIntegrations WebhookIntegration[]
   slackIntegration    SlackIntegration?    @relation("ServiceSlackIntegration", fields: [slackIntegrationId], references: [id], onDelete: Cascade)
+  jiraServiceMapping  JiraServiceMapping?
 
   @@index([teamId])
   @@index([escalationPolicyId])
@@ -286,7 +315,7 @@ model Service {
 // Enhanced Escalation Policy
 model EscalationPolicy {
   id          String  @id @default(cuid())
-    name        String  @unique
+  name        String  @unique
   description String?
 
   // Replaced simple JSON with relational steps
@@ -333,7 +362,7 @@ model Integration {
   name            String
   type            String   @default("EVENTS_API_V2") // EVENTS_API_V2, EMAIL, etc.
   key             String   @unique // The routing key used in API calls
-  signatureSecret String?  // HMAC secret for webhook signature verification
+  signatureSecret String? // HMAC secret for webhook signature verification
   enabled         Boolean  @default(true) // Enable/disable integration
   serviceId       String
   createdAt       DateTime @default(now())
@@ -345,7 +374,7 @@ model Integration {
 model WebhookIntegration {
   id        String   @id @default(cuid())
   serviceId String
-    name      String   @unique // "Google Chat", "Microsoft Teams", etc.
+  name      String   @unique // "Google Chat", "Microsoft Teams", etc.
   type      String // "GOOGLE_CHAT", "TEAMS", "DISCORD", "GENERIC"
   url       String
   secret    String? // For HMAC signature
@@ -374,7 +403,6 @@ model SlackOAuthConfig {
   @@unique([id]) // Only one config record
 }
 
-
 // OIDC Single Sign-On Configuration (Global - stored in database)
 model OidcConfig {
   id             String   @id @default("default")
@@ -385,9 +413,9 @@ model OidcConfig {
   autoProvision  Boolean  @default(true)
   allowedDomains String[] @default([])
   roleMapping    Json?    @default("[]") // Schema: [{ claim: string, value: string, role: Role }]
-  customScopes   String?  // e.g. "groups profile email"
-  providerType   String?  // e.g. 'google', 'okta', 'azure', 'auth0', 'custom'
-  providerLabel  String?  // Custom display name, e.g. "Acme Corp SSO"
+  customScopes   String? // e.g. "groups profile email"
+  providerType   String? // e.g. 'google', 'okta', 'azure', 'auth0', 'custom'
+  providerLabel  String? // Custom display name, e.g. "Acme Corp SSO"
   profileMapping Json?    @default("{}") // { department: "dept", jobTitle: "title", avatarUrl: "picture" }
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -433,18 +461,17 @@ model Alert {
   @@index([incidentId]) // For querying alerts by incident
   @@index([dedupKey, status]) // For deduplication queries
   @@index([createdAt]) // For time-based queries
-
   // SLA Performance Optimization: Retention-based query indexes
   @@index([createdAt, incidentId], name: "idx_alert_retention") // For retention cleanup with incident lookup
   @@index([serviceId, createdAt], name: "idx_alert_by_service") // For service-scoped time-range queries
 }
 
 model Incident {
-  id                     String          @id @default(cuid())
+  id                     String             @id @default(cuid())
   title                  String
   description            String?
-  status                 IncidentStatus  @default(OPEN)
-  urgency                IncidentUrgency @default(HIGH)
+  status                 IncidentStatus     @default(OPEN)
+  urgency                IncidentUrgency    @default(HIGH)
   visibility             IncidentVisibility @default(PUBLIC)
   priority               String? // P1, P2.. P5
   dedupKey               String? // Key for deduplication
@@ -459,8 +486,8 @@ model Incident {
   resolvedAt             DateTime? // When incident was resolved (for SLA tracking)
   snoozedUntil           DateTime? // When to auto-unsnooze (for time-based snoozing)
   snoozeReason           String? // Reason for snoozing
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   service                 Service                  @relation(fields: [serviceId], references: [id])
   assignee                User?                    @relation(fields: [assigneeId], references: [id])
@@ -474,6 +501,8 @@ model Incident {
   notifications           Notification[]
   watchers                IncidentWatcher[]
   tags                    IncidentTag[]
+  actionItemRecords       ActionItem[]
+  externalIssueLinks      ExternalIssueLink[]
 
   @@index([dedupKey]) // Index for fast deduplication lookups
   @@index([serviceId, dedupKey, status]) // For service-scoped deduplication checks
@@ -488,12 +517,10 @@ model Incident {
   @@index([urgency, status]) // For filtering by urgency and status
   @@index([status, urgency, createdAt]) // Composite for count queries with urgency and date filter
   @@index([status, assigneeId]) // For unassigned count queries (assigneeId: null)
-
   // Performance Optimization: Indexes for Analytics & Dashboard Counts
   @@index([status]) // For simple count queries (e.g. "Open Incidents")
   @@index([acknowledgedAt]) // For MTTA calculations
   @@index([resolvedAt]) // For MTTR calculations
-
   // SLA Performance Optimization: World-Class Query Indexes
   @@index([createdAt, status], name: "idx_incident_retention") // For retention-based status queries
   @@index([serviceId, createdAt, status], name: "idx_incident_sla_by_service") // For service-scoped SLA queries
@@ -527,7 +554,7 @@ model IncidentTag {
 
 model IncidentTemplate {
   id               String          @id @default(cuid())
-    name             String          @unique
+  name             String          @unique
   description      String?
   title            String // Default title for incidents created from this template
   descriptionText  String? // Default description text
@@ -561,7 +588,7 @@ model IncidentWatcher {
 }
 
 model IncidentEvent {
-  id         String   @id @default(cuid())
+  id         String             @id @default(cuid())
   incidentId String
   message    String
   // Strongly-typed event taxonomy. Nullable for rolling-deploy
@@ -569,7 +596,7 @@ model IncidentEvent {
   // continue to fall back to ILIKE message matching when type is NULL.
   // A follow-up release will backfill and flip readers to typed-only.
   type       IncidentEventType?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime           @default(now())
 
   incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
@@ -609,17 +636,104 @@ model Postmortem {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  incident  Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  createdBy User     @relation(fields: [createdById], references: [id])
+  incident          Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  createdBy         User         @relation(fields: [createdById], references: [id])
+  actionItemRecords ActionItem[]
 
   @@index([incidentId])
   @@index([status, createdAt])
   @@index([createdById])
 }
 
+model ActionItem {
+  id           String             @id @default(cuid())
+  postmortemId String
+  incidentId   String
+  title        String
+  description  String?
+  ownerId      String?
+  dueDate      DateTime?
+  status       ActionItemStatus   @default(OPEN)
+  priority     ActionItemPriority @default(MEDIUM)
+  source       ActionItemSource   @default(POSTMORTEM)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  completedAt  DateTime?
+
+  postmortem         Postmortem          @relation(fields: [postmortemId], references: [id], onDelete: Cascade)
+  incident           Incident            @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  owner              User?               @relation(fields: [ownerId], references: [id])
+  externalIssueLinks ExternalIssueLink[]
+
+  @@index([postmortemId])
+  @@index([incidentId, status])
+  @@index([ownerId, status])
+  @@index([status, priority])
+  @@index([dueDate])
+}
+
+model JiraConfig {
+  id                     String   @id @default("default")
+  baseUrl                String
+  userEmail              String
+  apiTokenEncrypted      String
+  enabled                Boolean  @default(true)
+  defaultProjectKey      String?
+  webhookSecretEncrypted String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  updatedBy              String
+
+  updatedByUser User @relation("JiraConfigUpdater", fields: [updatedBy], references: [id])
+}
+
+model JiraServiceMapping {
+  id                      String   @id @default(cuid())
+  serviceId               String   @unique
+  projectKey              String
+  incidentIssueType       String
+  actionItemIssueType     String
+  defaultLabels           String[] @default([])
+  defaultComponent        String?
+  autoCreateIncidentIssue Boolean  @default(false)
+  syncEnabled             Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([projectKey])
+}
+
+model ExternalIssueLink {
+  id               String                 @id @default(cuid())
+  provider         ExternalIssueProvider  @default(JIRA)
+  incidentId       String?
+  actionItemId     String?
+  externalId       String
+  externalKey      String
+  externalUrl      String
+  externalStatus   String?
+  externalAssignee String?
+  syncState        ExternalIssueSyncState @default(PENDING)
+  lastSyncedAt     DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  incident   Incident?   @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  actionItem ActionItem? @relation(fields: [actionItemId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@unique([provider, externalKey])
+  @@index([incidentId])
+  @@index([actionItemId])
+  @@index([syncState])
+  @@index([provider, syncState])
+}
+
 model OnCallSchedule {
   id              String           @id @default(cuid())
-    name            String           @unique
+  name            String           @unique
   timeZone        String           @default("UTC")
   layers          OnCallLayer[]
   overrides       OnCallOverride[]
@@ -636,8 +750,8 @@ model OnCallLayer {
   start               DateTime
   end                 DateTime?
   rotationLengthHours Int       @default(24)
-  shiftLengthHours    Int?      // Optional: If set, defines strict shift duration (leaving gaps)
-  restrictions        Json?     // { daysOfWeek: [0-6], startHour: 0-23, endHour: 0-23 }
+  shiftLengthHours    Int? // Optional: If set, defines strict shift duration (leaving gaps)
+  restrictions        Json? // { daysOfWeek: [0-6], startHour: 0-23, endHour: 0-23 }
   priority            Int       @default(0) // Higher number = higher priority for final schedule
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -753,22 +867,21 @@ model UserDevice {
 }
 
 model AuditLog {
-  id         String          @id @default(cuid())
-  action     String
-  entityType AuditEntityType
-  entityId   String?
-  actorId    String?
-  details    Json?
-  targetEmail String?         // For rate limiting queries (avoid JSON scan)
-  ip          String?         // For rate limiting queries (avoid JSON scan)
-  createdAt  DateTime        @default(now())
+  id          String          @id @default(cuid())
+  action      String
+  entityType  AuditEntityType
+  entityId    String?
+  actorId     String?
+  details     Json?
+  targetEmail String? // For rate limiting queries (avoid JSON scan)
+  ip          String? // For rate limiting queries (avoid JSON scan)
+  createdAt   DateTime        @default(now())
 
   actor User? @relation(fields: [actorId], references: [id])
 
   @@index([entityType, entityId]) // For querying audit logs by entity
   @@index([actorId, createdAt]) // For querying audit logs by actor
   @@index([createdAt]) // For time-based queries
-  
   // Rate Limiting Performance Indexes
   @@index([action, targetEmail, createdAt]) // For checking email rate limits O(log n)
   @@index([action, ip, createdAt]) // For checking IP rate limits O(log n)
@@ -789,8 +902,6 @@ model UserToken {
   @@index([identifier, type])
   @@index([expiresAt])
 }
-
-
 
 model ApiKey {
   id         String    @id @default(cuid())
@@ -862,20 +973,20 @@ model BackgroundJob {
 
 // Status Page Configuration
 model StatusPage {
-  id            String  @id @default(cuid())
-    name          String  @default("Status Page") @unique
+  id               String  @id @default(cuid())
+  name             String  @unique @default("Status Page")
   organizationName String? // Dedicated organization name for email branding
-  subdomain     String? @unique // Custom subdomain (e.g., status.yourcompany.com)
-  customDomain  String? @unique // Custom domain (e.g., status.yourcompany.com)
-  enabled       Boolean @default(false)
-  showServices  Boolean @default(true)
-  showIncidents Boolean @default(true)
-  showMetrics   Boolean @default(true)
-  showSubscribe Boolean @default(true)
-  branding      Json? // Logo, colors, favicon
-  footerText    String?
-  contactEmail  String?
-  contactUrl    String?
+  subdomain        String? @unique // Custom subdomain (e.g., status.yourcompany.com)
+  customDomain     String? @unique // Custom domain (e.g., status.yourcompany.com)
+  enabled          Boolean @default(false)
+  showServices     Boolean @default(true)
+  showIncidents    Boolean @default(true)
+  showMetrics      Boolean @default(true)
+  showSubscribe    Boolean @default(true)
+  branding         Json? // Logo, colors, favicon
+  footerText       String?
+  contactEmail     String?
+  contactUrl       String?
 
   // Privacy settings
   privacyMode              String? @default("PUBLIC") // PUBLIC, RESTRICTED, PRIVATE
@@ -949,18 +1060,18 @@ model StatusPageService {
 
 // Announcements/Communications on status page
 model StatusPageAnnouncement {
-  id           String    @id @default(cuid())
-  statusPageId String
-  title        String
-  message      String
-  type         String    @default("INFO") // INFO, WARNING, MAINTENANCE, INCIDENT
-  incidentId   String? // Link to incident if applicable
+  id                 String    @id @default(cuid())
+  statusPageId       String
+  title              String
+  message            String
+  type               String    @default("INFO") // INFO, WARNING, MAINTENANCE, INCIDENT
+  incidentId         String? // Link to incident if applicable
   affectedServiceIds Json? // Array of affected service IDs (for maintenance/impact mapping)
-  startDate    DateTime
-  endDate      DateTime?
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  startDate          DateTime
+  endDate            DateTime?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   statusPage StatusPage @relation(fields: [statusPageId], references: [id], onDelete: Cascade)
   incident   Incident?  @relation(fields: [incidentId], references: [id], onDelete: SetNull)
@@ -970,12 +1081,12 @@ model StatusPageAnnouncement {
 }
 
 model StatusPageApiToken {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   statusPageId String
   name         String
   prefix       String
   tokenHash    String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
   revokedAt    DateTime?
 
@@ -1072,14 +1183,14 @@ model CustomFieldValue {
 // Telemetry Metrics Rollup
 model MetricRollup {
   id        String   @id @default(cuid())
-  name      String   // e.g., 'http.request.duration', 'http.request.status'
+  name      String // e.g., 'http.request.duration', 'http.request.status'
   bucket    DateTime // Time bucket start
-  serviceId String?  // Optional service association
-  count     Int      // Number of sample points
-  sum       Float    // Sum of values
+  serviceId String? // Optional service association
+  count     Int // Number of sample points
+  sum       Float // Sum of values
   min       Float?
   max       Float?
-  tags      Json?    // Additional dimensions (status code, method, etc.)
+  tags      Json? // Additional dimensions (status code, method, etc.)
 
   createdAt DateTime @default(now())
 
@@ -1090,23 +1201,23 @@ model MetricRollup {
 
 // System-wide settings (singleton pattern)
 model SystemSettings {
-  id        String   @id @default("default")
-  appUrl    String?  // Application base URL for links in emails, webhooks, etc.
+  id            String  @id @default("default")
+  appUrl        String? // Application base URL for links in emails, webhooks, etc.
   encryptionKey String? // Hex-encoded 32-byte key for encrypting secrets
 
   // Data Retention Policy (days)
-  incidentRetentionDays  Int @default(730)  // 2 years - how long to keep incident data
-  alertRetentionDays     Int @default(365)  // 1 year - how long to keep alert data
-  logRetentionDays       Int @default(90)   // 90 days - how long to keep log entries
-  metricsRetentionDays   Int @default(365)  // 1 year - how long to keep metric rollups
-  realTimeWindowDays     Int @default(90)   // 90 days - real-time queries, older uses rollups
+  incidentRetentionDays Int @default(730) // 2 years - how long to keep incident data
+  alertRetentionDays    Int @default(365) // 1 year - how long to keep alert data
+  logRetentionDays      Int @default(90) // 90 days - how long to keep log entries
+  metricsRetentionDays  Int @default(365) // 1 year - how long to keep metric rollups
+  realTimeWindowDays    Int @default(90) // 90 days - real-time queries, older uses rollups
 
   // Tenant-level after-hours definition. IANA timezone name; defaults to
   // "UTC" so existing deployments keep current behavior. Used by the SLA
   // metrics pipeline (live SQL aggregate, in-memory classifier, and the
   // daily rollup generator) to decide whether an incident's createdAt
   // falls outside business hours (Mon-Fri 08:00-18:00 in this zone).
-  businessHoursTimeZone  String @default("UTC")
+  businessHoursTimeZone String @default("UTC")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1118,61 +1229,61 @@ model IncidentMetricRollup {
   id          String   @id @default(cuid())
   date        DateTime // Start of the period (day/week/month)
   granularity String   @default("daily") // 'daily', 'weekly', 'monthly'
-  serviceId   String?  // Optional: per-service rollup
-  teamId      String?  // Optional: per-team rollup
-  
+  serviceId   String? // Optional: per-service rollup
+  teamId      String? // Optional: per-team rollup
+
   // Incident Counts
-  totalIncidents          Int @default(0)
-  openIncidents           Int @default(0)
-  acknowledgedIncidents   Int @default(0)
-  resolvedIncidents       Int @default(0)
-  highUrgencyIncidents    Int @default(0)
-  mediumUrgencyIncidents  Int @default(0)
-  lowUrgencyIncidents     Int @default(0)
-  
+  totalIncidents         Int @default(0)
+  openIncidents          Int @default(0)
+  acknowledgedIncidents  Int @default(0)
+  resolvedIncidents      Int @default(0)
+  highUrgencyIncidents   Int @default(0)
+  mediumUrgencyIncidents Int @default(0)
+  lowUrgencyIncidents    Int @default(0)
+
   // Priority breakdown (P1-P5)
-  p1Incidents   Int @default(0)
-  p2Incidents   Int @default(0)
-  p3Incidents   Int @default(0)
-  p4Incidents   Int @default(0)
-  p5Incidents   Int @default(0)
-  
+  p1Incidents Int @default(0)
+  p2Incidents Int @default(0)
+  p3Incidents Int @default(0)
+  p4Incidents Int @default(0)
+  p5Incidents Int @default(0)
+
   // SLA Metrics (stored in milliseconds for precision)
   mttaSum   BigInt @default(0) // Sum of MTTA values
   mttaCount Int    @default(0) // Count for averaging
   mttrSum   BigInt @default(0) // Sum of MTTR values  
   mttrCount Int    @default(0) // Count for averaging
-  
+
   // SLA Compliance
-  ackSlaMet       Int @default(0)
-  ackSlaBreached  Int @default(0)
-  resolveSlaMet   Int @default(0)
+  ackSlaMet          Int @default(0)
+  ackSlaBreached     Int @default(0)
+  resolveSlaMet      Int @default(0)
   resolveSlaBreached Int @default(0)
-  
+
   // Event Counts
   escalationCount  Int @default(0)
   reopenCount      Int @default(0)
   autoResolveCount Int @default(0)
   alertCount       Int @default(0)
-  
+
   // After Hours
   afterHoursCount Int @default(0)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   perPriority IncidentMetricRollupByPriority[]
 
-  @@index([date])
-  @@index([granularity, date])
-  @@index([serviceId, date])
-  @@index([teamId, date])
   // NOTE: This unique constraint does not enforce uniqueness when
   // `serviceId` and/or `teamId` are NULL (Postgres treats NULLs as
   // distinct). Partial unique indexes are added in raw SQL by the
   // accompanying migration to close that hole — search the migration
   // for `idx_rollup_unique_*`.
   @@unique([date, granularity, serviceId, teamId])
+  @@index([date])
+  @@index([granularity, date])
+  @@index([serviceId, date])
+  @@index([teamId, date])
 }
 
 /// Per-priority sums attached to an `IncidentMetricRollup`. One row per
@@ -1182,9 +1293,9 @@ model IncidentMetricRollup {
 /// have these rows until backfilled, so readers must tolerate the empty
 /// case and fall back to the aggregate values on the parent row.
 model IncidentMetricRollupByPriority {
-  id        String @id @default(cuid())
-  rollupId  String
-  priority  String // 'P1' | 'P2' | 'P3' | 'P4' | 'P5'
+  id       String @id @default(cuid())
+  rollupId String
+  priority String // 'P1' | 'P2' | 'P3' | 'P4' | 'P5'
 
   incidents          Int    @default(0)
   mttaSum            BigInt @default(0)
@@ -1206,7 +1317,7 @@ model IncidentMetricRollupByPriority {
 // Stores system-wide policies and security markers (encryption fingerprint, canary)
 model SystemConfig {
   key       String   @id // e.g., 'encryption_fingerprint'
-  value     Json     // Flexible JSON config
+  value     Json // Flexible JSON config
   updatedAt DateTime @updatedAt
   updatedBy String?
 }
@@ -1214,11 +1325,11 @@ model SystemConfig {
 // Bronze Tier: Raw Log Storage
 model LogEntry {
   id        String   @id @default(cuid())
-  level     String   // 'info', 'error', 'warn', etc.
+  level     String // 'info', 'error', 'warn', etc.
   message   String
   timestamp DateTime
   serviceId String?
-  context   Json?    // Structured log context
+  context   Json? // Structured log context
 
   createdAt DateTime @default(now())
 
@@ -1230,28 +1341,28 @@ model LogEntry {
 
 // SLA Management
 model SLADefinition {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  
+
   // Targets (minutes)
-  targetAckTime     Int? 
-  targetResolveTime Int? 
-  
+  targetAckTime     Int?
+  targetResolveTime Int?
+
   // Scope of Applicability
   serviceId String?
-  service   Service?  @relation(fields: [serviceId], references: [id]) 
+  service   Service? @relation(fields: [serviceId], references: [id])
   priority  String? // Filter by priority (e.g. "P1")
-  
-  // SLA Specifics
-  target     Float    // e.g. 99.9
-  window     String   // e.g. '30d'
-  metricType String   // e.g. 'UPTIME', 'MTTA'
-  version    Int      @default(1)
 
-  activeFrom DateTime @default(now())
+  // SLA Specifics
+  target     Float // e.g. 99.9
+  window     String // e.g. '30d'
+  metricType String // e.g. 'UPTIME', 'MTTA'
+  version    Int    @default(1)
+
+  activeFrom DateTime  @default(now())
   activeTo   DateTime?
-  
+
   snapshots SLASnapshot[]
 
   createdAt DateTime @default(now())
@@ -1263,29 +1374,29 @@ model SLASnapshot {
   id              String   @id @default(cuid())
   slaDefinitionId String
   date            DateTime // Midnight of the day captured
-  
-  totalIncidents Int
-  metAckTime     Int      // Count of incidents meeting ack SLA
-  metResolveTime Int      // Count of incidents meeting resolve SLA
-  complianceScore Float   // 0-100%
-  
+
+  totalIncidents  Int
+  metAckTime      Int // Count of incidents meeting ack SLA
+  metResolveTime  Int // Count of incidents meeting resolve SLA
+  complianceScore Float // 0-100%
+
   slaDefinition SLADefinition @relation(fields: [slaDefinitionId], references: [id])
-  
+
   createdAt DateTime @default(now())
 
   @@unique([date, slaDefinitionId])
 }
 
 model SLAPerformanceLog {
-  id              String   @id @default(cuid())
-  timestamp       DateTime @default(now())
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
 
-  serviceId       String?
-  teamId          String?
-  windowDays      Int
+  serviceId  String?
+  teamId     String?
+  windowDays Int
 
-  durationMs      Int
-  incidentCount   Int
+  durationMs    Int
+  incidentCount Int
 
   @@index([timestamp])
   @@index([durationMs])
@@ -1297,16 +1408,16 @@ model SLAPerformanceLog {
 
 // Distributed cron scheduler state for production multi-worker environments
 model CronSchedulerState {
-  id              String    @id @default("singleton") // Only one row exists
-  lastRunAt       DateTime?
-  lastSuccessAt   DateTime?
-  lastError       String?
-  nextRunAt       DateTime?
-  lastRollupDate  String?   // "YYYY-MM-DD" format
-  lockedBy        String?   // Worker instance ID holding the lock
-  lockedAt        DateTime? // When lock was acquired
-  updatedAt       DateTime  @updatedAt
-  
+  id             String    @id @default("singleton") // Only one row exists
+  lastRunAt      DateTime?
+  lastSuccessAt  DateTime?
+  lastError      String?
+  nextRunAt      DateTime?
+  lastRollupDate String? // "YYYY-MM-DD" format
+  lockedBy       String? // Worker instance ID holding the lock
+  lockedAt       DateTime? // When lock was acquired
+  updatedAt      DateTime  @updatedAt
+
   @@map("cron_scheduler_state")
 }
 
@@ -1316,13 +1427,13 @@ model Dashboard {
   name        String
   description String?
   visibility  DashboardVisibility @default(PRIVATE)
-  isDefault   Boolean             @default(false)  // User's default dashboard
-  isTemplate  Boolean             @default(false)  // Pre-built system template
-  templateId  String?             // ID of template this was cloned from
-  layout      Json                // Grid layout config: { columns: 4, rowHeight: 120 }
-  config      Json?               // Global settings: { timeRange: 7, refreshInterval: 60 }
+  isDefault   Boolean             @default(false) // User's default dashboard
+  isTemplate  Boolean             @default(false) // Pre-built system template
+  templateId  String? // ID of template this was cloned from
+  layout      Json // Grid layout config: { columns: 4, rowHeight: 120 }
+  config      Json? // Global settings: { timeRange: 7, refreshInterval: 60 }
   userId      String
-  teamId      String?             // For team-shared dashboards
+  teamId      String? // For team-shared dashboards
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -1339,11 +1450,11 @@ model Dashboard {
 model DashboardWidget {
   id          String   @id @default(cuid())
   dashboardId String
-  widgetType  String   // "metric", "chart", "table", "gauge", "insights"
-  metricKey   String   // "totalIncidents", "mttr", "ackCompliance", etc.
-  title       String?  // Custom title override
-  position    Json     // Grid position: { x: 0, y: 0, w: 1, h: 1 }
-  config      Json     // Widget-specific config (chartType, variant, etc.)
+  widgetType  String // "metric", "chart", "table", "gauge", "insights"
+  metricKey   String // "totalIncidents", "mttr", "ackCompliance", etc.
+  title       String? // Custom title override
+  position    Json // Grid position: { x: 0, y: 0, w: 1, h: 1 }
+  config      Json // Widget-specific config (chartType, variant, etc.)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

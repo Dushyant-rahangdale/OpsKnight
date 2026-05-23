@@ -1,0 +1,228 @@
+import prisma from '@/lib/prisma';
+import { createJiraIssue, getJiraIssue, type JiraIssueSummary } from '@/lib/jira';
+import { isValidJiraKey } from '@/lib/jira-validation';
+import { logAudit, getDefaultActorId } from '@/lib/audit';
+
+export type CreateAndLinkParams = {
+  provider?: 'JIRA';
+  incidentId?: string;
+  actionItemId?: string;
+  projectKey: string;
+  issueType: string;
+  summary: string;
+  description?: string | null;
+  labels?: string[];
+  component?: string | null;
+};
+
+export type LinkExistingParams = {
+  provider?: 'JIRA';
+  incidentId?: string;
+  actionItemId?: string;
+  jiraKey: string;
+};
+
+/**
+ * Create a new Jira issue and persist an ExternalIssueLink row.
+ * Used by both incident and action-item linking flows.
+ */
+export async function createJiraIssueAndLink(params: CreateAndLinkParams) {
+  const issue = await createJiraIssue({
+    projectKey: params.projectKey,
+    issueType: params.issueType,
+    summary: params.summary,
+    description: params.description,
+    labels: params.labels,
+    component: params.component,
+  });
+
+  const link = await prisma.externalIssueLink.create({
+    data: {
+      provider: params.provider ?? 'JIRA',
+      incidentId: params.incidentId ?? null,
+      actionItemId: params.actionItemId ?? null,
+      externalId: issue.id,
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      externalStatus: issue.status ?? null,
+      externalAssignee: issue.assignee ?? null,
+      syncState: 'SYNCED',
+      lastSyncedAt: new Date(),
+    },
+  });
+
+  await logAudit({
+    action: 'jira.issue.created',
+    entityType: 'SERVICE',
+    entityId: params.incidentId ?? params.actionItemId ?? undefined,
+    actorId: await getDefaultActorId(),
+    details: {
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      incidentId: params.incidentId,
+      actionItemId: params.actionItemId,
+    },
+  });
+
+  return { link, issue };
+}
+
+/**
+ * Link an existing Jira issue by key. Fetches current status/assignee from
+ * Jira and persists the link. Prevents duplicate links.
+ */
+export async function linkExistingJiraIssue(params: LinkExistingParams) {
+  const key = params.jiraKey.trim().toUpperCase();
+  if (!isValidJiraKey(key)) {
+    throw new Error(
+      `Invalid Jira issue key: "${params.jiraKey}". Expected format like PROJECT-123.`
+    );
+  }
+
+  // Check for duplicate link
+  const existing = await prisma.externalIssueLink.findUnique({
+    where: {
+      provider_externalKey: {
+        provider: params.provider ?? 'JIRA',
+        externalKey: key,
+      },
+    },
+  });
+
+  if (existing) {
+    throw new Error(`Jira issue ${key} is already linked.`);
+  }
+
+  const issue = await getJiraIssue(key);
+
+  const link = await prisma.externalIssueLink.create({
+    data: {
+      provider: params.provider ?? 'JIRA',
+      incidentId: params.incidentId ?? null,
+      actionItemId: params.actionItemId ?? null,
+      externalId: issue.id,
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      externalStatus: issue.status ?? null,
+      externalAssignee: issue.assignee ?? null,
+      syncState: 'SYNCED',
+      lastSyncedAt: new Date(),
+    },
+  });
+
+  await logAudit({
+    action: 'jira.issue.linked',
+    entityType: 'SERVICE',
+    entityId: params.incidentId ?? params.actionItemId ?? undefined,
+    actorId: await getDefaultActorId(),
+    details: {
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      incidentId: params.incidentId,
+      actionItemId: params.actionItemId,
+    },
+  });
+
+  return { link, issue };
+}
+
+/**
+ * Re-fetch status and assignee from Jira for a single ExternalIssueLink.
+ */
+export async function syncExternalIssueLink(linkId: string) {
+  const link = await prisma.externalIssueLink.findUnique({
+    where: { id: linkId },
+  });
+
+  if (!link) throw new Error('External issue link not found.');
+
+  try {
+    const issue = await getJiraIssue(link.externalKey);
+
+    return await prisma.externalIssueLink.update({
+      where: { id: linkId },
+      data: {
+        externalStatus: issue.status ?? null,
+        externalAssignee: issue.assignee ?? null,
+        syncState: 'SYNCED',
+        lastSyncedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    await prisma.externalIssueLink.update({
+      where: { id: linkId },
+      data: { syncState: 'FAILED' },
+    });
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Webhook processing
+// ---------------------------------------------------------------------------
+
+export type JiraWebhookPayload = {
+  webhookEvent?: string;
+  issue?: {
+    id?: string;
+    key?: string;
+    fields?: {
+      status?: { name?: string };
+      assignee?: { displayName?: string; emailAddress?: string };
+    };
+  };
+};
+
+/**
+ * Process an inbound Jira webhook event. Finds matching ExternalIssueLink
+ * rows by external issue id or key and updates their status/assignee.
+ *
+ * Idempotent: replay-safe, duplicate events produce the same result.
+ */
+export async function processJiraWebhookEvent(
+  payload: JiraWebhookPayload
+): Promise<{ updated: number }> {
+  const issueId = payload.issue?.id;
+  const issueKey = payload.issue?.key;
+
+  if (!issueId && !issueKey) {
+    return { updated: 0 };
+  }
+
+  // Find all links that reference this Jira issue
+  const links = await prisma.externalIssueLink.findMany({
+    where: {
+      provider: 'JIRA',
+      OR: [
+        ...(issueId ? [{ externalId: issueId }] : []),
+        ...(issueKey ? [{ externalKey: issueKey }] : []),
+      ],
+    },
+  });
+
+  if (links.length === 0) {
+    return { updated: 0 };
+  }
+
+  const status = payload.issue?.fields?.status?.name ?? null;
+  const assignee =
+    payload.issue?.fields?.assignee?.displayName ??
+    payload.issue?.fields?.assignee?.emailAddress ??
+    null;
+
+  const now = new Date();
+
+  await prisma.externalIssueLink.updateMany({
+    where: {
+      id: { in: links.map(l => l.id) },
+    },
+    data: {
+      externalStatus: status,
+      externalAssignee: assignee,
+      syncState: 'SYNCED',
+      lastSyncedAt: now,
+    },
+  });
+
+  return { updated: links.length };
+}

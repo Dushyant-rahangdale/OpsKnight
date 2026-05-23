@@ -15,15 +15,10 @@ import { Label } from '@/components/ui/shadcn/label';
 import { useTimezone } from '@/contexts/TimezoneContext';
 import { formatDateTime } from '@/lib/timezone';
 import { cn } from '@/lib/utils';
+import type { ActionItem } from '@/lib/action-items';
+import ActionItemJiraBadge from '@/components/action-items/ActionItemJiraBadge';
 
-interface ActionItem {
-  id: string;
-  title: string;
-  description: string;
-  owner?: string;
-  dueDate?: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+interface BoardActionItem extends ActionItem {
   postmortemId: string;
   postmortemTitle: string;
   incidentId: string;
@@ -33,7 +28,7 @@ interface ActionItem {
 }
 
 interface ActionItemsBoardProps {
-  actionItems: ActionItem[];
+  actionItems: BoardActionItem[];
   users: Array<{ id: string; name: string; email: string }>;
   canManage: boolean;
   view: 'board' | 'list';
@@ -56,9 +51,10 @@ interface FilterPanelProps {
 }
 
 interface ActionItemCardProps {
-  item: ActionItem;
+  item: BoardActionItem;
   users: Array<{ id: string; name: string; email: string }>;
   userTimeZone: string;
+  canManage: boolean;
 }
 
 const STATUS_CONFIG = {
@@ -238,7 +234,7 @@ function FilterPanel({
 }
 
 // Extracted ActionItemCard component
-function ActionItemCard({ item, users, userTimeZone }: ActionItemCardProps) {
+function ActionItemCard({ item, users, userTimeZone, canManage }: ActionItemCardProps) {
   const overdue = isOverdue(item);
   const statusConfig = STATUS_CONFIG[item.status];
   const priorityConfig = PRIORITY_CONFIG[item.priority];
@@ -273,6 +269,12 @@ function ActionItemCard({ item, users, userTimeZone }: ActionItemCardProps) {
             )}
           </div>
           <h4 className="text-base font-semibold mb-1">{item.title}</h4>
+          <ActionItemJiraBadge
+            actionItemId={item.id}
+            externalIssue={item.externalIssue}
+            canManage={canManage}
+            compact
+          />
           {item.description && (
             <p className="text-sm text-muted-foreground mb-2">
               {item.description.substring(0, 100)}
@@ -303,7 +305,7 @@ function ActionItemCard({ item, users, userTimeZone }: ActionItemCardProps) {
 export default function ActionItemsBoard({
   actionItems,
   users,
-  canManage: _canManage,
+  canManage,
   view,
   filters,
 }: ActionItemsBoardProps) {
@@ -382,6 +384,7 @@ export default function ActionItemsBoard({
                         item={item}
                         users={users}
                         userTimeZone={userTimeZone}
+                        canManage={canManage}
                       />
                     ))
                   )}
@@ -450,6 +453,12 @@ export default function ActionItemsBoard({
                       )}
                     </div>
                     <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
+                    <ActionItemJiraBadge
+                      actionItemId={item.id}
+                      externalIssue={item.externalIssue}
+                      canManage={canManage}
+                      compact
+                    />
                     {item.description && (
                       <p className="text-base text-muted-foreground mb-2">{item.description}</p>
                     )}

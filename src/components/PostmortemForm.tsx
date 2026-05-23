@@ -6,11 +6,10 @@ import {
   type PostmortemData,
   type TimelineEvent,
   type ImpactMetrics,
-  type ActionItem,
   generatePostmortemDraft,
 } from '@/app/(app)/postmortems/actions';
+import { normalizeLegacyActionItems, type ActionItem } from '@/lib/action-items';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/shadcn/button';
 import { Input } from '@/components/ui/shadcn/input';
 import { Textarea } from '@/components/ui/shadcn/textarea';
@@ -123,19 +122,6 @@ export default function PostmortemForm({
     };
   };
 
-  const parseActionItems = (actionItems: unknown): ActionItem[] => {
-    if (!actionItems || !Array.isArray(actionItems)) return [];
-    return actionItems.map((item: any) => ({
-      id: item.id || `action-${Date.now()}-${Math.random()}`,
-      title: item.title || '',
-      description: item.description || '',
-      owner: item.owner,
-      dueDate: item.dueDate,
-      status: item.status || 'OPEN',
-      priority: item.priority || 'MEDIUM',
-    }));
-  };
-
   // Setup React Hook Form
   const form = useForm<PostmortemFormValues>({
     resolver: zodResolver(postmortemSchema),
@@ -157,8 +143,10 @@ export default function PostmortemForm({
   const [impactMetrics, setImpactMetrics] = useState<ImpactMetrics>(
     parseImpact(initialData?.impact)
   );
-  const [actionItems, setActionItems] = useState<ActionItem[]>(
-    parseActionItems(initialData?.actionItems)
+  const [actionItems, setActionItems] = useState<ActionItem[]>(() =>
+    normalizeLegacyActionItems(initialData?.actionItems, {
+      legacyIdPrefix: `postmortem-${initialData?.id ?? incidentId ?? 'draft'}`,
+    })
   );
 
   const onSubmit = (data: PostmortemFormValues) => {

@@ -11,16 +11,14 @@ import { formatDateTime } from '@/lib/timezone';
 import UserAvatar from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { Calendar, Pencil } from 'lucide-react';
+import { normalizeLegacyActionItems } from '@/lib/action-items';
+import ActionItemJiraBadge from '@/components/action-items/ActionItemJiraBadge';
 import {
   POSTMORTEM_STATUS_CONFIG,
   ACTION_ITEM_STATUS_CONFIG,
   ACTION_ITEM_PRIORITY_CONFIG,
 } from './shared';
-import {
-  type TimelineEvent,
-  type ImpactMetrics,
-  type ActionItem,
-} from '@/app/(app)/postmortems/actions';
+import { type TimelineEvent, type ImpactMetrics } from '@/app/(app)/postmortems/actions';
 
 interface PostmortemDetailViewProps {
   postmortem: {
@@ -98,25 +96,13 @@ export default function PostmortemDetailView({
     };
   };
 
-  const parseActionItems = (actionItems: unknown): ActionItem[] => {
-    // Hide action items completely in public view as they often contain internal context
-    if (isPublicView) return [];
-
-    if (!actionItems || !Array.isArray(actionItems)) return [];
-    return actionItems.map((item: any) => ({
-      id: item.id || `action-${Date.now()}`,
-      title: item.title || '',
-      description: item.description || '',
-      owner: item.owner,
-      dueDate: item.dueDate,
-      status: item.status || 'OPEN',
-      priority: item.priority || 'MEDIUM',
-    }));
-  };
-
   const timelineEvents = parseTimeline(postmortem.timeline);
   const impactMetrics = parseImpact(postmortem.impact);
-  const actionItems = parseActionItems(postmortem.actionItems);
+  const actionItems = isPublicView
+    ? []
+    : normalizeLegacyActionItems(postmortem.actionItems, {
+        legacyIdPrefix: `postmortem-${postmortem.id}`,
+      });
 
   const completedActions = actionItems.filter(item => item.status === 'COMPLETED').length;
   const totalActions = actionItems.length;
@@ -326,6 +312,14 @@ export default function PostmortemDetailView({
                         )}
                       </div>
                       <h4 className="text-base font-semibold mb-1">{item.title}</h4>
+                      {item.externalIssue && (
+                        <ActionItemJiraBadge
+                          actionItemId={item.id}
+                          externalIssue={item.externalIssue}
+                          canManage={false}
+                          compact
+                        />
+                      )}
                       {item.description && (
                         <p className="text-sm text-muted-foreground mb-1">{item.description}</p>
                       )}

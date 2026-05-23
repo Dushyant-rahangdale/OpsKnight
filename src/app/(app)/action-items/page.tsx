@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { getUserPermissions } from '@/lib/rbac';
 import ActionItemsBoard from '@/components/action-items/ActionItemsBoard';
 import ActionItemsStats from '@/components/action-items/ActionItemsStats';
+import { resolveStoredActionItems, type ActionItem } from '@/lib/action-items';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,9 +34,18 @@ export default async function ActionItemsPage({
   // Get all postmortems with action items
   const postmortems = await prisma.postmortem.findMany({
     where: {
-      actionItems: {
-        not: Prisma.JsonNull,
-      },
+      OR: [
+        {
+          actionItems: {
+            not: Prisma.JsonNull,
+          },
+        },
+        {
+          actionItemRecords: {
+            some: {},
+          },
+        },
+      ],
     },
     include: {
       incident: {
@@ -56,48 +66,58 @@ export default async function ActionItemsPage({
           email: true,
         },
       },
+      actionItemRecords: {
+        include: {
+          externalIssueLinks: {
+            orderBy: { createdAt: 'desc' as const },
+            take: 1,
+            select: {
+              id: true,
+              provider: true,
+              externalKey: true,
+              externalUrl: true,
+              externalStatus: true,
+              externalAssignee: true,
+              syncState: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
 
   // Extract and flatten all action items with postmortem context
-  const allActionItems: Array<{
-    id: string;
-    title: string;
-    description: string;
-    owner?: string;
-    dueDate?: string;
-    status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-    priority: 'HIGH' | 'MEDIUM' | 'LOW';
-    postmortemId: string;
-    postmortemTitle: string;
-    incidentId: string;
-    incidentTitle: string;
-    serviceName: string;
-    createdAt: Date;
-  }> = [];
+  const allActionItems: Array<
+    ActionItem & {
+      postmortemId: string;
+      postmortemTitle: string;
+      incidentId: string;
+      incidentTitle: string;
+      serviceName: string;
+      createdAt: Date;
+    }
+  > = [];
 
   postmortems.forEach(postmortem => {
-    const actionItems = postmortem.actionItems as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (Array.isArray(actionItems)) {
-      actionItems.forEach((item: any) => {
-        allActionItems.push({
-          id: item.id || `action-${postmortem.id}-${Math.random()}`,
-          title: item.title || '',
-          description: item.description || '',
-          owner: item.owner,
-          dueDate: item.dueDate,
-          status: item.status || 'OPEN',
-          priority: item.priority || 'MEDIUM',
-          postmortemId: postmortem.id,
-          postmortemTitle: postmortem.title,
-          incidentId: postmortem.incidentId,
-          incidentTitle: postmortem.incident.title,
-          serviceName: postmortem.incident.service.name,
-          createdAt: postmortem.createdAt,
-        });
+    const actionItems = resolveStoredActionItems({
+      records: postmortem.actionItemRecords,
+      legacy: postmortem.actionItems,
+      legacyIdPrefix: `postmortem-${postmortem.id}`,
+    });
+
+    actionItems.forEach(item => {
+      allActionItems.push({
+        ...item,
+        postmortemId: postmortem.id,
+        postmortemTitle: postmortem.title,
+        incidentId: postmortem.incidentId,
+        incidentTitle: postmortem.incident.title,
+        serviceName: postmortem.incident.service.name,
+        createdAt: postmortem.createdAt,
       });
-    }
+    });
   });
 
   // Single-pass filtering and stats calculation for better performance

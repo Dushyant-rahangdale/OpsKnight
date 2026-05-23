@@ -19,16 +19,8 @@ import { formatDateTime } from '@/lib/timezone';
 import UserAvatar from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { Calendar, Pencil, Trash2, Plus } from 'lucide-react';
-
-export type ActionItem = {
-  id: string;
-  title: string;
-  description: string;
-  owner?: string;
-  dueDate?: string; // ISO string
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
-};
+import type { ActionItem } from '@/lib/action-items';
+import ActionItemJiraBadge from '@/components/action-items/ActionItemJiraBadge';
 
 interface PostmortemActionItemsProps {
   actionItems: ActionItem[];
@@ -255,6 +247,14 @@ export default function PostmortemActionItems({
                         )}
                       </div>
                       <h4 className="text-base font-semibold mb-1">{item.title}</h4>
+                      {item.externalIssue && (
+                        <ActionItemJiraBadge
+                          actionItemId={item.id}
+                          externalIssue={item.externalIssue}
+                          canManage={false}
+                          compact
+                        />
+                      )}
                       {item.description && (
                         <p className="text-sm text-muted-foreground mb-1">{item.description}</p>
                       )}

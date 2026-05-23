@@ -3,6 +3,12 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser, assertResponderOrAbove } from '@/lib/rbac';
+import {
+  getStoredActionItemId,
+  parseActionItemDueDate,
+  resolveStoredActionItems,
+  type ActionItem,
+} from '@/lib/action-items';
 
 export type TimelineEvent = {
   id: string;
@@ -22,16 +28,6 @@ export type ImpactMetrics = {
   revenueImpact?: number;
   apiErrors?: number;
   performanceDegradation?: number;
-};
-
-export type ActionItem = {
-  id: string;
-  title: string;
-  description: string;
-  owner?: string;
-  dueDate?: string;
-  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
 };
 
 export type PostmortemData = {
@@ -75,19 +71,93 @@ export async function upsertPostmortem(incidentId: string, data: PostmortemData)
     throw new Error('Postmortems can only be created for resolved incidents');
   }
 
-  const postmortem = await prisma.postmortem.upsert({
-    where: { incidentId },
-    update: {
-      ...data,
-      updatedAt: new Date(),
-      ...(data.status === 'PUBLISHED' && { publishedAt: new Date() }),
-    },
-    create: {
-      incidentId,
-      createdById: user.id,
-      ...data,
-      ...(data.status === 'PUBLISHED' && { publishedAt: new Date() }),
-    },
+  const postmortem = await prisma.$transaction(async tx => {
+    const upserted = await tx.postmortem.upsert({
+      where: { incidentId },
+      update: {
+        ...data,
+        updatedAt: new Date(),
+        ...(data.status === 'PUBLISHED' && { publishedAt: new Date() }),
+      },
+      create: {
+        incidentId,
+        createdById: user.id,
+        ...data,
+        ...(data.status === 'PUBLISHED' && { publishedAt: new Date() }),
+      },
+    });
+
+    if (Array.isArray(data.actionItems)) {
+      const existingItems = await tx.actionItem.findMany({
+        where: { postmortemId: upserted.id },
+        select: { id: true, completedAt: true },
+      });
+      const existingById = new Map(existingItems.map(item => [item.id, item]));
+      const normalizedItems = data.actionItems.map((item, index) => {
+        const itemId = getStoredActionItemId({
+          postmortemId: upserted.id,
+          legacyId: item.id,
+          index,
+        });
+        const existing = existingById.get(itemId);
+
+        return {
+          id: itemId,
+          title: item.title.trim() || 'Untitled action item',
+          description: item.description.trim() || null,
+          ownerId: item.owner || null,
+          dueDate: parseActionItemDueDate(item.dueDate) ?? null,
+          status: item.status,
+          priority: item.priority,
+          source: 'POSTMORTEM' as const,
+          completedAt: item.status === 'COMPLETED' ? (existing?.completedAt ?? new Date()) : null,
+        };
+      });
+
+      if (normalizedItems.length === 0) {
+        await tx.actionItem.deleteMany({
+          where: { postmortemId: upserted.id },
+        });
+      } else {
+        await tx.actionItem.deleteMany({
+          where: {
+            postmortemId: upserted.id,
+            id: { notIn: normalizedItems.map(item => item.id) },
+          },
+        });
+
+        for (const item of normalizedItems) {
+          await tx.actionItem.upsert({
+            where: { id: item.id },
+            update: {
+              title: item.title,
+              description: item.description,
+              ownerId: item.ownerId,
+              dueDate: item.dueDate,
+              status: item.status,
+              priority: item.priority,
+              source: item.source,
+              completedAt: item.completedAt,
+            },
+            create: {
+              id: item.id,
+              postmortemId: upserted.id,
+              incidentId,
+              title: item.title,
+              description: item.description,
+              ownerId: item.ownerId,
+              dueDate: item.dueDate,
+              status: item.status,
+              priority: item.priority,
+              source: item.source,
+              completedAt: item.completedAt,
+            },
+          });
+        }
+      }
+    }
+
+    return upserted;
   });
 
   revalidatePath(`/incidents/${incidentId}`);
@@ -113,10 +183,41 @@ export async function getPostmortem(incidentId: string) {
           resolvedAt: true,
         },
       },
+      actionItemRecords: {
+        include: {
+          externalIssueLinks: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              provider: true,
+              externalKey: true,
+              externalUrl: true,
+              externalStatus: true,
+              externalAssignee: true,
+              syncState: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   });
 
-  return postmortem;
+  if (!postmortem) {
+    return null;
+  }
+
+  const { actionItemRecords, actionItems, ...rest } = postmortem;
+
+  return {
+    ...rest,
+    actionItems: resolveStoredActionItems({
+      records: actionItemRecords,
+      legacy: actionItems,
+      legacyIdPrefix: `postmortem-${postmortem.id}`,
+    }),
+  };
 }
 
 /**
