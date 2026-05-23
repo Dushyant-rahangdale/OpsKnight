@@ -520,27 +520,180 @@ export async function generateDailyRollup(
 }
 
 /**
- * Generates rollups for all services for a given date
+ * Generates rollups for all services for a given date.
+ *
+ * Performance: per-service rollups are generated with bounded
+ * concurrency (default 5) so a tenant with 50+ services doesn't
+ * serialize through a single Prisma connection. The global rollup
+ * runs first so it's always present even if some per-service
+ * rollups fail.
+ *
+ * Failure handling: each per-service rollup is wrapped so one
+ * service failing doesn't abort the others. Aggregate success/failure
+ * counts are logged at the end.
  */
-export async function generateAllDailyRollups(date: Date): Promise<void> {
+export async function generateAllDailyRollups(
+  date: Date,
+  options: { concurrency?: number } = {}
+): Promise<{ services: number; successes: number; failures: number; durationMs: number }> {
   const { default: prisma } = await import('./prisma');
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? 5, 16));
+  const started = Date.now();
 
-  // Generate global rollup (no service filter)
+  // Global rollup first (no service/team filter).
   await generateDailyRollup(date);
 
-  // Generate per-service rollups
   const services = await prisma.service.findMany({
     select: { id: true },
   });
 
-  for (const service of services) {
-    await generateDailyRollup(date, service.id);
-  }
+  let successes = 0;
+  let failures = 0;
 
+  // Simple async pool: keep at most `concurrency` rollups in flight.
+  const queue = [...services];
+  const workers: Promise<void>[] = [];
+  const runWorker = async () => {
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (!next) break;
+      try {
+        await generateDailyRollup(date, next.id);
+        successes++;
+      } catch (err) {
+        failures++;
+        logger.warn('[MetricRollup] Per-service rollup failed; continuing', {
+          date: date.toISOString(),
+          serviceId: next.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  };
+  for (let i = 0; i < concurrency; i++) {
+    workers.push(runWorker());
+  }
+  await Promise.all(workers);
+
+  const durationMs = Date.now() - started;
   logger.info('[MetricRollup] All daily rollups generated', {
     date: date.toISOString(),
     serviceCount: services.length,
+    successes,
+    failures,
+    durationMs,
+    concurrency,
   });
+
+  return { services: services.length, successes, failures, durationMs };
+}
+
+/**
+ * Compute rollup coverage statistics for the configured retention
+ * window. Used by `/api/admin/rollups/health` to answer "do we have
+ * usable rollup data for the analytics page's >90-day queries?"
+ */
+export async function getRollupCoverage(): Promise<{
+  oldestRollupDate: string | null;
+  newestRollupDate: string | null;
+  daysCovered: number;
+  daysExpected: number;
+  coveragePercent: number;
+  globalRollupCount: number;
+  totalRollupCount: number;
+  retentionDays: number;
+}> {
+  const { default: prisma } = await import('./prisma');
+  const { getRetentionPolicy } = await import('./retention-policy');
+  const policy = await getRetentionPolicy();
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setUTCHours(0, 0, 0, 0);
+  const oldestNeeded = new Date(yesterday);
+  oldestNeeded.setDate(oldestNeeded.getDate() - (policy.metricsRetentionDays - 1));
+
+  const [oldestRow, newestRow, globalCount, totalCount, globalDays] = await Promise.all([
+    prisma.incidentMetricRollup.findFirst({
+      where: { granularity: 'daily' },
+      orderBy: { date: 'asc' },
+      select: { date: true },
+    }),
+    prisma.incidentMetricRollup.findFirst({
+      where: { granularity: 'daily' },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+    prisma.incidentMetricRollup.count({
+      where: { granularity: 'daily', serviceId: null, teamId: null },
+    }),
+    prisma.incidentMetricRollup.count({ where: { granularity: 'daily' } }),
+    prisma.incidentMetricRollup.findMany({
+      where: {
+        granularity: 'daily',
+        serviceId: null,
+        teamId: null,
+        date: { gte: oldestNeeded, lte: yesterday },
+      },
+      select: { date: true },
+    }),
+  ]);
+
+  const daysExpected = policy.metricsRetentionDays;
+  const daysCovered = globalDays.length;
+  const coveragePercent = daysExpected > 0 ? (daysCovered / daysExpected) * 100 : 0;
+
+  return {
+    oldestRollupDate: oldestRow?.date.toISOString().split('T')[0] ?? null,
+    newestRollupDate: newestRow?.date.toISOString().split('T')[0] ?? null,
+    daysCovered,
+    daysExpected,
+    coveragePercent: Math.round(coveragePercent * 100) / 100,
+    globalRollupCount: globalCount,
+    totalRollupCount: totalCount,
+    retentionDays: policy.metricsRetentionDays,
+  };
+}
+
+/**
+ * Invalidate (delete) rollups in a date range, optionally scoped to a
+ * single service. Used by the admin endpoint when a rollup-gen bug
+ * is fixed and historical rollups need to be regenerated.
+ *
+ * Wrapped in the same advisory lock as cleanup/generation so we can't
+ * delete a row mid-write.
+ */
+export async function invalidateRollups(
+  startDate: Date,
+  endDate: Date,
+  serviceId?: string
+): Promise<number> {
+  const { default: prisma } = await import('./prisma');
+  const { acquireAdvisoryLock, LOCK_KEYS } = await import('./db-locks');
+  const start = new Date(startDate);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setUTCHours(23, 59, 59, 999);
+
+  const deleted = await prisma.$transaction(async tx => {
+    await acquireAdvisoryLock(tx, LOCK_KEYS.ROLLUP_WRITE);
+    const result = await tx.incidentMetricRollup.deleteMany({
+      where: {
+        date: { gte: start, lte: end },
+        ...(serviceId ? { serviceId } : {}),
+      },
+    });
+    return result.count;
+  });
+
+  logger.info('[MetricRollup] Invalidated rollups', {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    serviceId,
+    count: deleted,
+  });
+
+  return deleted;
 }
 
 /**
