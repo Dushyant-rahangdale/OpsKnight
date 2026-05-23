@@ -288,7 +288,18 @@ async function runOnce() {
     const tokenCleanup = await cleanupUserTokens();
     logger.info('[Cron] Maintenance tasks processed', { tokenCleanup });
 
-    // Daily rollup generation (once per day at/after 1 AM UTC)
+    // Daily rollup generation (once per day at/after 1 AM UTC).
+    //
+    // Self-healing: in addition to generating yesterday's rollup, this
+    // also fills any gaps in the historical window (back to
+    // metricsRetentionDays). On a fresh deploy with an empty rollup
+    // table this acts as an initial backfill — the analytics page's
+    // >90-day queries see populated rollup data within one or two cron
+    // cycles instead of waiting weeks for natural daily accumulation.
+    //
+    // Cost cap: at most `MAX_BACKFILL_PER_RUN` days are generated per
+    // tick to bound the lock-holding time. The next tick picks up
+    // where this one left off.
     const state = await getState();
     const now = new Date();
     const todayKey = now.toISOString().split('T')[0];
@@ -297,29 +308,88 @@ async function runOnce() {
 
     if (isNewDay && isAfter1AM) {
       try {
+        const { generateAllDailyRollups, cleanupOldRollups } = await import('./metric-rollup');
+        const { getRetentionPolicy } = await import('./retention-policy');
+        const { default: prisma } = await import('./prisma');
+        const policy = await getRetentionPolicy();
+
+        // Window of days that should have a rollup: yesterday back to
+        // `metricsRetentionDays` ago.
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         yesterday.setUTCHours(0, 0, 0, 0);
 
-        const { generateAllDailyRollups, cleanupOldRollups } = await import('./metric-rollup');
+        const oldestNeeded = new Date(yesterday);
+        oldestNeeded.setDate(oldestNeeded.getDate() - (policy.metricsRetentionDays - 1));
+        oldestNeeded.setUTCHours(0, 0, 0, 0);
 
-        await generateAllDailyRollups(yesterday);
+        // Existing global rollups (serviceId/teamId both null) cover
+        // every per-service/per-team rollup written on the same day,
+        // so the global presence is a sufficient gap probe.
+        const existing = await prisma.incidentMetricRollup.findMany({
+          where: {
+            date: { gte: oldestNeeded, lte: yesterday },
+            granularity: 'daily',
+            serviceId: null,
+            teamId: null,
+          },
+          select: { date: true },
+        });
+        const existingKeys = new Set(
+          existing.map(r => r.date.toISOString().split('T')[0])
+        );
 
-        // Cleanup old data based on retention policy
+        // Build the list of missing days (newest-first so the most
+        // recent data populates first — analytics queries care most
+        // about the last few days).
+        const missingDays: Date[] = [];
+        const cursor = new Date(yesterday);
+        while (cursor >= oldestNeeded) {
+          const key = cursor.toISOString().split('T')[0];
+          if (!existingKeys.has(key)) {
+            missingDays.push(new Date(cursor));
+          }
+          cursor.setDate(cursor.getDate() - 1);
+        }
+
+        // Bound cost per tick so the distributed lock isn't held for
+        // an unbounded backfill. 30 days/tick × cron cadence (15-120s
+        // between ticks) fills a year-long backfill in a few hours
+        // without starving other cron work.
+        const MAX_BACKFILL_PER_RUN = 30;
+        const toGenerate = missingDays.slice(0, MAX_BACKFILL_PER_RUN);
+
+        if (toGenerate.length > 0) {
+          logger.info('[Cron] Generating daily rollups', {
+            requested: toGenerate.length,
+            remainingAfterRun: Math.max(0, missingDays.length - toGenerate.length),
+            oldest: toGenerate[toGenerate.length - 1].toISOString().split('T')[0],
+            newest: toGenerate[0].toISOString().split('T')[0],
+          });
+          for (const date of toGenerate) {
+            await generateAllDailyRollups(date);
+          }
+        }
+
+        // Cleanup old data based on retention policy.
         const deletedRollups = await cleanupOldRollups();
 
-        await updateState({ lastRollupDate: todayKey });
-        logger.info('[Cron] Daily maintenance complete', {
-          date: yesterday.toISOString().split('T')[0],
+        // Only advance lastRollupDate when the backlog is fully
+        // drained. Otherwise the next tick will pick up the rest.
+        if (missingDays.length <= MAX_BACKFILL_PER_RUN) {
+          await updateState({ lastRollupDate: todayKey });
+        }
+        logger.info('[Cron] Daily rollup maintenance complete', {
+          generated: toGenerate.length,
+          stillMissing: Math.max(0, missingDays.length - toGenerate.length),
           rollupsDeleted: deletedRollups,
-          nextRun: 'tomorrow at 1 AM UTC',
         });
       } catch (error) {
         logger.error('[Cron] Failed to generate daily rollups', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         });
-        // Don't update lastRollupDate so it retries next cycle
+        // Don't update lastRollupDate so it retries next cycle.
       }
     }
 

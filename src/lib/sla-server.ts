@@ -716,11 +716,57 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     r.setDate(r.getDate() - retentionPolicy.realTimeWindowDays);
     return r;
   })();
-  const rangeCrossesBoundary =
+  // Hybrid path: rollup-derived historical + live-derived recent +
+  // merge. PR #197 introduced this for deployments that run a daily
+  // rollup cron. The hybrid is only worth its overhead when there's
+  // actually rollup data to merge in — without rollups, the path is
+  // paying the cost of an empty rollup query plus a duplicate
+  // calculateSLAMetrics recursive call for zero benefit, easily
+  // pushing total wall time past the proxy timeout and surfacing as
+  // a `TypeError: Load failed` in the browser.
+  //
+  // Auto-detect at runtime: if no rollup rows exist for the
+  // historical partition, skip the hybrid and let the live path
+  // handle the entire range. If rollups DO exist (e.g., after the
+  // daily cron is wired up), the hybrid runs as designed — no
+  // config flag to flip later.
+  const rangeCrossesBoundaryShape =
     !useRollups &&
     !hasIncompatibleFilters &&
     finalStart < realtimeStart &&
     finalEnd > realtimeStart;
+
+  let rangeCrossesBoundary = false;
+  if (rangeCrossesBoundaryShape) {
+    // Cheap existence probe — `findFirst` with `select: { id: true }`
+    // hits the date+granularity index and returns at most one row.
+    // Negligible vs the cost of the full hybrid recursion.
+    const serviceIdForProbe = Array.isArray(filters.serviceId)
+      ? filters.serviceId[0]
+      : filters.serviceId;
+    const teamIdForProbe = Array.isArray(filters.teamId)
+      ? filters.teamId[0]
+      : filters.teamId;
+    const probe = await prisma.incidentMetricRollup.findFirst({
+      where: {
+        date: { gte: finalStart, lt: realtimeStart },
+        granularity: 'daily',
+        ...(serviceIdForProbe ? { serviceId: serviceIdForProbe } : {}),
+        ...(teamIdForProbe ? { teamId: teamIdForProbe } : {}),
+      },
+      select: { id: true },
+    });
+    rangeCrossesBoundary = probe !== null;
+    if (!rangeCrossesBoundary) {
+      logger.info(
+        '[SLA] Skipping hybrid: no rollup data for the historical partition; using live path for the entire range',
+        {
+          start: finalStart.toISOString(),
+          end: finalEnd.toISOString(),
+        }
+      );
+    }
+  }
 
   if (rangeCrossesBoundary) {
     logger.info('[SLA] Using hybrid (rollup + live) query for boundary-crossing range', {

@@ -77,7 +77,7 @@ describe('getNextAuthSecret', () => {
   it('rejects too-short ENCRYPTION_KEY (entropy floor)', async () => {
     delete process.env.NEXTAUTH_SECRET;
     process.env.ENCRYPTION_KEY = 'short'; // < 32 chars
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string>).NODE_ENV = 'production';
     const { getNextAuthSecret } = await freshSecretManager();
     await expect(getNextAuthSecret()).rejects.toThrow(/NEXTAUTH_SECRET is not set/);
   });
@@ -85,7 +85,7 @@ describe('getNextAuthSecret', () => {
   it('throws in production when neither NEXTAUTH_SECRET nor ENCRYPTION_KEY is set', async () => {
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.ENCRYPTION_KEY;
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string>).NODE_ENV = 'production';
     const { getNextAuthSecret } = await freshSecretManager();
     await expect(getNextAuthSecret()).rejects.toThrow(/NEXTAUTH_SECRET is not set/);
     expect(loggerMock.error).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe('getNextAuthSecret', () => {
   it('falls back to ephemeral in development with a loud warn', async () => {
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.ENCRYPTION_KEY;
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
     const { getNextAuthSecret } = await freshSecretManager();
     const secret = await getNextAuthSecret();
     expect(secret.length).toBeGreaterThan(10);
@@ -104,7 +104,7 @@ describe('getNextAuthSecret', () => {
   it('ephemeral dev secret is cached across calls', async () => {
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.ENCRYPTION_KEY;
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string>).NODE_ENV = 'development';
     const { getNextAuthSecret } = await freshSecretManager();
     const a = await getNextAuthSecret();
     const b = await getNextAuthSecret();
