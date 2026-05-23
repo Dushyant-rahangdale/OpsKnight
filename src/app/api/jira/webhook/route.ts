@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { decrypt } from '@/lib/encryption';
+import { processJiraWebhookEvent, type JiraWebhookPayload } from '@/lib/jira-sync';
+
+async function verifyWebhookSecret(request: NextRequest): Promise<boolean> {
+  const config = await prisma.jiraConfig.findUnique({
+    where: { id: 'default' },
+    select: { webhookSecretEncrypted: true },
+  });
+
+  if (!config?.webhookSecretEncrypted) {
+    // No secret configured — accept all requests (development mode)
+    return true;
+  }
+
+  const secret = await decrypt(config.webhookSecretEncrypted);
+  const provided =
+    request.headers.get('x-jira-webhook-secret') ??
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ??
+    null;
+
+  if (!provided) return false;
+
+  try {
+    const { timingSafeEqual } = await import('crypto');
+    const secretBuf = Buffer.from(secret, 'utf-8');
+    const providedBuf = Buffer.from(provided, 'utf-8');
+    if (secretBuf.length !== providedBuf.length) return false;
+    return timingSafeEqual(secretBuf, providedBuf);
+  } catch {
+    return false;
+  }
+}
+
+const HANDLED_EVENTS = new Set(['jira:issue_updated', 'jira:issue_deleted']);
+
+export async function POST(request: NextRequest) {
+  try {
+    const isValid = await verifyWebhookSecret(request);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const payload: JiraWebhookPayload = await request.json();
+
+    const event = payload.webhookEvent;
+    if (!event || !HANDLED_EVENTS.has(event)) {
+      // Acknowledge but don't process unrecognized events
+      return new NextResponse(null, { status: 204 });
+    }
+
+    const result = await processJiraWebhookEvent(payload);
+
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('Jira webhook processing error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Webhook processing failed.' },
+      { status: 500 }
+    );
+  }
+}

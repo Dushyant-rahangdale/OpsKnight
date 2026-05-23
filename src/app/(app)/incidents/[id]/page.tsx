@@ -18,6 +18,7 @@ import IncidentSidebar from '@/components/incident/detail/IncidentSidebar';
 import IncidentNotes from '@/components/incident/detail/IncidentNotes';
 import IncidentTimeline from '@/components/incident/detail/IncidentTimeline';
 import IncidentResolution from '@/components/incident/detail/IncidentResolution';
+import IncidentJiraCard from '@/components/incident/detail/IncidentJiraCard';
 import IncidentCustomFields from '@/components/IncidentCustomFields';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
@@ -96,6 +97,18 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
   // Check if postmortem exists for this incident
   const postmortem = incident.status === 'RESOLVED' ? await getPostmortem(id) : null;
+
+  // Fetch Jira data for the incident sidebar
+  const [jiraLinks, jiraConfig] = await Promise.all([
+    prisma.externalIssueLink.findMany({
+      where: { incidentId: id, provider: 'JIRA' },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.jiraConfig.findUnique({
+      where: { id: 'default' },
+      select: { enabled: true },
+    }),
+  ]);
 
   // Calculate time open
   const getTimeOpen = () => {
@@ -580,6 +593,14 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             onUnsuppress={handleUnsuppress}
             onAddWatcher={handleAddWatcher}
             onRemoveWatcher={handleRemoveWatcher}
+          />
+
+          {/* Jira Issues */}
+          <IncidentJiraCard
+            incidentId={id}
+            jiraLinks={jiraLinks}
+            jiraEnabled={jiraConfig?.enabled ?? false}
+            canManage={canManageIncident}
           />
 
           {/* Quick Links - Like Teams Page */}
