@@ -24,8 +24,15 @@ type JiraMapping = {
   defaultLabels: string[];
   defaultComponent: string | null;
   autoCreateIncidentIssue: boolean;
+  autoCreateIncidentUrgencies: string[];
   syncEnabled: boolean;
 } | null;
+
+const URGENCY_OPTIONS = [
+  { value: 'HIGH', label: 'High' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'LOW', label: 'Low' },
+];
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -52,6 +59,12 @@ export default function JiraServiceMappingSettings({
     error: null,
     success: false,
   });
+  const selectedAutoCreateUrgencies =
+    mapping && mapping.autoCreateIncidentUrgencies.length > 0
+      ? mapping.autoCreateIncidentUrgencies
+      : mapping
+        ? URGENCY_OPTIONS.map(option => option.value)
+        : ['HIGH'];
 
   return (
     <Card>
@@ -74,6 +87,14 @@ export default function JiraServiceMappingSettings({
       <CardContent>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="serviceId" value={serviceId} />
+          {!jiraEnabled && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+              <AlertDescription>
+                You can save this service mapping now. Auto-created Jira issues will start after the
+                workspace Jira integration is connected and enabled.
+              </AlertDescription>
+            </Alert>
+          )}
           {state?.error && (
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
@@ -95,7 +116,7 @@ export default function JiraServiceMappingSettings({
                 name="projectKey"
                 defaultValue={mapping?.projectKey ?? ''}
                 placeholder="OPS"
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
                 required
               />
             </div>
@@ -106,7 +127,7 @@ export default function JiraServiceMappingSettings({
                 name="defaultComponent"
                 defaultValue={mapping?.defaultComponent ?? ''}
                 placeholder="API Platform"
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
               />
             </div>
             <div className="space-y-2">
@@ -115,7 +136,7 @@ export default function JiraServiceMappingSettings({
                 id="incident-issue-type"
                 name="incidentIssueType"
                 defaultValue={mapping?.incidentIssueType ?? 'Bug'}
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
                 required
               />
             </div>
@@ -125,7 +146,7 @@ export default function JiraServiceMappingSettings({
                 id="action-item-issue-type"
                 name="actionItemIssueType"
                 defaultValue={mapping?.actionItemIssueType ?? 'Task'}
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
                 required
               />
             </div>
@@ -136,7 +157,7 @@ export default function JiraServiceMappingSettings({
                 name="defaultLabels"
                 defaultValue={mapping?.defaultLabels.join(', ') ?? 'opsknight'}
                 placeholder="opsknight, incident-response"
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
               />
             </div>
           </div>
@@ -147,7 +168,7 @@ export default function JiraServiceMappingSettings({
                 type="checkbox"
                 name="autoCreateIncidentIssue"
                 defaultChecked={mapping?.autoCreateIncidentIssue ?? false}
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
                 className="h-4 w-4"
               />
               Auto-create Jira issues for new incidents
@@ -157,15 +178,34 @@ export default function JiraServiceMappingSettings({
                 type="checkbox"
                 name="syncEnabled"
                 defaultChecked={mapping?.syncEnabled ?? true}
-                disabled={!canManage || !jiraEnabled}
+                disabled={!canManage}
                 className="h-4 w-4"
               />
               Sync Jira status metadata
             </label>
           </div>
 
+          <div className="rounded-md border p-3">
+            <Label className="text-sm font-medium">Auto-create for incident urgency</Label>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {URGENCY_OPTIONS.map(option => (
+                <label key={option.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="autoCreateIncidentUrgencies"
+                    value={option.value}
+                    defaultChecked={selectedAutoCreateUrgencies.includes(option.value)}
+                    disabled={!canManage}
+                    className="h-4 w-4"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end border-t pt-4">
-            <SubmitButton disabled={!canManage || !jiraEnabled} />
+            <SubmitButton disabled={!canManage} />
           </div>
         </form>
       </CardContent>

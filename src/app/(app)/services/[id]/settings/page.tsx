@@ -2,7 +2,9 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import ServiceTabs from '@/components/service/ServiceTabs';
 import ServiceNotificationSettings from '@/components/service/ServiceNotificationSettings';
+import JiraServiceMappingSettings from '@/components/service/JiraServiceMappingSettings';
 import { updateService } from '../../actions';
+import { getUserPermissions } from '@/lib/rbac';
 import {
   Card,
   CardContent,
@@ -37,38 +39,45 @@ export default async function ServiceSettingsPage({
   const showSaved = resolvedSearchParams?.saved === '1';
   const errorCode = resolvedSearchParams?.error;
 
-  const [service, teams, policies, globalSlackIntegration] = await Promise.all([
-    prisma.service.findUnique({
-      where: { id: id },
-      include: {
-        policy: {
-          select: { id: true, name: true },
+  const [service, teams, policies, globalSlackIntegration, jiraConfig, permissions] =
+    await Promise.all([
+      prisma.service.findUnique({
+        where: { id: id },
+        include: {
+          policy: {
+            select: { id: true, name: true },
+          },
+          webhookIntegrations: {
+            where: { enabled: true },
+            orderBy: { createdAt: 'desc' },
+          },
+          jiraServiceMapping: true,
         },
-        webhookIntegrations: {
-          where: { enabled: true },
-          orderBy: { createdAt: 'desc' },
+      }),
+      prisma.team.findMany({ orderBy: { name: 'asc' } }),
+      prisma.escalationPolicy.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.slackIntegration.findFirst({
+        where: {
+          enabled: true,
+          service: null,
         },
-      },
-    }),
-    prisma.team.findMany({ orderBy: { name: 'asc' } }),
-    prisma.escalationPolicy.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.slackIntegration.findFirst({
-      where: {
-        enabled: true,
-        service: null,
-      },
-      select: {
-        id: true,
-        workspaceName: true,
-        workspaceId: true,
-        enabled: true,
-      },
-      orderBy: { updatedAt: 'desc' },
-    }),
-  ]);
+        select: {
+          id: true,
+          workspaceName: true,
+          workspaceId: true,
+          enabled: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.jiraConfig.findUnique({
+        where: { id: 'default' },
+        select: { enabled: true },
+      }),
+      getUserPermissions(),
+    ]);
 
   // Get webhook integrations separately (already included in service)
   const webhookIntegrations = service?.webhookIntegrations || [];
@@ -79,7 +88,9 @@ export default async function ServiceSettingsPage({
         <Card className="text-center py-12">
           <div className="flex flex-col items-center justify-center p-6">
             <h2 className="text-2xl font-semibold mb-2">Service Not Found</h2>
-            <p className="text-slate-500 mb-6">The service you're looking for doesn't exist.</p>
+            <p className="text-slate-500 mb-6">
+              The service you&apos;re looking for doesn&apos;t exist.
+            </p>
             <Button asChild>
               <Link href="/services">Back to Services</Link>
             </Button>
@@ -90,6 +101,7 @@ export default async function ServiceSettingsPage({
   }
 
   const updateServiceWithId = updateService.bind(null, id);
+  const canManage = permissions.isResponderOrAbove;
 
   return (
     <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
@@ -322,6 +334,13 @@ export default async function ServiceSettingsPage({
             </Button>
           </div>
         </form>
+
+        <JiraServiceMappingSettings
+          serviceId={service.id}
+          mapping={service.jiraServiceMapping}
+          jiraEnabled={jiraConfig?.enabled ?? false}
+          canManage={canManage}
+        />
       </div>
     </main>
   );

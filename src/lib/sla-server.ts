@@ -17,10 +17,7 @@ import {
   shouldUseRollups,
   type RetentionPolicy,
 } from './retention-policy';
-import {
-  incidentEventSqlPredicate,
-  incidentEventWhereFor,
-} from './incident-event-classifier';
+import { incidentEventSqlPredicate, incidentEventWhereFor } from './incident-event-classifier';
 import { mergeHybridMetrics } from './sla-hybrid-merge';
 
 // UUID validation regex - prevents SQL injection in dynamic CASE statements
@@ -38,19 +35,18 @@ const CUID_REGEX = /^c[a-z0-9]{24,}$/i;
  * @param tableAlias - Optional SQL alias prefix (e.g. `i` for `i."status"`).
  *   Pass an empty string to produce un-aliased column references.
  */
-function buildIncidentFilterSql(
-  filters: SLAMetricsFilter,
-  tableAlias: string = ''
-): Prisma.Sql {
+function buildIncidentFilterSql(filters: SLAMetricsFilter, tableAlias: string = ''): Prisma.Sql {
   const prefix = tableAlias ? `${tableAlias}.` : '';
   const fragments: Prisma.Sql[] = [];
 
   // serviceId — scalar or array
   if (filters.serviceId) {
     if (Array.isArray(filters.serviceId)) {
-      fragments.push(
-        Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} = ANY(${filters.serviceId}::text[])`
-      );
+      if (filters.serviceId.length > 0) {
+        fragments.push(
+          Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} IN (${Prisma.join(filters.serviceId)})`
+        );
+      }
     } else {
       fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} = ${filters.serviceId}`);
     }
@@ -64,11 +60,13 @@ function buildIncidentFilterSql(
   // affordance for the recent window only.
   if (filters.teamId) {
     const teamIds = Array.isArray(filters.teamId) ? filters.teamId : [filters.teamId];
-    fragments.push(
-      Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} IN (
-        SELECT id FROM "Service" WHERE "teamId" = ANY(${teamIds}::text[])
-      )`
-    );
+    if (teamIds.length > 0) {
+      fragments.push(
+        Prisma.sql`AND ${Prisma.raw(`${prefix}"serviceId"`)} IN (
+          SELECT id FROM "Service" WHERE "teamId" IN (${Prisma.join(teamIds)})
+        )`
+      );
+    }
   }
 
   if (filters.urgency) {
@@ -744,9 +742,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     const serviceIdForProbe = Array.isArray(filters.serviceId)
       ? filters.serviceId[0]
       : filters.serviceId;
-    const teamIdForProbe = Array.isArray(filters.teamId)
-      ? filters.teamId[0]
-      : filters.teamId;
+    const teamIdForProbe = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
     const probe = await prisma.incidentMetricRollup.findFirst({
       where: {
         date: { gte: finalStart, lt: realtimeStart },
@@ -1991,8 +1987,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // `reopenCountFinal`.
   const resolvedCountForCalc = dbAggMetrics ? dbAggMetrics.resolvedCount : solvedIncidents.length;
   const autoResolvedCount = autoResolveCountFinal;
-  const reopenRate =
-    resolvedCountForCalc > 0 ? (reopenCountFinal / resolvedCountForCalc) * 100 : 0;
+  const reopenRate = resolvedCountForCalc > 0 ? (reopenCountFinal / resolvedCountForCalc) * 100 : 0;
   const rawManualResolved = resolvedCountForCalc - autoResolvedCount;
   if (rawManualResolved < 0) {
     logger.warn('[SLA] manualResolved computed as negative in live path; clamping to 0', {
@@ -2783,13 +2778,9 @@ export async function calculateSLAMetricsFromRollups(
       // lifecycle rather than report 0% for un-backfilled days.
       perPriorityAvailable = perPriorityRows.length > 0;
     } catch (perPriorityErr) {
-      logger.warn(
-        '[SLA] per-priority side-table read failed; falling back to aggregate rollups',
-        {
-          error:
-            perPriorityErr instanceof Error ? perPriorityErr.message : String(perPriorityErr),
-        }
-      );
+      logger.warn('[SLA] per-priority side-table read failed; falling back to aggregate rollups', {
+        error: perPriorityErr instanceof Error ? perPriorityErr.message : String(perPriorityErr),
+      });
     }
   }
 

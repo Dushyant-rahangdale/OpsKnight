@@ -60,6 +60,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       service: {
         include: {
           policy: true,
+          jiraServiceMapping: {
+            select: { projectKey: true },
+          },
         },
       },
       assignee: true,
@@ -598,8 +601,10 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           {/* Jira Issues */}
           <IncidentJiraCard
             incidentId={id}
+            serviceSettingsHref={`/services/${incident.serviceId}/settings`}
             jiraLinks={jiraLinks}
             jiraEnabled={jiraConfig?.enabled ?? false}
+            serviceJiraMapped={Boolean(incident.service.jiraServiceMapping?.projectKey)}
             canManage={canManageIncident}
           />
 

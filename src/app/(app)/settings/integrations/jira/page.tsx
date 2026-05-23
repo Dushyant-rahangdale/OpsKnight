@@ -14,7 +14,6 @@ export default async function GlobalJiraIntegrationPage() {
       baseUrl: true,
       userEmail: true,
       enabled: true,
-      defaultProjectKey: true,
       webhookSecretEncrypted: true,
       updatedAt: true,
       updatedByUser: {
