@@ -25,6 +25,7 @@ import ActionItemJiraBadge from '@/components/action-items/ActionItemJiraBadge';
 interface PostmortemActionItemsProps {
   actionItems: ActionItem[];
   onChange: (items: ActionItem[]) => void;
+  canManage?: boolean;
   users?: Array<{
     id: string;
     name: string;
@@ -39,6 +40,7 @@ import { ACTION_ITEM_STATUS_CONFIG, ACTION_ITEM_PRIORITY_CONFIG } from './shared
 export default function PostmortemActionItems({
   actionItems,
   onChange,
+  canManage = true,
   users = [],
 }: PostmortemActionItemsProps) {
   const { userTimeZone } = useTimezone();
