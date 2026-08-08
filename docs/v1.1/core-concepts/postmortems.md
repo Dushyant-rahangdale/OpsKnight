@@ -250,14 +250,14 @@ Key takeaways for the team.
 
 ### Action Item Fields
 
-| Field           | Required | Description                                |
-| --------------- | -------- | ------------------------------------------ |
-| **Description** | Yes      | What needs to be done                      |
-| **Owner**       | Yes      | Person responsible                         |
-| **Due Date**    | Yes      | Target completion date                     |
-| **Priority**    | Yes      | HIGH, MEDIUM, LOW                          |
-| **Status**      | Yes      | OPEN, IN_PROGRESS, COMPLETED, WONT_DO      |
-| **Ticket Link** | No       | Link to issue tracker (Jira, GitHub, etc.) |
+| Field               | Required | Description                                                                                    |
+| ------------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| **Description**     | Yes      | What needs to be done                                                                          |
+| **Owner**           | Yes      | Person responsible                                                                             |
+| **Due Date**        | Yes      | Target completion date                                                                         |
+| **Priority**        | Yes      | HIGH, MEDIUM, LOW                                                                              |
+| **Status**          | Yes      | OPEN, IN_PROGRESS, COMPLETED, WONT_DO                                                          |
+| **Jira Integration**| No       | Create Jira issue (`+ Create Jira`) or link existing ticket (`SCRUM-42 ↗`) with live status sync |
 
 ### Action Item Statuses
 
