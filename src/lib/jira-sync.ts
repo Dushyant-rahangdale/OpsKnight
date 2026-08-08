@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { createJiraIssue, getJiraIssue, type JiraIssueSummary } from '@/lib/jira';
-import { isValidJiraKey } from '@/lib/jira-validation';
+import { isValidJiraKey, extractJiraKey } from '@/lib/jira-validation';
 import { logAudit, getDefaultActorId } from '@/lib/audit';
 
 export type CreateAndLinkParams = {
@@ -88,7 +88,7 @@ export async function createJiraIssueAndLink(params: CreateAndLinkParams) {
  * Jira and persists the link. Prevents duplicate links.
  */
 export async function linkExistingJiraIssue(params: LinkExistingParams) {
-  const key = params.jiraKey.trim().toUpperCase();
+  const key = extractJiraKey(params.jiraKey);
   if (!isValidJiraKey(key)) {
     throw new Error(
       `Invalid Jira issue key: "${params.jiraKey}". Expected format like PROJECT-123.`

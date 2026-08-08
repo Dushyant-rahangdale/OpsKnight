@@ -95,10 +95,23 @@ export async function linkJiraIssueToIncident(incidentId: string, jiraKey: strin
   });
   if (!incident) throw new Error('Incident not found.');
 
-  const { issue } = await linkExistingJiraIssue({
-    incidentId,
-    jiraKey,
-  });
+  let issue;
+  try {
+    const result = await linkExistingJiraIssue({
+      incidentId,
+      jiraKey,
+    });
+    issue = result.issue;
+  } catch (error) {
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    if (rawMsg.includes('already linked')) {
+      throw new Error(`Jira issue "${jiraKey}" is already linked to an incident or item.`);
+    }
+    if (rawMsg.includes('not found') || rawMsg.includes('404')) {
+      throw new Error(`Jira issue "${jiraKey}" was not found in your Jira workspace.`);
+    }
+    throw new Error(`Failed to link Jira issue: ${rawMsg}`);
+  }
 
   await prisma.incidentEvent.create({
     data: {
