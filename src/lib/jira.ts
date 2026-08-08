@@ -51,13 +51,16 @@ function jiraIssueUrl(baseUrl: string, key: string) {
 }
 
 function toADF(text: string) {
+  // Jira rejects paragraphs with an empty content array as invalid ADF.
+  // Always provide at least a single text node.
+  const safeText = text || '\u00a0';
   return {
     type: 'doc',
     version: 1,
     content: [
       {
         type: 'paragraph',
-        content: text ? [{ type: 'text', text }] : [],
+        content: [{ type: 'text', text: safeText }],
       },
     ],
   };

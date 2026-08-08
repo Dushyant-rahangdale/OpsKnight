@@ -24,9 +24,15 @@ type Props = {
 
 function formatError(message: string | null | undefined) {
   if (!message) return '';
-  if (message === 'CredentialsSignin') return 'Invalid credentials';
+  // NextAuth appends ?error=SessionRequired on unauthenticated redirects — not a real error
+  if (message === 'SessionRequired') return '';
+  if (message === 'CredentialsSignin') return 'Invalid email or password';
   if (message === 'AccessDenied') return 'Access denied';
-  return 'Authentication failed';
+  if (message === 'SessionExpired') return 'Your session has expired. Please sign in again.';
+  if (message === 'OAuthSignin' || message === 'OAuthCallback')
+    return 'SSO authentication failed. Please try again or contact your administrator.';
+  if (message === 'Configuration') return 'Server configuration error. Please contact your administrator.';
+  return 'Authentication failed. Please try again.';
 }
 
 export default function LoginClient({
@@ -61,6 +67,11 @@ export default function LoginClient({
   useEffect(() => {
     if (errorCode) setError(formatError(errorCode));
   }, [errorCode]);
+
+  // Surface SSO configuration errors passed from the server component
+  useEffect(() => {
+    if (ssoError) setError(ssoError);
+  }, [ssoError]);
 
   useEffect(() => {
     setIsValid(Boolean(email) && Boolean(password));
@@ -162,7 +173,7 @@ export default function LoginClient({
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-rose-500 mt-0.5" />
             <div className="flex-1">
-              <p className="font-semibold text-rose-400 mb-1">Authentication Failed</p>
+              <p className="font-semibold text-rose-400 mb-1">Authentication Error</p>
               <p className="text-white/70">{error}</p>
             </div>
             <button
