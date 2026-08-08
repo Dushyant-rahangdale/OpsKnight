@@ -56,6 +56,7 @@ These tools receive notifications FROM OpsKnight:
 | Channel      | Purpose                                |
 | ------------ | -------------------------------------- |
 | **Slack**    | Team channels with interactive buttons |
+| **Jira**     | Bi-directional issue tracking & sync   |
 | **Email**    | Direct inbox notifications             |
 | **SMS**      | Urgent alerts via text message         |
 | **Push**     | Mobile app notifications               |
