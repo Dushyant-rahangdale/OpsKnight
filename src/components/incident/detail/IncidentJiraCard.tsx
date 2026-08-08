@@ -69,10 +69,9 @@ export default function IncidentJiraCard({
   const handleCreate = () => {
     setError(null);
     startTransition(async () => {
-      try {
-        await createJiraIssueFromIncident(incidentId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to create Jira issue.');
+      const res = await createJiraIssueFromIncident(incidentId);
+      if (!res.success && res.error) {
+        setError(res.error);
       }
     });
   };
@@ -81,12 +80,12 @@ export default function IncidentJiraCard({
     if (!linkKey.trim()) return;
     setError(null);
     startTransition(async () => {
-      try {
-        await linkJiraIssueToIncident(incidentId, linkKey.trim());
+      const res = await linkJiraIssueToIncident(incidentId, linkKey.trim());
+      if (!res.success && res.error) {
+        setError(res.error);
+      } else {
         setLinkKey('');
         setShowLinkForm(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to link Jira issue.');
       }
     });
   };
@@ -94,10 +93,9 @@ export default function IncidentJiraCard({
   const handleUnlink = (linkId: string) => {
     setError(null);
     startTransition(async () => {
-      try {
-        await unlinkJiraIssueFromIncident(linkId, incidentId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to unlink Jira issue.');
+      const res = await unlinkJiraIssueFromIncident(linkId, incidentId);
+      if (!res.success && res.error) {
+        setError(res.error);
       }
     });
   };
@@ -105,10 +103,9 @@ export default function IncidentJiraCard({
   const handleSync = (linkId: string) => {
     setError(null);
     startTransition(async () => {
-      try {
-        await syncIncidentJiraIssue(linkId, incidentId);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to sync Jira issue.');
+      const res = await syncIncidentJiraIssue(linkId, incidentId);
+      if (!res.success && res.error) {
+        setError(res.error);
       }
     });
   };
