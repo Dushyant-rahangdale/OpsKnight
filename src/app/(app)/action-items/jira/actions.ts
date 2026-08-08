@@ -16,6 +16,18 @@ export type JiraActionResult = {
   url?: string;
 };
 
+function revalidateActionItemPaths(postmortemId?: string | null, incidentId?: string | null) {
+  if (postmortemId) {
+    revalidatePath(`/postmortems/${postmortemId}`);
+  }
+  if (incidentId) {
+    revalidatePath(`/incidents/${incidentId}`);
+    revalidatePath(`/postmortems/${incidentId}`);
+  }
+  revalidatePath('/action-items');
+  revalidatePath('/postmortems');
+}
+
 export async function createJiraIssueFromActionItem(
   actionItemId: string
 ): Promise<JiraActionResult> {
@@ -24,11 +36,16 @@ export async function createJiraIssueFromActionItem(
 
     const actionItem = await prisma.actionItem.findUnique({
       where: { id: actionItemId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        postmortemId: true,
+        incidentId: true,
         incident: {
-          include: {
+          select: {
             service: {
-              include: {
+              select: {
                 jiraServiceMapping: true,
               },
             },
@@ -91,8 +108,7 @@ export async function createJiraIssueFromActionItem(
       return { success: false, error: `Jira issue creation failed: ${rawMsg}` };
     }
 
-    revalidatePath(`/postmortems/${actionItem.incidentId}`);
-    revalidatePath('/action-items');
+    revalidateActionItemPaths(actionItem.postmortemId, actionItem.incidentId);
     return { success: true, key: issue.key, url: issue.url };
   } catch (error) {
     return {
@@ -111,7 +127,7 @@ export async function linkJiraIssueToActionItem(
 
     const actionItem = await prisma.actionItem.findUnique({
       where: { id: actionItemId },
-      select: { id: true, incidentId: true },
+      select: { id: true, postmortemId: true, incidentId: true },
     });
     if (!actionItem) return { success: false, error: 'Action item not found.' };
 
@@ -139,8 +155,7 @@ export async function linkJiraIssueToActionItem(
       return { success: false, error: `Failed to link Jira issue: ${rawMsg}` };
     }
 
-    revalidatePath(`/postmortems/${actionItem.incidentId}`);
-    revalidatePath('/action-items');
+    revalidateActionItemPaths(actionItem.postmortemId, actionItem.incidentId);
     return { success: true, key: issue.key, url: issue.url };
   } catch (error) {
     return {
@@ -158,7 +173,10 @@ export async function unlinkJiraIssueFromActionItem(
 
     const link = await prisma.externalIssueLink.findUnique({
       where: { id: linkId },
-      select: { id: true, actionItem: { select: { incidentId: true } } },
+      select: {
+        id: true,
+        actionItem: { select: { postmortemId: true, incidentId: true } },
+      },
     });
     if (!link) return { success: false, error: 'Link not found.' };
 
@@ -166,10 +184,7 @@ export async function unlinkJiraIssueFromActionItem(
       where: { id: linkId },
     });
 
-    if (link.actionItem?.incidentId) {
-      revalidatePath(`/postmortems/${link.actionItem.incidentId}`);
-    }
-    revalidatePath('/action-items');
+    revalidateActionItemPaths(link.actionItem?.postmortemId, link.actionItem?.incidentId);
     return { success: true };
   } catch (error) {
     return {
@@ -187,15 +202,14 @@ export async function syncActionItemJiraIssue(
 
     const link = await prisma.externalIssueLink.findUnique({
       where: { id: linkId },
-      select: { actionItem: { select: { incidentId: true } } },
+      select: {
+        actionItem: { select: { postmortemId: true, incidentId: true } },
+      },
     });
 
     await syncExternalIssueLink(linkId);
 
-    if (link?.actionItem?.incidentId) {
-      revalidatePath(`/postmortems/${link.actionItem.incidentId}`);
-    }
-    revalidatePath('/action-items');
+    revalidateActionItemPaths(link?.actionItem?.postmortemId, link?.actionItem?.incidentId);
     return { success: true };
   } catch (error) {
     return {
