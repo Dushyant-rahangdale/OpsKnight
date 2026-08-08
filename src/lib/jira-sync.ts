@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma';
-import { createJiraIssue, getJiraIssue, type JiraIssueSummary } from '@/lib/jira';
+import { createJiraIssue, getJiraIssue, addJiraComment, type JiraIssueSummary } from '@/lib/jira';
 import { isValidJiraKey, extractJiraKey } from '@/lib/jira-validation';
 import { logAudit, getDefaultActorId } from '@/lib/audit';
+import { logger } from '@/lib/logger';
 
 export type CreateAndLinkParams = {
   provider?: 'JIRA';
@@ -266,3 +267,70 @@ export async function processJiraWebhookEvent(
 
   return { updated: links.length };
 }
+
+/**
+ * Post a note/comment from an OpsKnight incident to all linked Jira issues.
+ * Best-effort so failures never block OpsKnight operations.
+ */
+export async function syncIncidentNoteToJira(
+  incidentId: string,
+  authorName: string,
+  noteContent: string
+): Promise<number> {
+  try {
+    const links = await prisma.externalIssueLink.findMany({
+      where: { incidentId, provider: 'JIRA' },
+      select: { externalKey: true },
+    });
+
+    if (links.length === 0) return 0;
+
+    const formattedComment = `[OpsKnight Note by ${authorName}]:\n${noteContent}`;
+
+    await Promise.allSettled(
+      links.map(link => addJiraComment(link.externalKey, formattedComment))
+    );
+
+    return links.length;
+  } catch (error) {
+    logger.error('Failed to sync incident note to Jira', {
+      component: 'jira-sync',
+      incidentId,
+      error,
+    });
+    return 0;
+  }
+}
+
+/**
+ * Post a status update event from an OpsKnight incident to all linked Jira issues.
+ */
+export async function syncIncidentEventToJira(
+  incidentId: string,
+  eventMessage: string
+): Promise<number> {
+  try {
+    const links = await prisma.externalIssueLink.findMany({
+      where: { incidentId, provider: 'JIRA' },
+      select: { externalKey: true },
+    });
+
+    if (links.length === 0) return 0;
+
+    const formattedComment = `[OpsKnight Update]: ${eventMessage}`;
+
+    await Promise.allSettled(
+      links.map(link => addJiraComment(link.externalKey, formattedComment))
+    );
+
+    return links.length;
+  } catch (error) {
+    logger.error('Failed to sync incident event to Jira', {
+      component: 'jira-sync',
+      incidentId,
+      error,
+    });
+    return 0;
+  }
+}
+

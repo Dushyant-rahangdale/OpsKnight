@@ -166,3 +166,21 @@ export async function getJiraIssue(issueKeyOrId: string): Promise<JiraIssueSumma
     assignee: issue.fields?.assignee?.displayName ?? issue.fields?.assignee?.emailAddress,
   };
 }
+
+export async function addJiraComment(
+  issueKeyOrId: string,
+  commentText: string
+): Promise<void> {
+  const config = await getDecryptedJiraConfig();
+  if (!config) return;
+
+  const payload = {
+    body: toADF(commentText),
+  };
+
+  await jiraRequest(config, `/rest/api/3/issue/${encodeURIComponent(issueKeyOrId)}/comment`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
