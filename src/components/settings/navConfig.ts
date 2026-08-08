@@ -146,6 +146,15 @@ export const SETTINGS_NAV_SECTIONS: SettingsNavSection[] = [
         icon: 'slack',
         keywords: ['alerts', 'channels'],
       },
+      {
+        id: 'chatops',
+        label: 'ChatOps War-Rooms',
+        description: 'Auto-create Slack channels for critical incidents',
+        href: '/settings/integrations/chatops',
+        icon: 'message-circle',
+        requiresAdmin: true,
+        keywords: ['war room', 'channel', 'chatops', 'slack', 'video', 'bridge'],
+      },
     ],
   },
   {

@@ -105,6 +105,13 @@ export async function updateService(serviceId: string, formData: FormData) {
     ch => validChannels.includes(ch) && !ch.includes(',')
   );
 
+  // ChatOps war-room overrides
+  const autoCreateWarRoomValue = formData.get('autoCreateWarRoom');
+  const autoCreateWarRoom = autoCreateWarRoomValue === 'on' || autoCreateWarRoomValue === 'true';
+  const warRoomVideoBridgeRaw = formData.get('warRoomVideoBridge') as string | null;
+  const warRoomVideoBridge = warRoomVideoBridgeRaw && warRoomVideoBridgeRaw !== 'INHERIT' ? warRoomVideoBridgeRaw : null;
+  const warRoomCustomBridgeUrl = ((formData.get('warRoomCustomBridgeUrl') as string | null) ?? '').trim() || null;
+
   try {
     const normalizedName = await assertServiceNameAvailable(name, { excludeId: serviceId });
 
@@ -127,6 +134,9 @@ export async function updateService(serviceId: string, formData: FormData) {
         serviceNotifyOnAck,
         serviceNotifyOnResolved,
         serviceNotifyOnSlaBreach,
+        autoCreateWarRoom,
+        warRoomVideoBridge,
+        warRoomCustomBridgeUrl,
       },
     });
 

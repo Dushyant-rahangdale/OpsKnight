@@ -359,6 +359,14 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
     });
   }
 
+  // ChatOps: Archive war-room channel on resolve (best-effort)
+  try {
+    const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
+    await archiveWarRoomChannel(id);
+  } catch (e) {
+    logger.error('ChatOps war-room archive failed', { component: 'incidents-actions', error: e, incidentId: id });
+  }
+
   revalidatePath(`/incidents/${id}`);
   revalidatePath('/incidents');
   revalidatePath('/');
@@ -742,6 +750,20 @@ export async function createIncident(formData: FormData) {
     });
   }
 
+  // ChatOps: Auto-create war-room for qualifying incidents (best-effort, non-blocking)
+  try {
+    const { createIncidentWarRoom } = await import('@/lib/chatops/war-room');
+    createIncidentWarRoom(incident.id).catch(err => {
+      logger.error('ChatOps war-room creation failed', {
+        component: 'incidents-actions',
+        error: err instanceof Error ? err.message : String(err),
+        incidentId: incident.id,
+      });
+    });
+  } catch (e) {
+    logger.error('Failed to load chatops/war-room', { error: e });
+  }
+
   // Revalidate all relevant paths to ensure UI shows updated assignee
   revalidatePath('/incidents');
   revalidatePath(`/incidents/${incident.id}`);
@@ -784,6 +806,14 @@ export async function addNote(incidentId: string, content: string) {
     await syncIncidentNoteToJira(incidentId, user.name, content);
   } catch (e) {
     logger.error('Jira note sync failed', { component: 'incidents-actions', error: e, incidentId });
+  }
+
+  // Best-effort sync note to war-room channel
+  try {
+    const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+    await postWarRoomUpdate(incidentId, `📝 *Note by ${user.name}:*\n> ${content}`);
+  } catch (e) {
+    logger.error('ChatOps note sync failed', { component: 'incidents-actions', error: e, incidentId });
   }
 }
 

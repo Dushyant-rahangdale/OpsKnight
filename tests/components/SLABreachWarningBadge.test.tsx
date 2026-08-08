@@ -33,6 +33,9 @@ describe('SLABreachWarningBadge', () => {
     notifyOnAck: false,
     notifyOnResolve: false,
     notifyEventFilter: null,
+    autoCreateWarRoom: true,
+    warRoomVideoBridge: null,
+    warRoomCustomBridgeUrl: null,
   } as unknown as Service;
 
   const mockIncidentBase = {
@@ -62,6 +65,9 @@ describe('SLABreachWarningBadge', () => {
     dedupKey: null,
     escalationProcessingAt: null,
     visibility: 'PUBLIC',
+    slackChannelId: null,
+    slackChannelName: null,
+    warRoomUrl: null,
   };
 
   it('renders correctly with Date objects', () => {

@@ -407,6 +407,27 @@ export async function processEvent(
           })
           .catch(e => logger.error('Failed to load service-notifications', { error: e }));
       });
+
+    // ChatOps: Auto-create war-room channel for qualifying incidents (fire-and-forget)
+    import('./chatops/war-room')
+      .then(({ createIncidentWarRoom }) => {
+        createIncidentWarRoom(result.incident.id)
+          .then(warRoomResult => {
+            if (warRoomResult.success) {
+              logger.info('chatops.war_room_created', {
+                incidentId: result.incident.id,
+                channelName: warRoomResult.channelName,
+              });
+            }
+          })
+          .catch(err => {
+            logger.error('chatops.war_room_creation_failed', {
+              incidentId: result.incident.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          });
+      })
+      .catch(e => logger.error('Failed to load chatops/war-room', { error: e }));
   }
 
   if (result.action === 'resolved' && result.incident) {
@@ -455,6 +476,18 @@ export async function processEvent(
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     });
+
+    // ChatOps: Archive war-room channel on resolve (fire-and-forget)
+    import('./chatops/war-room')
+      .then(({ archiveWarRoomChannel }) => {
+        archiveWarRoomChannel(result.incident.id).catch(err => {
+          logger.error('chatops.war_room_archive_failed', {
+            incidentId: result.incident.id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+      })
+      .catch(e => logger.error('Failed to load chatops/war-room', { error: e }));
   }
 
   if (result.action === 'acknowledged' && result.incident) {
