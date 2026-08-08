@@ -77,11 +77,8 @@ export default function ActionItemJiraBadge({
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  try {
-                    await syncActionItemJiraIssue(externalIssue.linkId);
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Sync failed.');
-                  }
+                  const res = await syncActionItemJiraIssue(externalIssue.linkId);
+                  if (!res.success && res.error) setError(res.error);
                 });
               }}
               disabled={isPending}
@@ -94,11 +91,8 @@ export default function ActionItemJiraBadge({
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  try {
-                    await unlinkJiraIssueFromActionItem(externalIssue.linkId);
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Unlink failed.');
-                  }
+                  const res = await unlinkJiraIssueFromActionItem(externalIssue.linkId);
+                  if (!res.success && res.error) setError(res.error);
                 });
               }}
               disabled={isPending}
@@ -116,6 +110,20 @@ export default function ActionItemJiraBadge({
   // No linked issue — show create/link options
   if (!canManage) return null;
 
+  const handleLinkSubmit = () => {
+    if (!linkKey.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await linkJiraIssueToActionItem(actionItemId, linkKey.trim());
+      if (!res.success && res.error) {
+        setError(res.error);
+      } else {
+        setLinkKey('');
+        setShowLinkForm(false);
+      }
+    });
+  };
+
   if (showLinkForm) {
     return (
       <div className="inline-flex items-center gap-1.5" onClick={event => event.stopPropagation()}>
@@ -128,17 +136,7 @@ export default function ActionItemJiraBadge({
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              if (!linkKey.trim()) return;
-              setError(null);
-              startTransition(async () => {
-                try {
-                  await linkJiraIssueToActionItem(actionItemId, linkKey.trim());
-                  setLinkKey('');
-                  setShowLinkForm(false);
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Link failed.');
-                }
-              });
+              handleLinkSubmit();
             } else if (e.key === 'Escape') {
               setShowLinkForm(false);
               setLinkKey('');
@@ -149,19 +147,7 @@ export default function ActionItemJiraBadge({
           variant="ghost"
           size="icon"
           className="h-6 w-6"
-          onClick={() => {
-            if (!linkKey.trim()) return;
-            setError(null);
-            startTransition(async () => {
-              try {
-                await linkJiraIssueToActionItem(actionItemId, linkKey.trim());
-                setLinkKey('');
-                setShowLinkForm(false);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Link failed.');
-              }
-            });
-          }}
+          onClick={handleLinkSubmit}
           disabled={isPending || !linkKey.trim()}
         >
           {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
@@ -178,11 +164,8 @@ export default function ActionItemJiraBadge({
         onClick={() => {
           setError(null);
           startTransition(async () => {
-            try {
-              await createJiraIssueFromActionItem(actionItemId);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : 'Create failed.');
-            }
+            const res = await createJiraIssueFromActionItem(actionItemId);
+            if (!res.success && res.error) setError(res.error);
           });
         }}
         disabled={isPending}
