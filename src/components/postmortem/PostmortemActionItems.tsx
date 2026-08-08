@@ -247,14 +247,14 @@ export default function PostmortemActionItems({
                         )}
                       </div>
                       <h4 className="text-base font-semibold mb-1">{item.title}</h4>
-                      {item.externalIssue && (
+                      <div className="my-1">
                         <ActionItemJiraBadge
                           actionItemId={item.id}
                           externalIssue={item.externalIssue}
-                          canManage={false}
+                          canManage={canManage}
                           compact
                         />
-                      )}
+                      </div>
                       {item.description && (
                         <p className="text-sm text-muted-foreground mb-1">{item.description}</p>
                       )}
