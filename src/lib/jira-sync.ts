@@ -36,12 +36,28 @@ export async function createJiraIssueAndLink(params: CreateAndLinkParams) {
     component: params.component,
   });
 
-  const link = await prisma.externalIssueLink.create({
-    data: {
+  const link = await prisma.externalIssueLink.upsert({
+    where: {
+      provider_externalId: {
+        provider: params.provider ?? 'JIRA',
+        externalId: issue.id,
+      },
+    },
+    create: {
       provider: params.provider ?? 'JIRA',
       incidentId: params.incidentId ?? null,
       actionItemId: params.actionItemId ?? null,
       externalId: issue.id,
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      externalStatus: issue.status ?? null,
+      externalAssignee: issue.assignee ?? null,
+      syncState: 'SYNCED',
+      lastSyncedAt: new Date(),
+    },
+    update: {
+      incidentId: params.incidentId ?? undefined,
+      actionItemId: params.actionItemId ?? undefined,
       externalKey: issue.key,
       externalUrl: issue.url,
       externalStatus: issue.status ?? null,
@@ -95,13 +111,29 @@ export async function linkExistingJiraIssue(params: LinkExistingParams) {
 
   const issue = await getJiraIssue(key);
 
-  const link = await prisma.externalIssueLink.create({
-    data: {
+  const link = await prisma.externalIssueLink.upsert({
+    where: {
+      provider_externalKey: {
+        provider: params.provider ?? 'JIRA',
+        externalKey: key,
+      },
+    },
+    create: {
       provider: params.provider ?? 'JIRA',
       incidentId: params.incidentId ?? null,
       actionItemId: params.actionItemId ?? null,
       externalId: issue.id,
       externalKey: issue.key,
+      externalUrl: issue.url,
+      externalStatus: issue.status ?? null,
+      externalAssignee: issue.assignee ?? null,
+      syncState: 'SYNCED',
+      lastSyncedAt: new Date(),
+    },
+    update: {
+      incidentId: params.incidentId ?? undefined,
+      actionItemId: params.actionItemId ?? undefined,
+      externalId: issue.id,
       externalUrl: issue.url,
       externalStatus: issue.status ?? null,
       externalAssignee: issue.assignee ?? null,
