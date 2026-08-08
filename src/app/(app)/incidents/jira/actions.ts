@@ -46,15 +46,32 @@ export async function createJiraIssueFromIncident(incidentId: string) {
   const summary = `[Incident] ${incident.title}`;
   const description = incident.description || `OpsKnight Incident: ${incident.title}`;
 
-  const { issue } = await createJiraIssueAndLink({
-    incidentId,
-    projectKey,
-    issueType,
-    summary,
-    description,
-    labels,
-    component,
-  });
+  let issue;
+  try {
+    const result = await createJiraIssueAndLink({
+      incidentId,
+      projectKey,
+      issueType,
+      summary,
+      description,
+      labels,
+      component,
+    });
+    issue = result.issue;
+  } catch (error) {
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    if (rawMsg.includes("target project doesn't exist")) {
+      throw new Error(
+        `Jira project "${projectKey}" does not exist or your API token lacks permissions. Check Services → Settings → Jira Mapping.`
+      );
+    }
+    if (rawMsg.includes('issue type')) {
+      throw new Error(
+        `Jira issue type "${issueType}" is invalid for project "${projectKey}". Check Services → Settings → Jira Mapping.`
+      );
+    }
+    throw new Error(`Jira issue creation failed: ${rawMsg}`);
+  }
 
   // Create timeline event
   await prisma.incidentEvent.create({
