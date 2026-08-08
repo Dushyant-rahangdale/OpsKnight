@@ -170,7 +170,7 @@ describe('ChatOps War-Room Engine', () => {
       const result = await createIncidentWarRoom('inc-abcdef123456');
       expect(result.success).toBe(true);
       expect(result.channelId).toBe('C999888');
-      expect(result.warRoomUrl).toBe('https://meet.jit.si/opsknight-inc-cdef123456');
+      expect(result.warRoomUrl).toBe('https://meet.jit.si/opsknight-inc-ef123456');
       expect(prisma.incident.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'inc-abcdef123456' },

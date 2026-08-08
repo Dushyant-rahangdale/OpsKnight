@@ -16,7 +16,7 @@ export default async function GlobalChatOpsIntegrationPage() {
     where: { service: null, enabled: true },
   });
 
-  const isSlackConnected = !!slackIntegration?.botTokenEncrypted;
+  const isSlackConnected = !!slackIntegration?.botToken;
 
   return (
     <div className="space-y-6">
