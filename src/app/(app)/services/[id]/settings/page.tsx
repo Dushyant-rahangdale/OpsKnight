@@ -24,6 +24,7 @@ import {
   Settings,
   Shield,
   Users,
+  Puzzle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/shadcn/alert';
 
@@ -308,20 +309,40 @@ export default async function ServiceSettingsPage({
             </Card>
           </div>
 
-          {/* Notification Settings (Client Component) */}
-          <div className="mt-6">
-            <ServiceNotificationSettings
-              serviceId={service.id}
-              serviceNotificationChannels={service.serviceNotificationChannels}
-              serviceNotifyOnTriggered={service.serviceNotifyOnTriggered}
-              serviceNotifyOnAck={service.serviceNotifyOnAck}
-              serviceNotifyOnResolved={service.serviceNotifyOnResolved}
-              serviceNotifyOnSlaBreach={service.serviceNotifyOnSlaBreach}
-              slackChannel={service.slackChannel || null}
-              slackWebhookUrl={service.slackWebhookUrl}
-              slackIntegration={globalSlackIntegration}
-              webhookIntegrations={webhookIntegrations}
-            />
+          {/* Integrations & Workflows Section: Slack & Jira Side-by-Side */}
+          <div className="mt-8 pt-6 border-t space-y-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <Puzzle className="h-5 w-5 text-primary" /> Service Integrations & Workflows
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Configure notification channels (Slack) and engineering issue tracking (Jira) side-by-side.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Slack Notification Settings */}
+              <ServiceNotificationSettings
+                serviceId={service.id}
+                serviceNotificationChannels={service.serviceNotificationChannels}
+                serviceNotifyOnTriggered={service.serviceNotifyOnTriggered}
+                serviceNotifyOnAck={service.serviceNotifyOnAck}
+                serviceNotifyOnResolved={service.serviceNotifyOnResolved}
+                serviceNotifyOnSlaBreach={service.serviceNotifyOnSlaBreach}
+                slackChannel={service.slackChannel || null}
+                slackWebhookUrl={service.slackWebhookUrl}
+                slackIntegration={globalSlackIntegration}
+                webhookIntegrations={webhookIntegrations}
+              />
+
+              {/* Jira Service Mapping Settings */}
+              <JiraServiceMappingSettings
+                serviceId={service.id}
+                mapping={service.jiraServiceMapping}
+                jiraEnabled={jiraConfig?.enabled ?? false}
+                canManage={canManage}
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end pt-4 gap-4 border-t mt-8">
@@ -334,13 +355,6 @@ export default async function ServiceSettingsPage({
             </Button>
           </div>
         </form>
-
-        <JiraServiceMappingSettings
-          serviceId={service.id}
-          mapping={service.jiraServiceMapping}
-          jiraEnabled={jiraConfig?.enabled ?? false}
-          canManage={canManage}
-        />
       </div>
     </main>
   );
