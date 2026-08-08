@@ -154,7 +154,11 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         channelName,
         incidentId,
       });
-      return { success: false, error: `Slack API error: ${createResult.error}` };
+      const errorMsg =
+        createResult.error === 'missing_scope'
+          ? "Slack app is missing the 'channels:manage' scope. Please re-authorize Slack in Settings > Slack to grant channel creation permissions."
+          : `Slack API error: ${createResult.error}`;
+      return { success: false, error: errorMsg };
     }
 
     const channelId = createResult.channel?.id;
