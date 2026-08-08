@@ -95,15 +95,18 @@ export async function GET(request: NextRequest) {
     // For now, we'll pass it in the callback URL
     const _callbackUrl = `${SLACK_REDIRECT_URI}?state=${state}${serviceId ? `&serviceId=${serviceId}` : ''}`;
 
-    // Slack OAuth scopes needed
+    // Slack OAuth scopes needed for alerts and ChatOps war-rooms
     const scopes = [
       'chat:write',
       'channels:read',
       'channels:join',
+      'channels:manage',
       'groups:read',
+      'groups:write',
       'im:read',
       'mpim:read',
       'users:read',
+      'users:read.email',
     ].join(',');
 
     const authUrl =
