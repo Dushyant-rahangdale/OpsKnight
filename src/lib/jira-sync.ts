@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { createJiraIssue, getJiraIssue, type JiraIssueSummary } from '@/lib/jira';
-import { isValidJiraKey } from '@/lib/jira-validation';
+import { isValidJiraKey, extractJiraKey } from '@/lib/jira-validation';
 import { logAudit, getDefaultActorId } from '@/lib/audit';
 
 export type CreateAndLinkParams = {
@@ -36,12 +36,28 @@ export async function createJiraIssueAndLink(params: CreateAndLinkParams) {
     component: params.component,
   });
 
-  const link = await prisma.externalIssueLink.create({
-    data: {
+  const link = await prisma.externalIssueLink.upsert({
+    where: {
+      provider_externalId: {
+        provider: params.provider ?? 'JIRA',
+        externalId: issue.id,
+      },
+    },
+    create: {
       provider: params.provider ?? 'JIRA',
       incidentId: params.incidentId ?? null,
       actionItemId: params.actionItemId ?? null,
       externalId: issue.id,
+      externalKey: issue.key,
+      externalUrl: issue.url,
+      externalStatus: issue.status ?? null,
+      externalAssignee: issue.assignee ?? null,
+      syncState: 'SYNCED',
+      lastSyncedAt: new Date(),
+    },
+    update: {
+      incidentId: params.incidentId ?? undefined,
+      actionItemId: params.actionItemId ?? undefined,
       externalKey: issue.key,
       externalUrl: issue.url,
       externalStatus: issue.status ?? null,
@@ -72,7 +88,7 @@ export async function createJiraIssueAndLink(params: CreateAndLinkParams) {
  * Jira and persists the link. Prevents duplicate links.
  */
 export async function linkExistingJiraIssue(params: LinkExistingParams) {
-  const key = params.jiraKey.trim().toUpperCase();
+  const key = extractJiraKey(params.jiraKey);
   if (!isValidJiraKey(key)) {
     throw new Error(
       `Invalid Jira issue key: "${params.jiraKey}". Expected format like PROJECT-123.`

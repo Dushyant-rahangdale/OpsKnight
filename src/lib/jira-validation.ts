@@ -22,8 +22,19 @@ export function normalizeJiraBaseUrl(value: string): string {
   return url.toString().replace(/\/+$/, '');
 }
 
+export function extractJiraKey(value: string): string {
+  const trimmed = value.trim();
+  // Match key patterns like SCRUM-123 even inside full URLs
+  const match = trimmed.match(/([A-Za-z][A-Za-z0-9_]+-\d+)/);
+  if (match) {
+    return match[1].toUpperCase();
+  }
+  return trimmed.toUpperCase();
+}
+
 export function isValidJiraKey(value: string): boolean {
-  return /^[A-Z][A-Z0-9_]+-\d+$/.test(value.trim());
+  const key = extractJiraKey(value);
+  return /^[A-Z][A-Z0-9_]+-\d+$/.test(key);
 }
 
 export function parseLabels(value: string): string[] {
