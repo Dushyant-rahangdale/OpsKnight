@@ -23,8 +23,6 @@ sync_docs_dir() {
 
   mkdir -p "$dest"
   rsync -av --delete \
-    --exclude 'coreconcepts/**' \
-    --exclude 'core-concepts/**' \
     --exclude '.DS_Store' \
     "$src/" "$dest/"
 }
