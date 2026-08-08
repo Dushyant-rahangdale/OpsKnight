@@ -12,8 +12,9 @@ describe('jira validation helpers', () => {
   // isValidJiraKey
   // -------------------------------------------------------------------------
   describe('isValidJiraKey', () => {
-    it('accepts standard Jira keys', () => {
+    it('accepts standard Jira keys (including lowercase auto-capitalized keys)', () => {
       expect(isValidJiraKey('OPS-123')).toBe(true);
+      expect(isValidJiraKey('ops-123')).toBe(true); // auto-capitalized to OPS-123
       expect(isValidJiraKey('PROJ-1')).toBe(true);
       expect(isValidJiraKey('MY_PROJECT-9999')).toBe(true);
     });
@@ -21,7 +22,6 @@ describe('jira validation helpers', () => {
     it('rejects invalid keys', () => {
       expect(isValidJiraKey('')).toBe(false);
       expect(isValidJiraKey('123')).toBe(false);
-      expect(isValidJiraKey('ops-123')).toBe(false); // lowercase
       expect(isValidJiraKey('OPS')).toBe(false); // no dash + number
       expect(isValidJiraKey('OPS-')).toBe(false); // missing number
       expect(isValidJiraKey('-123')).toBe(false); // missing project
