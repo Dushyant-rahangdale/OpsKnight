@@ -47,6 +47,7 @@ These tools send alerts TO OpsKnight:
 | **Log Analysis**       | Splunk, Elastic                                        |
 | **Observability**      | Honeycomb, Splunk Observability                        |
 | **CI/CD**              | GitHub Actions, Bitbucket Pipelines                    |
+| **Issue Tracking**     | [Jira Cloud](./issue-tracking/jira)                    |
 | **Custom**             | Generic Webhooks, Events API                           |
 
 ### Notification Channels (Outbound)
@@ -56,7 +57,7 @@ These tools receive notifications FROM OpsKnight:
 | Channel      | Purpose                                |
 | ------------ | -------------------------------------- |
 | **Slack**    | Team channels with interactive buttons |
-| **Jira**     | Bi-directional issue tracking & sync   |
+| **Jira**     | [Bi-directional issue tracking & sync](./issue-tracking/jira) |
 | **Email**    | Direct inbox notifications             |
 | **SMS**      | Urgent alerts via text message         |
 | **Push**     | Mobile app notifications               |
@@ -294,6 +295,22 @@ Bitbucket Pipelines and repository events.
 Endpoint: /api/integrations/bitbucket
 Supports: Pipeline failures
 ```
+
+---
+
+### Issue Tracking & Project Management
+
+#### [Jira Cloud](./issue-tracking/jira)
+
+Bi-directional integration with Jira Cloud for incident tracking, service project routing, real-time comment synchronization, and postmortem action items.
+
+- Automatic Jira issue creation on incident start
+- Service-level project routing (`SCRUM`, `INFRA`, `API`)
+- Real-time comment sync from OpsKnight notes to Jira tickets
+- Idempotent timing-safe HMAC webhooks (`issue_updated`, `issue_deleted`)
+- Smart issue key and full URL link parser (`SCRUM-42` or browse URL)
+
+[Full Jira Cloud Setup & Architecture Guide →](./issue-tracking/jira)
 
 ---
 
