@@ -12,8 +12,8 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Website](https://img.shields.io/badge/Website-opsknight.com-10b981?style=flat&logo=google-chrome&logoColor=white)](https://opsknight.com)
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1/deployment/docker.md)
-[![Status](https://img.shields.io/badge/Status-v1.0.0-success?style=flat)](ROADMAP.md)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1.1/deployment/docker.md)
+[![Status](https://img.shields.io/badge/Status-v1.1.0-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml)
 [![Security](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml)
@@ -100,7 +100,7 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
     </td>
     <td>
       <h3>🔌 Deep Integrations</h3>
-      <p>Native support for Prometheus, Datadog, Sentry, CloudWatch, and Grafana. Seamless two-way sync with Slack.</p>
+      <p>Native support for Prometheus, Datadog, Sentry, CloudWatch, Grafana, and Jira Cloud. Seamless two-way sync with Slack.</p>
     </td>
   </tr>
 </table>
@@ -118,11 +118,11 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
 - **🔒 Secure**: Supports biometric authentication (FaceID/TouchID).
 
 <div align="center">
-  <img src="docs/v1/assets/mobile.png" alt="Mobile Dashboard" width="100%">
+  <img src="docs/v1.1/assets/mobile.png" alt="Mobile Dashboard" width="100%">
 </div>
 
 <div align="center">
-  <a href="docs/v1/mobile/setup.md"><strong>Explore Mobile Setup Guide →</strong></a>
+  <a href="docs/v1.1/mobile/setup.md"><strong>Explore Mobile Setup Guide →</strong></a>
 </div>
 
 ---
@@ -133,16 +133,16 @@ OpsKnight plays nicely with your existing stack.
 
 <div align="center">
   <img src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white" alt="Slack" />
+  <img src="https://img.shields.io/badge/Jira_Cloud-0052CC?style=for-the-badge&logo=jira&logoColor=white" alt="Jira Cloud" />
   <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus" />
   <img src="https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white" alt="Datadog" />
   <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana" />
   <img src="https://img.shields.io/badge/Sentry-362D59?style=for-the-badge&logo=sentry&logoColor=white" alt="Sentry" />
   <img src="https://img.shields.io/badge/AWS_CloudWatch-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" alt="CloudWatch" />
-  <img src="https://img.shields.io/badge/Teams-6264A7?style=for-the-badge&logo=microsoft-teams&logoColor=white" alt="Microsoft Teams" />
   <img src="https://img.shields.io/badge/Webhooks-000000?style=for-the-badge&logo=webhook&logoColor=white" alt="Webhooks" />
 </div>
 
-[**View All Integrations →**](docs/v1/integrations/README.md)
+[**View All Integrations →**](docs/v1.1/integrations/README.md)
 
 ---
 
@@ -175,8 +175,8 @@ Get OpsKnight up and running locally in under 60 seconds.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
-cd opsknight
+git clone https://github.com/Dushyant-rahangdale/OpsKnight.git
+cd OpsKnight
 
 # 2. Setup Environment
 cp env.example .env
@@ -195,9 +195,9 @@ We support multiple deployment strategies to fit your infrastructure needs.
 
 | Method                                                                                                        | Best For                            | Guide                                          |
 | :------------------------------------------------------------------------------------------------------------ | :---------------------------------- | :--------------------------------------------- |
-| ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose**     | Local Development, small teams      | [Read Guide](docs/v1/deployment/docker.md)     |
-| ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart** | Production Kubernetes (Recommended) | [Read Guide](docs/v1/deployment/helm.md)       |
-| ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**             | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1/deployment/kubernetes.md) |
+| ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose**     | Local Development, small teams      | [Read Guide](docs/v1.1/deployment/docker.md)     |
+| ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart** | Production Kubernetes (Recommended) | [Read Guide](docs/v1.1/deployment/helm.md)       |
+| ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**             | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1.1/deployment/kubernetes.md) |
 
 > **Note:** For production, we recommend using an external managed PostgreSQL database.
 
@@ -208,11 +208,11 @@ We support multiple deployment strategies to fit your infrastructure needs.
 OpsKnight runs as a single Next.js application (UI + API routes + server actions) with an internal DB-backed scheduler and a Postgres-backed job queue.
 
 <div align="center">
-  <img src="docs/v1/assets/images/opsknight-architecture.svg" alt="OpsKnight architecture diagram" width="100%">
+  <img src="docs/v1.1/assets/images/opsknight-architecture.svg" alt="OpsKnight architecture diagram" width="100%">
   <sub><em>High-level architecture: clients → app (Next.js) → PostgreSQL (Prisma) → outbound channels.</em></sub>
 </div>
 
-- Full details: [Architecture docs](docs/v1/architecture/README.md)
+- Full details: [Architecture docs](docs/v1.1/architecture/README.md)
 
 ---
 
@@ -222,25 +222,25 @@ Everything you need to configure and extend OpsKnight.
 
 - **[Hosted Documentation](https://opsknight.com/docs)** (Recommended)
 - **In-Repo Guides**:
-  - [⚡ Getting Started](docs/v1/getting-started/README.md)
-  - [🧩 Core Concepts](docs/v1/core-concepts/README.md)
-  - [🔌 Integrations](docs/v1/integrations/README.md)
-  - [🛡️ Security](docs/v1/security/README.md)
-  - [📡 API Reference](docs/v1/api/README.md)
+  - [⚡ Getting Started](docs/v1.1/getting-started/README.md)
+  - [🧩 Core Concepts](docs/v1.1/core-concepts/README.md)
+  - [🔌 Integrations](docs/v1.1/integrations/README.md)
+  - [🛡️ Security](docs/v1.1/security/README.md)
+  - [📡 API Reference](docs/v1.1/api/README.md)
 
 ---
 
 ## 🗺️ Roadmap
 
-We are proud to announce **Version 1.0 (February 2026)**! 🚀
+We are proud to announce **Version 1.1 (August 2026)**! 🚀
 
 We are now **Accepting Contributions** to help us build the next generation of open-source incident management.
 
 - [x] Core Incident Management & On-Call
 - [x] Slack Integration & Webhooks
 - [x] Basic Status Pages
-- [ ] **Advanced Analytics & Reports**
-- [ ] **Jira/ServiceNow Integrations**
+- [x] **Advanced Analytics & SLA Engine Reports**
+- [x] **Jira Cloud Bi-Directional Integration**
 
 See the full [ROADMAP.md](ROADMAP.md)
 
@@ -254,10 +254,10 @@ Join the OpsKnight community to get help, suggest features, or contribute.
   <a href="mailto:help@opsknight.com">
     <img src="https://img.shields.io/badge/Email-help%40opsknight.com-blue?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
   </a>
-  <a href="https://github.com/dushyant-rahangdale/opsknight/discussions">
+  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/discussions">
     <img src="https://img.shields.io/badge/GitHub-Discussions-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions" />
   </a>
-  <a href="https://github.com/dushyant-rahangdale/opsknight/issues">
+  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/issues">
     <img src="https://img.shields.io/badge/Issues-Report%20Bug-d73a49?style=for-the-badge&logo=github&logoColor=white" alt="Report Bug" />
   </a>
   <a href="CONTRIBUTING.md">
@@ -280,4 +280,4 @@ Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdal
 
 <br>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dushyant-rahangdale/opsknight&type=Date)](https://star-history.com/#dushyant-rahangdale/opsknight&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Dushyant-rahangdale/OpsKnight&type=Date)](https://star-history.com/#Dushyant-rahangdale/OpsKnight&Date)
