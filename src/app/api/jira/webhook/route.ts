@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { processJiraWebhookEvent, type JiraWebhookPayload } from '@/lib/jira-sync';
+import { logger } from '@/lib/logger';
 
 async function verifyWebhookSecret(request: NextRequest): Promise<boolean> {
   const config = await prisma.jiraConfig.findUnique({
@@ -10,8 +11,20 @@ async function verifyWebhookSecret(request: NextRequest): Promise<boolean> {
   });
 
   if (!config?.webhookSecretEncrypted) {
-    // No secret configured — accept all requests (development mode)
-    return true;
+    // No secret configured — only accept in development mode.
+    // In production, unsigned webhooks are a security risk.
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('Jira webhook secret not configured — accepting in dev mode', {
+        component: 'jira-webhook',
+      });
+      return true;
+    }
+    logger.error(
+      'Jira webhook rejected: no webhook secret configured. ' +
+        'Configure a webhook secret in Settings → Integrations → Jira.',
+      { component: 'jira-webhook' }
+    );
+    return false;
   }
 
   const secret = await decrypt(config.webhookSecretEncrypted);
@@ -54,7 +67,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    console.error('Jira webhook processing error:', error);
+    logger.error('Jira webhook processing error', {
+      component: 'jira-webhook',
+      error,
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Webhook processing failed.' },
       { status: 500 }

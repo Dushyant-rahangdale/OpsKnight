@@ -153,7 +153,9 @@ export async function syncExternalIssueLink(linkId: string) {
       where: { id: linkId },
       data: { syncState: 'FAILED' },
     });
-    throw error;
+    // Intentionally NOT re-throwing: callers that loop over multiple links
+    // should not have a single failure abort the entire batch.
+    return null;
   }
 }
 
@@ -204,24 +206,30 @@ export async function processJiraWebhookEvent(
     return { updated: 0 };
   }
 
-  const status = payload.issue?.fields?.status?.name ?? null;
-  const assignee =
-    payload.issue?.fields?.assignee?.displayName ??
-    payload.issue?.fields?.assignee?.emailAddress ??
-    null;
+  // Only update fields that are actually present in the webhook payload.
+  // Jira webhooks often omit unchanged fields — blindly setting them to null
+  // would erase valid data stored from a previous sync.
+  const data: Record<string, unknown> = {
+    syncState: 'SYNCED',
+    lastSyncedAt: new Date(),
+  };
 
-  const now = new Date();
+  if (payload.issue?.fields && 'status' in payload.issue.fields) {
+    data.externalStatus = payload.issue.fields.status?.name ?? null;
+  }
+
+  if (payload.issue?.fields && 'assignee' in payload.issue.fields) {
+    data.externalAssignee =
+      payload.issue.fields.assignee?.displayName ??
+      payload.issue.fields.assignee?.emailAddress ??
+      null;
+  }
 
   await prisma.externalIssueLink.updateMany({
     where: {
       id: { in: links.map(l => l.id) },
     },
-    data: {
-      externalStatus: status,
-      externalAssignee: assignee,
-      syncState: 'SYNCED',
-      lastSyncedAt: now,
-    },
+    data,
   });
 
   return { updated: links.length };

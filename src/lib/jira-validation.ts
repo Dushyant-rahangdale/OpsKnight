@@ -1,6 +1,19 @@
 export function normalizeJiraBaseUrl(value: string): string {
-  const trimmed = value.trim().replace(/\/+$/, '');
-  const url = new URL(trimmed);
+  let trimmed = value.trim().replace(/\/+$/, '');
+
+  // Auto-prepend https:// when no protocol is provided (e.g. "myteam.atlassian.net")
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new Error(
+      'Invalid Jira URL. Please enter a valid URL such as https://myteam.atlassian.net'
+    );
+  }
 
   if (url.protocol !== 'https:') {
     throw new Error('Jira URL must use HTTPS.');

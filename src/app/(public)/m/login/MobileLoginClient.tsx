@@ -34,10 +34,15 @@ type Props = {
 
 function formatError(message: string | null | undefined) {
   if (!message) return '';
+  // NextAuth appends ?error=SessionRequired on unauthenticated redirects — not a real error
+  if (message === 'SessionRequired') return '';
   if (message === 'CredentialsSignin') return 'Invalid email or password';
   if (message === 'AccessDenied') return 'Access denied';
-  if (message === 'Configuration') return 'Server configuration error';
-  return 'Authentication failed';
+  if (message === 'SessionExpired') return 'Your session has expired. Please sign in again.';
+  if (message === 'OAuthSignin' || message === 'OAuthCallback')
+    return 'SSO authentication failed. Please try again or contact your administrator.';
+  if (message === 'Configuration') return 'Server configuration error. Please contact your administrator.';
+  return 'Authentication failed. Please try again.';
 }
 
 export default function MobileLoginClient({
