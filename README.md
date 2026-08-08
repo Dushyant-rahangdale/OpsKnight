@@ -280,4 +280,14 @@ Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdal
 
 <br>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Dushyant-rahangdale/OpsKnight&type=Date)](https://star-history.com/#Dushyant-rahangdale/OpsKnight&Date)
+<p align="center">
+  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/stargazers">
+    <img src="https://img.shields.io/github/stars/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=10b981&logoColor=white" alt="GitHub Stars" />
+  </a>
+  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/network/members">
+    <img src="https://img.shields.io/github/forks/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=06b6d4&logoColor=white" alt="GitHub Forks" />
+  </a>
+  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/issues">
+    <img src="https://img.shields.io/github/issues/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=8b5cf6&logoColor=white" alt="GitHub Issues" />
+  </a>
+</p>
