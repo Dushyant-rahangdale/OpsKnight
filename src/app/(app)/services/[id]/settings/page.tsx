@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ServiceTabs from '@/components/service/ServiceTabs';
 import ServiceNotificationSettings from '@/components/service/ServiceNotificationSettings';
 import JiraServiceMappingSettings from '@/components/service/JiraServiceMappingSettings';
+import ChatOpsWarRoomSettings from '@/components/service/ChatOpsWarRoomSettings';
 import { updateService } from '../../actions';
 import { getUserPermissions } from '@/lib/rbac';
 import {
@@ -40,7 +41,7 @@ export default async function ServiceSettingsPage({
   const showSaved = resolvedSearchParams?.saved === '1';
   const errorCode = resolvedSearchParams?.error;
 
-  const [service, teams, policies, globalSlackIntegration, jiraConfig, permissions] =
+  const [service, teams, policies, globalSlackIntegration, jiraConfig, permissions, chatOpsConfig] =
     await Promise.all([
       prisma.service.findUnique({
         where: { id: id },
@@ -78,6 +79,10 @@ export default async function ServiceSettingsPage({
         select: { enabled: true },
       }),
       getUserPermissions(),
+      prisma.chatOpsConfig.findUnique({
+        where: { id: 'default' },
+        select: { enabled: true },
+      }),
     ]);
 
   // Get webhook integrations separately (already included in service)
@@ -343,6 +348,16 @@ export default async function ServiceSettingsPage({
                 canManage={canManage}
               />
             </div>
+
+            {/* ChatOps War-Room Settings */}
+            <ChatOpsWarRoomSettings
+              serviceId={service.id}
+              autoCreateWarRoom={service.autoCreateWarRoom}
+              warRoomVideoBridge={service.warRoomVideoBridge}
+              warRoomCustomBridgeUrl={service.warRoomCustomBridgeUrl}
+              chatOpsEnabled={chatOpsConfig?.enabled ?? false}
+              canManage={canManage}
+            />
           </div>
 
           <div className="flex items-center justify-end pt-4 gap-4 border-t mt-8">

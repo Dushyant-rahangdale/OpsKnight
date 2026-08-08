@@ -19,6 +19,7 @@ import IncidentNotes from '@/components/incident/detail/IncidentNotes';
 import IncidentTimeline from '@/components/incident/detail/IncidentTimeline';
 import IncidentResolution from '@/components/incident/detail/IncidentResolution';
 import IncidentJiraCard from '@/components/incident/detail/IncidentJiraCard';
+import IncidentWarRoomCard from '@/components/incident/detail/IncidentWarRoomCard';
 import IncidentCustomFields from '@/components/IncidentCustomFields';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
@@ -605,6 +606,19 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             jiraLinks={jiraLinks}
             jiraEnabled={jiraConfig?.enabled ?? false}
             serviceJiraMapped={Boolean(incident.service.jiraServiceMapping?.projectKey)}
+            canManage={canManageIncident}
+          />
+
+          {/* ChatOps War-Room */}
+          <IncidentWarRoomCard
+            incident={{
+              id: incident.id,
+              slackChannelId: incident.slackChannelId,
+              slackChannelName: incident.slackChannelName,
+              warRoomUrl: incident.warRoomUrl,
+              status: incident.status,
+              service: { name: incident.service.name },
+            }}
             canManage={canManageIncident}
           />
 

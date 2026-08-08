@@ -5,7 +5,7 @@ import { SettingsSection } from '@/components/settings/layout/SettingsSection';
 import { EmptyState } from '@/components/settings/feedback/EmptyState';
 import { Button } from '@/components/ui/shadcn/button';
 import Link from 'next/link';
-import { Slack, Puzzle, ArrowRight, Tickets } from 'lucide-react';
+import { Slack, Puzzle, ArrowRight, Tickets, MessageCircle } from 'lucide-react';
 
 export default function IntegrationsSettingsPage() {
   return (
@@ -57,6 +57,27 @@ export default function IntegrationsSettingsPage() {
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Create and sync incident remediation work in Jira
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="absolute top-6 right-6 h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+          </Link>
+
+          {/* ChatOps War-Rooms Card */}
+          <Link
+            href="/settings/integrations/chatops"
+            className="group relative p-6 rounded-lg border border-border bg-card hover:bg-accent hover:shadow-md hover:border-primary/20 transition-all duration-200"
+          >
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-emerald-500/10 w-fit">
+                <MessageCircle className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                  ChatOps War-Rooms
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Auto-create dedicated Slack channels for critical incidents
                 </p>
               </div>
             </div>
