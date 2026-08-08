@@ -111,6 +111,7 @@ The following fields are encrypted at rest before being written to the database:
 
 | Integration       | Field(s) Encrypted               |
 | ----------------- | -------------------------------- |
+| **Jira Cloud**    | `apiToken`, `webhookSecret`      |
 | **SSO / OIDC**    | `clientSecret`                   |
 | **Slack**         | `botToken`, `signingSecret`      |
 | **Slack OAuth**   | `clientSecret`                   |
