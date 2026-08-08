@@ -777,6 +777,14 @@ export async function addNote(incidentId: string, content: string) {
   });
 
   revalidatePath(`/incidents/${incidentId}`);
+
+  // Best-effort sync note to any linked Jira tickets
+  try {
+    const { syncIncidentNoteToJira } = await import('@/lib/jira-sync');
+    await syncIncidentNoteToJira(incidentId, user.name, content);
+  } catch (e) {
+    logger.error('Jira note sync failed', { component: 'incidents-actions', error: e, incidentId });
+  }
 }
 
 export async function reassignIncident(incidentId: string, assigneeId: string, teamId?: string) {
