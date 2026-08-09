@@ -26,6 +26,18 @@ export async function saveChatOpsConfig(
     const enabledValue = formData.get('enabled');
     const enabled = enabledValue === 'on' || enabledValue === 'true';
     const channelPrefix = ((formData.get('channelPrefix') as string | null) ?? 'inc').trim();
+
+    // Validate channel prefix for Slack naming rules
+    const sanitizedPrefix = channelPrefix
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 20);
+    
+    if (!sanitizedPrefix) {
+      return { error: 'Channel prefix must contain at least one alphanumeric character.' };
+    }
+
     const autoCreateOnUrgency = formData.getAll('autoCreateOnUrgency') as string[];
     const autoCreateOnPriority = formData.getAll('autoCreateOnPriority') as string[];
     const archiveOnResolveValue = formData.get('archiveOnResolve');
@@ -38,7 +50,7 @@ export async function saveChatOpsConfig(
       create: {
         id: 'default',
         enabled,
-        channelPrefix,
+        channelPrefix: sanitizedPrefix,
         autoCreateOnUrgency,
         autoCreateOnPriority,
         archiveOnResolve,
@@ -47,7 +59,7 @@ export async function saveChatOpsConfig(
       },
       update: {
         enabled,
-        channelPrefix,
+        channelPrefix: sanitizedPrefix,
         autoCreateOnUrgency,
         autoCreateOnPriority,
         archiveOnResolve,

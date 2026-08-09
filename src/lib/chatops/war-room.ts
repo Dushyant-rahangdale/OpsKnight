@@ -41,6 +41,20 @@ export function generateBridgeUrl(
   switch (provider) {
     case 'JITSI':
       return `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
+    case 'ZOOM':
+      // Zoom requires OAuth/API integration for auto-link generation
+      // Fall through to custom template if available, otherwise return null
+      if (customTemplate) {
+        return customTemplate.replace(/\{incidentId\}/g, incidentId);
+      }
+      return null;
+    case 'GOOGLE_MEET':
+      // Google Meet requires Calendar API integration for auto-link generation
+      // Fall through to custom template if available, otherwise return null
+      if (customTemplate) {
+        return customTemplate.replace(/\{incidentId\}/g, incidentId);
+      }
+      return null;
     case 'NONE':
       return null;
     default:
@@ -237,29 +251,36 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         }
       }
 
-      // Look up Slack user IDs and invite them
-      const slackUserIds: string[] = [];
-      for (const email of emailsToInvite) {
-        try {
+      // Parallel email lookups for better performance
+      const lookupResults = await Promise.allSettled(
+        Array.from(emailsToInvite).map(async (email) => {
           const lookupResult = await slackApiCall('users.lookupByEmail', botToken, { email });
           if (lookupResult.ok && (lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
-            slackUserIds.push((lookupResult as any).user.id); // eslint-disable-line @typescript-eslint/no-explicit-any
-          } else {
-            logger.warn('[ChatOps] Could not find Slack user by email', {
-              email,
-              error: lookupResult.error || 'User not found in Slack workspace',
-            });
+            return (lookupResult as any).user.id as string; // eslint-disable-line @typescript-eslint/no-explicit-any
           }
-        } catch (lookupErr) {
-          logger.warn('[ChatOps] Error looking up user by email', { email, error: lookupErr });
-        }
-      }
+          logger.warn('[ChatOps] Could not find Slack user by email', {
+            email,
+            error: lookupResult.error || 'User not found in Slack workspace',
+          });
+          return null;
+        })
+      );
 
-      if (slackUserIds.length > 0) {
+      const slackUserIds: string[] = lookupResults
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+
+      // Invite users individually to prevent one failure from blocking all
+      for (const slackUserId of slackUserIds) {
         await slackApiCall('conversations.invite', botToken, {
           channel: channelId,
-          users: slackUserIds.join(','),
-        }).catch(err => logger.warn('[ChatOps] Failed to invite some users', { error: err }));
+          users: slackUserId,
+        }).catch(err => {
+          const errMsg = err?.error || (err instanceof Error ? err.message : String(err));
+          if (errMsg !== 'already_in_channel') {
+            logger.warn('[ChatOps] Failed to invite user to war-room', { slackUserId, error: errMsg });
+          }
+        });
       }
     } catch (err) {
       logger.warn('[ChatOps] Failed to resolve/invite responders', { error: err, incidentId });

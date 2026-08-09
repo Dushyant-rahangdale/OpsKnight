@@ -208,6 +208,16 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
         slackUser: payload.user_name,
       });
 
+      // Archive war-room channel on resolve
+      try {
+        const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
+        archiveWarRoomChannel(incident.id).catch(err =>
+          logger.warn('[ChatOps] Failed to archive war-room after slash resolve', { error: err })
+        );
+      } catch (e) {
+        logger.warn('[ChatOps] Failed to load war-room module', { error: e });
+      }
+
       return {
         response_type: 'in_channel',
         text: `✅ *Incident Resolved* by <@${user_id}>\n_${resolution}_`,
@@ -271,6 +281,7 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
                 steps: {
                   include: {
                     targetUser: { select: { name: true, email: true } },
+                    targetSchedule: { select: { id: true, name: true } },
                     targetTeam: {
                       select: {
                         name: true,
@@ -295,15 +306,30 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
           };
         }
 
-        const lines = policy.steps.map((step, i) => {
+        const lines = await Promise.all(policy.steps.map(async (step, i) => {
           const targets: string[] = [];
           if (step.targetUser) targets.push(`👤 ${step.targetUser.name}`);
           if (step.targetTeam) {
             const members = step.targetTeam.members.map(m => m.user.name).join(', ');
             targets.push(`👥 ${step.targetTeam.name} (${members})`);
           }
+          if (step.targetSchedule) {
+            // Try to resolve current on-call from schedule
+            try {
+              const { resolveEscalationTarget } = await import('@/lib/escalation');
+              const userIds = await resolveEscalationTarget('SCHEDULE', step.targetSchedule.id, new Date());
+              if (userIds.length > 0) {
+                const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { name: true } });
+                targets.push(`📅 ${step.targetSchedule.name} (On-call: ${users.map(u => u.name).join(', ')})`);
+              } else {
+                targets.push(`📅 ${step.targetSchedule.name} (No one on-call)`);
+              }
+            } catch {
+              targets.push(`📅 ${step.targetSchedule.name}`);
+            }
+          }
           return `*Step ${i + 1}* (${step.delayMinutes}min delay): ${targets.join(', ') || 'Schedule-based'}`;
-        });
+        }));
 
         return {
           response_type: 'ephemeral',

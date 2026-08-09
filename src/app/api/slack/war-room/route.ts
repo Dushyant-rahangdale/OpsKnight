@@ -6,10 +6,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { createIncidentWarRoom, archiveWarRoomChannel } from '@/lib/chatops/war-room';
+import { getUserPermissions } from '@/lib/rbac';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    const permissions = await getUserPermissions();
+    if (!permissions) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { incidentId, action } = body;
 
     if (!incidentId || !action) {
