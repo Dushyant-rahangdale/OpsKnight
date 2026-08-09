@@ -21,6 +21,10 @@ vi.mock('@/lib/prisma', () => ({
   },
 }));
 
+vi.mock('@/lib/escalation', () => ({
+  resolveEscalationTarget: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('@/lib/slack', () => ({
   getSlackBotToken: vi.fn().mockResolvedValue('xoxb-test-token'),
   sendSlackMessageToChannel: vi.fn().mockResolvedValue({ success: true }),

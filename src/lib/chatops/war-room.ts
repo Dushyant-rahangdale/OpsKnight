@@ -178,24 +178,14 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
 
     // Resolve and invite on-call responders
     try {
+      const { resolveEscalationTarget } = await import('@/lib/escalation');
+
       const service = await prisma.service.findUnique({
         where: { id: incident.serviceId },
         include: {
           policy: {
             include: {
               steps: {
-                include: {
-                  targetUser: { select: { email: true } },
-                  targetTeam: {
-                    include: {
-                      members: {
-                        include: { user: { select: { email: true } } },
-                        where: { role: { in: ['OWNER', 'ADMIN'] } },
-                        take: 5,
-                      },
-                    },
-                  },
-                },
                 orderBy: { stepOrder: 'asc' },
                 take: 3, // First 3 escalation steps
               },
@@ -204,27 +194,47 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         },
       });
 
-      const emailsToInvite = new Set<string>();
+      const userIdsToInvite = new Set<string>();
 
-      // Collect emails from escalation policy targets
+      // Collect user IDs from escalation policy steps (Schedules, Teams, Users)
       if (service?.policy?.steps) {
         for (const step of service.policy.steps) {
-          if (step.targetUser?.email) {
-            emailsToInvite.add(step.targetUser.email);
-          }
-          if (step.targetTeam?.members) {
-            for (const member of step.targetTeam.members) {
-              if (member.user.email) {
-                emailsToInvite.add(member.user.email);
-              }
+          const targetId = step.targetUserId || step.targetTeamId || step.targetScheduleId;
+          if (targetId) {
+            try {
+              const resolvedUserIds = await resolveEscalationTarget(
+                step.targetType as 'USER' | 'TEAM' | 'SCHEDULE',
+                targetId,
+                new Date(),
+                step.notifyOnlyTeamLead
+              );
+              resolvedUserIds.forEach(id => userIdsToInvite.add(id));
+            } catch (stepErr) {
+              logger.warn('[ChatOps] Failed to resolve step target', { targetId, error: stepErr });
             }
           }
         }
       }
 
       // Add the current assignee
-      if (incident.assignee?.email) {
-        emailsToInvite.add(incident.assignee.email);
+      if (incident.assigneeId) {
+        userIdsToInvite.add(incident.assigneeId);
+      }
+
+      const emailsToInvite = new Set<string>();
+
+      // Fetch emails for all resolved user IDs
+      if (userIdsToInvite.size > 0) {
+        const usersToInvite = await prisma.user.findMany({
+          where: { id: { in: Array.from(userIdsToInvite) } },
+          select: { id: true, name: true, email: true },
+        });
+
+        for (const user of usersToInvite) {
+          if (user.email) {
+            emailsToInvite.add(user.email);
+          }
+        }
       }
 
       // Look up Slack user IDs and invite them
@@ -234,9 +244,14 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
           const lookupResult = await slackApiCall('users.lookupByEmail', botToken, { email });
           if (lookupResult.ok && (lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
             slackUserIds.push((lookupResult as any).user.id); // eslint-disable-line @typescript-eslint/no-explicit-any
+          } else {
+            logger.warn('[ChatOps] Could not find Slack user by email', {
+              email,
+              error: lookupResult.error || 'User not found in Slack workspace',
+            });
           }
-        } catch {
-          // Skip users we can't find in Slack
+        } catch (lookupErr) {
+          logger.warn('[ChatOps] Error looking up user by email', { email, error: lookupErr });
         }
       }
 
