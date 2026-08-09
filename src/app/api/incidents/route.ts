@@ -259,5 +259,19 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // ChatOps: Auto-create war-room for qualifying incidents (fire-and-forget)
+  try {
+    const { createIncidentWarRoom } = await import('@/lib/chatops/war-room');
+    createIncidentWarRoom(incident.id).catch(err => {
+      logger.error('ChatOps war-room creation failed', {
+        component: 'incidents-api',
+        error: err instanceof Error ? err.message : String(err),
+        incidentId: incident.id,
+      });
+    });
+  } catch (e) {
+    logger.error('Failed to load chatops/war-room', { error: e });
+  }
+
   return jsonOk({ incident }, 201);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
@@ -31,6 +32,7 @@ export default function IncidentWarRoomCard({
   incident,
   canManage,
 }: IncidentWarRoomCardProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,9 @@ export default function IncidentWarRoomCard({
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to create war-room');
         }
+
+        // Refresh page to show updated war-room state
+        router.refresh();
       } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         setError(err.message || 'An error occurred');
       }
@@ -68,6 +73,9 @@ export default function IncidentWarRoomCard({
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to archive war-room');
         }
+
+        // Refresh page to show updated war-room state
+        router.refresh();
       } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         setError(err.message || 'An error occurred');
       }
@@ -137,6 +145,7 @@ export default function IncidentWarRoomCard({
                     onClick={handleArchiveWarRoom}
                     disabled={isPending}
                     title="Archive Channel"
+                    aria-label="Archive war-room channel"
                   >
                     {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" />}
                   </Button>
