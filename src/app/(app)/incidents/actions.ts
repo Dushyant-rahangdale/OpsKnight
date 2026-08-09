@@ -1027,11 +1027,12 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       logger.error('Failed to send reassignment notification', { error, incidentId });
     }
 
-    // ChatOps: Sync user assignment to war-room
+    // ChatOps: Sync user assignment to war-room & auto-invite new assignee
     try {
-      const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+      const { postWarRoomUpdate, inviteUserToWarRoom } = await import('@/lib/chatops/war-room');
       const assignee = await prisma.user.findUnique({ where: { id: assigneeId }, select: { name: true } });
       postWarRoomUpdate(incidentId, `👤 *Incident reassigned to ${assignee?.name || 'Unknown'}*`).catch(() => {});
+      inviteUserToWarRoom(incidentId, assigneeId).catch(() => {});
     } catch {} // Best-effort
 
     revalidatePath(`/incidents/${incidentId}`);
