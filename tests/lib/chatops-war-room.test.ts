@@ -67,6 +67,9 @@ describe('ChatOps War-Room Engine', () => {
       const customUrl = generateBridgeUrl('inc-9999', 'ZOOM', 'https://zoom.us/j/1234567890');
       expect(customUrl).toBe('https://zoom.us/j/1234567890');
 
+      const baseDomainUrl = generateBridgeUrl('inc-12345678', 'ZOOM', 'https://us04web.zoom.us/');
+      expect(baseDomainUrl).toBe('https://us04web.zoom.us/j/opsknight-inc-12345678');
+
       const fallbackUrl = generateBridgeUrl('inc-12345678', 'ZOOM');
       expect(fallbackUrl).toBe('https://zoom.us/j/opsknight-inc-12345678');
     });

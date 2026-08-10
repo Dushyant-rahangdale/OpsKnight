@@ -36,35 +36,53 @@ function slugify(name: string, maxLen: number = 40): string {
 export function generateBridgeUrl(
   incidentId: string,
   provider: string,
-  customTemplate?: string | null,
-  slackChannelId?: string | null
+  customTemplate?: string | null
 ): string | null {
   if (!provider || provider === 'NONE') {
     return null;
   }
 
-  // Format custom URL template if provided
-  let formattedUrl = customTemplate ? customTemplate.replace(/\{incidentId\}/g, incidentId).trim() : null;
+  const shortId = incidentId.slice(-8);
 
-  if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
-    formattedUrl = `https://${formattedUrl}`;
+  // Format custom URL template if provided
+  let formattedUrl: string | null = null;
+  if (customTemplate && customTemplate.trim()) {
+    let urlStr = customTemplate.trim();
+    if (!/^https?:\/\//i.test(urlStr)) {
+      urlStr = `https://${urlStr}`;
+    }
+
+    if (urlStr.includes('{incidentId}')) {
+      // If Zoom URL template lacks /j/ or /my/ path, insert /j/
+      if (/zoom\.us\/(?!j\/|my\/)/i.test(urlStr)) {
+        urlStr = urlStr.replace(/zoom\.us\//i, 'zoom.us/j/');
+      }
+      formattedUrl = urlStr.replace(/\{incidentId\}/g, incidentId);
+    } else {
+      // If user entered a base domain like https://us04web.zoom.us or https://zoom.us/
+      if (/zoom\.us\/?$/i.test(urlStr)) {
+        formattedUrl = `${urlStr.replace(/\/$/, '')}/j/opsknight-inc-${shortId}`;
+      } else {
+        formattedUrl = urlStr;
+      }
+    }
   }
 
   switch (provider) {
     case 'JITSI':
-      return formattedUrl || `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
+      return formattedUrl || `https://meet.jit.si/opsknight-inc-${shortId}`;
 
     case 'ZOOM':
       if (formattedUrl) {
         return formattedUrl;
       }
-      return `https://zoom.us/j/opsknight-inc-${incidentId.slice(-8)}`;
+      return `https://zoom.us/j/opsknight-inc-${shortId}`;
 
     case 'GOOGLE_MEET':
       if (formattedUrl) {
         return formattedUrl;
       }
-      return `https://meet.google.com/lookup/opsknight-inc-${incidentId.slice(-8)}`;
+      return `https://meet.google.com/lookup/opsknight-inc-${shortId}`;
 
     default:
       if (formattedUrl) {
