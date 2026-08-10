@@ -36,7 +36,8 @@ function slugify(name: string, maxLen: number = 40): string {
 export function generateBridgeUrl(
   incidentId: string,
   provider: string,
-  customTemplate?: string | null
+  customTemplate?: string | null,
+  slackChannelId?: string | null
 ): string | null {
   if (!provider || provider === 'NONE') {
     return null;
@@ -50,6 +51,12 @@ export function generateBridgeUrl(
   }
 
   switch (provider) {
+    case 'SLACK_HUDDLE':
+      if (slackChannelId) {
+        return `https://slack.com/app_redirect?channel=${slackChannelId}&huddle=1`;
+      }
+      return `https://slack.com/app_redirect?huddle=1`;
+
     case 'JITSI':
       return formattedUrl || `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
 
@@ -325,7 +332,7 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
     // Generate video bridge URL
     const videoBridge = incident.service.warRoomVideoBridge || config.defaultVideoBridge;
     const customUrl = incident.service.warRoomCustomBridgeUrl || config.customBridgeUrlTemplate;
-    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl);
+    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl, channelId);
 
     // Post Incident Command Card to the channel
     await sendSlackMessageToChannel(
