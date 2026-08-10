@@ -37,7 +37,8 @@ export function generateBridgeUrl(
   incidentId: string,
   provider: string,
   customTemplate?: string | null,
-  slackChannelId?: string | null
+  slackChannelId?: string | null,
+  slackTeamId?: string | null
 ): string | null {
   if (!provider || provider === 'NONE') {
     return null;
@@ -52,6 +53,9 @@ export function generateBridgeUrl(
 
   switch (provider) {
     case 'SLACK_HUDDLE':
+      if (slackTeamId && slackChannelId) {
+        return `https://app.slack.com/huddle/${slackTeamId}/${slackChannelId}`;
+      }
       if (slackChannelId) {
         return `https://slack.com/app_redirect?channel=${slackChannelId}&huddle=1`;
       }
@@ -332,7 +336,17 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
     // Generate video bridge URL
     const videoBridge = incident.service.warRoomVideoBridge || config.defaultVideoBridge;
     const customUrl = incident.service.warRoomCustomBridgeUrl || config.customBridgeUrlTemplate;
-    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl, channelId);
+
+    // Fetch Slack teamId for native Huddle URL formatting (https://app.slack.com/huddle/teamId/channelId)
+    let slackTeamId: string | null = null;
+    if (botToken && videoBridge === 'SLACK_HUDDLE') {
+      const authTest = await slackApiCall('auth.test', botToken, {}).catch(() => null);
+      if (authTest?.ok && (authTest as any).team_id) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        slackTeamId = (authTest as any).team_id as string; // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
+    }
+
+    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl, channelId, slackTeamId);
 
     // Post Incident Command Card to the channel
     await sendSlackMessageToChannel(
