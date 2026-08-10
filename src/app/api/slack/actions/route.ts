@@ -131,11 +131,17 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            // Update incident
-            await prisma.incident.update({
-                where: { id: incidentId },
-                data: updateData
-            });
+            // Update incident via standard server action for full lifecycle side-effects
+            try {
+                const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
+                await updateIncidentStatus(incidentId, actionType === 'ack' ? 'ACKNOWLEDGED' : 'RESOLVED');
+            } catch (err) {
+                logger.error('[Slack] Failed to update incident status via actions API', { incidentId, error: err });
+                await prisma.incident.update({
+                    where: { id: incidentId },
+                    data: updateData
+                });
+            }
 
             // Create incident event
             await prisma.incidentEvent.create({

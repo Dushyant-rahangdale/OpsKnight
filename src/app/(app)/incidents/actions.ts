@@ -228,10 +228,10 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
     }
   }
 
-  // ChatOps: Sync status changes to war-room (best-effort)
+  // ChatOps: Sync status changes & update topic in war-room (best-effort)
   if (status !== 'RESOLVED') {
     try {
-      const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+      const { postWarRoomUpdate, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
       const statusEmoji: Record<string, string> = {
         ACKNOWLEDGED: '👀',
         OPEN: '🔄',
@@ -241,6 +241,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
       postWarRoomUpdate(id, `${statusEmoji[status] || '📋'} *Status updated to ${status}*`).catch(err =>
         logger.error('ChatOps status sync failed', { component: 'incidents-actions', error: err, incidentId: id })
       );
+      updateWarRoomTopic(id, status).catch(() => {});
     } catch (e) {
       logger.error('Failed to load chatops/war-room', { error: e });
     }
