@@ -82,3 +82,26 @@ For full ChatOps functionality, ensure your Slack App has the following bot toke
 - `chat:write` — Posting incident notification cards & event updates
 - `commands` — Slash command `/incident` handling
 - `users:read` & `users:read.email` — On-call responder user resolution via email
+
+---
+
+## 🛠️ Slack App Slash Command & Webhook Endpoint Configuration
+
+To enable the `/incident` Slash Command and interactive buttons, configure your Slack App ([api.slack.com/apps](https://api.slack.com/apps)) with your OpsKnight deployment domain:
+
+### 1. Slash Command (`/incident`) Endpoint Setup
+1. Navigate to **Slash Commands** ➔ **Create New Command**.
+2. Enter the following values:
+   - **Command**: `/incident`
+   - **Request URL**: `https://<YOUR_DOMAIN>/api/slack/commands`  
+     *(Example: `https://opsknight.com/api/slack/commands`)*
+   - **Short Description**: `Manage OpsKnight incidents (ack, resolve, reassign, status)`
+   - **Usage Hint**: `[ack | resolve | reassign | note | who | help]`
+3. Click **Save**.
+
+### 2. Interactive Components & Event Webhook Endpoints
+- **Interactivity Request URL**: `https://<YOUR_DOMAIN>/api/slack/actions`
+- **Event Subscriptions Request URL**: `https://<YOUR_DOMAIN>/api/slack/actions`
+
+### 3. Reinstall App to Workspace
+> ⚠️ **Important Step:** Whenever you create or modify a Slash Command in Slack, go to **Install App** in the left sidebar menu and click **Reinstall to Workspace** so your Slack workspace updates its command registry!
