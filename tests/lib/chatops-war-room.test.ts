@@ -63,12 +63,12 @@ describe('ChatOps War-Room Engine', () => {
       expect(url).toBeNull();
     });
 
-    it('should generate Zoom meeting URL with custom template or fallback', () => {
+    it('should generate Zoom meeting URL with custom template or return null if unconfigured', () => {
       const customUrl = generateBridgeUrl('inc-9999', 'ZOOM', 'https://zoom.us/j/1234567890');
       expect(customUrl).toBe('https://zoom.us/j/1234567890');
 
-      const fallbackUrl = generateBridgeUrl('inc-12345678', 'ZOOM');
-      expect(fallbackUrl).toBe('https://zoom.us/j/opsknight-inc-12345678');
+      const unconfiguredUrl = generateBridgeUrl('inc-12345678', 'ZOOM');
+      expect(unconfiguredUrl).toBeNull();
     });
 
     it('should generate Google Meet URL with custom template or fallback', () => {
