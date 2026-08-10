@@ -61,7 +61,7 @@ export async function getSlackBotToken(serviceId?: string): Promise<string | nul
     if (service?.slackIntegration?.enabled && service.slackIntegration.botToken) {
       // Decrypt token
       try {
-        return decrypt(service.slackIntegration.botToken);
+        return await decrypt(service.slackIntegration.botToken);
       } catch (error) {
         logger.error('[Slack] Failed to decrypt token', { serviceId, error });
       }
@@ -78,7 +78,7 @@ export async function getSlackBotToken(serviceId?: string): Promise<string | nul
 
   if (globalIntegration?.botToken) {
     try {
-      return decrypt(globalIntegration.botToken);
+      return await decrypt(globalIntegration.botToken);
     } catch (error) {
       logger.error('[Slack] Failed to decrypt global token', { error });
     }
