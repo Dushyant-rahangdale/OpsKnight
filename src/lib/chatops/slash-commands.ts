@@ -152,6 +152,16 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
         slackUser: payload.user_name,
       });
 
+      // Update channel topic to ACKNOWLEDGED
+      try {
+        const { updateWarRoomTopic } = await import('@/lib/chatops/war-room');
+        updateWarRoomTopic(incident.id, 'ACKNOWLEDGED').catch(err =>
+          logger.warn('[ChatOps] Failed to update topic on ack', { error: err })
+        );
+      } catch (e) {
+        logger.warn('[ChatOps] Failed to load war-room module', { error: e });
+      }
+
       return {
         response_type: 'in_channel',
         text: `👀 *Incident Acknowledged* by <@${user_id}>\n_${incident.title}_`,
