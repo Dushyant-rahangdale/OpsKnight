@@ -45,12 +45,18 @@ async function resolveOpsKnightUser(slackUserId: string, botToken: string) {
     );
 
     const data = await response.json();
-    if (!data.ok || !data.user?.profile?.email) {
+    const slackEmail = data.user?.profile?.email?.trim();
+    if (!data.ok || !slackEmail) {
       return null;
     }
 
     const user = await prisma.user.findFirst({
-      where: { email: data.user.profile.email },
+      where: {
+        email: {
+          equals: slackEmail,
+          mode: 'insensitive',
+        },
+      },
       select: { id: true, name: true, email: true },
     });
 
