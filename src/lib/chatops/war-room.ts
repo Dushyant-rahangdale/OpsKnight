@@ -337,7 +337,7 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
     // Generate video bridge URL
     const videoBridge = incident.service.warRoomVideoBridge || config.defaultVideoBridge;
     const customUrl = incident.service.warRoomCustomBridgeUrl || config.customBridgeUrlTemplate;
-    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl, channelId);
+    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl);
 
     // Post Incident Command Card to the channel
     await sendSlackMessageToChannel(
