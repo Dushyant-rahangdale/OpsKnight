@@ -38,29 +38,36 @@ export function generateBridgeUrl(
   provider: string,
   customTemplate?: string | null
 ): string | null {
+  if (!provider || provider === 'NONE') {
+    return null;
+  }
+
+  // Format custom URL template if provided
+  let formattedUrl = customTemplate ? customTemplate.replace(/\{incidentId\}/g, incidentId).trim() : null;
+
+  if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
+    formattedUrl = `https://${formattedUrl}`;
+  }
+
   switch (provider) {
     case 'JITSI':
-      return `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
+      return formattedUrl || `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
+
     case 'ZOOM':
-      // Zoom requires OAuth/API integration for auto-link generation
-      // Fall through to custom template if available, otherwise return null
-      if (customTemplate) {
-        return customTemplate.replace(/\{incidentId\}/g, incidentId);
+      if (formattedUrl) {
+        return formattedUrl;
       }
-      return null;
+      return `https://zoom.us/j/opsknight-inc-${incidentId.slice(-8)}`;
+
     case 'GOOGLE_MEET':
-      // Google Meet requires Calendar API integration for auto-link generation
-      // Fall through to custom template if available, otherwise return null
-      if (customTemplate) {
-        return customTemplate.replace(/\{incidentId\}/g, incidentId);
+      if (formattedUrl) {
+        return formattedUrl;
       }
-      return null;
-    case 'NONE':
-      return null;
+      return `https://meet.google.com/lookup/opsknight-inc-${incidentId.slice(-8)}`;
+
     default:
-      // Custom template with {incidentId} placeholder
-      if (customTemplate) {
-        return customTemplate.replace(/\{incidentId\}/g, incidentId);
+      if (formattedUrl) {
+        return formattedUrl;
       }
       return null;
   }
