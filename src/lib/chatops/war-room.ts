@@ -230,9 +230,14 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         }
       }
 
-      // Add the current assignee
-      if (incident.assigneeId) {
-        userIdsToInvite.add(incident.assigneeId);
+      // Add the current assignee (re-query latest from DB in case escalation just assigned it)
+      const latestIncidentAssignee = await prisma.incident.findUnique({
+        where: { id: incidentId },
+        select: { assigneeId: true },
+      });
+      const activeAssigneeId = latestIncidentAssignee?.assigneeId || incident.assigneeId;
+      if (activeAssigneeId) {
+        userIdsToInvite.add(activeAssigneeId);
       }
 
       const emailsToInvite = new Set<string>();

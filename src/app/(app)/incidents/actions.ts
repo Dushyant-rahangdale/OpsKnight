@@ -800,10 +800,10 @@ export async function createIncident(formData: FormData) {
     });
   }
 
-  // ChatOps: Auto-create war-room for qualifying incidents (best-effort, non-blocking)
+  // ChatOps: Auto-create war-room for qualifying incidents (best-effort)
   try {
     const { createIncidentWarRoom } = await import('@/lib/chatops/war-room');
-    createIncidentWarRoom(incident.id).catch(err => {
+    await createIncidentWarRoom(incident.id).catch(err => {
       logger.error('ChatOps war-room creation failed', {
         component: 'incidents-actions',
         error: err instanceof Error ? err.message : String(err),
