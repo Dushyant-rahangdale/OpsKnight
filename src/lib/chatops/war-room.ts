@@ -54,7 +54,7 @@ export function generateBridgeUrl(
   switch (provider) {
     case 'SLACK_HUDDLE':
       if (slackTeamId && slackChannelId) {
-        return `https://app.slack.com/huddle/${slackTeamId}/${slackChannelId}`;
+        return `https://slack.com/app_redirect?channel=${slackChannelId}&team=${slackTeamId}&huddle=1`;
       }
       if (slackChannelId) {
         return `https://slack.com/app_redirect?channel=${slackChannelId}&huddle=1`;
