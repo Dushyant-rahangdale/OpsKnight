@@ -39,7 +39,6 @@ const PRIORITY_OPTIONS = [
 const VIDEO_BRIDGE_OPTIONS = [
   { value: 'NONE', label: 'None' },
   { value: 'JITSI', label: 'Jitsi Meet' },
-  { value: 'SLACK_HUDDLE', label: 'Slack Channel Huddle 🎧' },
   { value: 'ZOOM', label: 'Zoom' },
   { value: 'GOOGLE_MEET', label: 'Google Meet' },
 ];
