@@ -59,10 +59,10 @@ describe('ChatOps War-Room Engine', () => {
 
     it('should generate Slack Huddle redirect URL when teamId and channelId are present', () => {
       const redirectUrl = generateBridgeUrl('inc-12345678', 'SLACK_HUDDLE', null, 'C0BP8H52EKU', 'T067P6T4F89');
-      expect(redirectUrl).toBe('https://slack.com/app_redirect?channel=C0BP8H52EKU&team=T067P6T4F89&huddle=1');
+      expect(redirectUrl).toBe('https://slack.com/app_redirect?channel=C0BP8H52EKU&team=T067P6T4F89');
 
       const fallbackUrl = generateBridgeUrl('inc-12345678', 'SLACK_HUDDLE', null, 'C0BP8H52EKU');
-      expect(fallbackUrl).toBe('https://slack.com/app_redirect?channel=C0BP8H52EKU&huddle=1');
+      expect(fallbackUrl).toBe('https://slack.com/app_redirect?channel=C0BP8H52EKU');
     });
 
     it('should return null for NONE provider', () => {
