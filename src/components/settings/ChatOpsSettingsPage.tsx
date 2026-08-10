@@ -1,7 +1,8 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { saveChatOpsConfig } from '@/app/(app)/settings/integrations/chatops/actions';
 import { SettingsSection } from '@/components/settings/layout/SettingsSection';
 import { Button } from '@/components/ui/shadcn/button';
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/shadcn/input';
 import { Label } from '@/components/ui/shadcn/label';
 import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
 import { Badge } from '@/components/ui/shadcn/badge';
-import { CheckCircle2, Loader2, XCircle, MessageCircle, Video, Hash, Archive, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, MessageCircle, Video, Hash, Archive, AlertTriangle, Info } from 'lucide-react';
 
 type ChatOpsConfigView = {
   enabled: boolean;
@@ -37,12 +38,30 @@ const PRIORITY_OPTIONS = [
 ];
 
 const VIDEO_BRIDGE_OPTIONS = [
-  { value: 'NONE', label: 'None' },
-  { value: 'JITSI', label: 'Jitsi Meet' },
-  { value: 'SLACK_HUDDLE', label: 'Slack Channel Huddle 🎧' },
-  { value: 'ZOOM', label: 'Zoom' },
-  { value: 'GOOGLE_MEET', label: 'Google Meet' },
+  { value: 'JITSI', label: 'Jitsi Meet (Instant War-Room)' },
+  { value: 'ZOOM', label: 'Zoom (Enterprise Link)' },
+  { value: 'GOOGLE_MEET', label: 'Google Meet (Enterprise Link)' },
+  { value: 'NONE', label: 'None (Disabled)' },
 ];
+
+const PROVIDER_HINTS: Record<string, { placeholder: string; hint: string }> = {
+  JITSI: {
+    placeholder: 'https://meet.jit.si/opsknight-inc-{incidentId} (Leave empty for default instant room)',
+    hint: 'Generates an instant, zero-setup video war-room (meet.jit.si/opsknight-inc-XXXX) for every incident.',
+  },
+  ZOOM: {
+    placeholder: 'e.g. https://myorg.zoom.us/j/1234567890 or https://zoom.us/j/{incidentId}',
+    hint: 'Paste your organization\'s Zoom meeting URL (e.g. https://myorg.zoom.us/j/1234567890) or use {incidentId} for dynamic room IDs.',
+  },
+  GOOGLE_MEET: {
+    placeholder: 'e.g. https://meet.google.com/abc-defg-hij',
+    hint: 'Paste your organization\'s Google Meet call link (e.g. https://meet.google.com/abc-defg-hij).',
+  },
+  NONE: {
+    placeholder: 'Video bridge disabled',
+    hint: 'No video bridge link will be generated for incidents.',
+  },
+};
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -63,11 +82,30 @@ export default function ChatOpsSettingsPage({
   isAdmin: boolean;
   isSlackConnected: boolean;
 }) {
+  const router = useRouter();
   const [state, formAction] = useActionState(saveChatOpsConfig, {
     error: null,
     success: false,
   });
 
+  const [selectedBridge, setSelectedBridge] = useState<string>(config?.defaultVideoBridge ?? 'JITSI');
+  const [customUrl, setCustomUrl] = useState<string>(config?.customBridgeUrlTemplate ?? '');
+
+  // Keep controlled state in sync with props and server updates
+  useEffect(() => {
+    if (config) {
+      setSelectedBridge(config.defaultVideoBridge || 'JITSI');
+      setCustomUrl(config.customBridgeUrlTemplate || '');
+    }
+  }, [config]);
+
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+    }
+  }, [state?.success, router]);
+
+  const activeHint = PROVIDER_HINTS[selectedBridge] || PROVIDER_HINTS.JITSI;
   const selectedUrgencies = config ? config.autoCreateOnUrgency : ['HIGH'];
   const selectedPriorities = config ? config.autoCreateOnPriority : ['P1', 'P2'];
 
@@ -84,10 +122,12 @@ export default function ChatOpsSettingsPage({
       >
         <form action={formAction} className="space-y-6 py-6">
           {!isSlackConnected && (
-             <Alert variant="destructive">
-               <AlertTriangle className="h-4 w-4" />
-               <AlertDescription>Slack is not connected. ChatOps requires an active Slack integration to create channels.</AlertDescription>
-             </Alert>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Slack is not connected. ChatOps requires an active Slack integration to create channels.
+              </AlertDescription>
+            </Alert>
           )}
           {state?.error && (
             <Alert variant="destructive">
@@ -98,118 +138,145 @@ export default function ChatOpsSettingsPage({
           {state?.success && (
             <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <AlertDescription>ChatOps configuration saved.</AlertDescription>
+              <AlertDescription>ChatOps configuration saved successfully.</AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-4">
-             <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                <input
-                  type="checkbox"
-                  name="enabled"
-                  defaultChecked={config?.enabled ?? false}
-                  disabled={!isAdmin}
-                  className="h-4 w-4"
-                />
-                <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                Enable ChatOps workflows
-              </label>
+            <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+              <input
+                type="checkbox"
+                name="enabled"
+                defaultChecked={config?.enabled ?? false}
+                disabled={!isAdmin}
+                className="h-4 w-4"
+              />
+              <MessageCircle className="h-4 w-4 text-muted-foreground" />
+              Enable ChatOps workflows
+            </label>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                 <div className="space-y-2">
-                    <Label htmlFor="channelPrefix" className="flex items-center gap-2">
-                      <Hash className="h-4 w-4" /> Channel Prefix
-                    </Label>
-                    <Input
-                      id="channelPrefix"
-                      name="channelPrefix"
-                      defaultValue={config?.channelPrefix ?? 'inc'}
-                      placeholder="inc"
-                      disabled={!isAdmin}
-                      required
-                    />
-                 </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="channelPrefix" className="flex items-center gap-2">
+                  <Hash className="h-4 w-4" /> Channel Prefix
+                </Label>
+                <Input
+                  id="channelPrefix"
+                  name="channelPrefix"
+                  defaultValue={config?.channelPrefix ?? 'inc'}
+                  placeholder="inc"
+                  disabled={!isAdmin}
+                  required
+                />
               </div>
+            </div>
           </div>
 
           <div className="rounded-md border p-4 space-y-4">
-             <Label className="text-sm font-medium">Auto-create channels on Incident Urgency</Label>
-             <div className="grid gap-2 sm:grid-cols-3">
-               {URGENCY_OPTIONS.map(option => (
-                 <label key={option.value} className="flex items-center gap-2 text-sm">
-                   <input
-                     type="checkbox"
-                     name="autoCreateOnUrgency"
-                     value={option.value}
-                     defaultChecked={selectedUrgencies.includes(option.value)}
-                     disabled={!isAdmin}
-                     className="h-4 w-4"
-                   />
-                   {option.label}
-                 </label>
-               ))}
-             </div>
-             
-             <Label className="text-sm font-medium mt-4 block">Auto-create channels on Incident Priority</Label>
-             <div className="grid gap-2 sm:grid-cols-5">
-               {PRIORITY_OPTIONS.map(option => (
-                 <label key={option.value} className="flex items-center gap-2 text-sm">
-                   <input
-                     type="checkbox"
-                     name="autoCreateOnPriority"
-                     value={option.value}
-                     defaultChecked={selectedPriorities.includes(option.value)}
-                     disabled={!isAdmin}
-                     className="h-4 w-4"
-                   />
-                   {option.label}
-                 </label>
-               ))}
-             </div>
+            <Label className="text-sm font-medium">Auto-create channels on Incident Urgency</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {URGENCY_OPTIONS.map((option) => (
+                <label key={option.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="autoCreateOnUrgency"
+                    value={option.value}
+                    defaultChecked={selectedUrgencies.includes(option.value)}
+                    disabled={!isAdmin}
+                    className="h-4 w-4"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+
+            <Label className="text-sm font-medium mt-4 block">Auto-create channels on Incident Priority</Label>
+            <div className="grid gap-2 sm:grid-cols-5">
+              {PRIORITY_OPTIONS.map((option) => (
+                <label key={option.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="autoCreateOnPriority"
+                    value={option.value}
+                    defaultChecked={selectedPriorities.includes(option.value)}
+                    disabled={!isAdmin}
+                    className="h-4 w-4"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-4 rounded-md border p-4">
-             <Label className="text-sm font-medium flex items-center gap-2 mb-4">
-                <Video className="h-4 w-4" /> Video War Room
-             </Label>
-             <div className="grid gap-4 md:grid-cols-2">
-                 <div className="space-y-2">
-                    <Label htmlFor="defaultVideoBridge">Default Video Bridge</Label>
-                    <select
-                      id="defaultVideoBridge"
-                      name="defaultVideoBridge"
-                      defaultValue={config?.defaultVideoBridge ?? 'NONE'}
-                      disabled={!isAdmin}
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {VIDEO_BRIDGE_OPTIONS.map(option => (
-                         <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="customBridgeUrlTemplate">Custom Bridge URL Template</Label>
-                    <Input
-                      id="customBridgeUrlTemplate"
-                      name="customBridgeUrlTemplate"
-                      defaultValue={config?.customBridgeUrlTemplate ?? ''}
-                      placeholder="https://meet.company.com/{incidentId}"
-                      disabled={!isAdmin}
-                    />
-                 </div>
-             </div>
+          {/* Video War Room Configuration Section */}
+          <div className="space-y-4 rounded-md border p-4 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <Video className="h-4 w-4 text-primary" /> Video War Room Integration
+              </Label>
+              <Badge variant="outline" className="text-xs">
+                {selectedBridge}
+              </Badge>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="defaultVideoBridge">Default Video Bridge Provider</Label>
+                <select
+                  id="defaultVideoBridge"
+                  name="defaultVideoBridge"
+                  value={selectedBridge}
+                  onChange={(e) => setSelectedBridge(e.target.value)}
+                  disabled={!isAdmin}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {VIDEO_BRIDGE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customBridgeUrlTemplate">
+                  {selectedBridge === 'JITSI' ? 'Custom Jitsi Domain (Optional)' : 'Meeting URL / Template'}
+                </Label>
+                <Input
+                  id="customBridgeUrlTemplate"
+                  name="customBridgeUrlTemplate"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder={activeHint.placeholder}
+                  disabled={!isAdmin || selectedBridge === 'NONE'}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border bg-background p-3 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                <Info className="h-3.5 w-3.5 text-blue-500" />
+                <span>Provider Guidance & URL Formatting</span>
+              </div>
+              <p className="text-muted-foreground">{activeHint.hint}</p>
+              {selectedBridge !== 'NONE' && (
+                <p className="text-muted-foreground pt-1 border-t mt-1">
+                  💡 <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{'{incidentId}'}</code> can be used in URL templates to dynamically insert the incident ID.
+                </p>
+              )}
+            </div>
           </div>
-          
+
           <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
-             <input
-               type="checkbox"
-               name="archiveOnResolve"
-               defaultChecked={config?.archiveOnResolve ?? true}
-               disabled={!isAdmin}
-               className="h-4 w-4"
-             />
-             <Archive className="h-4 w-4 text-muted-foreground" />
-             Archive Slack channel on resolve
+            <input
+              type="checkbox"
+              name="archiveOnResolve"
+              defaultChecked={config?.archiveOnResolve ?? true}
+              disabled={!isAdmin}
+              className="h-4 w-4"
+            />
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            Archive Slack channel on resolve
           </label>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
