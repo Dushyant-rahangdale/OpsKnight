@@ -100,6 +100,30 @@ async function slackApiCall(
 }
 
 /**
+ * Lookup Slack user by email via HTTP GET query parameters
+ */
+async function findSlackUserByEmail(
+  botToken: string,
+  email: string
+): Promise<{ ok: boolean; error?: string; user?: { id: string } }> {
+  const url = `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`;
+  const response = await retryFetch(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${botToken}`,
+      },
+    },
+    {
+      maxAttempts: 2,
+      initialDelayMs: 500,
+    }
+  );
+  return response.json();
+}
+
+/**
  * Create a dedicated Slack war-room channel for a critical incident.
  * Checks eligibility based on ChatOpsConfig thresholds and service settings.
  */
@@ -531,7 +555,7 @@ export async function inviteUserToWarRoom(
     }
 
     const normalizedEmail = user.email.trim().toLowerCase();
-    const lookupResult = await slackApiCall('users.lookupByEmail', botToken, { email: normalizedEmail });
+    const lookupResult = await findSlackUserByEmail(botToken, normalizedEmail);
 
     if (!lookupResult.ok || !(lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const lookupErr = lookupResult.error || 'User not found in Slack workspace';
