@@ -16,7 +16,7 @@ OpsKnight **v1.2.0** introduces native **ChatOps Workflows & Multi-Provider Vide
 
 ### 1. Automated Slack War-Room Channel Creation
 - Automatically creates dedicated Slack channels following the pattern: `#inc-<id>-<service-slug>`.
-- Example: `#inc-vzvtwk-github-alert`.
+- Example: `#inc-982341-payment-service`.
 - Triggered based on configurable **Incident Urgency** (`HIGH`, `MEDIUM`, `LOW`) and **Incident Priority** (`P1`, `P2`, `P3`, `P4`, `P5`).
 
 ### 2. Auto-Inviting Responders & On-Call Shifts
@@ -26,7 +26,7 @@ OpsKnight **v1.2.0** introduces native **ChatOps Workflows & Multi-Provider Vide
 ### 3. Real-Time Channel Topic Synchronization
 - Keeps all incident responders aligned with dynamic topic updates:
   ```text
-  👀 16% of incidents originate from "Github Alert" | ACKNOWLEDGED | HIGH | 👤 Admin | https://opssentinal.com/incidents/cmsnfmlqx000pupcim9vzvtwk
+  👀 High API Error Rate in Payment Gateway | ACKNOWLEDGED | HIGH | 👤 On-Call Engineer | https://opsknight.com/incidents/inc-982341
   ```
 - Automatically updates topic status when incidents transition from `OPEN` ➔ `ACKNOWLEDGED` ➔ `RESOLVED`.
 
