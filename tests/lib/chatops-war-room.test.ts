@@ -57,10 +57,6 @@ describe('ChatOps War-Room Engine', () => {
       expect(url).toBe('https://meet.jit.si/opsknight-inc-12345678');
     });
 
-    it('should generate Slack Huddle URL with channel redirect', () => {
-      const url = generateBridgeUrl('inc-12345678', 'SLACK_HUDDLE', null, 'C0BP67E0KK8');
-      expect(url).toBe('https://slack.com/app_redirect?channel=C0BP67E0KK8&huddle=1');
-    });
 
     it('should return null for NONE provider', () => {
       const url = generateBridgeUrl('inc-12345678', 'NONE');

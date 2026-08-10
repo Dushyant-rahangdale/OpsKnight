@@ -51,12 +51,6 @@ export function generateBridgeUrl(
   }
 
   switch (provider) {
-    case 'SLACK_HUDDLE':
-      if (slackChannelId) {
-        return `https://slack.com/app_redirect?channel=${slackChannelId}&huddle=1`;
-      }
-      return `https://slack.com/app_redirect?huddle=1`;
-
     case 'JITSI':
       return formattedUrl || `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
 
