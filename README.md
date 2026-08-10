@@ -12,8 +12,8 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Website](https://img.shields.io/badge/Website-opsknight.com-10b981?style=flat&logo=google-chrome&logoColor=white)](https://opsknight.com)
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1.1/deployment/docker.md)
-[![Status](https://img.shields.io/badge/Status-v1.1.0-success?style=flat)](ROADMAP.md)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1.2/deployment/docker.md)
+[![Status](https://img.shields.io/badge/Status-v1.2.0-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml)
 [![Security](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml)
@@ -221,23 +221,26 @@ OpsKnight runs as a single Next.js application (UI + API routes + server actions
 Everything you need to configure and extend OpsKnight.
 
 - **[Hosted Documentation](https://opsknight.com/docs)** (Recommended)
-- **In-Repo Guides**:
-  - [⚡ Getting Started](docs/v1.1/getting-started/README.md)
-  - [🧩 Core Concepts](docs/v1.1/core-concepts/README.md)
-  - [🔌 Integrations](docs/v1.1/integrations/README.md)
-  - [🛡️ Security](docs/v1.1/security/README.md)
-  - [📡 API Reference](docs/v1.1/api/README.md)
+- **In-Repo Guides (v1.2)**:
+  - [⚡ Getting Started](docs/v1.2/getting-started/README.md)
+  - [🛡️ ChatOps & War-Rooms](docs/v1.2/integrations/communication/chatops-war-room.md)
+  - [🧩 Core Concepts](docs/v1.2/core-concepts/README.md)
+  - [🔌 Integrations](docs/v1.2/integrations/README.md)
+  - [🛡️ Security](docs/v1.2/security/README.md)
+  - [📡 API Reference](docs/v1.2/api/README.md)
 
 ---
 
 ## 🗺️ Roadmap
 
-We are proud to announce **Version 1.1 (August 2026)**! 🚀
+We are proud to announce **Version 1.2 (August 2026)**! 🚀
 
 We are now **Accepting Contributions** to help us build the next generation of open-source incident management.
 
 - [x] Core Incident Management & On-Call
 - [x] Slack Integration & Webhooks
+- [x] ChatOps Incident War-Rooms & Slash Commands (`/incident`)
+- [x] Multi-Provider Video Bridges (Jitsi, Zoom, Google Meet)
 - [x] Basic Status Pages
 - [x] **Advanced Analytics & SLA Engine Reports**
 - [x] **Jira Cloud Bi-Directional Integration**
