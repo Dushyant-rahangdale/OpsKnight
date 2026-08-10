@@ -14,8 +14,8 @@ The OpsKnight API lets you programmatically manage incidents, integrate monitori
 
 | Endpoint                     | Description                             | Common Use Cases              |
 | ---------------------------- | --------------------------------------- | ----------------------------- |
-| [Events API](./events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
-| [Incidents API](./incidents) | List, create, update incidents          | Custom dashboards, automation |
+| [Events API](./api/events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
+| [Incidents API](./api/incidents) | List, create, update incidents          | Custom dashboards, automation |
 | Services API                 | Manage services                         | Service catalog automation    |
 | Schedules API                | Query on-call schedules                 | Who's on-call integrations    |
 | Users API                    | Manage users                            | User provisioning             |

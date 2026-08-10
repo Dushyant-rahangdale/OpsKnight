@@ -12,8 +12,8 @@ This section covers identity management, data encryption, and secure operations 
 
 | Guide                          | Description                                                           |
 | ------------------------------ | --------------------------------------------------------------------- |
-| [OIDC SSO Setup](./oidc-setup) | Configure single sign-on with Google, Okta, Azure, and more           |
-| [Encryption](./encryption)     | How secrets are encrypted at rest and how to configure the master key |
+| [OIDC SSO Setup](./security/oidc-setup) | Configure single sign-on with Google, Okta, Azure, and more           |
+| [Encryption](./security/encryption)     | How secrets are encrypted at rest and how to configure the master key |
 
 ## Key Concepts
 

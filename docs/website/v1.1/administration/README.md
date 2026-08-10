@@ -26,11 +26,11 @@ This section covers the administrative configuration of OpsKnight, including not
 
 | Topic                              | Description                                 | Why It Matters                 |
 | ---------------------------------- | ------------------------------------------- | ------------------------------ |
-| [Notifications](./notifications)   | Configure Email, SMS, Push, WhatsApp, Slack | Ensure alerts reach responders |
-| [Authentication](./authentication) | Local auth, SSO/OIDC, user management       | Secure access control          |
-| [Custom Fields](./custom-fields)   | Add metadata fields to incidents            | Track additional information   |
-| [Data Retention](./data-retention) | Configure cleanup policies                  | Manage storage and compliance  |
-| [Audit Logs](./audit-logs)         | Track security-relevant events              | Compliance and troubleshooting |
+| [Notifications](./administration/notifications)   | Configure Email, SMS, Push, WhatsApp, Slack | Ensure alerts reach responders |
+| [Authentication](./administration/authentication) | Local auth, SSO/OIDC, user management       | Secure access control          |
+| [Custom Fields](./administration/custom-fields)   | Add metadata fields to incidents            | Track additional information   |
+| [Data Retention](./administration/data-retention) | Configure cleanup policies                  | Manage storage and compliance  |
+| [Audit Logs](./administration/audit-logs)         | Track security-relevant events              | Compliance and troubleshooting |
 
 ---
 
