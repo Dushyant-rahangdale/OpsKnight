@@ -895,10 +895,11 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       });
     });
 
-    // ChatOps: Sync unassignment to war-room
+    // ChatOps: Sync unassignment & update topic in war-room
     try {
-      const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+      const { postWarRoomUpdate, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
       postWarRoomUpdate(incidentId, '👤 *Incident unassigned*').catch(() => {});
+      updateWarRoomTopic(incidentId).catch(() => {});
     } catch {} // Best-effort
 
     revalidatePath(`/incidents/${incidentId}`);
@@ -982,11 +983,13 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       });
     } // Continue even if notifications fail
 
-    // ChatOps: Sync team assignment to war-room
+    // ChatOps: Sync team assignment, auto-invite members & update topic in war-room
     try {
-      const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+      const { postWarRoomUpdate, inviteTeamToWarRoom, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
       const teamRecord = await prisma.team.findUnique({ where: { id: teamId }, select: { name: true } });
       postWarRoomUpdate(incidentId, `👥 *Incident assigned to team: ${teamRecord?.name || 'Unknown'}*`).catch(() => {});
+      inviteTeamToWarRoom(incidentId, teamId).catch(() => {});
+      updateWarRoomTopic(incidentId).catch(() => {});
     } catch {} // Best-effort
 
     revalidatePath(`/incidents/${incidentId}`);
@@ -1028,11 +1031,13 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       logger.error('Failed to send reassignment notification', { error, incidentId });
     }
 
-    // ChatOps: Sync user assignment to war-room
+    // ChatOps: Sync user assignment, auto-invite user & update topic in war-room
     try {
-      const { postWarRoomUpdate } = await import('@/lib/chatops/war-room');
+      const { postWarRoomUpdate, inviteUserToWarRoom, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
       const assignee = await prisma.user.findUnique({ where: { id: assigneeId }, select: { name: true } });
       postWarRoomUpdate(incidentId, `👤 *Incident reassigned to ${assignee?.name || 'Unknown'}*`).catch(() => {});
+      inviteUserToWarRoom(incidentId, assigneeId).catch(() => {});
+      updateWarRoomTopic(incidentId).catch(() => {});
     } catch {} // Best-effort
 
     revalidatePath(`/incidents/${incidentId}`);
