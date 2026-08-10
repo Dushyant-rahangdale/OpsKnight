@@ -44,22 +44,35 @@ const VIDEO_BRIDGE_OPTIONS = [
   { value: 'NONE', label: 'None (Disabled)' },
 ];
 
-const PROVIDER_HINTS: Record<string, { placeholder: string; hint: string }> = {
+const PROVIDER_HINTS: Record<string, { placeholder: string; hint: string; examples: string[] }> = {
   JITSI: {
     placeholder: 'https://meet.jit.si/opsknight-inc-{incidentId} (Leave empty for default instant room)',
-    hint: 'Generates an instant, zero-setup video war-room (meet.jit.si/opsknight-inc-XXXX) for every incident.',
+    hint: 'Generates an instant, 0-setup video war-room for every incident with no pre-created link needed.',
+    examples: [
+      'Default (Leave empty): https://meet.jit.si/opsknight-inc-XXXX',
+      'Custom Jitsi Domain: https://jitsi.mycompany.com/warroom-{incidentId}',
+    ],
   },
   ZOOM: {
-    placeholder: 'e.g. https://myorg.zoom.us/j/1234567890 or https://zoom.us/j/{incidentId}',
-    hint: 'Paste your organization\'s Zoom meeting URL (e.g. https://myorg.zoom.us/j/1234567890) or use {incidentId} for dynamic room IDs.',
+    placeholder: 'https://us04web.zoom.us/j/1234567890 or https://myorg.zoom.us/my/warroom',
+    hint: 'Zoom requires valid numeric meeting IDs (/j/1234567890) or personal vanity URLs (/my/warroom).',
+    examples: [
+      'Standard Zoom Link: https://us04web.zoom.us/j/1234567890',
+      'Personal Room Link: https://myorg.zoom.us/my/incidentwarroom',
+    ],
   },
   GOOGLE_MEET: {
-    placeholder: 'e.g. https://meet.google.com/abc-defg-hij',
-    hint: 'Paste your organization\'s Google Meet call link (e.g. https://meet.google.com/abc-defg-hij).',
+    placeholder: 'https://meet.google.com/abc-defg-hij',
+    hint: 'Google Meet requires a valid meeting room code or Google Workspace lookup link.',
+    examples: [
+      'Google Meet Call: https://meet.google.com/abc-defg-hij',
+      'Workspace Lookup: https://meet.google.com/lookup/opsknight-inc-{incidentId}',
+    ],
   },
   NONE: {
     placeholder: 'Video bridge disabled',
     hint: 'No video bridge link will be generated for incidents.',
+    examples: [],
   },
 };
 
@@ -253,15 +266,25 @@ export default function ChatOpsSettingsPage({
               </div>
             </div>
 
-            <div className="rounded-md border bg-background p-3 text-xs space-y-1">
+            <div className="rounded-md border bg-background p-3 text-xs space-y-2">
               <div className="flex items-center gap-1.5 font-medium text-foreground">
                 <Info className="h-3.5 w-3.5 text-blue-500" />
-                <span>Provider Guidance & URL Formatting</span>
+                <span>Provider Guidance & Supported URL Formats</span>
               </div>
               <p className="text-muted-foreground">{activeHint.hint}</p>
+              {activeHint.examples.length > 0 && (
+                <div className="pt-1.5 border-t space-y-1">
+                  <span className="font-semibold text-muted-foreground">Supported URL Examples:</span>
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-muted-foreground">
+                    {activeHint.examples.map((ex, i) => (
+                      <li key={i}><code className="bg-muted px-1 py-0.5 rounded">{ex}</code></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {selectedBridge !== 'NONE' && (
-                <p className="text-muted-foreground pt-1 border-t mt-1">
-                  💡 <code className="bg-muted px-1 py-0.5 rounded text-[11px]">{'{incidentId}'}</code> can be used in URL templates to dynamically insert the incident ID.
+                <p className="text-muted-foreground text-[11px] pt-1 border-t">
+                  💡 <code className="bg-muted px-1 py-0.5 rounded">{'{incidentId}'}</code> can be used in URL templates to dynamically insert the incident ID.
                 </p>
               )}
             </div>
