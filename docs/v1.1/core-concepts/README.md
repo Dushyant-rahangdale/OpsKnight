@@ -66,18 +66,18 @@ OpsKnight is built around a simple but powerful model: **Alerts become Incidents
 
 | Concept                                      | What It Is                              | Why It Matters                            |
 | -------------------------------------------- | --------------------------------------- | ----------------------------------------- |
-| [Dashboard](./dashboard)                     | Command center for real-time visibility | See the forest, not just the trees        |
-| [Services](./services)                       | Systems you monitor with ownership      | Alerts need context and routing           |
-| [Incidents](./incidents)                     | Actionable work items from alerts       | Track resolution from trigger to close    |
-| [Escalation Policies](./escalation-policies) | Who gets notified and when              | Ensure issues never fall through cracks   |
-| [Schedules](./schedules)                     | On-call rotations and shifts            | Fair distribution of on-call duty         |
-| [Teams](./teams)                             | User groups with shared responsibility  | Organize people and permissions           |
-| [Users](./users)                             | Individuals with roles and preferences  | Authentication and personalization        |
-| [Analytics](./analytics)                     | Metrics, SLAs, and trends               | Measure and improve performance           |
-| [Postmortems](./postmortems)                 | Incident retrospectives                 | Learn from failures                       |
-| [Status Pages](./status-page)                | Public service health communication     | Transparency with customers               |
-| [Integrations](./integrations)               | Connections to monitoring tools         | Route alerts from your stack              |
-| [Scalability](./scalability)                 | Capacity targets and tuning             | Understand scale limits and optimizations |
+| [Dashboard](./core-concepts/dashboard)                     | Command center for real-time visibility | See the forest, not just the trees        |
+| [Services](./core-concepts/services)                       | Systems you monitor with ownership      | Alerts need context and routing           |
+| [Incidents](./core-concepts/incidents)                     | Actionable work items from alerts       | Track resolution from trigger to close    |
+| [Escalation Policies](./core-concepts/escalation-policies) | Who gets notified and when              | Ensure issues never fall through cracks   |
+| [Schedules](./core-concepts/schedules)                     | On-call rotations and shifts            | Fair distribution of on-call duty         |
+| [Teams](./core-concepts/teams)                             | User groups with shared responsibility  | Organize people and permissions           |
+| [Users](./core-concepts/users)                             | Individuals with roles and preferences  | Authentication and personalization        |
+| [Analytics](./core-concepts/analytics)                     | Metrics, SLAs, and trends               | Measure and improve performance           |
+| [Postmortems](./core-concepts/postmortems)                 | Incident retrospectives                 | Learn from failures                       |
+| [Status Pages](./core-concepts/status-page)                | Public service health communication     | Transparency with customers               |
+| [Integrations](./core-concepts/integrations)               | Connections to monitoring tools         | Route alerts from your stack              |
+| [Scalability](./core-concepts/scalability)                 | Capacity targets and tuning             | Understand scale limits and optimizations |
 
 ---
 

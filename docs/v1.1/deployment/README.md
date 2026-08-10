@@ -14,10 +14,10 @@ This section covers production deployment of OpsKnight. Choose the deployment me
 
 | Method                     | Best For                  | Complexity | HA Support |
 | -------------------------- | ------------------------- | ---------- | ---------- |
-| [Docker Compose](./docker) | Small teams, dev/staging  | Low        | No         |
-| [Kubernetes](./kubernetes) | Production, enterprise    | Medium     | Yes        |
-| [Helm](./helm)             | Templated K8s deployments | Medium     | Yes        |
-| [Mobile PWA](./mobile-pwa) | Mobile access             | N/A        | N/A        |
+| [Docker Compose](./deployment/docker) | Small teams, dev/staging  | Low        | No         |
+| [Kubernetes](./deployment/kubernetes) | Production, enterprise    | Medium     | Yes        |
+| [Helm](./deployment/helm)             | Templated K8s deployments | Medium     | Yes        |
+| [Mobile PWA](./deployment/mobile-pwa) | Mobile access             | N/A        | N/A        |
 
 ---
 
