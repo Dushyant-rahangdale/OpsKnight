@@ -44,14 +44,12 @@ async function resolveOpsKnightUser(
 
     if (botToken) {
       const response = await retryFetch(
-        'https://slack.com/api/users.info',
+        `https://slack.com/api/users.info?user=${encodeURIComponent(slackUserId)}`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${botToken}`,
           },
-          body: JSON.stringify({ user: slackUserId }),
         },
         { maxAttempts: 2, initialDelayMs: 300 }
       );
