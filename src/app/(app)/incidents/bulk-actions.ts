@@ -137,10 +137,11 @@ export async function bulkResolve(incidentIds: string[]) {
       },
     });
 
-    // Send notifications in parallel
+    // Send notifications & archive war-room channels in parallel
     const { sendIncidentNotifications } = await import('@/lib/user-notifications');
     const { notifyStatusPageSubscribers } = await import('@/lib/status-page-notifications');
     const { triggerWebhooksForService } = await import('@/lib/status-page-webhooks');
+    const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
 
     await Promise.allSettled(
       incidents.map(async incident => {
@@ -148,6 +149,12 @@ export async function bulkResolve(incidentIds: string[]) {
           await Promise.all([
             sendIncidentNotifications(incident.id, 'resolved'),
             notifyStatusPageSubscribers(incident.id, 'resolved'),
+            archiveWarRoomChannel(incident.id).catch(err =>
+              logger.warn('[ChatOps] Failed to archive war-room channel on bulk resolve', {
+                incidentId: incident.id,
+                error: err,
+              })
+            ),
             triggerWebhooksForService(incident.serviceId, 'incident.resolved', {
               id: incident.id,
               title: incident.title,
@@ -683,9 +690,16 @@ export async function bulkUpdateStatus(
               notifyStatusPageSubscribers(incident.id, 'acknowledged')
             );
           } else if (status === 'RESOLVED') {
+            const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
             notificationPromises.push(
               sendIncidentNotifications(incident.id, 'resolved'),
-              notifyStatusPageSubscribers(incident.id, 'resolved')
+              notifyStatusPageSubscribers(incident.id, 'resolved'),
+              archiveWarRoomChannel(incident.id).catch(err =>
+                logger.warn('[ChatOps] Failed to archive war-room channel on bulk status update', {
+                  incidentId: incident.id,
+                  error: err,
+                })
+              )
             );
           } else if (status === 'OPEN') {
             notificationPromises.push(sendIncidentNotifications(incident.id, 'updated'));
