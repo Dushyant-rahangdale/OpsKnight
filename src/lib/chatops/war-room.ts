@@ -701,9 +701,10 @@ export async function postWarRoomWelcomeCard(
       text: {
         type: 'mrkdwn',
         text: [
-          '*⚡ War Room Features:*',
-          '• 🔍 *View Details Button*: Click *View Details ↗* on the card above to manage in OpsKnight Console.',
+          '*⚡ War Room Power Features:*',
+          '• 🔘 *1-Click Action Buttons*: Use *Acknowledge*, *Assign to Me*, or *Resolve* on the card above.',
           '• 📌 *Emoji Reaction Sync*: React to ANY message with 📌 (`:pushpin:`) or 📝 (`:memo:`) to auto-save to the incident timeline!',
+          '• 📄 *Auto Postmortem*: Type `/incident postmortem` to generate a pre-filled Postmortem draft.',
         ].join('\n'),
       },
     },
@@ -717,6 +718,7 @@ export async function postWarRoomWelcomeCard(
           '`/incident resolve [summary]` — Resolve incident with notes',
           '`/incident note <message>` — Save a note to the timeline',
           '`/incident who` — View current on-call responders',
+          '`/incident postmortem` — Create postmortem draft',
         ].join('\n'),
       },
     },
@@ -725,7 +727,7 @@ export async function postWarRoomWelcomeCard(
   await slackApiCall('chat.postMessage', botToken, {
     channel: channelId,
     blocks,
-    text: '👋 Welcome to your Incident War Room! Use 📌 emoji pins or /incident slash commands.',
+    text: '👋 Welcome to your Incident War Room! Use 1-click buttons, 📌 emoji pins, or /incident slash commands.',
   }).catch(err => logger.warn('[ChatOps] Failed to post welcome card', { error: err }));
 }
 
