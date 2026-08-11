@@ -472,16 +472,20 @@ export async function archiveWarRoomChannel(
       return { success: false, error: 'No Slack bot token' };
     }
 
+    // Auto-generate Postmortem draft before archiving channel
+    const postmortemUrl = await ensurePostmortemDraft(incidentId).catch(() => null);
+    const pmText = postmortemUrl ? `\n📄 *Postmortem Draft:* ${postmortemUrl}` : '';
+
     // Update topic to resolved
     await slackApiCall('conversations.setTopic', botToken, {
       channel: incident.slackChannelId,
       topic: '✅ Incident Resolved — This channel has been archived.',
     }).catch(() => {});
 
-    // Post final message
+    // Post final message with Postmortem link
     await slackApiCall('chat.postMessage', botToken, {
       channel: incident.slackChannelId,
-      text: '✅ This incident has been resolved. Archiving war-room channel.',
+      text: `✅ *This incident has been resolved.* Archiving war-room channel.${pmText}`,
     }).catch(() => {});
 
     // Archive channel
@@ -721,4 +725,86 @@ export async function postWarRoomWelcomeCard(
     text: '👋 Welcome to your Incident War Room! Use 1-click buttons, 📌 emoji pins, or /incident slash commands.',
   }).catch(err => logger.warn('[ChatOps] Failed to post welcome card', { error: err }));
 }
+
+/**
+ * Auto-generate postmortem draft on incident resolution
+ */
+export async function ensurePostmortemDraft(incidentId: string): Promise<string | null> {
+  try {
+    const existing = await prisma.postmortem.findUnique({
+      where: { incidentId },
+      select: { id: true },
+    });
+
+    const appUrl = getBaseUrl();
+    if (existing) {
+      return `${appUrl}/postmortems/${existing.id}`;
+    }
+
+    const incident = await prisma.incident.findUnique({
+      where: { id: incidentId },
+      include: {
+        service: { select: { name: true } },
+        assignee: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!incident) return null;
+
+    // Fetch notes and events
+    const notes = await prisma.incidentNote.findMany({
+      where: { incidentId },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const events = await prisma.incidentEvent.findMany({
+      where: { incidentId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const timelineEntries = [
+      ...events.map(e => ({ time: e.createdAt, text: e.message, type: 'event' })),
+      ...notes.map(n => ({ time: n.createdAt, text: `[${n.user.name}]: ${n.content}`, type: 'note' })),
+    ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+    const actionItemsFromNotes = notes
+      .filter(n => /todo:|action item:|fix:|followup:/i.test(n.content))
+      .map(n => ({
+        title: n.content.replace(/^(todo:|action item:|fix:|followup:)\s*/i, '').trim(),
+        status: 'OPEN',
+        priority: 'MEDIUM',
+      }));
+
+    // Find author (assignee or admin fallback)
+    const authorId =
+      incident.assigneeId ||
+      (await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } }))?.id ||
+      (await prisma.user.findFirst({ select: { id: true } }))?.id;
+
+    if (!authorId) return null;
+
+    const postmortem = await prisma.postmortem.create({
+      data: {
+        incidentId,
+        title: `Postmortem: ${incident.title}`,
+        summary: `Automated postmortem draft generated upon incident resolution.`,
+        impact: { service: incident.service.name, urgency: incident.urgency },
+        rootCause: 'TBD — Auto-generated on Incident Resolution',
+        resolution: `Incident marked as RESOLVED.`,
+        lessons: 'Timeline and notes captured from incident lifecycle.',
+        timeline: timelineEntries as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        actionItems: actionItemsFromNotes as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        createdById: authorId,
+        status: 'DRAFT',
+      },
+    });
+
+    return `${appUrl}/postmortems/${postmortem.id}`;
+  } catch (err) {
+    logger.warn('[ChatOps] Failed to ensure postmortem draft', { incidentId, error: err });
+    return null;
+  }
+}
+
 
