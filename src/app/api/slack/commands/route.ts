@@ -60,8 +60,42 @@ export async function POST(request: NextRequest) {
             response_url: params.get('response_url') || '',
         };
 
-        const result = await handleSlashCommand(payload);
-        return NextResponse.json(result);
+        const handlePromise = handleSlashCommand(payload);
+        const timeoutPromise = new Promise<{ timeout: true }>(resolve =>
+            setTimeout(() => resolve({ timeout: true }), 1500)
+        );
+
+        const raceResult = await Promise.race([handlePromise, timeoutPromise]);
+
+        if ('timeout' in raceResult && raceResult.timeout) {
+            // Processing taking longer than 1.5s -> finish in background and post to response_url
+            const responseUrl = payload.response_url;
+            handlePromise
+                .then(async result => {
+                    if (responseUrl && result) {
+                        try {
+                            await fetch(responseUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(result),
+                            });
+                        } catch (err) {
+                            logger.error('[Slack] Failed to post async command response to response_url', { error: err });
+                        }
+                    }
+                })
+                .catch(err => {
+                    logger.error('[Slack] Error in async slash command processing', { error: err });
+                });
+
+            // Return immediate HTTP 200 to Slack within 1.5s to prevent 3000ms operation_timeout
+            return NextResponse.json({
+                response_type: 'ephemeral',
+                text: '⚙️ Processing `/incident` command...',
+            });
+        }
+
+        return NextResponse.json(await handlePromise);
 
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
         logger.error('[Slack] Commands API error', {

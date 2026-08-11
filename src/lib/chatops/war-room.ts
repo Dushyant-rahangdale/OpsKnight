@@ -36,35 +36,46 @@ function slugify(name: string, maxLen: number = 40): string {
 export function generateBridgeUrl(
   incidentId: string,
   provider: string,
-  customTemplate?: string | null,
-  slackChannelId?: string | null
+  customTemplate?: string | null
 ): string | null {
   if (!provider || provider === 'NONE') {
     return null;
   }
 
-  // Format custom URL template if provided
-  let formattedUrl = customTemplate ? customTemplate.replace(/\{incidentId\}/g, incidentId).trim() : null;
+  const shortId = incidentId.slice(-8);
 
-  if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
-    formattedUrl = `https://${formattedUrl}`;
+  // Format custom URL template if provided
+  let formattedUrl: string | null = null;
+  if (customTemplate && customTemplate.trim()) {
+    let urlStr = customTemplate.trim();
+    if (!/^https?:\/\//i.test(urlStr)) {
+      urlStr = `https://${urlStr}`;
+    }
+
+    if (urlStr.includes('{incidentId}')) {
+      formattedUrl = urlStr.replace(/\{incidentId\}/g, incidentId);
+    } else {
+      formattedUrl = urlStr;
+    }
   }
 
   switch (provider) {
     case 'JITSI':
-      return formattedUrl || `https://meet.jit.si/opsknight-inc-${incidentId.slice(-8)}`;
+      return formattedUrl || `https://meet.jit.si/opsknight-inc-${shortId}`;
 
     case 'ZOOM':
+      // Zoom requires a valid static meeting URL (e.g. https://us04web.zoom.us/j/1234567890)
+      // or custom template. Return formattedUrl if provided, otherwise null
       if (formattedUrl) {
         return formattedUrl;
       }
-      return `https://zoom.us/j/opsknight-inc-${incidentId.slice(-8)}`;
+      return null;
 
     case 'GOOGLE_MEET':
       if (formattedUrl) {
         return formattedUrl;
       }
-      return `https://meet.google.com/lookup/opsknight-inc-${incidentId.slice(-8)}`;
+      return `https://meet.google.com/lookup/opsknight-inc-${shortId}`;
 
     default:
       if (formattedUrl) {
@@ -326,7 +337,7 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
     // Generate video bridge URL
     const videoBridge = incident.service.warRoomVideoBridge || config.defaultVideoBridge;
     const customUrl = incident.service.warRoomCustomBridgeUrl || config.customBridgeUrlTemplate;
-    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl, channelId);
+    const warRoomUrl = generateBridgeUrl(incidentId, videoBridge, customUrl);
 
     // Post Incident Command Card to the channel
     await sendSlackMessageToChannel(

@@ -218,6 +218,7 @@ export function UserCard({
         {/* Avatar */}
         <UserAvatar
           userId={user.id}
+          avatarUrl={user.avatarUrl}
           name={user.name}
           gender={user.gender}
           size="lg"
