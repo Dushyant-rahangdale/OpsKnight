@@ -488,6 +488,11 @@ export async function archiveWarRoomChannel(
       text: `✅ *This incident has been resolved.* Archiving war-room channel.${pmText}`,
     }).catch(() => {});
 
+    // Ensure bot is in channel before archiving
+    await slackApiCall('conversations.join', botToken, {
+      channel: incident.slackChannelId,
+    }).catch(() => {});
+
     // Archive channel
     const archiveResult = await slackApiCall('conversations.archive', botToken, {
       channel: incident.slackChannelId,

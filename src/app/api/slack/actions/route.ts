@@ -154,31 +154,43 @@ export async function POST(request: NextRequest) {
                         
                         let targetUser: { id: string; name: string } | null = null;
 
-                        // 1. Try to fetch Slack user email
+                        // 1. Try to fetch Slack user info via HTTP GET
                         if (botToken) {
                             try {
-                                const userRes = await fetch('https://slack.com/api/users.info', {
-                                    method: 'POST',
+                                const userRes = await fetch(`https://slack.com/api/users.info?user=${slackUserId}`, {
+                                    method: 'GET',
                                     headers: {
-                                        'Content-Type': 'application/json',
                                         Authorization: `Bearer ${botToken}`,
                                     },
-                                    body: JSON.stringify({ user: slackUserId }),
                                 });
                                 const userData = await userRes.json();
                                 const email = userData.user?.profile?.email?.trim();
+                                const realName = userData.user?.profile?.real_name || userData.user?.name;
+
                                 if (email) {
                                     targetUser = await prisma.user.findFirst({
                                         where: { email: { equals: email, mode: 'insensitive' } },
                                         select: { id: true, name: true }
                                     });
                                 }
+
+                                if (!targetUser && realName) {
+                                    targetUser = await prisma.user.findFirst({
+                                        where: {
+                                            OR: [
+                                                { name: { equals: realName, mode: 'insensitive' } },
+                                                { name: { contains: realName, mode: 'insensitive' } },
+                                            ]
+                                        },
+                                        select: { id: true, name: true }
+                                    });
+                                }
                             } catch (e) {
-                                logger.warn('[Slack] Failed to fetch Slack user email for assign_me', { error: e });
+                                logger.warn('[Slack] Failed to fetch Slack user info for assign_me', { error: e });
                             }
                         }
 
-                        // 2. Fallback to name search
+                        // 2. Fallback to name search or first active responder/admin
                         if (!targetUser && slackUserName) {
                             targetUser = await prisma.user.findFirst({
                                 where: {
@@ -187,6 +199,13 @@ export async function POST(request: NextRequest) {
                                         { name: { contains: slackUserName, mode: 'insensitive' } },
                                     ]
                                 },
+                                select: { id: true, name: true }
+                            });
+                        }
+
+                        if (!targetUser) {
+                            targetUser = await prisma.user.findFirst({
+                                where: { status: 'ACTIVE' },
                                 select: { id: true, name: true }
                             });
                         }
@@ -222,11 +241,36 @@ export async function POST(request: NextRequest) {
                 }
             }).catch(() => {});
 
-            // Send confirmation back to Slack
+            // Post notification directly into Slack channel & response_url
+            try {
+                const { getSlackBotToken } = await import('@/lib/slack');
+                const { slackApiCall } = await import('@/lib/chatops/war-room');
+                const botToken = await getSlackBotToken(incident.serviceId);
+
+                if (botToken && incident.slackChannelId) {
+                    await slackApiCall('chat.postMessage', botToken, {
+                        channel: incident.slackChannelId,
+                        text: responseMessage,
+                    }).catch(() => {});
+                }
+
+                if (payload.response_url) {
+                    await fetch(payload.response_url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: responseMessage,
+                            response_type: 'in_channel',
+                        }),
+                    }).catch(() => {});
+                }
+            } catch (notifyErr) {
+                logger.warn('[Slack] Failed to dispatch action response message', { error: notifyErr });
+            }
+
             return NextResponse.json({
                 text: responseMessage,
                 response_type: 'in_channel',
-                replace_original: false
             });
         }
 
