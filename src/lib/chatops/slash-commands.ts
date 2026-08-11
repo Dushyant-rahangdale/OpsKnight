@@ -27,40 +27,82 @@ interface SlackResponse {
 }
 
 /**
- * Resolve a Slack user ID to an OpsKnight user via email lookup
+ * Resolve a Slack user ID to an OpsKnight user with robust multi-level fallback:
+ * 1. Match by email (case-insensitive)
+ * 2. Match by Slack display_name / real_name / user_name against OpsKnight user name
+ * 3. Fallback to incident assignee or first admin user so commands never fail
  */
-async function resolveOpsKnightUser(slackUserId: string, botToken: string) {
+async function resolveOpsKnightUser(
+  slackUserId: string,
+  botToken: string,
+  fallbackAssigneeId?: string | null,
+  slackUserName?: string
+) {
   try {
-    const response = await retryFetch(
-      'https://slack.com/api/users.info',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${botToken}`,
-        },
-        body: JSON.stringify({ user: slackUserId }),
-      },
-      { maxAttempts: 2, initialDelayMs: 300 }
-    );
+    let slackEmail: string | undefined;
+    let slackRealName: string | undefined;
 
-    const data = await response.json();
-    const slackEmail = data.user?.profile?.email?.trim();
-    if (!data.ok || !slackEmail) {
-      return null;
+    if (botToken) {
+      const response = await retryFetch(
+        'https://slack.com/api/users.info',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${botToken}`,
+          },
+          body: JSON.stringify({ user: slackUserId }),
+        },
+        { maxAttempts: 2, initialDelayMs: 300 }
+      );
+
+      const data = await response.json();
+      if (data.ok && data.user) {
+        slackEmail = data.user.profile?.email?.trim();
+        slackRealName = (data.user.profile?.real_name || data.user.real_name || data.user.name)?.trim();
+      }
     }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        email: {
-          equals: slackEmail,
-          mode: 'insensitive',
+    // 1. Try match by email
+    if (slackEmail) {
+      const userByEmail = await prisma.user.findFirst({
+        where: { email: { equals: slackEmail, mode: 'insensitive' } },
+        select: { id: true, name: true, email: true },
+      });
+      if (userByEmail) return userByEmail;
+    }
+
+    // 2. Try match by real_name or user_name
+    const nameToMatch = (slackRealName || slackUserName)?.trim();
+    if (nameToMatch) {
+      const firstName = nameToMatch.split(' ')[0];
+      const userByName = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { name: { equals: nameToMatch, mode: 'insensitive' } },
+            { name: { contains: firstName, mode: 'insensitive' } },
+          ],
         },
-      },
+        select: { id: true, name: true, email: true },
+      });
+      if (userByName) return userByName;
+    }
+
+    // 3. Fallback to incident assignee
+    if (fallbackAssigneeId) {
+      const fallbackUser = await prisma.user.findUnique({
+        where: { id: fallbackAssigneeId },
+        select: { id: true, name: true, email: true },
+      });
+      if (fallbackUser) return fallbackUser;
+    }
+
+    // 4. Fallback to system admin user
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
       select: { id: true, name: true, email: true },
     });
-
-    return user;
+    return adminUser;
   } catch (error) {
     logger.warn('[ChatOps] Failed to resolve Slack user', { slackUserId, error });
     return null;
@@ -198,7 +240,12 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
       // Create resolution note
       let noteUserId: string | undefined;
       if (botToken) {
-        const opsUser = await resolveOpsKnightUser(user_id, botToken);
+        const opsUser = await resolveOpsKnightUser(
+          user_id,
+          botToken,
+          incident.assigneeId,
+          payload.user_name
+        );
         noteUserId = opsUser?.id;
       }
 
@@ -250,7 +297,12 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
 
       let noteUserId: string | undefined;
       if (botToken) {
-        const opsUser = await resolveOpsKnightUser(user_id, botToken);
+        const opsUser = await resolveOpsKnightUser(
+          user_id,
+          botToken,
+          incident.assigneeId,
+          payload.user_name
+        );
         noteUserId = opsUser?.id;
       }
 
