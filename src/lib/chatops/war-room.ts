@@ -88,7 +88,7 @@ export function generateBridgeUrl(
 /**
  * Call a Slack API method with bot token authentication
  */
-async function slackApiCall(
+export async function slackApiCall(
   method: string,
   botToken: string,
   body: Record<string, unknown>
