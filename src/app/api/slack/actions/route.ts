@@ -149,23 +149,58 @@ export async function POST(request: NextRequest) {
                 if (slackUserId) {
                     try {
                         const { getSlackBotToken } = await import('@/lib/slack');
-                        const { inviteUserToWarRoom } = await import('@/lib/chatops/war-room');
+                        const { inviteUserToWarRoom, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
                         const botToken = await getSlackBotToken(incident.serviceId);
                         
-                        // Resolve OpsKnight user
-                        const userByEmail = await prisma.user.findFirst({
-                            where: { name: { contains: slackUserName, mode: 'insensitive' } },
-                            select: { id: true, name: true }
-                        });
+                        let targetUser: { id: string; name: string } | null = null;
 
-                        if (userByEmail) {
+                        // 1. Try to fetch Slack user email
+                        if (botToken) {
+                            try {
+                                const userRes = await fetch('https://slack.com/api/users.info', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${botToken}`,
+                                    },
+                                    body: JSON.stringify({ user: slackUserId }),
+                                });
+                                const userData = await userRes.json();
+                                const email = userData.user?.profile?.email?.trim();
+                                if (email) {
+                                    targetUser = await prisma.user.findFirst({
+                                        where: { email: { equals: email, mode: 'insensitive' } },
+                                        select: { id: true, name: true }
+                                    });
+                                }
+                            } catch (e) {
+                                logger.warn('[Slack] Failed to fetch Slack user email for assign_me', { error: e });
+                            }
+                        }
+
+                        // 2. Fallback to name search
+                        if (!targetUser && slackUserName) {
+                            targetUser = await prisma.user.findFirst({
+                                where: {
+                                    OR: [
+                                        { name: { equals: slackUserName, mode: 'insensitive' } },
+                                        { name: { contains: slackUserName, mode: 'insensitive' } },
+                                    ]
+                                },
+                                select: { id: true, name: true }
+                            });
+                        }
+
+                        if (targetUser) {
                             await prisma.incident.update({
                                 where: { id: incidentId },
-                                data: { assigneeId: userByEmail.id }
+                                data: { assigneeId: targetUser.id }
                             });
-                            responseMessage = `🙋 Incident assigned to *${userByEmail.name}* (<@${slackUserId}>)`;
+                            inviteUserToWarRoom(incidentId, targetUser.id).catch(() => {});
+                            updateWarRoomTopic(incidentId).catch(() => {});
+                            responseMessage = `🙋 Incident assigned to *${targetUser.name}* (<@${slackUserId}>)`;
                         } else {
-                            responseMessage = `🙋 Reassigned incident to <@${slackUserId}>`;
+                            responseMessage = `🙋 Incident assigned to <@${slackUserId}>`;
                         }
                     } catch (err) {
                         logger.warn('[Slack] Reassign failed via button', { error: err });
