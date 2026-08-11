@@ -459,3 +459,30 @@ export async function generatePostmortemDraft(incidentId: string) {
     lessons: '1. Improve monitoring for...\n2. Update runbooks for...',
   };
 }
+
+/**
+ * Bulk delete postmortems by IDs
+ */
+export async function bulkDeletePostmortems(ids: string[]) {
+  try {
+    await assertResponderOrAbove();
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Unauthorized');
+  }
+
+  if (!ids || ids.length === 0) {
+    return { success: false, error: 'No postmortems selected' };
+  }
+
+  await prisma.postmortem.deleteMany({
+    where: {
+      OR: [
+        { id: { in: ids } },
+        { incidentId: { in: ids } },
+      ],
+    },
+  });
+
+  revalidatePath('/postmortems');
+  return { success: true, count: ids.length };
+}

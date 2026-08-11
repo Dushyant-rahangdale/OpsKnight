@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
               select: { id: true },
             });
           }
-          const noteUserId = resolvedUser?.id || incident.assigneeId;
+          const fallbackUser = await prisma.user.findFirst({ select: { id: true } });
+          const noteUserId = resolvedUser?.id || incident.assigneeId || fallbackUser?.id;
 
           if (noteUserId) {
             await prisma.incidentNote.create({
