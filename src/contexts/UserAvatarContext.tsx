@@ -23,7 +23,12 @@ type AvatarCacheEntry = {
 
 type UserAvatarContextType = {
   currentUserId: string | null;
-  getAvatar: (userId: string, gender?: string | null, fallbackName?: string | null) => string;
+  getAvatar: (
+    userId: string,
+    gender?: string | null,
+    fallbackName?: string | null,
+    avatarUrlProp?: string | null
+  ) => string;
   updateAvatar: (userId: string, newAvatarUrl: string | null) => void;
   invalidateAvatar: (userId: string) => void;
   preloadAvatars: (
@@ -116,8 +121,14 @@ export function UserAvatarProvider({
 
   // Get avatar URL for a user, using cache or falling back to default
   const getAvatar = useCallback(
-    (userId: string, gender?: string | null, fallbackName?: string | null): string => {
+    (
+      userId: string,
+      gender?: string | null,
+      fallbackName?: string | null,
+      avatarUrlProp?: string | null
+    ): string => {
       const cached = avatarCache.get(userId);
+      const effectiveAvatarUrl = avatarUrlProp || cached?.avatarUrl;
 
       // Queue access time update (batched to avoid frequent state updates)
       if (cached && !accessUpdateQueue.current.has(userId)) {
@@ -146,8 +157,8 @@ export function UserAvatarProvider({
         }
       }
 
-      if (cached?.avatarUrl) {
-        return cached.avatarUrl;
+      if (effectiveAvatarUrl) {
+        return effectiveAvatarUrl;
       }
 
       // Use cached gender if available, otherwise use provided gender

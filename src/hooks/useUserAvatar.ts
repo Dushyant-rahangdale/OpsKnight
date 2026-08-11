@@ -42,10 +42,11 @@ export function useAvatarUpdater() {
 export function useUserAvatarSafe(
   userId: string,
   gender?: string | null,
-  fallbackName?: string | null
+  fallbackName?: string | null,
+  avatarUrlProp?: string | null
 ): string {
   const { getAvatar } = useUserAvatarContextSafe();
-  return getAvatar(userId, gender, fallbackName);
+  return getAvatar(userId, gender, fallbackName, avatarUrlProp);
 }
 
 /**
