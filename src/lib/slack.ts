@@ -323,8 +323,22 @@ function buildSlackBlocks(
       });
     }
 
-    // Resolve button (only for acked)
-    if (eventType === 'acknowledged') {
+    // Assign to Me button (for non-resolved)
+    if (eventType !== 'resolved') {
+      elements.push({
+        type: 'button',
+        text: {
+          type: 'plain_text',
+          text: '🙋 Assign to Me',
+          emoji: true,
+        },
+        value: JSON.stringify({ action: 'assign_me', incidentId: incident.id }),
+        action_id: 'assign_me_incident',
+      });
+    }
+
+    // Resolve button (only for acked or triggered)
+    if (eventType !== 'resolved') {
       elements.push({
         type: 'button',
         text: {
@@ -332,7 +346,7 @@ function buildSlackBlocks(
           text: '✅ Resolve',
           emoji: true,
         },
-        style: 'primary',
+        style: eventType === 'acknowledged' ? 'primary' : undefined,
         value: JSON.stringify({ action: 'resolve', incidentId: incident.id }),
         action_id: 'resolve_incident',
       });
