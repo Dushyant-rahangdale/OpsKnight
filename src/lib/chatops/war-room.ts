@@ -738,7 +738,7 @@ export async function ensurePostmortemDraft(incidentId: string): Promise<string 
 
     const appUrl = getBaseUrl();
     if (existing) {
-      return `${appUrl}/postmortems/${existing.id}`;
+      return `${appUrl}/postmortems/${incidentId}`;
     }
 
     const incident = await prisma.incident.findUnique({
@@ -800,7 +800,7 @@ export async function ensurePostmortemDraft(incidentId: string): Promise<string 
       },
     });
 
-    return `${appUrl}/postmortems/${postmortem.id}`;
+    return `${appUrl}/postmortems/${incidentId}`;
   } catch (err) {
     logger.warn('[ChatOps] Failed to ensure postmortem draft', { incidentId, error: err });
     return null;

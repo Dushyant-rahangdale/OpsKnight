@@ -13,7 +13,7 @@ import crypto from 'crypto';
 
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET;
 
-const PIN_EMOJIS = new Set(['pushpin', 'round_pushpin', 'memo', 'star', 'bookmark']);
+const PIN_EMOJIS = new Set(['pushpin', 'round_pushpin', 'memo', 'star', 'bookmark', 'pin', 'push_pin', 'note']);
 
 /**
  * Verify Slack request signature
@@ -69,9 +69,10 @@ export async function POST(request: NextRequest) {
     // 2. Handle Event Callbacks
     if (payload.type === 'event_callback' && payload.event) {
       const event = payload.event;
+      const rawEmoji = (event.reaction || '').split('::')[0];
 
       // Reaction Added (📌 Emoji Reaction Sync)
-      if (event.type === 'reaction_added' && PIN_EMOJIS.has(event.reaction)) {
+      if (event.type === 'reaction_added' && PIN_EMOJIS.has(rawEmoji)) {
         const channelId = event.item?.channel;
         const messageTs = event.item?.ts;
         const slackUserId = event.user;
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
         let reactorEmail: string | undefined;
 
         try {
-          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&inclusive=true&limit=1`;
+          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&oldest=${messageTs}&inclusive=true&limit=1`;
           const historyRes = await retryFetch(historyUrl, {
             headers: { Authorization: `Bearer ${botToken}` },
           });

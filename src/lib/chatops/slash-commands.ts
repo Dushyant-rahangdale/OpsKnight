@@ -420,10 +420,10 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
         });
 
         if (existingPostmortem) {
-          const postmortemUrl = `${appUrl}/postmortems/${existingPostmortem.id}`;
+          const postmortemUrl = `${appUrl}/postmortems/${incident.id}`;
           return {
             response_type: 'in_channel',
-            text: `📄 *Postmortem Draft Already Exists*\nTitle: *${existingPostmortem.title}* (${existingPostmortem.status})\n🔗 Edit Postmortem: ${postmortemUrl}`,
+            text: `📄 *Postmortem Draft Exists*\nTitle: *${existingPostmortem.title}* (${existingPostmortem.status})\n🔗 *Edit & Publish:* ${postmortemUrl}`,
           };
         }
 
@@ -498,7 +498,7 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
           },
         });
 
-        const editUrl = `${appUrl}/postmortems/${newPostmortem.id}`;
+        const editUrl = `${appUrl}/postmortems/${incident.id}`;
 
         return {
           response_type: 'in_channel',
