@@ -299,17 +299,26 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         }
       }
 
-      // Parallel email lookups for better performance
+      // Parallel email lookups using GET-based findSlackUserByEmail
+      // (slackApiCall sends POST+JSON which causes `invalid_arguments` for users.lookupByEmail)
       const lookupResults = await Promise.allSettled(
         Array.from(emailsToInvite).map(async (email) => {
-          const lookupResult = await slackApiCall('users.lookupByEmail', botToken, { email });
+          const lookupResult = await findSlackUserByEmail(botToken, email.trim().toLowerCase());
           if (lookupResult.ok && (lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
             return (lookupResult as any).user.id as string; // eslint-disable-line @typescript-eslint/no-explicit-any
           }
+          const lookupErr = lookupResult.error || 'User not found in Slack workspace';
           logger.warn('[ChatOps] Could not find Slack user by email', {
             email,
-            error: lookupResult.error || 'User not found in Slack workspace',
+            error: lookupErr,
           });
+          // Log to incident timeline for visibility
+          await prisma.incidentEvent.create({
+            data: {
+              incidentId,
+              message: `War-room: Could not invite user (${email}) — ${lookupErr === 'users_not_found' ? 'email not found in Slack workspace' : lookupErr}`,
+            },
+          }).catch(() => {});
           return null;
         })
       );
