@@ -113,15 +113,10 @@ export async function POST(request: NextRequest) {
 
             if (actionType === 'ack') {
                 if (incident.status === 'OPEN') {
-                    try {
-                        const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
-                        await updateIncidentStatus(incidentId, 'ACKNOWLEDGED');
-                    } catch {
-                        await prisma.incident.update({
-                            where: { id: incidentId },
-                            data: { status: 'ACKNOWLEDGED', acknowledgedAt: new Date() }
-                        });
-                    }
+                    await prisma.incident.update({
+                        where: { id: incidentId },
+                        data: { status: 'ACKNOWLEDGED', acknowledgedAt: new Date() }
+                    });
                     responseMessage = `👀 Incident acknowledged by <@${slackUserId || 'responder'}>`;
                 } else {
                     return NextResponse.json({
@@ -130,16 +125,17 @@ export async function POST(request: NextRequest) {
                 }
             } else if (actionType === 'resolve') {
                 if (incident.status !== 'RESOLVED') {
-                    try {
-                        const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
-                        await updateIncidentStatus(incidentId, 'RESOLVED');
-                    } catch {
-                        await prisma.incident.update({
-                            where: { id: incidentId },
-                            data: { status: 'RESOLVED', resolvedAt: new Date() }
-                        });
-                    }
+                    await prisma.incident.update({
+                        where: { id: incidentId },
+                        data: { status: 'RESOLVED', resolvedAt: new Date() }
+                    });
                     responseMessage = `✅ Incident resolved by <@${slackUserId || 'responder'}>`;
+
+                    // Auto-generate Postmortem draft & archive war-room channel
+                    const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
+                    archiveWarRoomChannel(incidentId).catch(err => {
+                        logger.error('[Slack Actions] War-room channel archive failed', { error: err, incidentId });
+                    });
                 } else {
                     return NextResponse.json({
                         text: 'ℹ️ Incident is already resolved'
@@ -148,9 +144,17 @@ export async function POST(request: NextRequest) {
             } else if (actionType === 'assign_me') {
                 if (slackUserId) {
                     try {
-                        const { getSlackBotToken } = await import('@/lib/slack');
-                        const { inviteUserToWarRoom, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
+                        const { getSlackBotToken, slackApiCall } = await import('@/lib/slack');
+                        const { updateWarRoomTopic } = await import('@/lib/chatops/war-room');
                         const botToken = await getSlackBotToken(incident.serviceId);
+
+                        // Direct invite Slack user into channel via slackUserId
+                        if (botToken && incident.slackChannelId) {
+                            await slackApiCall('conversations.invite', botToken, {
+                                channel: incident.slackChannelId,
+                                users: slackUserId,
+                            }).catch(() => {});
+                        }
                         
                         let targetUser: { id: string; name: string } | null = null;
 
@@ -215,7 +219,6 @@ export async function POST(request: NextRequest) {
                                 where: { id: incidentId },
                                 data: { assigneeId: targetUser.id }
                             });
-                            inviteUserToWarRoom(incidentId, targetUser.id).catch(() => {});
                             updateWarRoomTopic(incidentId).catch(() => {});
                             responseMessage = `🙋 Incident assigned to *${targetUser.name}* (<@${slackUserId}>)`;
                         } else {
