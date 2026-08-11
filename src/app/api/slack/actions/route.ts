@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
             } else if (actionType === 'assign_me') {
                 if (slackUserId) {
                     try {
-                        const { getSlackBotToken, slackApiCall } = await import('@/lib/slack');
-                        const { updateWarRoomTopic } = await import('@/lib/chatops/war-room');
+                        const { getSlackBotToken } = await import('@/lib/slack');
+                        const { updateWarRoomTopic, slackApiCall } = await import('@/lib/chatops/war-room');
                         const botToken = await getSlackBotToken(incident.serviceId);
 
                         // Direct invite Slack user into channel via slackUserId
