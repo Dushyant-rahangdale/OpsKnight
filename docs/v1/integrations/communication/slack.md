@@ -132,32 +132,36 @@ The Slack app needs specific permissions to function.
 
 Add these scopes under **Bot Token Scopes**:
 
-| Scope               | Purpose                          |
-| ------------------- | -------------------------------- |
-| `chat:write`        | Send messages to channels        |
-| `chat:write.public` | Send to channels without joining |
-| `channels:read`     | List public channels             |
-| `groups:read`       | List private channels            |
-| `users:read`        | Get user information             |
-| `users:read.email`  | Match users by email             |
+| Scope               | Purpose                                      |
+| ------------------- | -------------------------------------------- |
+| `chat:write`        | Send messages & notification cards to channels|
+| `chat:write.public` | Send to public channels without joining      |
+| `channels:manage`   | Auto-create dedicated war-room channels      |
+| `channels:history`  | Fetch message text for emoji pin sync        |
+| `channels:read`     | List public channels                         |
+| `groups:read`       | List private channels                        |
+| `reactions:read`    | Sync emoji pin reactions (📌, 📝) to timeline|
+| `users:read`        | Get user information                         |
+| `users:read.email`  | Match responders by email                    |
+| `commands`          | Enable `/incident` slash commands            |
 
 ### Add Redirect URL
 
 Under **Redirect URLs**, add:
 
 ```
-https://YOUR_OPSKNIGHT_URL/api/settings/slack-oauth/callback
+https://YOUR_OPSKNIGHT_URL/api/slack/oauth/callback
 ```
 
-Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL.
+Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL (e.g. `https://opssentinal.com`).
 
 ---
 
-## Step 3: Set Up Interactivity
+## Step 3: Set Up Interactivity & Event Subscriptions
 
-Enable interactive features for action buttons.
+Enable interactive buttons and emoji reaction sync.
 
-### Enable Interactivity
+### Enable Interactivity & Buttons
 
 1. Go to **Interactivity & Shortcuts** in sidebar
 2. Toggle **Interactivity** to **On**
@@ -167,16 +171,37 @@ Enable interactive features for action buttons.
 https://YOUR_OPSKNIGHT_URL/api/slack/actions
 ```
 
-### Configure Shortcuts (Optional)
+*(e.g., `https://opssentinal.com/api/slack/actions`)*
 
-Add a global shortcut to create incidents:
+4. Click **Save Changes**. This enables 1-click **👀 Acknowledge**, **🙋 Assign to Me**, and **✅ Resolve** buttons on Slack incident cards!
 
-1. Click **Create New Shortcut**
-2. Choose **Global**
-3. Configure:
-   - **Name**: Create Incident
-   - **Short Description**: Create an OpsKnight incident
-   - **Callback ID**: `create_incident`
+### Enable Event Subscriptions (Emoji Reaction Sync)
+
+1. Go to **Event Subscriptions** in sidebar
+2. Toggle **Enable Events** to **On**
+3. Set **Request URL**:
+
+```
+https://YOUR_OPSKNIGHT_URL/api/slack/events
+```
+
+*(e.g., `https://opssentinal.com/api/slack/events`)*
+
+4. Under **Subscribe to Bot Events**, click **Add Bot User Event** and add:
+   - `reaction_added`
+5. Click **Save Changes**. Now, reacting to any Slack message with 📌 (`:pushpin:`) or 📝 (`:memo:`) automatically captures that message directly into the OpsKnight incident timeline!
+
+---
+
+## Step 4: Configure Slash Commands
+
+1. Go to **Slash Commands** in sidebar
+2. Click **Create New Command**:
+   - **Command**: `/incident`
+   - **Request URL**: `https://YOUR_OPSKNIGHT_URL/api/slack/commands`
+   - **Short Description**: Manage OpsKnight incidents from war rooms
+   - **Usage Hint**: `ack | resolve [notes] | note <message> | who | postmortem`
+3. Click **Save**.
 
 ---
 
