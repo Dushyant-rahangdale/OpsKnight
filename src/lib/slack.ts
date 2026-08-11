@@ -306,17 +306,62 @@ function buildSlackBlocks(
 
   // Action Buttons
   if (includeInteractiveButtons) {
-    const elements = [
-      {
+    const elements = [];
+
+    // Ack button (only for triggered)
+    if (eventType === 'triggered') {
+      elements.push({
         type: 'button',
         text: {
           type: 'plain_text',
-          text: '🔍 View Details ↗',
+          text: '👀 Acknowledge',
           emoji: true,
         },
-        url: incidentUrl,
+        style: 'primary',
+        value: JSON.stringify({ action: 'ack', incidentId: incident.id }),
+        action_id: 'ack_incident',
+      });
+    }
+
+    // Assign to Me button (for non-resolved)
+    if (eventType !== 'resolved') {
+      elements.push({
+        type: 'button',
+        text: {
+          type: 'plain_text',
+          text: '🙋 Assign to Me',
+          emoji: true,
+        },
+        value: JSON.stringify({ action: 'assign_me', incidentId: incident.id }),
+        action_id: 'assign_me_incident',
+      });
+    }
+
+    // Resolve button (only for acked or triggered)
+    if (eventType !== 'resolved') {
+      elements.push({
+        type: 'button',
+        text: {
+          type: 'plain_text',
+          text: '✅ Resolve',
+          emoji: true,
+        },
+        style: eventType === 'acknowledged' ? 'primary' : undefined,
+        value: JSON.stringify({ action: 'resolve', incidentId: incident.id }),
+        action_id: 'resolve_incident',
+      });
+    }
+
+    // View Incident Button (Always present)
+    elements.push({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text: 'View Details ↗', // Arrow for external link feel
+        emoji: true,
       },
-    ];
+      url: incidentUrl,
+    });
 
     blocks.push({
       type: 'divider',
@@ -324,7 +369,7 @@ function buildSlackBlocks(
 
     blocks.push({
       type: 'actions',
-      elements: elements as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      elements: elements,
     });
   } else {
     // If no interactive buttons, at least provide the View Link
