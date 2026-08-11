@@ -220,7 +220,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
   if (status === 'RESOLVED') {
     try {
       const { archiveWarRoomChannel } = await import('@/lib/chatops/war-room');
-      archiveWarRoomChannel(id).catch(err =>
+      await archiveWarRoomChannel(id).catch(err =>
         logger.error('ChatOps war-room archive failed', { component: 'incidents-actions', error: err, incidentId: id })
       );
     } catch (e) {
