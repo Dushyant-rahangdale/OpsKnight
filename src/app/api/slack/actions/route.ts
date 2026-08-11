@@ -60,7 +60,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const payload = JSON.parse(body);
+        let payload: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (body.startsWith('payload=')) {
+            const params = new URLSearchParams(body);
+            payload = JSON.parse(params.get('payload') || '{}');
+        } else {
+            try {
+                payload = JSON.parse(body);
+            } catch {
+                const params = new URLSearchParams(body);
+                payload = JSON.parse(params.get('payload') || '{}');
+            }
+        }
 
         // Handle URL verification (for Slack app setup)
         if (payload.type === 'url_verification') {
@@ -76,6 +87,8 @@ export async function POST(request: NextRequest) {
 
             const actionValue = JSON.parse(action.value || '{}');
             const { action: actionType, incidentId } = actionValue;
+            const slackUserId = payload.user?.id;
+            const slackUserName = payload.user?.name || payload.user?.username;
 
             if (!incidentId || !actionType) {
                 return NextResponse.json(
@@ -96,33 +109,103 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            // Update incident based on action
-            let updateData: any = {}; // eslint-disable-line @typescript-eslint/no-explicit-any
             let responseMessage = '';
 
             if (actionType === 'ack') {
                 if (incident.status === 'OPEN') {
-                    updateData = {
-                        status: 'ACKNOWLEDGED',
-                        acknowledgedAt: new Date()
-                    };
-                    responseMessage = 'Incident acknowledged';
+                    try {
+                        const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
+                        await updateIncidentStatus(incidentId, 'ACKNOWLEDGED');
+                    } catch {
+                        await prisma.incident.update({
+                            where: { id: incidentId },
+                            data: { status: 'ACKNOWLEDGED', acknowledgedAt: new Date() }
+                        });
+                    }
+                    responseMessage = `👀 Incident acknowledged by <@${slackUserId || 'responder'}>`;
                 } else {
                     return NextResponse.json({
-                        text: 'Incident is already acknowledged or resolved'
+                        text: `ℹ️ Incident is already ${incident.status.toLowerCase()}`
                     });
                 }
             } else if (actionType === 'resolve') {
                 if (incident.status !== 'RESOLVED') {
-                    updateData = {
-                        status: 'RESOLVED',
-                        resolvedAt: new Date()
-                    };
-                    responseMessage = 'Incident resolved';
+                    try {
+                        const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
+                        await updateIncidentStatus(incidentId, 'RESOLVED');
+                    } catch {
+                        await prisma.incident.update({
+                            where: { id: incidentId },
+                            data: { status: 'RESOLVED', resolvedAt: new Date() }
+                        });
+                    }
+                    responseMessage = `✅ Incident resolved by <@${slackUserId || 'responder'}>`;
                 } else {
                     return NextResponse.json({
-                        text: 'Incident is already resolved'
+                        text: 'ℹ️ Incident is already resolved'
                     });
+                }
+            } else if (actionType === 'assign_me') {
+                if (slackUserId) {
+                    try {
+                        const { getSlackBotToken } = await import('@/lib/slack');
+                        const { inviteUserToWarRoom, updateWarRoomTopic } = await import('@/lib/chatops/war-room');
+                        const botToken = await getSlackBotToken(incident.serviceId);
+                        
+                        let targetUser: { id: string; name: string } | null = null;
+
+                        // 1. Try to fetch Slack user email
+                        if (botToken) {
+                            try {
+                                const userRes = await fetch('https://slack.com/api/users.info', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${botToken}`,
+                                    },
+                                    body: JSON.stringify({ user: slackUserId }),
+                                });
+                                const userData = await userRes.json();
+                                const email = userData.user?.profile?.email?.trim();
+                                if (email) {
+                                    targetUser = await prisma.user.findFirst({
+                                        where: { email: { equals: email, mode: 'insensitive' } },
+                                        select: { id: true, name: true }
+                                    });
+                                }
+                            } catch (e) {
+                                logger.warn('[Slack] Failed to fetch Slack user email for assign_me', { error: e });
+                            }
+                        }
+
+                        // 2. Fallback to name search
+                        if (!targetUser && slackUserName) {
+                            targetUser = await prisma.user.findFirst({
+                                where: {
+                                    OR: [
+                                        { name: { equals: slackUserName, mode: 'insensitive' } },
+                                        { name: { contains: slackUserName, mode: 'insensitive' } },
+                                    ]
+                                },
+                                select: { id: true, name: true }
+                            });
+                        }
+
+                        if (targetUser) {
+                            await prisma.incident.update({
+                                where: { id: incidentId },
+                                data: { assigneeId: targetUser.id }
+                            });
+                            inviteUserToWarRoom(incidentId, targetUser.id).catch(() => {});
+                            updateWarRoomTopic(incidentId).catch(() => {});
+                            responseMessage = `🙋 Incident assigned to *${targetUser.name}* (<@${slackUserId}>)`;
+                        } else {
+                            responseMessage = `🙋 Incident assigned to <@${slackUserId}>`;
+                        }
+                    } catch (err) {
+                        logger.warn('[Slack] Reassign failed via button', { error: err });
+                        responseMessage = `🙋 Incident assigned to <@${slackUserId}>`;
+                    }
                 }
             } else {
                 return NextResponse.json(
@@ -131,29 +214,18 @@ export async function POST(request: NextRequest) {
                 );
             }
 
-            // Update incident via standard server action for full lifecycle side-effects
-            try {
-                const { updateIncidentStatus } = await import('@/app/(app)/incidents/actions');
-                await updateIncidentStatus(incidentId, actionType === 'ack' ? 'ACKNOWLEDGED' : 'RESOLVED');
-            } catch (err) {
-                logger.error('[Slack] Failed to update incident status via actions API', { incidentId, error: err });
-                await prisma.incident.update({
-                    where: { id: incidentId },
-                    data: updateData
-                });
-            }
-
             // Create incident event
             await prisma.incidentEvent.create({
                 data: {
                     incidentId,
-                    message: `${responseMessage} via Slack`
+                    message: `${responseMessage} (1-Click Slack Button)`
                 }
-            });
+            }).catch(() => {});
 
             // Send confirmation back to Slack
             return NextResponse.json({
                 text: responseMessage,
+                response_type: 'in_channel',
                 replace_original: false
             });
         }
