@@ -8,6 +8,7 @@ export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 type UserAvatarProps = {
   userId: string;
+  avatarUrl?: string | null;
   name?: string | null;
   gender?: string | null;
   size?: AvatarSize;
@@ -56,6 +57,7 @@ function getInitials(name: string | null | undefined): string {
 
 export default function UserAvatar({
   userId,
+  avatarUrl: directAvatarUrl,
   name,
   gender,
   size = 'md',
@@ -63,7 +65,8 @@ export default function UserAvatar({
   className,
   fallbackClassName,
 }: UserAvatarProps) {
-  const avatarUrl = useUserAvatarSafe(userId, gender, name);
+  const contextAvatarUrl = useUserAvatarSafe(userId, gender, name, directAvatarUrl);
+  const avatarUrl = directAvatarUrl || contextAvatarUrl;
   const sizeConfig = sizeClasses[size];
   const initials = getInitials(name);
 
