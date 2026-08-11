@@ -95,9 +95,10 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Fetch original message text from Slack history
+        // Fetch original message text from Slack history (or thread replies)
         let messageText = '';
         let authorName = 'Slack User';
+        let reactorEmail: string | undefined;
 
         try {
           const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&inclusive=true&limit=1`;
@@ -106,8 +107,18 @@ export async function POST(request: NextRequest) {
           });
           const historyData = await historyRes.json();
 
-          if (historyData.ok && historyData.messages?.[0]) {
-            messageText = historyData.messages[0].text || '';
+          if (historyData.ok && historyData.messages?.[0]?.text) {
+            messageText = historyData.messages[0].text;
+          } else {
+            // Fallback to conversations.replies for thread replies
+            const repliesUrl = `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${messageTs}&limit=1`;
+            const repliesRes = await retryFetch(repliesUrl, {
+              headers: { Authorization: `Bearer ${botToken}` },
+            });
+            const repliesData = await repliesRes.json();
+            if (repliesData.ok && repliesData.messages?.[0]?.text) {
+              messageText = repliesData.messages[0].text;
+            }
           }
         } catch (err) {
           logger.warn('[Slack Events] Failed to fetch message text', { error: err });
@@ -122,18 +133,28 @@ export async function POST(request: NextRequest) {
           const userData = await userRes.json();
           if (userData.ok && userData.user) {
             authorName = userData.user.profile?.real_name || userData.user.name || slackUserId;
+            reactorEmail = userData.user.profile?.email?.trim();
           }
         } catch (err) {
           logger.warn('[Slack Events] Failed to fetch reactor info', { error: err });
         }
 
         if (messageText) {
-          // Resolve to OpsKnight user or fallback to assignee
-          const userByEmail = await prisma.user.findFirst({
-            where: { name: { contains: authorName, mode: 'insensitive' } },
-            select: { id: true },
-          });
-          const noteUserId = userByEmail?.id || incident.assigneeId;
+          // Resolve to OpsKnight user by email first, then name, then fallback to assignee
+          let resolvedUser: { id: string } | null = null;
+          if (reactorEmail) {
+            resolvedUser = await prisma.user.findFirst({
+              where: { email: { equals: reactorEmail, mode: 'insensitive' } },
+              select: { id: true },
+            });
+          }
+          if (!resolvedUser && authorName) {
+            resolvedUser = await prisma.user.findFirst({
+              where: { name: { contains: authorName, mode: 'insensitive' } },
+              select: { id: true },
+            });
+          }
+          const noteUserId = resolvedUser?.id || incident.assigneeId;
 
           if (noteUserId) {
             await prisma.incidentNote.create({
