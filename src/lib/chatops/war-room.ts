@@ -365,6 +365,11 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
       warRoomUrl ? `📹 Video Bridge: ${warRoomUrl}` : undefined
     ).catch(err => logger.warn('[ChatOps] Failed to post command card', { error: err }));
 
+    // Post War-Room Welcome & Feature Hints Card
+    await postWarRoomWelcomeCard(channelId, incident.title, botToken).catch(err =>
+      logger.warn('[ChatOps] Failed to post welcome card', { error: err })
+    );
+
     // Update incident with war-room metadata
     await prisma.incident.update({
       where: { id: incidentId },
@@ -654,3 +659,66 @@ export async function inviteTeamToWarRoom(
     return { success: false, error: err };
   }
 }
+
+/**
+ * Post a welcome & feature hints guide card when a war-room channel is provisioned
+ */
+export async function postWarRoomWelcomeCard(
+  channelId: string,
+  incidentTitle: string,
+  botToken: string
+): Promise<void> {
+  const blocks = [
+    {
+      type: 'header',
+      text: {
+        type: 'plain_text',
+        text: '👋 Welcome to your Incident War Room!',
+        emoji: true,
+      },
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `This channel was automatically provisioned to coordinate resolution for *${incidentTitle}*.`,
+      },
+    },
+    {
+      type: 'divider',
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: [
+          '*⚡ War Room Power Features:*',
+          '• 🔘 *1-Click Action Buttons*: Use *Acknowledge*, *Assign to Me*, or *Resolve* on the card above.',
+          '• 📌 *Emoji Reaction Sync*: React to ANY message with 📌 (`:pushpin:`) or 📝 (`:memo:`) to auto-save to the incident timeline!',
+          '• 📄 *Auto Postmortem*: Type `/incident postmortem` to generate a pre-filled Postmortem draft.',
+        ].join('\n'),
+      },
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: [
+          '*💬 Quick Slash Commands:*',
+          '`/incident ack` — Acknowledge incident',
+          '`/incident resolve [summary]` — Resolve incident with notes',
+          '`/incident note <message>` — Save a note to the timeline',
+          '`/incident who` — View current on-call responders',
+          '`/incident postmortem` — Create postmortem draft',
+        ].join('\n'),
+      },
+    },
+  ];
+
+  await slackApiCall('chat.postMessage', botToken, {
+    channel: channelId,
+    blocks,
+    text: '👋 Welcome to your Incident War Room! Use 1-click buttons, 📌 emoji pins, or /incident slash commands.',
+  }).catch(err => logger.warn('[ChatOps] Failed to post welcome card', { error: err }));
+}
+
