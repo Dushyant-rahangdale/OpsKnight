@@ -442,7 +442,6 @@ export default function Sidebar(
           >
             <UserAvatar
               userId={userId || 'user'}
-              avatarUrl={currentUserAvatar}
               name={currentName}
               gender={currentGender}
               size={isDesktopCollapsed ? 'sm' : 'sm'}
