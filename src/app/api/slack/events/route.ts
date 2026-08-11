@@ -102,27 +102,40 @@ export async function POST(request: NextRequest) {
         let reactorEmail: string | undefined;
 
         try {
-          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&oldest=${messageTs}&inclusive=true&limit=1`;
+          // Pass inclusive=true and limit=10 to reliably locate messageTs in Slack channel history
+          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&inclusive=true&limit=10`;
           const historyRes = await retryFetch(historyUrl, {
             headers: { Authorization: `Bearer ${botToken}` },
           });
           const historyData = await historyRes.json();
 
-          if (historyData.ok && historyData.messages?.[0]?.text) {
-            messageText = historyData.messages[0].text;
+          const foundMsg = historyData.ok
+            ? historyData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || historyData.messages?.[0]
+            : null;
+
+          if (foundMsg?.text) {
+            messageText = foundMsg.text;
           } else {
             // Fallback to conversations.replies for thread replies
-            const repliesUrl = `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${messageTs}&limit=1`;
+            const repliesUrl = `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${messageTs}&limit=5`;
             const repliesRes = await retryFetch(repliesUrl, {
               headers: { Authorization: `Bearer ${botToken}` },
             });
             const repliesData = await repliesRes.json();
-            if (repliesData.ok && repliesData.messages?.[0]?.text) {
-              messageText = repliesData.messages[0].text;
+            const foundReply = repliesData.ok
+              ? repliesData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || repliesData.messages?.[0]
+              : null;
+            if (foundReply?.text) {
+              messageText = foundReply.text;
             }
           }
         } catch (err) {
           logger.warn('[Slack Events] Failed to fetch message text', { error: err });
+        }
+
+        // Guaranteed fallback so note is never skipped
+        if (!messageText) {
+          messageText = (event as { text?: string }).text || 'Pinned message from Slack war-room channel';
         }
 
         // Fetch reactor user info from Slack
