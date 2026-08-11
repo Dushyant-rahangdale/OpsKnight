@@ -472,20 +472,16 @@ export async function archiveWarRoomChannel(
       return { success: false, error: 'No Slack bot token' };
     }
 
-    // Auto-generate Postmortem draft before archiving channel
-    const postmortemUrl = await ensurePostmortemDraft(incidentId).catch(() => null);
-    const pmText = postmortemUrl ? `\n📄 *Postmortem Draft:* ${postmortemUrl}` : '';
-
     // Update topic to resolved
     await slackApiCall('conversations.setTopic', botToken, {
       channel: incident.slackChannelId,
       topic: '✅ Incident Resolved — This channel has been archived.',
     }).catch(() => {});
 
-    // Post final message with Postmortem link
+    // Post final message
     await slackApiCall('chat.postMessage', botToken, {
       channel: incident.slackChannelId,
-      text: `✅ *This incident has been resolved.* Archiving war-room channel.${pmText}`,
+      text: `✅ *This incident has been resolved.* Archiving war-room channel.`,
     }).catch(() => {});
 
     // Ensure bot is in channel before archiving

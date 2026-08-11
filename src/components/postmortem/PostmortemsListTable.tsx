@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatDateTime } from '@/lib/timezone';
@@ -7,15 +8,17 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/shadcn/button';
 
 import Pagination from '@/components/incident/Pagination';
-import { MoreHorizontal, FileText, CheckCircle2, Eye, Edit2, Globe, Lock } from 'lucide-react';
+import { MoreHorizontal, FileText, CheckCircle2, Eye, Edit2, Globe, Lock, Trash2, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/shadcn/dropdown-menu';
 import UserAvatar from '@/components/UserAvatar';
 import StatusBadge from '@/components/incident/StatusBadge';
+import { deletePostmortem, bulkDeletePostmortems } from '@/app/(app)/postmortems/actions';
 
 type PostmortemListItem = {
   id: string;
@@ -63,6 +66,56 @@ export default function PostmortemsListTable({
   canManage,
 }: PostmortemsListTableProps) {
   const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const allSelected = postmortems.length > 0 && selectedIds.length === postmortems.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(postmortems.map(pm => pm.id));
+    }
+  };
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} selected postmortem(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await bulkDeletePostmortems(selectedIds);
+      setSelectedIds([]);
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete postmortems');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSingle = async (incidentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this postmortem draft?')) return;
+
+    try {
+      await deletePostmortem(incidentId);
+      setSelectedIds(prev => prev.filter(id => id !== incidentId));
+      router.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete postmortem');
+    }
+  };
 
   if (postmortems.length === 0) {
     return (
@@ -80,11 +133,44 @@ export default function PostmortemsListTable({
 
   return (
     <div className="space-y-4">
+      {/* Bulk Action Bar */}
+      {canManage && selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-900 transition-all">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span>{selectedIds.length} postmortem(s) selected</span>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            disabled={isDeleting}
+            className="flex items-center gap-1.5 shadow-sm"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Delete Selected ({selectedIds.length})
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-semibold">
               <tr>
+                {canManage && (
+                  <th className="px-4 py-3 w-[40px]">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3 min-w-[200px]">Postmortem</th>
                 <th className="px-4 py-3 min-w-[200px]">Incident</th>
                 <th className="px-4 py-3 w-[120px]">Status</th>
@@ -96,12 +182,27 @@ export default function PostmortemsListTable({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {postmortems.map(pm => {
+                const isSelected = selectedIds.includes(pm.id);
+
                 return (
                   <tr
                     key={pm.id}
-                    className="group hover:bg-slate-50/80 transition-colors cursor-pointer"
+                    className={cn(
+                      'group transition-colors cursor-pointer',
+                      isSelected ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-slate-50/80'
+                    )}
                     onClick={() => router.push(`/postmortems/${pm.incidentId}`)}
                   >
+                    {canManage && (
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={e => toggleSelect(pm.id, e as any)}
+                          className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900 group-hover:text-primary transition-colors">
                         {pm.title}
@@ -152,14 +253,6 @@ export default function PostmortemsListTable({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <UserAvatar userId={pm.createdBy.id} name={pm.createdBy.name} size="sm" />
-                        <span className="text-slate-700 truncate max-w-[100px]">
-                          {pm.createdBy.name || pm.createdBy.email}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
                       <div className="text-slate-700">
                         {formatDateTime(pm.createdAt, userTimeZone, {
                           format: 'date',
@@ -191,12 +284,22 @@ export default function PostmortemsListTable({
                             View
                           </DropdownMenuItem>
                           {canManage && (
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/postmortems/${pm.incidentId}`)}
-                            >
-                              <Edit2 className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/postmortems/${pm.incidentId}`)}
+                              >
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={e => handleDeleteSingle(pm.incidentId, e)}
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
