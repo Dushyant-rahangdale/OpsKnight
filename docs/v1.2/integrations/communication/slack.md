@@ -153,30 +153,41 @@ Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL.
 
 ---
 
-## Step 3: Set Up Interactivity
+## Step 3: Set Up Interactivity & Event Subscriptions
 
-Enable interactive features for action buttons.
+Enable interactive buttons, slash commands, and emoji reaction timeline sync.
 
-### Enable Interactivity
+### Enable Interactivity & 1-Click Action Buttons
 
-1. Go to **Interactivity & Shortcuts** in sidebar
-2. Toggle **Interactivity** to **On**
-3. Set **Request URL**:
+1. Open **[api.slack.com/apps](https://api.slack.com/apps)** → Select your **OpsKnight App**
+2. Click **Interactivity & Shortcuts** in the left sidebar
+3. Toggle **Interactivity** to **ON**
+4. Set **Request URL**:
 
 ```
 https://YOUR_OPSKNIGHT_URL/api/slack/actions
 ```
 
-### Configure Shortcuts (Optional)
+*(e.g., `https://opssentinal.com/api/slack/actions`)*
 
-Add a global shortcut to create incidents:
+5. Click **Save Changes**. This enables 1-click **👀 Acknowledge**, **🙋 Assign to Me**, and **✅ Resolve** interactive buttons on Slack incident cards!
 
-1. Click **Create New Shortcut**
-2. Choose **Global**
-3. Configure:
-   - **Name**: Create Incident
-   - **Short Description**: Create an OpsKnight incident
-   - **Callback ID**: `create_incident`
+### Enable Event Subscriptions (Emoji Reaction Sync)
+
+1. Open **[api.slack.com/apps](https://api.slack.com/apps)** → Select your **OpsKnight App**
+2. Click **Event Subscriptions** in the left sidebar
+3. Toggle **Enable Events** to **ON**
+4. Set **Request URL**:
+
+```
+https://YOUR_OPSKNIGHT_URL/api/slack/events
+```
+
+*(e.g., `https://opssentinal.com/api/slack/events`)*
+
+5. Under **Subscribe to Bot Events**, click **Add Bot User Event** and add:
+   - `reaction_added`
+6. Click **Save Changes**. Now, reacting to ANY message with 📌 (`:pushpin:`) or 📝 (`:memo:`) automatically captures that message directly into the OpsKnight incident timeline!
 
 ---
 
