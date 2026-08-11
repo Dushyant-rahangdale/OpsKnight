@@ -150,6 +150,7 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
               '`/incident resolve [summary]` — Resolve with optional summary',
               '`/incident note <message>` — Add an incident note',
               '`/incident who` — Show who is on-call',
+              '`/incident postmortem` — Create a postmortem draft from timeline & notes',
               '`/incident help` — Show this help message',
             ].join('\n'),
           },
@@ -408,6 +409,99 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
         return {
           response_type: 'ephemeral',
           text: '⚠️ Failed to query on-call information.',
+        };
+      }
+    }
+
+    case 'postmortem': {
+      try {
+        const appUrl = (await import('@/lib/env-validation')).getBaseUrl();
+        const existingPostmortem = await prisma.postmortem.findUnique({
+          where: { incidentId: incident.id },
+          select: { id: true, title: true, status: true },
+        });
+
+        if (existingPostmortem) {
+          const postmortemUrl = `${appUrl}/postmortems/${existingPostmortem.id}`;
+          return {
+            response_type: 'in_channel',
+            text: `📄 *Postmortem Draft Already Exists*\nTitle: *${existingPostmortem.title}* (${existingPostmortem.status})\n🔗 Edit Postmortem: ${postmortemUrl}`,
+          };
+        }
+
+        // Resolve author
+        let authorUserId: string | undefined;
+        if (botToken) {
+          const opsUser = await resolveOpsKnightUser(
+            user_id,
+            botToken,
+            incident.assigneeId,
+            payload.user_name
+          );
+          authorUserId = opsUser?.id;
+        }
+
+        const defaultAuthor = authorUserId
+          ? authorUserId
+          : (await prisma.user.findFirst({ select: { id: true } }))?.id;
+
+        if (!defaultAuthor) {
+          return {
+            response_type: 'ephemeral',
+            text: '⚠️ Could not resolve author for postmortem.',
+          };
+        }
+
+        // Fetch incident notes and events for timeline
+        const notes = await prisma.incidentNote.findMany({
+          where: { incidentId: incident.id },
+          include: { user: { select: { name: true } } },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        const events = await prisma.incidentEvent.findMany({
+          where: { incidentId: incident.id },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        const timelineEntries = [
+          ...events.map(e => ({ time: e.createdAt, text: e.message, type: 'event' })),
+          ...notes.map(n => ({ time: n.createdAt, text: `[${n.user.name}]: ${n.content}`, type: 'note' })),
+        ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+        const newPostmortem = await prisma.postmortem.create({
+          data: {
+            incidentId: incident.id,
+            title: `Postmortem: ${incident.title}`,
+            summary: `Automated postmortem draft generated from Slack war-room #${payload.channel_name}`,
+            impact: { service: incident.service.name, urgency: incident.urgency },
+            rootCause: 'TBD — Generated from Slack War Room',
+            resolution: `Resolved via ChatOps by @${payload.user_name}`,
+            lessons: 'Timeline and notes captured from Slack war-room channel.',
+            timeline: timelineEntries as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            createdById: defaultAuthor,
+            status: 'DRAFT',
+          },
+        });
+
+        await prisma.incidentEvent.create({
+          data: {
+            incidentId: incident.id,
+            message: `Postmortem draft generated via Slack ChatOps by @${payload.user_name}`,
+          },
+        });
+
+        const editUrl = `${appUrl}/postmortems/${newPostmortem.id}`;
+
+        return {
+          response_type: 'in_channel',
+          text: `📄 *Postmortem Draft Created!*\n*Title:* ${newPostmortem.title}\n*Timeline Events Captured:* ${timelineEntries.length}\n🔗 *Edit & Publish:* ${editUrl}`,
+        };
+      } catch (pmErr) {
+        logger.error('[ChatOps] Failed to create postmortem via slash command', { error: pmErr });
+        return {
+          response_type: 'ephemeral',
+          text: '⚠️ Failed to generate postmortem draft.',
         };
       }
     }
