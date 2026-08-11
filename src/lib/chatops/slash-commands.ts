@@ -469,6 +469,14 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
           ...notes.map(n => ({ time: n.createdAt, text: `[${n.user.name}]: ${n.content}`, type: 'note' })),
         ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
+        const actionItemsFromNotes = notes
+          .filter(n => /todo:|action item:|fix:|followup:/i.test(n.content))
+          .map(n => ({
+            title: n.content.replace(/^(todo:|action item:|fix:|followup:)\s*/i, '').trim(),
+            status: 'OPEN',
+            priority: 'MEDIUM',
+          }));
+
         const newPostmortem = await prisma.postmortem.create({
           data: {
             incidentId: incident.id,
@@ -479,6 +487,7 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
             resolution: `Resolved via ChatOps by @${payload.user_name}`,
             lessons: 'Timeline and notes captured from Slack war-room channel.',
             timeline: timelineEntries as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            actionItems: actionItemsFromNotes as any, // eslint-disable-line @typescript-eslint/no-explicit-any
             createdById: defaultAuthor,
             status: 'DRAFT',
           },
