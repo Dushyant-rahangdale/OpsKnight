@@ -5,9 +5,9 @@ type LayerUser = {
 };
 
 type LayerRestrictions = {
-  daysOfWeek?: number[];  // 0=Sun, 1=Mon, ..., 6=Sat
-  startHour?: number;     // 0-23
-  endHour?: number;       // 0-23
+  daysOfWeek?: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
+  startHour?: number; // 0-23
+  endHour?: number; // 0-23
 };
 
 type LayerInput = {
@@ -67,6 +67,106 @@ function getDayHourInTimeZone(date: Date, timeZone: string): { day: number; hour
 
   return { day: dayMap[weekday] ?? 0, hour };
 }
+function addCalendarDaysInTimeZone(base: Date, days: number, timeZone: string): Date {
+  // Get the date parts in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = formatter.formatToParts(base);
+  const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? '0');
+
+  // Reconstruct the date with calendar day offset, keeping the same wall-clock time
+  const baseUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day') + days,
+    get('hour'),
+    get('minute'),
+    get('second')
+  );
+
+  // Convert back from target timezone to UTC
+  // We need the offset at the new date, so do a two-step correction
+  const tentative = new Date(baseUtc);
+  const tentativeParts = formatter.formatToParts(tentative);
+  const getTentative = (type: string) =>
+    Number(tentativeParts.find(p => p.type === type)?.value ?? '0');
+  const tentativeUtc = Date.UTC(
+    getTentative('year'),
+    getTentative('month') - 1,
+    getTentative('day'),
+    getTentative('hour'),
+    getTentative('minute'),
+    getTentative('second')
+  );
+  const offset = tentativeUtc - tentative.getTime();
+  return new Date(baseUtc - offset);
+}
+
+function splitBlockByRestrictions(
+  start: Date,
+  end: Date,
+  timeZone: string,
+  daysOfWeek?: number[],
+  startHour?: number,
+  endHour?: number
+): Array<{ start: Date; end: Date }> {
+  const result: Array<{ start: Date; end: Date }> = [];
+  const ONE_HOUR = 3600000;
+
+  let cursor = new Date(start);
+  let segStart: Date | null = null;
+
+  while (cursor < end) {
+    const { day, hour } = getDayHourInTimeZone(cursor, timeZone);
+    let allowed = true;
+
+    // Check day restriction
+    if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(day)) {
+      allowed = false;
+    }
+
+    // Check hour restriction
+    if (allowed && startHour != null && endHour != null) {
+      if (startHour <= endHour) {
+        // Normal range (e.g., 09:00 - 17:00)
+        if (hour < startHour || hour >= endHour) allowed = false;
+      } else {
+        // Overnight range (e.g., 18:00 - 06:00)
+        if (hour < startHour && hour >= endHour) allowed = false;
+      }
+    } else if (allowed && startHour != null && hour < startHour) {
+      allowed = false;
+    } else if (allowed && endHour != null && hour >= endHour) {
+      allowed = false;
+    }
+
+    if (allowed) {
+      if (!segStart) segStart = new Date(cursor);
+    } else {
+      if (segStart) {
+        result.push({ start: segStart, end: new Date(cursor) });
+        segStart = null;
+      }
+    }
+
+    cursor = new Date(cursor.getTime() + ONE_HOUR);
+  }
+
+  // Close any open segment
+  if (segStart) {
+    result.push({ start: segStart, end: new Date(Math.min(cursor.getTime(), end.getTime())) });
+  }
+
+  return result;
+}
 
 function generateLayerBlocks(
   layer: LayerInput,
@@ -106,8 +206,18 @@ function generateLayerBlocks(
   const maxBlocks = 10000;
 
   while (guard < maxBlocks) {
-    const rotationStartTime = layerStart.getTime() + index * rotationMs;
-    const blockStart = new Date(rotationStartTime);
+    let blockStart: Date;
+    if (layer.rotationLengthHours === 24 || layer.rotationLengthHours === 168) {
+      // Calendar-day math to avoid DST drift for daily/weekly rotations
+      blockStart = addCalendarDaysInTimeZone(
+        layerStart,
+        index * (layer.rotationLengthHours / 24),
+        timeZone
+      );
+    } else {
+      const rotationStartTime = layerStart.getTime() + index * rotationMs;
+      blockStart = new Date(rotationStartTime);
+    }
 
     if (blockStart >= windowEnd) {
       break;
@@ -117,14 +227,25 @@ function generateLayerBlocks(
       break;
     }
 
-    const dutyEndTime = rotationStartTime + shiftMs;
-    // The "end of the block" logic needs to consider rotation boundary? 
+    // The "end of the block" logic needs to consider rotation boundary?
     // No, duty can be shorter than rotation (gap) or longer (overlap? not supported well).
     // Assuming shift <= rotation usually. If shift > rotation, it overlaps next user.
     // Existing logic handles overlaps by "next user starts at next index".
     // We just emit blocks. Overlapping blocks are rendered overlappingly (now fixed in Timeline to stack).
 
-    const rawEnd = new Date(dutyEndTime);
+    let rawEnd: Date;
+    if (
+      (layer.shiftLengthHours || layer.rotationLengthHours) === 24 ||
+      (layer.shiftLengthHours || layer.rotationLengthHours) === 168
+    ) {
+      rawEnd = addCalendarDaysInTimeZone(
+        blockStart,
+        (layer.shiftLengthHours || layer.rotationLengthHours) / 24,
+        timeZone
+      );
+    } else {
+      rawEnd = new Date(blockStart.getTime() + shiftMs);
+    }
     const blockEnd = layerEnd && rawEnd > layerEnd ? layerEnd : rawEnd;
 
     // Check visibility
@@ -143,59 +264,45 @@ function generateLayerBlocks(
     const clampedEnd = blockEnd > windowEnd ? windowEnd : blockEnd;
 
     if (clampedStart < clampedEnd) {
-      // Apply restrictions if present
       if (layer.restrictions) {
+        // Split into hourly sub-blocks and filter by restriction
         const { daysOfWeek, startHour, endHour } = layer.restrictions;
-        const { day: blockDay, hour: blockHour } = getDayHourInTimeZone(clampedStart, timeZone);
-
-        // Skip if day not allowed
-        if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(blockDay)) {
-          index++;
-          guard++;
-          continue;
+        const subBlocks = splitBlockByRestrictions(
+          clampedStart,
+          clampedEnd,
+          timeZone,
+          daysOfWeek,
+          startHour,
+          endHour
+        );
+        for (const sub of subBlocks) {
+          blocks.push({
+            id: `${layer.id}-${index}-${sub.start.getTime()}`,
+            start: sub.start,
+            end: sub.end,
+            userId: user.userId,
+            userName: user.user.name,
+            userAvatar: user.user.avatarUrl,
+            userGender: user.user.gender,
+            layerId: layer.id,
+            layerName: layer.name,
+            source: 'rotation',
+          });
         }
-
-        // Skip if hour not in range (startHour <= hour < endHour)
-        if (startHour != null && endHour != null) {
-          // Handle overnight ranges (e.g., 18:00 - 06:00)
-          if (startHour <= endHour) {
-            // Normal range (e.g., 09:00 - 17:00)
-            if (blockHour < startHour || blockHour >= endHour) {
-              index++;
-              guard++;
-              continue;
-            }
-          } else {
-            // Overnight range (e.g., 18:00 - 06:00)
-            if (blockHour < startHour && blockHour >= endHour) {
-              index++;
-              guard++;
-              continue;
-            }
-          }
-        } else if (startHour != null && blockHour < startHour) {
-          index++;
-          guard++;
-          continue;
-        } else if (endHour != null && blockHour >= endHour) {
-          index++;
-          guard++;
-          continue;
-        }
+      } else {
+        blocks.push({
+          id: `${layer.id}-${index}`,
+          start: clampedStart,
+          end: clampedEnd,
+          userId: user.userId,
+          userName: user.user.name,
+          userAvatar: user.user.avatarUrl,
+          userGender: user.user.gender,
+          layerId: layer.id,
+          layerName: layer.name,
+          source: 'rotation',
+        });
       }
-
-      blocks.push({
-        id: `${layer.id}-${index}`,
-        start: clampedStart,
-        end: clampedEnd,
-        userId: user.userId,
-        userName: user.user.name,
-        userAvatar: user.user.avatarUrl,
-        userGender: user.user.gender,
-        layerId: layer.id,
-        layerName: layer.name,
-        source: 'rotation',
-      });
     }
 
     index++;

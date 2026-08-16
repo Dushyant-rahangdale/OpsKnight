@@ -536,6 +536,7 @@ export default async function ScheduleDetailPage({
             createLayer={createLayer}
             createOverride={createOverride}
             defaultStartDate={formatDateForInput(now, schedule.timeZone)}
+            scheduleTimeZone={schedule.timeZone}
           />
 
           {/* Schedule Settings */}

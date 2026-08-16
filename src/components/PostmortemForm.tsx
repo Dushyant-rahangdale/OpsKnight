@@ -192,7 +192,7 @@ export default function PostmortemForm({
 
     setIsDrafting(true);
     try {
-      const draft = await generatePostmortemDraft(targetId);
+      const draft = await generatePostmortemDraft(targetId, userTimeZone);
 
       // Update Form Fields
       if (draft.summary) form.setValue('summary', draft.summary, { shouldDirty: true });

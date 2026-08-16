@@ -67,17 +67,15 @@ export default function HeatmapCalendar({
     const today = new Date();
     const rangeStart = startDate ? new Date(startDate) : new Date(today);
     const normalized = new Date(
-      rangeStart.getFullYear(),
-      rangeStart.getMonth(),
-      rangeStart.getDate()
+      Date.UTC(rangeStart.getUTCFullYear(), rangeStart.getUTCMonth(), rangeStart.getUTCDate())
     );
     const end = new Date(normalized);
-    end.setDate(end.getDate() + days - 1);
+    end.setUTCDate(end.getUTCDate() + days - 1);
 
     const weekStart = new Date(normalized);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
     const weekEnd = new Date(end);
-    weekEnd.setDate(weekEnd.getDate() + (6 - weekEnd.getDay()));
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + (6 - weekEnd.getUTCDay()));
 
     const totalDays = Math.round((weekEnd.getTime() - weekStart.getTime()) / 86400000) + 1;
     const weeksCount = Math.ceil(totalDays / 7);
@@ -177,23 +175,23 @@ export default function HeatmapCalendar({
 
     for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
       const weekStart = new Date(startOfWeek);
-      weekStart.setDate(weekStart.getDate() + weekIndex * 7);
+      weekStart.setUTCDate(weekStart.getUTCDate() + weekIndex * 7);
       let hasMonthStart = false;
 
       for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
         const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + dayOfWeek);
+        date.setUTCDate(weekStart.getUTCDate() + dayOfWeek);
 
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
         const dateKey = `${year}-${month}-${day}`;
         const inRange = date >= normalizedStart && date <= rangeEnd;
         const count = inRange ? dataMap.get(dateKey) || 0 : -1;
         const x = weekIndex * (effectiveCellSize + effectiveGap);
         const y = dayOfWeek * (effectiveCellSize + effectiveGap) + topPadding;
 
-        if (inRange && date.getDate() === 1) {
+        if (inRange && date.getUTCDate() === 1) {
           hasMonthStart = true;
         }
 
@@ -202,13 +200,13 @@ export default function HeatmapCalendar({
 
       if (hasMonthStart) {
         labelsArray.push({
-          label: monthNames[weekStart.getMonth()],
+          label: monthNames[weekStart.getUTCMonth()],
           x: weekIndex * (effectiveCellSize + effectiveGap),
         });
         firstLabelAdded = true;
       } else if (!firstLabelAdded && weekIndex === 0) {
         labelsArray.push({
-          label: monthNames[normalizedStart.getMonth()],
+          label: monthNames[normalizedStart.getUTCMonth()],
           x: weekIndex * (effectiveCellSize + effectiveGap),
         });
         firstLabelAdded = true;
@@ -293,7 +291,7 @@ export default function HeatmapCalendar({
             }}
           >
             {cell.count >= 0 && (
-              <title>{`${cell.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}: ${cell.count} incident${cell.count !== 1 ? 's' : ''}`}</title>
+              <title>{`${cell.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}: ${cell.count} incident${cell.count !== 1 ? 's' : ''}`}</title>
             )}
           </rect>
         ))}

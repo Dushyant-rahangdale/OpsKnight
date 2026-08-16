@@ -242,7 +242,12 @@ export default async function ServiceIntegrationsPage({
                                   canManage={canManageIntegrations}
                                 />
                                 <span className="text-[10px] text-slate-400">
-                                  {new Date(integration.createdAt).toLocaleDateString()}
+                                  {new Date(integration.createdAt).toLocaleDateString('en-US', {
+                                    timeZone: 'UTC',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
                                 </span>
                               </div>
                             </div>
