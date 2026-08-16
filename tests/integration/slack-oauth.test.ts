@@ -60,6 +60,7 @@ describe('Slack OAuth Integration', () => {
       id: 'default',
       clientId: 'test-client-id',
       clientSecret: 'encrypted_secret',
+      signingSecret: null,
       redirectUri: null,
       enabled: true,
       createdAt: new Date(),
