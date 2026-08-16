@@ -571,6 +571,6 @@ Handles OAuth flow completion.
 ## Related Topics
 
 - [Slack OAuth Setup](./slack-oauth-setup) — Detailed OAuth configuration
-- [Notifications](../administration/notifications) — All notification channels
-- [Integrations Overview](./README) — Other integrations
-- [Services](../core-concepts/services) — Per-service channel configuration
+- [Notifications](../../administration/notifications) — All notification channels
+- [Integrations Overview](.) — Other integrations
+- [Services](../../core-concepts/services) — Per-service channel configuration

@@ -11,14 +11,15 @@ Receive alerts from New Relic and create incidents automatically.
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/newrelic?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -34,9 +35,9 @@ POST /api/integrations/newrelic?integrationId=YOUR_INTEGRATION_ID
 3. Select **Webhook**
 4. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Name** | `OpsKnight` |
+| Field            | Value                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| **Name**         | `OpsKnight`                                                                              |
 | **Endpoint URL** | `https://YOUR_OPSKNIGHT_URL/api/integrations/newrelic?integrationId=YOUR_INTEGRATION_ID` |
 
 5. Click **Save destination**
@@ -51,8 +52,8 @@ POST /api/integrations/newrelic?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Supported Formats
+
 OpsKnight automatically detects and handles multiple New Relic payload formats:
 
 ### Incident Format (Workflows)
@@ -108,30 +109,30 @@ OpsKnight automatically detects and handles multiple New Relic payload formats:
 
 ---
 
-
 ## Event Mapping
-| New Relic State | OpsKnight Action |
-| --------------- | ---------------- |
-| `open` | Trigger incident |
-| `acknowledged` | Acknowledge incident |
-| `resolved`, `closed` | Resolve incident |
+
+| New Relic State      | OpsKnight Action     |
+| -------------------- | -------------------- |
+| `open`               | Trigger incident     |
+| `acknowledged`       | Acknowledge incident |
+| `resolved`, `closed` | Resolve incident     |
 
 For APM format, resolved/closed keywords in `alertType` trigger resolution.
 
 ---
 
-
 ## Severity Mapping
+
 | New Relic Severity | OpsKnight Severity |
 | ------------------ | ------------------ |
-| `critical` | critical |
-| `warning` | warning |
-| `info` | info |
+| `critical`         | critical           |
+| `warning`          | warning            |
+| `info`             | info               |
 
 ---
 
-
 ## Incident Title
+
 The incident title is extracted based on format:
 
 **Incident format**: `incident.title`
@@ -142,8 +143,8 @@ The incident title is extracted based on format:
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated based on format:
 
 - **Incident format**: `newrelic-{incident.id}`
@@ -152,8 +153,8 @@ Dedup keys are generated based on format:
 
 ---
 
-
 ## Security
+
 ### Signature Verification (Optional)
 
 You can secure the webhook with HMAC signature verification:
@@ -163,8 +164,8 @@ You can secure the webhook with HMAC signature verification:
 
 ---
 
-
 ## Testing
+
 ### Using New Relic UI
 
 1. Go to **Alerts & AI** → **Workflows**
@@ -195,8 +196,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/newrelic?integrationId
 
 ---
 
-
 ## Troubleshooting
+
 ### Alerts Not Appearing
 
 1. **Check destination URL** is correct
@@ -219,9 +220,7 @@ If you see "unknown format" in incident details:
 
 ---
 
-
 ## Related Topics
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
 
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

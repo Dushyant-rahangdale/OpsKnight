@@ -21,35 +21,36 @@ This is the generic inbound webhook endpoint for tools without a dedicated integ
 ---
 
 ## Incoming Webhooks
+
 Receive alerts from external monitoring tools and create incidents automatically.
 
 ### Supported Integrations
 
 OpsKnight has dedicated endpoints for popular monitoring tools:
 
-| Integration | Endpoint |
-| ----------- | -------- |
-| **Prometheus** | `/api/integrations/prometheus` |
-| **Grafana** | `/api/integrations/grafana` |
-| **Datadog** | `/api/integrations/datadog` |
-| **New Relic** | `/api/integrations/newrelic` |
-| **Sentry** | `/api/integrations/sentry` |
-| **AWS CloudWatch** | `/api/integrations/cloudwatch` |
-| **Azure Monitor** | `/api/integrations/azure` |
+| Integration                 | Endpoint                                    |
+| --------------------------- | ------------------------------------------- |
+| **Prometheus**              | `/api/integrations/prometheus`              |
+| **Grafana**                 | `/api/integrations/grafana`                 |
+| **Datadog**                 | `/api/integrations/datadog`                 |
+| **New Relic**               | `/api/integrations/newrelic`                |
+| **Sentry**                  | `/api/integrations/sentry`                  |
+| **AWS CloudWatch**          | `/api/integrations/cloudwatch`              |
+| **Azure Monitor**           | `/api/integrations/azure`                   |
 | **Google Cloud Monitoring** | `/api/integrations/google-cloud-monitoring` |
-| **Dynatrace** | `/api/integrations/dynatrace` |
-| **AppDynamics** | `/api/integrations/appdynamics` |
-| **Splunk On-Call** | `/api/integrations/splunk-oncall` |
-| **Splunk Observability** | `/api/integrations/splunk-observability` |
-| **Elastic** | `/api/integrations/elastic` |
-| **Honeycomb** | `/api/integrations/honeycomb` |
-| **UptimeRobot** | `/api/integrations/uptimerobot` |
-| **Pingdom** | `/api/integrations/pingdom` |
-| **Better Uptime** | `/api/integrations/better-uptime` |
-| **Uptime Kuma** | `/api/integrations/uptime-kuma` |
-| **GitHub** | `/api/integrations/github` |
-| **Bitbucket** | `/api/integrations/bitbucket` |
-| **Generic Webhook** | `/api/integrations/webhook` |
+| **Dynatrace**               | `/api/integrations/dynatrace`               |
+| **AppDynamics**             | `/api/integrations/appdynamics`             |
+| **Splunk On-Call**          | `/api/integrations/splunk-oncall`           |
+| **Splunk Observability**    | `/api/integrations/splunk-observability`    |
+| **Elastic**                 | `/api/integrations/elastic`                 |
+| **Honeycomb**               | `/api/integrations/honeycomb`               |
+| **UptimeRobot**             | `/api/integrations/uptimerobot`             |
+| **Pingdom**                 | `/api/integrations/pingdom`                 |
+| **Better Uptime**           | `/api/integrations/better-uptime`           |
+| **Uptime Kuma**             | `/api/integrations/uptime-kuma`             |
+| **GitHub**                  | `/api/integrations/github`                  |
+| **Bitbucket**               | `/api/integrations/bitbucket`               |
+| **Generic Webhook**         | `/api/integrations/webhook`                 |
 
 ### Generic Webhook
 
@@ -78,30 +79,30 @@ The generic webhook accepts flexible payloads with automatic field mapping:
 
 OpsKnight automatically maps common field names:
 
-| Purpose | Accepted Fields |
-| ------- | --------------- |
-| **Title** | `summary`, `title`, `message`, `name` |
-| **Severity** | `severity`, `level`, `priority` |
-| **Status** | `status`, `action`, `state` |
-| **Dedup Key** | `dedup_key`, `id`, `alert_id` |
-| **Source** | `source`, `origin`, `system` |
+| Purpose       | Accepted Fields                       |
+| ------------- | ------------------------------------- |
+| **Title**     | `summary`, `title`, `message`, `name` |
+| **Severity**  | `severity`, `level`, `priority`       |
+| **Status**    | `status`, `action`, `state`           |
+| **Dedup Key** | `dedup_key`, `id`, `alert_id`         |
+| **Source**    | `source`, `origin`, `system`          |
 
 ### Status Values
 
-| Action | Trigger Values |
-| ------ | -------------- |
-| **Trigger** | triggered, fired, alert, critical, error, open |
-| **Resolve** | resolved, ok, normal, closed, fixed |
-| **Acknowledge** | acknowledge, ack |
+| Action          | Trigger Values                                 |
+| --------------- | ---------------------------------------------- |
+| **Trigger**     | triggered, fired, alert, critical, error, open |
+| **Resolve**     | resolved, ok, normal, closed, fixed            |
+| **Acknowledge** | acknowledge, ack                               |
 
 ### Severity Mapping
 
-| Input | OpsKnight Severity |
-| ----- | ------------------ |
-| critical, high | critical |
-| error | error |
-| warning, medium | warning |
-| info, low | info |
+| Input           | OpsKnight Severity |
+| --------------- | ------------------ |
+| critical, high  | critical           |
+| error           | error              |
+| warning, medium | warning            |
+| info, low       | info               |
 
 ### Signature Verification
 
@@ -116,8 +117,8 @@ OpsKnight verifies the HMAC-SHA256 signature against the request body.
 
 ---
 
-
 ## Outgoing Webhooks
+
 Send incident events to external systems via status page webhooks.
 
 ### Creating Outgoing Webhooks
@@ -126,24 +127,24 @@ Send incident events to external systems via status page webhooks.
 2. Click **Add Webhook**
 3. Configure:
 
-| Field | Description |
-| ----- | ----------- |
-| **Name** | Friendly identifier |
-| **URL** | Endpoint to receive events |
-| **Secret** | HMAC signing secret |
-| **Events** | Which events to send |
-| **Enabled** | Toggle on/off |
+| Field       | Description                |
+| ----------- | -------------------------- |
+| **Name**    | Friendly identifier        |
+| **URL**     | Endpoint to receive events |
+| **Secret**  | HMAC signing secret        |
+| **Events**  | Which events to send       |
+| **Enabled** | Toggle on/off              |
 
 ### Event Types
 
-| Event | Description |
-| ----- | ----------- |
-| `incident.created` | New incident created |
-| `incident.acknowledged` | Incident acknowledged |
-| `incident.resolved` | Incident resolved |
-| `incident.snoozed` | Incident snoozed |
-| `incident.suppressed` | Incident suppressed |
-| `incident.updated` | Incident details changed |
+| Event                   | Description              |
+| ----------------------- | ------------------------ |
+| `incident.created`      | New incident created     |
+| `incident.acknowledged` | Incident acknowledged    |
+| `incident.resolved`     | Incident resolved        |
+| `incident.snoozed`      | Incident snoozed         |
+| `incident.suppressed`   | Incident suppressed      |
+| `incident.updated`      | Incident details changed |
 
 ### Outgoing Payload Format
 
@@ -170,12 +171,12 @@ Send incident events to external systems via status page webhooks.
 
 ### Outgoing Webhook Headers
 
-| Header | Value |
-| ------ | ----- |
-| `Content-Type` | `application/json` |
-| `X-Webhook-Signature` | `sha256=<hmac_signature>` |
-| `X-Webhook-Event` | Event name (e.g., `incident.created`) |
-| `User-Agent` | `OpsKnight-StatusPage/1.0` |
+| Header                | Value                                 |
+| --------------------- | ------------------------------------- |
+| `Content-Type`        | `application/json`                    |
+| `X-Webhook-Signature` | `sha256=<hmac_signature>`             |
+| `X-Webhook-Event`     | Event name (e.g., `incident.created`) |
+| `User-Agent`          | `OpsKnight-StatusPage/1.0`            |
 
 ### Verifying Signatures
 
@@ -185,17 +186,11 @@ Verify incoming webhook signatures in your receiving application:
 const crypto = require('crypto');
 
 function verifySignature(payload, signature, secret) {
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
+  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
   const providedSignature = signature.replace('sha256=', '');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature),
-    Buffer.from(providedSignature)
-  );
+  return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature));
 }
 
 // Usage
@@ -232,8 +227,8 @@ def verify_signature(payload: str, signature: str, secret: str) -> bool:
 
 ---
 
-
 ## Testing Webhooks
+
 ### Test Incoming Webhooks
 
 Use cURL to test your integration:
@@ -267,8 +262,8 @@ For testing outgoing webhooks:
 
 ---
 
-
 ## Use Cases
+
 ### ITSM Integration
 
 Automatically create tickets in ServiceNow, Jira, or other ITSM tools:
@@ -304,8 +299,8 @@ Trigger automated responses:
 
 ---
 
-
 ## Best Practices
+
 ### For Incoming Webhooks
 
 - **Use dedicated endpoints** when available for your monitoring tool
@@ -329,9 +324,8 @@ Trigger automated responses:
 
 ---
 
-
 ## Related Topics
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-- [Status Page](../core-concepts/status-page) — Status page configuration
 
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations
+- [Status Page](../../core-concepts/status-page) — Status page configuration

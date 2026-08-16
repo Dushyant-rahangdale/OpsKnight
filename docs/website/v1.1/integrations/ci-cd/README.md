@@ -12,6 +12,6 @@ Detect failed deployments and pipeline issues before they impact users.
 
 <!-- integrations-list:start -->
 
-- [GitHub](./github) — Receive GitHub Actions and deployment failure alerts in OpsKnight
-- [Bitbucket](./bitbucket) — Receive Bitbucket Pipeline failure alerts in OpsKnight.
+- [GitHub](./ci-cd/github) — Receive GitHub Actions and deployment failure alerts in OpsKnight
+- [Bitbucket](./ci-cd/bitbucket) — Receive Bitbucket Pipeline failure alerts in OpsKnight.
 <!-- integrations-list:end -->

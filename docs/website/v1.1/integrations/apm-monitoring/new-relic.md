@@ -222,5 +222,5 @@ If you see "unknown format" in incident details:
 
 ## Related Topics
 
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

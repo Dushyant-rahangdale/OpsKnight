@@ -391,15 +391,15 @@ Route alerts from your actual infrastructure:
 
 Reach responders through multiple channels:
 
-- [SMS via Twilio](../administration/notifications.md#sms)
-- [Push Notifications](../administration/notifications.md#push)
+- [SMS via Twilio](../administration/notifications#sms)
+- [Push Notifications](../administration/notifications#push)
 - [Slack Integration](../integrations/communication/slack)
 
 ### Configure SLAs
 
 Track response time commitments:
 
-- [SLA Configuration](../core-concepts/analytics.md#sla-tracking)
+- [SLA Configuration](../core-concepts/analytics#sla-tracking)
 
 ### Create a Status Page
 

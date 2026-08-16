@@ -194,4 +194,4 @@ Ready to continue? Here's your path:
 
 - Check the [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues) for known problems
 - Join the community Discord for real-time help
-- Review the [Architecture](../architecture/) section for deeper understanding
+- Review the [Architecture](./architecture) section for deeper understanding

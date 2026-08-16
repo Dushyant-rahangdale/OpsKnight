@@ -11,14 +11,15 @@ Receive alerts from Datadog monitors and create incidents automatically.
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/datadog?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -33,12 +34,12 @@ POST /api/integrations/datadog?integrationId=YOUR_INTEGRATION_ID
 2. Click **+ New Webhook**
 3. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Name** | `OpsKnight` |
-| **URL** | `https://YOUR_OPSKNIGHT_URL/api/integrations/datadog?integrationId=YOUR_INTEGRATION_ID` |
-| **Payload** | Use default (leave empty) |
-| **Custom Headers** | Optional |
+| Field              | Value                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| **Name**           | `OpsKnight`                                                                             |
+| **URL**            | `https://YOUR_OPSKNIGHT_URL/api/integrations/datadog?integrationId=YOUR_INTEGRATION_ID` |
+| **Payload**        | Use default (leave empty)                                                               |
+| **Custom Headers** | Optional                                                                                |
 
 4. Click **Save**
 
@@ -50,8 +51,8 @@ POST /api/integrations/datadog?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Payload Format
+
 OpsKnight accepts the standard Datadog webhook payload:
 
 ```json
@@ -98,29 +99,29 @@ Datadog can also send monitor-specific payloads:
 
 ---
 
-
 ## Event Mapping
-| Datadog Status | OpsKnight Action |
-| -------------- | ---------------- |
-| `triggered`, `alert` | Trigger incident |
-| `resolved`, `ok` | Resolve incident |
+
+| Datadog Status         | OpsKnight Action |
+| ---------------------- | ---------------- |
+| `triggered`, `alert`   | Trigger incident |
+| `resolved`, `ok`       | Resolve incident |
 | `success` (alert_type) | Resolve incident |
 
 ---
 
-
 ## Severity Mapping
+
 | Datadog Alert Type | OpsKnight Severity |
 | ------------------ | ------------------ |
-| `error` | critical |
-| `warning` | warning |
-| `info` | info |
-| `success` | info |
+| `error`            | critical           |
+| `warning`          | warning            |
+| `info`             | info               |
+| `success`          | info               |
 
 ---
 
-
 ## Incident Title
+
 The incident title is extracted in this order:
 
 1. `title` (from event)
@@ -130,8 +131,8 @@ The incident title is extracted in this order:
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated in this order:
 
 1. `aggregation_key` (if provided)
@@ -151,8 +152,8 @@ Use the `aggregation_key` in your Datadog webhook payload for consistent dedupli
 
 ---
 
-
 ## Security
+
 ### Signature Verification (Optional)
 
 You can secure the webhook with HMAC signature verification:
@@ -162,8 +163,8 @@ You can secure the webhook with HMAC signature verification:
 
 ---
 
-
 ## Testing
+
 ### Using Datadog UI
 
 1. Open a monitor in Datadog
@@ -190,8 +191,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/datadog?integrationId=
 
 ---
 
-
 ## Troubleshooting
+
 ### Alerts Not Appearing
 
 1. **Check webhook URL** is correct in Datadog
@@ -211,9 +212,7 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/datadog?integrationId=
 
 ---
 
-
 ## Related Topics
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
 
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

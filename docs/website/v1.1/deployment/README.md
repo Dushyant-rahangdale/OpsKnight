@@ -12,8 +12,8 @@ This section covers production deployment of OpsKnight. Choose the deployment me
 
 ## Deployment Options
 
-| Method                     | Best For                  | Complexity | HA Support |
-| -------------------------- | ------------------------- | ---------- | ---------- |
+| Method                                | Best For                  | Complexity | HA Support |
+| ------------------------------------- | ------------------------- | ---------- | ---------- |
 | [Docker Compose](./deployment/docker) | Small teams, dev/staging  | Low        | No         |
 | [Kubernetes](./deployment/kubernetes) | Production, enterprise    | Medium     | Yes        |
 | [Helm](./deployment/helm)             | Templated K8s deployments | Medium     | Yes        |
@@ -137,7 +137,7 @@ docker compose up -d
 
 Access at `http://localhost:3000` — you'll be directed to `/setup` to create your admin account.
 
-[Full Docker Guide →](./docker)
+[Full Docker Guide →](./deployment/docker)
 
 ---
 
@@ -166,7 +166,7 @@ kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 ```
 
-[Full Kubernetes Guide →](./kubernetes)
+[Full Kubernetes Guide →](./deployment/kubernetes)
 
 ---
 
@@ -188,7 +188,7 @@ helm install opsknight ./opsknight \
   --values values.yaml
 ```
 
-[Full Helm Guide →](./helm)
+[Full Helm Guide →](./deployment/helm)
 
 ---
 
@@ -345,7 +345,7 @@ kubectl logs -l app=postgres
 
 ## Related Topics
 
-- [Getting Started](../getting-started/) — Initial setup
-- [Configuration](../getting-started/configuration) — Environment reference
-- [Architecture](../architecture/) — System design
-- [Security](../security/) — Security configuration
+- [Getting Started](./getting-started) — Initial setup
+- [Configuration](./getting-started/configuration) — Environment reference
+- [Architecture](./architecture) — System design
+- [Security](./security) — Security configuration

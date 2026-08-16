@@ -246,5 +246,5 @@ Grafana alerts default to `critical` severity. To customize:
 ## Related Topics
 
 - [Prometheus Integration](../metrics-alerting/prometheus) — Prometheus Alertmanager
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

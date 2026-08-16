@@ -8,9 +8,9 @@ description: Use OpsKnight on mobile devices via the Progressive Web App (PWA)
 
 OpsKnight provides a full-featured mobile experience through a Progressive Web App (PWA). Handle incidents, check schedules, and respond to alerts from anywhere.
 
-Start here: **[Mobile Setup](./setup)** — install the PWA and enable push notifications.
+Start here: **[Mobile Setup](./mobile/setup)** — install the PWA and enable push notifications.
 
-![OpsKnight mobile dashboard](../../../v1/assets/mobile.png)
+![OpsKnight mobile dashboard](../assets/mobile.png)
 
 **Built for on-call in the real world**
 
@@ -76,7 +76,7 @@ The mobile dashboard provides a quick overview:
 - **Your Queue** — Incidents assigned to you
 - **On-Call Status** — Who's currently on-call
 
-![Mobile dashboard metrics](../../../v1/assets/mobile.png)
+![Mobile dashboard metrics](../assets/mobile.png)
 
 ### Incident Management
 
@@ -105,11 +105,13 @@ Receive push notifications for:
 - **Escalations** — When incident escalates to you
 - **Updates** — When incidents you're watching change
 
+While the app is open, the notification list updates in real time and falls back to periodic refresh if the live stream is unavailable.
+
 ---
 
 ## Push Notifications
 
-![OpsKnight push notification on iOS](../../../v1/assets/mobile.png)
+![OpsKnight push notification on iOS](../assets/mobile.png)
 
 ### Enabling Push Notifications
 
@@ -169,15 +171,17 @@ Access additional features:
 
 ## Offline Support
 
-The PWA provides basic offline functionality:
+The PWA supports offline-friendly workflows:
 
-| Feature                   | Offline Behavior          |
-| ------------------------- | ------------------------- |
-| **View cached incidents** | Yes                       |
-| **View cached schedules** | Yes                       |
-| **Acknowledge**           | Queued, syncs when online |
-| **Add notes**             | Queued, syncs when online |
-| **Create incident**       | Requires connection       |
+| Feature                     | Offline Behavior          |
+| --------------------------- | ------------------------- |
+| **View cached incidents**   | Yes                       |
+| **View cached schedules**   | Yes                       |
+| **View cached services**    | Yes                       |
+| **View cached teams**       | Yes                       |
+| **Update incident status**  | Queued, syncs when online |
+| **Mark notifications read** | Queued, syncs when online |
+| **Create incident**         | Requires connection       |
 
 > **Note**: Push notifications require an internet connection.
 
@@ -198,7 +202,12 @@ All interactive elements are sized for touch:
 Some views support swipe gestures:
 
 - **Pull to refresh** — Update incident list
-- **Swipe to action** — Quick acknowledge/resolve (where enabled)
+- **Swipe to action** — Quick acknowledge/snooze/resolve (where enabled)
+
+### Haptics & Feedback
+
+- **Haptic feedback** — Subtle tap feedback for primary actions
+- **Skeleton loading** — Placeholder layouts reduce perceived load time
 
 ### Responsive Layout
 
@@ -255,6 +264,6 @@ The UI adapts to different screen sizes:
 
 ## Related Topics
 
-- [PWA Deployment](../deployment/mobile-pwa) — Technical PWA setup
-- [Push Notifications](../administration/notifications.md#push) — Push configuration
-- [Schedules](../core-concepts/schedules) — On-call management
+- [PWA Deployment](./deployment/mobile-pwa) — Technical PWA setup
+- [Push Notifications](./administration/notifications#push) — Push configuration
+- [Schedules](./core-concepts/schedules) — On-call management

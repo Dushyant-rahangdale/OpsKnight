@@ -364,7 +364,7 @@ curl -X GET "https://opsknight.yourco.com/api/schedules/sch_abc123/on-call" \
 
 ### Official Tools
 
-- **CLI Tool**: [CLI Documentation](./cli)
+- **CLI Tool**: [CLI Documentation](./api/cli)
 
 ### Community Tools
 
@@ -437,7 +437,7 @@ Verify by computing HMAC of the raw request body using your webhook secret.
 
 ## Need Help?
 
-- Check the [CLI Tool](./cli) for command-line access
-- See [Events API](./events) for alert integration
-- See [Incidents API](./incidents) for incident management
+- Check the [CLI Tool](./api/cli) for command-line access
+- See [Events API](./api/events) for alert integration
+- See [Incidents API](./api/incidents) for incident management
 - Report issues on [GitHub](https://github.com/dushyant-rahangdale/opsknight/issues)

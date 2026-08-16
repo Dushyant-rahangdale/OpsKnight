@@ -473,5 +473,5 @@ When a new incident is triggered:
 ## Related Topics
 
 - [Incidents API](./incidents) — Direct incident management
-- [Integrations](../integrations/README) — Integration configuration
+- [Integrations](../integrations) — Integration configuration
 - [Services](../core-concepts/services) — Service setup

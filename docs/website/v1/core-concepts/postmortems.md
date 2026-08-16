@@ -15,11 +15,11 @@ Postmortems (also called Post-Incident Reviews or PIRs) document what happened d
 
 ## Why Postmortems Matter
 
-| Without Postmortems | With Postmortems |
-| ------------------- | ---------------- |
-| Same incidents repeat | Learn and prevent recurrence |
-| Tribal knowledge | Documented institutional memory |
-| Blame culture | Blameless improvement culture |
+| Without Postmortems         | With Postmortems                 |
+| --------------------------- | -------------------------------- |
+| Same incidents repeat       | Learn and prevent recurrence     |
+| Tribal knowledge            | Documented institutional memory  |
+| Blame culture               | Blameless improvement culture    |
 | No accountability for fixes | Tracked action items with owners |
 
 ---
@@ -34,12 +34,12 @@ DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
 
 ### Workflow States
 
-| Status | Description | Who Can Edit |
-| ------ | ----------- | ------------ |
-| **DRAFT** | Initial creation, work in progress | Author, Editors |
-| **IN_REVIEW** | Ready for team review and feedback | Author, Editors, Reviewers |
-| **PUBLISHED** | Finalized, visible to organization | Admins only |
-| **ARCHIVED** | Historical record, no longer active | Admins only |
+| Status        | Description                         | Who Can Edit               |
+| ------------- | ----------------------------------- | -------------------------- |
+| **DRAFT**     | Initial creation, work in progress  | Author, Editors            |
+| **IN_REVIEW** | Ready for team review and feedback  | Author, Editors, Reviewers |
+| **PUBLISHED** | Finalized, visible to organization  | Admins only                |
+| **ARCHIVED**  | Historical record, no longer active | Admins only                |
 
 ### State Transitions
 
@@ -71,21 +71,21 @@ DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
 
 ### Required Triggers
 
-| Condition | Rationale |
-| --------- | --------- |
-| **Any HIGH urgency incident** | Critical issues need documentation |
-| **Customer-impacting outage** | External impact requires review |
-| **Data loss or security incident** | Compliance and learning |
-| **Incident duration > 1 hour** | Extended incidents have lessons |
+| Condition                          | Rationale                          |
+| ---------------------------------- | ---------------------------------- |
+| **Any HIGH urgency incident**      | Critical issues need documentation |
+| **Customer-impacting outage**      | External impact requires review    |
+| **Data loss or security incident** | Compliance and learning            |
+| **Incident duration > 1 hour**     | Extended incidents have lessons    |
 
 ### Recommended Triggers
 
-| Condition | Rationale |
-| --------- | --------- |
-| **Recurring incident pattern** | Break the cycle |
-| **Near-miss (almost critical)** | Learn before it gets worse |
-| **Novel failure mode** | Document new knowledge |
-| **Cross-team coordination issues** | Process improvements |
+| Condition                          | Rationale                  |
+| ---------------------------------- | -------------------------- |
+| **Recurring incident pattern**     | Break the cycle            |
+| **Near-miss (almost critical)**    | Learn before it gets worse |
+| **Novel failure mode**             | Document new knowledge     |
+| **Cross-team coordination issues** | Process improvements       |
 
 ### Skip Postmortem When
 
@@ -120,20 +120,20 @@ DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
 
 ### Postmortem Fields
 
-| Field | Required | Description |
-| ----- | -------- | ----------- |
-| **Title** | Yes | Clear, descriptive title |
-| **Incident** | No | Linked incident (auto-populates data) |
-| **Summary** | Yes | Executive summary of what happened |
-| **Timeline** | Yes | Chronological event sequence |
-| **Impact** | Yes | Business and customer impact |
-| **Root Cause** | Yes | Technical explanation of failure |
-| **Resolution** | Yes | How the incident was resolved |
-| **Action Items** | Yes | Follow-up tasks with owners |
-| **Lessons Learned** | No | Key takeaways |
-| **Contributing Factors** | No | Additional factors beyond root cause |
-| **Detection** | No | How the incident was discovered |
-| **Response** | No | Evaluation of incident response |
+| Field                    | Required | Description                           |
+| ------------------------ | -------- | ------------------------------------- |
+| **Title**                | Yes      | Clear, descriptive title              |
+| **Incident**             | No       | Linked incident (auto-populates data) |
+| **Summary**              | Yes      | Executive summary of what happened    |
+| **Timeline**             | Yes      | Chronological event sequence          |
+| **Impact**               | Yes      | Business and customer impact          |
+| **Root Cause**           | Yes      | Technical explanation of failure      |
+| **Resolution**           | Yes      | How the incident was resolved         |
+| **Action Items**         | Yes      | Follow-up tasks with owners           |
+| **Lessons Learned**      | No       | Key takeaways                         |
+| **Contributing Factors** | No       | Additional factors beyond root cause  |
+| **Detection**            | No       | How the incident was discovered       |
+| **Response**             | No       | Evaluation of incident response       |
 
 ---
 
@@ -142,28 +142,31 @@ DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
 ### Summary
 
 A brief executive summary (2-3 sentences) answering:
+
 - What happened?
 - What was the impact?
 - How was it resolved?
 
 **Example**:
+
 > On January 15, 2024, the Payment API experienced a 45-minute outage due to a database connection pool exhaustion. Approximately 2,300 transactions failed during the incident. Service was restored by increasing connection pool limits and restarting affected pods.
 
 ### Timeline
 
 Chronological sequence of events with timestamps.
 
-| Time | Event |
-| ---- | ----- |
-| 14:00 | Monitoring alert triggered for elevated API latency |
-| 14:03 | On-call engineer acknowledged alert |
+| Time  | Event                                                         |
+| ----- | ------------------------------------------------------------- |
+| 14:00 | Monitoring alert triggered for elevated API latency           |
+| 14:03 | On-call engineer acknowledged alert                           |
 | 14:08 | Initial investigation started, high DB connection count noted |
-| 14:15 | Root cause identified: connection pool exhausted |
-| 14:22 | Mitigation applied: increased pool size |
-| 14:30 | Service restored, monitoring confirmed |
-| 14:45 | Incident resolved, follow-up tasks created |
+| 14:15 | Root cause identified: connection pool exhausted              |
+| 14:22 | Mitigation applied: increased pool size                       |
+| 14:30 | Service restored, monitoring confirmed                        |
+| 14:45 | Incident resolved, follow-up tasks created                    |
 
 **Timeline Best Practices**:
+
 - Use consistent timezone (UTC recommended)
 - Include who performed each action
 - Note key decisions and why they were made
@@ -173,25 +176,27 @@ Chronological sequence of events with timestamps.
 
 Quantify the business and customer impact.
 
-| Impact Type | Measurement |
-| ----------- | ----------- |
-| **Duration** | 45 minutes |
-| **Affected Users** | ~2,300 customers |
-| **Failed Transactions** | 2,347 |
-| **Revenue Impact** | $12,500 estimated |
-| **SLA Breach** | Yes, 99.9% target missed |
-| **Support Tickets** | 47 tickets opened |
+| Impact Type             | Measurement              |
+| ----------------------- | ------------------------ |
+| **Duration**            | 45 minutes               |
+| **Affected Users**      | ~2,300 customers         |
+| **Failed Transactions** | 2,347                    |
+| **Revenue Impact**      | $12,500 estimated        |
+| **SLA Breach**          | Yes, 99.9% target missed |
+| **Support Tickets**     | 47 tickets opened        |
 
 ### Root Cause
 
 Technical explanation of why the incident occurred.
 
 **Structure**:
+
 1. **What failed**: The specific component or system
 2. **Why it failed**: The technical reason
 3. **Why wasn't it caught**: Detection gaps
 
 **Example**:
+
 > The database connection pool was configured with a maximum of 50 connections, inherited from initial deployment 2 years ago. Recent traffic growth increased average concurrent connections from 30 to 48. A traffic spike from a marketing campaign pushed connections over the limit, causing new requests to queue and timeout.
 >
 > The connection pool metrics were not monitored, so the gradual increase went unnoticed until the hard failure.
@@ -200,39 +205,42 @@ Technical explanation of why the incident occurred.
 
 Steps taken to restore service.
 
-| Step | Action | Result |
-| ---- | ------ | ------ |
-| 1 | Increased connection pool to 100 | Pending connections processed |
-| 2 | Restarted 3 affected API pods | Fresh connection pools |
-| 3 | Verified transaction processing | Normal throughput resumed |
-| 4 | Monitored for 15 minutes | No recurrence |
+| Step | Action                           | Result                        |
+| ---- | -------------------------------- | ----------------------------- |
+| 1    | Increased connection pool to 100 | Pending connections processed |
+| 2    | Restarted 3 affected API pods    | Fresh connection pools        |
+| 3    | Verified transaction processing  | Normal throughput resumed     |
+| 4    | Monitored for 15 minutes         | No recurrence                 |
 
 ### Action Items
 
 Tracked tasks to prevent recurrence.
 
-| Action | Owner | Due Date | Priority | Status |
-| ------ | ----- | -------- | -------- | ------ |
-| Add connection pool monitoring | @jane | Jan 22 | HIGH | Open |
-| Set up alerts at 80% pool usage | @jane | Jan 22 | HIGH | Open |
-| Review all DB connection configs | @bob | Jan 29 | MEDIUM | Open |
-| Document connection pool sizing | @alice | Feb 5 | LOW | Open |
+| Action                           | Owner  | Due Date | Priority | Status |
+| -------------------------------- | ------ | -------- | -------- | ------ |
+| Add connection pool monitoring   | @jane  | Jan 22   | HIGH     | Open   |
+| Set up alerts at 80% pool usage  | @jane  | Jan 22   | HIGH     | Open   |
+| Review all DB connection configs | @bob   | Jan 29   | MEDIUM   | Open   |
+| Document connection pool sizing  | @alice | Feb 5    | LOW      | Open   |
 
 ### Lessons Learned
 
 Key takeaways for the team.
 
 **What went well**:
+
 - Alert fired within 3 minutes of issue
 - On-call responded quickly
 - Root cause identified in 12 minutes
 
 **What could be improved**:
+
 - No monitoring on connection pool utilization
 - Initial config was never revisited as traffic grew
 - Runbook didn't cover connection pool issues
 
 **Where we got lucky**:
+
 - Traffic spike was moderate; larger spike would have been worse
 - Database itself remained healthy
 
@@ -242,23 +250,23 @@ Key takeaways for the team.
 
 ### Action Item Fields
 
-| Field | Required | Description |
-| ----- | -------- | ----------- |
-| **Description** | Yes | What needs to be done |
-| **Owner** | Yes | Person responsible |
-| **Due Date** | Yes | Target completion date |
-| **Priority** | Yes | HIGH, MEDIUM, LOW |
-| **Status** | Yes | OPEN, IN_PROGRESS, COMPLETED, WONT_DO |
-| **Ticket Link** | No | Link to issue tracker (Jira, GitHub, etc.) |
+| Field           | Required | Description                                |
+| --------------- | -------- | ------------------------------------------ |
+| **Description** | Yes      | What needs to be done                      |
+| **Owner**       | Yes      | Person responsible                         |
+| **Due Date**    | Yes      | Target completion date                     |
+| **Priority**    | Yes      | HIGH, MEDIUM, LOW                          |
+| **Status**      | Yes      | OPEN, IN_PROGRESS, COMPLETED, WONT_DO      |
+| **Ticket Link** | No       | Link to issue tracker (Jira, GitHub, etc.) |
 
 ### Action Item Statuses
 
-| Status | Meaning |
-| ------ | ------- |
-| **OPEN** | Not yet started |
-| **IN_PROGRESS** | Work has begun |
-| **COMPLETED** | Task finished |
-| **WONT_DO** | Decided not to pursue (with justification) |
+| Status          | Meaning                                    |
+| --------------- | ------------------------------------------ |
+| **OPEN**        | Not yet started                            |
+| **IN_PROGRESS** | Work has begun                             |
+| **COMPLETED**   | Task finished                              |
+| **WONT_DO**     | Decided not to pursue (with justification) |
 
 ### Tracking Progress
 
@@ -278,6 +286,7 @@ View action item status across postmortems:
 ### Overdue Items
 
 OpsKnight highlights overdue action items:
+
 - Items past due date show warning indicator
 - Dashboard shows overdue count
 - Optional email reminders to owners
@@ -288,31 +297,33 @@ OpsKnight highlights overdue action items:
 
 ### Internal Visibility
 
-| Setting | Who Can View |
-| ------- | ------------ |
-| **Private** | Only participants and editors |
-| **Team** | Members of associated team(s) |
-| **Organization** | All organization members |
+| Setting          | Who Can View                  |
+| ---------------- | ----------------------------- |
+| **Private**      | Only participants and editors |
+| **Team**         | Members of associated team(s) |
+| **Organization** | All organization members      |
 
 ### External Sharing
 
 For customer communication:
 
-| Option | Description |
-| ------ | ----------- |
-| **Public Summary** | Sanitized version for status page |
+| Option             | Description                            |
+| ------------------ | -------------------------------------- |
+| **Public Summary** | Sanitized version for status page      |
 | **Customer Email** | Share directly with affected customers |
-| **Public Link** | Generate shareable read-only link |
+| **Public Link**    | Generate shareable read-only link      |
 
 ### What to Share Externally
 
 **Include**:
+
 - What happened (high level)
 - Impact duration
 - Resolution confirmation
 - Preventive measures (general)
 
 **Exclude**:
+
 - Internal tooling details
 - Specific infrastructure info
 - Individual names
@@ -371,13 +382,13 @@ Create organization-specific templates:
 
 ### Template Sections
 
-| Section | Customizable |
-| ------- | ------------ |
-| Required/Optional | Yes |
-| Default text | Yes |
-| Helper prompts | Yes |
-| Section order | Yes |
-| Custom sections | Yes |
+| Section           | Customizable |
+| ----------------- | ------------ |
+| Required/Optional | Yes          |
+| Default text      | Yes          |
+| Helper prompts    | Yes          |
+| Section order     | Yes          |
+| Custom sections   | Yes          |
 
 ---
 
@@ -387,18 +398,19 @@ Create organization-specific templates:
 
 When creating a postmortem from an incident:
 
-| Auto-Populated | Source |
-| -------------- | ------ |
-| Title | Incident title |
-| Summary | Incident description |
-| Timeline | Incident timeline events |
-| Affected Services | Incident services |
-| Duration | Incident timestamps |
-| Participants | Incident responders |
+| Auto-Populated    | Source                   |
+| ----------------- | ------------------------ |
+| Title             | Incident title           |
+| Summary           | Incident description     |
+| Timeline          | Incident timeline events |
+| Affected Services | Incident services        |
+| Duration          | Incident timestamps      |
+| Participants      | Incident responders      |
 
 ### Multiple Incidents
 
 Link multiple related incidents to one postmortem:
+
 - Common root cause affecting multiple services
 - Cascading failures
 - Related concurrent incidents
@@ -419,16 +431,17 @@ Schedule a postmortem review meeting:
 
 ### Meeting Integration
 
-| Platform | Support |
-| -------- | ------- |
-| Google Calendar | Direct integration |
-| Outlook/O365 | ICS file download |
-| Zoom | Meeting link generation |
-| Google Meet | Meeting link generation |
+| Platform        | Support                 |
+| --------------- | ----------------------- |
+| Google Calendar | Direct integration      |
+| Outlook/O365    | ICS file download       |
+| Zoom            | Meeting link generation |
+| Google Meet     | Meeting link generation |
 
 ### Meeting Agenda
 
 Auto-generated agenda includes:
+
 1. Incident summary review
 2. Timeline walkthrough
 3. Root cause discussion
@@ -441,17 +454,18 @@ Auto-generated agenda includes:
 
 ### Postmortem Metrics
 
-| Metric | Description |
-| ------ | ----------- |
-| **Postmortems Created** | Count per period |
-| **Completion Rate** | Draft → Published conversion |
+| Metric                       | Description                     |
+| ---------------------------- | ------------------------------- |
+| **Postmortems Created**      | Count per period                |
+| **Completion Rate**          | Draft → Published conversion    |
 | **Average Time to Complete** | Days from incident to published |
-| **Action Item Completion** | % of items completed on time |
-| **Overdue Items** | Count of past-due actions |
+| **Action Item Completion**   | % of items completed on time    |
+| **Overdue Items**            | Count of past-due actions       |
 
 ### Trends
 
 Track patterns across postmortems:
+
 - Most common root causes
 - Frequently affected services
 - Recurring action item types
@@ -463,12 +477,12 @@ Track patterns across postmortems:
 
 ### Blameless Culture
 
-| Do | Don't |
-| -- | ----- |
-| Focus on systems and processes | Blame individuals |
-| Ask "what" and "how" | Ask "who" |
-| Assume good intentions | Assume negligence |
-| Treat failures as learning | Treat failures as punishment |
+| Do                             | Don't                        |
+| ------------------------------ | ---------------------------- |
+| Focus on systems and processes | Blame individuals            |
+| Ask "what" and "how"           | Ask "who"                    |
+| Assume good intentions         | Assume negligence            |
+| Treat failures as learning     | Treat failures as punishment |
 
 ### Writing Quality
 
@@ -479,12 +493,12 @@ Track patterns across postmortems:
 
 ### Timing
 
-| Phase | Target |
-| ----- | ------ |
-| Draft started | Within 24 hours of resolution |
-| Draft completed | Within 48 hours |
-| Review completed | Within 1 week |
-| Published | Within 2 weeks |
+| Phase            | Target                        |
+| ---------------- | ----------------------------- |
+| Draft started    | Within 24 hours of resolution |
+| Draft completed  | Within 48 hours               |
+| Review completed | Within 1 week                 |
+| Published        | Within 2 weeks                |
 
 ### Action Items
 
@@ -500,14 +514,14 @@ Track patterns across postmortems:
 
 ### Endpoints
 
-| Endpoint | Method | Description |
-| -------- | ------ | ----------- |
-| `/api/postmortems` | GET | List postmortems |
-| `/api/postmortems` | POST | Create postmortem |
-| `/api/postmortems/:id` | GET | Get postmortem details |
-| `/api/postmortems/:id` | PATCH | Update postmortem |
-| `/api/postmortems/:id/action-items` | GET | List action items |
-| `/api/postmortems/:id/action-items` | POST | Add action item |
+| Endpoint                            | Method | Description            |
+| ----------------------------------- | ------ | ---------------------- |
+| `/api/postmortems`                  | GET    | List postmortems       |
+| `/api/postmortems`                  | POST   | Create postmortem      |
+| `/api/postmortems/:id`              | GET    | Get postmortem details |
+| `/api/postmortems/:id`              | PATCH  | Update postmortem      |
+| `/api/postmortems/:id/action-items` | GET    | List action items      |
+| `/api/postmortems/:id/action-items` | POST   | Add action item        |
 
 ### Example: Create Postmortem
 
@@ -549,21 +563,21 @@ curl -X POST "https://your-opsknight.com/api/postmortems/pm_xyz/action-items" \
 
 ### Issue Trackers
 
-| Platform | Features |
-| -------- | -------- |
-| **Jira** | Create issues from action items, sync status |
-| **GitHub Issues** | Create issues, link PRs |
-| **Linear** | Create issues, track status |
-| **Asana** | Create tasks from action items |
+| Platform          | Features                                     |
+| ----------------- | -------------------------------------------- |
+| **Jira**          | Create issues from action items, sync status |
+| **GitHub Issues** | Create issues, link PRs                      |
+| **Linear**        | Create issues, track status                  |
+| **Asana**         | Create tasks from action items               |
 
 ### Document Export
 
-| Format | Use Case |
-| ------ | -------- |
-| **PDF** | Formal documentation, compliance |
-| **Markdown** | Wiki, documentation sites |
-| **HTML** | Email, web publishing |
-| **JSON** | Programmatic access |
+| Format       | Use Case                         |
+| ------------ | -------------------------------- |
+| **PDF**      | Formal documentation, compliance |
+| **Markdown** | Wiki, documentation sites        |
+| **HTML**     | Email, web publishing            |
+| **JSON**     | Programmatic access              |
 
 ---
 
@@ -595,4 +609,3 @@ curl -X POST "https://your-opsknight.com/api/postmortems/pm_xyz/action-items" \
 - [Analytics](./analytics) — Performance metrics
 - [Teams](./teams) — Team management
 - [Status Page](./status-page) — Public communication
-

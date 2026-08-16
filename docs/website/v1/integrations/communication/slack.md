@@ -24,17 +24,18 @@ Slack uses OAuth and interactive endpoints rather than a single webhook. Primary
 ---
 
 ## Why Use Slack Integration
-| Without Slack | With Slack |
-| ------------- | ---------- |
-| Check OpsKnight separately | Incidents come to you |
+
+| Without Slack                 | With Slack                     |
+| ----------------------------- | ------------------------------ |
+| Check OpsKnight separately    | Incidents come to you          |
 | Context switch to acknowledge | One-click acknowledge in Slack |
-| Manual status updates | Automatic thread updates |
-| Siloed incident info | Team visibility |
+| Manual status updates         | Automatic thread updates       |
+| Siloed incident info          | Team visibility                |
 
 ---
 
-
 ## Features
+
 ### Incident Notifications
 
 - **Rich message format** with incident details
@@ -44,12 +45,12 @@ Slack uses OAuth and interactive endpoints rather than a single webhook. Primary
 
 ### Interactive Actions
 
-| Action | Description |
-| ------ | ----------- |
+| Action          | Description                                       |
+| --------------- | ------------------------------------------------- |
 | **Acknowledge** | Mark incident as acknowledged directly from Slack |
-| **Resolve** | Resolve incident without leaving Slack |
-| **View** | Open incident in OpsKnight |
-| **Snooze** | Temporarily silence the incident |
+| **Resolve**     | Resolve incident without leaving Slack            |
+| **View**        | Open incident in OpsKnight                        |
+| **Snooze**      | Temporarily silence the incident                  |
 
 ### Real-Time Updates
 
@@ -65,8 +66,8 @@ Slack uses OAuth and interactive endpoints rather than a single webhook. Primary
 
 ---
 
-
 ## Prerequisites
+
 Before setting up Slack integration:
 
 - [ ] OpsKnight admin access
@@ -75,8 +76,8 @@ Before setting up Slack integration:
 
 ---
 
-
 ## Setup Overview
+
 ```
 1. Create Slack App
         ↓
@@ -93,8 +94,8 @@ Before setting up Slack integration:
 
 ---
 
-
 ## Step 1: Create Slack App
+
 ### Via Slack App Directory
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps)
@@ -111,14 +112,15 @@ Before setting up Slack integration:
 ### App Credentials
 
 After creation, note these values (found in **Basic Information**):
+
 - **Client ID**
 - **Client Secret**
 - **Signing Secret**
 
 ---
 
-
 ## Step 2: Configure OAuth Scopes
+
 The Slack app needs specific permissions to function.
 
 ### Navigate to OAuth & Permissions
@@ -130,14 +132,14 @@ The Slack app needs specific permissions to function.
 
 Add these scopes under **Bot Token Scopes**:
 
-| Scope | Purpose |
-| ----- | ------- |
-| `chat:write` | Send messages to channels |
+| Scope               | Purpose                          |
+| ------------------- | -------------------------------- |
+| `chat:write`        | Send messages to channels        |
 | `chat:write.public` | Send to channels without joining |
-| `channels:read` | List public channels |
-| `groups:read` | List private channels |
-| `users:read` | Get user information |
-| `users:read.email` | Match users by email |
+| `channels:read`     | List public channels             |
+| `groups:read`       | List private channels            |
+| `users:read`        | Get user information             |
+| `users:read.email`  | Match users by email             |
 
 ### Add Redirect URL
 
@@ -151,8 +153,8 @@ Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL.
 
 ---
 
-
 ## Step 3: Set Up Interactivity
+
 Enable interactive features for action buttons.
 
 ### Enable Interactivity
@@ -178,8 +180,8 @@ Add a global shortcut to create incidents:
 
 ---
 
-
 ## Step 4: Install to Workspace
+
 ### Install App
 
 1. Go to **OAuth & Permissions**
@@ -193,20 +195,20 @@ After installation, copy the **Bot User OAuth Token** (starts with `xoxb-`).
 
 ---
 
-
 ## Step 5: Connect in OpsKnight
+
 ### Configure Slack Settings
 
 1. Go to **Settings** → **Integrations** → **Slack**
 2. Click **Configure** or **Connect**
 3. Enter credentials:
 
-| Field | Value |
-| ----- | ----- |
-| **Client ID** | From Slack app |
-| **Client Secret** | From Slack app |
-| **Signing Secret** | From Slack app |
-| **Bot Token** | `xoxb-...` token |
+| Field              | Value            |
+| ------------------ | ---------------- |
+| **Client ID**      | From Slack app   |
+| **Client Secret**  | From Slack app   |
+| **Signing Secret** | From Slack app   |
+| **Bot Token**      | `xoxb-...` token |
 
 4. Click **Save**
 
@@ -222,8 +224,8 @@ After installation, copy the **Bot User OAuth Token** (starts with `xoxb-`).
 
 ---
 
-
 ## Step 6: Configure Channels
+
 ### Default Channel
 
 Set a default channel for all incident notifications:
@@ -243,6 +245,7 @@ Route specific services to dedicated channels:
 5. Save
 
 **Channel Precedence**:
+
 ```
 Service-specific channel (if set)
         ↓
@@ -252,25 +255,26 @@ Default channel (fallback)
 ### Private Channels
 
 To use private channels:
+
 1. Invite the OpsKnight bot to the channel: `/invite @OpsKnight`
 2. The channel will appear in the dropdown
 
 ---
 
-
 ## Notification Configuration
+
 ### Event Types
 
 Control which events trigger Slack notifications:
 
-| Event | Default | Description |
-| ----- | :-----: | ----------- |
-| **Incident Triggered** | ✅ | New incident created |
-| **Incident Acknowledged** | ✅ | Someone acknowledged |
-| **Incident Resolved** | ✅ | Incident resolved |
-| **Incident Escalated** | ✅ | Escalated to next step |
-| **SLA Breached** | ✅ | SLA target missed |
-| **Note Added** | ❌ | Comment added to incident |
+| Event                     | Default | Description               |
+| ------------------------- | :-----: | ------------------------- |
+| **Incident Triggered**    |   ✅    | New incident created      |
+| **Incident Acknowledged** |   ✅    | Someone acknowledged      |
+| **Incident Resolved**     |   ✅    | Incident resolved         |
+| **Incident Escalated**    |   ✅    | Escalated to next step    |
+| **SLA Breached**          |   ✅    | SLA target missed         |
+| **Note Added**            |   ❌    | Comment added to incident |
 
 ### Configuring Events
 
@@ -283,16 +287,16 @@ Control which events trigger Slack notifications:
 
 Only notify for certain urgency levels:
 
-| Setting | Effect |
-| ------- | ------ |
-| **All** | Notify for HIGH, MEDIUM, LOW |
-| **High Only** | Only HIGH urgency incidents |
-| **High + Medium** | Exclude LOW urgency |
+| Setting           | Effect                       |
+| ----------------- | ---------------------------- |
+| **All**           | Notify for HIGH, MEDIUM, LOW |
+| **High Only**     | Only HIGH urgency incidents  |
+| **High + Medium** | Exclude LOW urgency          |
 
 ---
 
-
 ## Message Format
+
 ### Incident Notification
 
 ```
@@ -311,14 +315,14 @@ Only notify for certain urgency levels:
 
 ### Message Elements
 
-| Element | Description |
-| ------- | ----------- |
+| Element       | Description                             |
+| ------------- | --------------------------------------- |
 | **Color bar** | Red (HIGH), Yellow (MEDIUM), Blue (LOW) |
-| **Title** | Incident title/summary |
-| **Service** | Affected service name |
-| **Triggered** | Time since incident started |
-| **Status** | Current incident status |
-| **Actions** | Interactive buttons |
+| **Title**     | Incident title/summary                  |
+| **Service**   | Affected service name                   |
+| **Triggered** | Time since incident started             |
+| **Status**    | Current incident status                 |
+| **Actions**   | Interactive buttons                     |
 
 ### Thread Updates
 
@@ -333,11 +337,12 @@ Main message: Database Connection Timeout
 
 ---
 
-
 ## Interactive Actions
+
 ### Acknowledge Button
 
 When clicked:
+
 1. Incident status changes to ACKNOWLEDGED
 2. Escalation stops
 3. Thread update posted
@@ -346,6 +351,7 @@ When clicked:
 ### Resolve Button
 
 When clicked:
+
 1. Modal appears for resolution note (optional)
 2. Incident status changes to RESOLVED
 3. Thread update with resolution summary
@@ -358,6 +364,7 @@ Opens the incident detail page in OpsKnight.
 ### Snooze Options
 
 Snooze menu options:
+
 - 15 minutes
 - 30 minutes
 - 1 hour
@@ -366,13 +373,14 @@ Snooze menu options:
 
 ---
 
-
 ## User Mapping
+
 OpsKnight maps Slack users to OpsKnight users for attribution.
 
 ### Automatic Mapping
 
 When a Slack user takes an action:
+
 1. OpsKnight looks up user by email
 2. If found, action attributed to that user
 3. If not found, action shows "via Slack"
@@ -385,18 +393,18 @@ When a Slack user takes an action:
 
 ---
 
-
 ## Slash Commands (Optional)
+
 Add slash commands for quick actions.
 
 ### Available Commands
 
-| Command | Description |
-| ------- | ----------- |
-| `/opsknight incidents` | List open incidents |
-| `/opsknight oncall` | Who's on-call now |
-| `/opsknight status` | System status summary |
-| `/opsknight create` | Create manual incident |
+| Command                | Description            |
+| ---------------------- | ---------------------- |
+| `/opsknight incidents` | List open incidents    |
+| `/opsknight oncall`    | Who's on-call now      |
+| `/opsknight status`    | System status summary  |
+| `/opsknight create`    | Create manual incident |
 
 ### Setting Up Slash Commands
 
@@ -411,8 +419,8 @@ Add slash commands for quick actions.
 
 ---
 
-
 ## Multiple Workspaces
+
 Connect OpsKnight to multiple Slack workspaces.
 
 ### Adding Another Workspace
@@ -425,14 +433,15 @@ Connect OpsKnight to multiple Slack workspaces.
 ### Workspace-Specific Settings
 
 Each workspace can have:
+
 - Different default channel
 - Different notification preferences
 - Different user mappings
 
 ---
 
-
 ## Troubleshooting
+
 ### Messages Not Sending
 
 1. **Verify bot token** is correct
@@ -463,22 +472,23 @@ Each workspace can have:
 ### Rate Limiting
 
 If you see rate limit errors:
+
 - OpsKnight batches notifications automatically
 - Reduce notification frequency if needed
 - Check for notification loops
 
 ---
 
-
 ## Best Practices
+
 ### Channel Organization
 
-| Channel | Purpose |
-| ------- | ------- |
-| `#incidents-critical` | HIGH urgency only |
-| `#incidents-all` | All incidents |
-| `#payment-oncall` | Payment team incidents |
-| `#platform-alerts` | Platform team incidents |
+| Channel               | Purpose                 |
+| --------------------- | ----------------------- |
+| `#incidents-critical` | HIGH urgency only       |
+| `#incidents-all`      | All incidents           |
+| `#payment-oncall`     | Payment team incidents  |
+| `#platform-alerts`    | Platform team incidents |
 
 ### Reducing Noise
 
@@ -499,17 +509,19 @@ If you see rate limit errors:
 ### Integration with Slack Workflows
 
 Combine with Slack Workflow Builder:
+
 - Auto-create incident channel for major incidents
 - Notify stakeholders on HIGH urgency
 - Post to status channel on resolution
 
 ---
 
-
 ## Security Considerations
+
 ### Signing Secret Verification
 
 OpsKnight verifies all requests from Slack using the signing secret:
+
 - Prevents spoofed requests
 - Validates request timestamp
 - Required for production
@@ -528,8 +540,8 @@ OpsKnight verifies all requests from Slack using the signing secret:
 
 ---
 
-
 ## API Reference
+
 ### Webhook Endpoint
 
 ```
@@ -556,10 +568,9 @@ Handles OAuth flow completion.
 
 ---
 
-
 ## Related Topics
-- [Slack OAuth Setup](./slack-oauth-setup) — Detailed OAuth configuration
-- [Notifications](../administration/notifications) — All notification channels
-- [Integrations Overview](./README) — Other integrations
-- [Services](../core-concepts/services) — Per-service channel configuration
 
+- [Slack OAuth Setup](./slack-oauth-setup) — Detailed OAuth configuration
+- [Notifications](../../administration/notifications) — All notification channels
+- [Integrations Overview](.) — Other integrations
+- [Services](../../core-concepts/services) — Per-service channel configuration

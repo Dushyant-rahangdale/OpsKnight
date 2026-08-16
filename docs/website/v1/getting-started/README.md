@@ -15,11 +15,11 @@ This section will take you from zero to a fully operational incident management 
 
 ## What You'll Learn
 
-| Guide | What You'll Accomplish |
-|-------|------------------------|
-| [Installation](./installation) | Get OpsKnight running with Docker, Kubernetes, or locally |
-| [Configuration](./configuration) | Understand environment variables and system settings |
-| [First Steps](./first-steps) | Create your first service, incident, and on-call schedule |
+| Guide                                            | What You'll Accomplish                                    |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| [Installation](./getting-started/installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
+| [Configuration](./getting-started/configuration) | Understand environment variables and system settings      |
+| [First Steps](./getting-started/first-steps)     | Create your first service, incident, and on-call schedule |
 
 ---
 
@@ -28,18 +28,21 @@ This section will take you from zero to a fully operational incident management 
 Before installing OpsKnight, ensure you have the following:
 
 ### For Docker Deployment (Recommended)
+
 - **Docker Engine** v20.10 or later
 - **Docker Compose** v2.0 or later
 - **4GB RAM** minimum (8GB recommended)
 - **10GB disk space** for images and data
 
 ### For Kubernetes Deployment
+
 - **Kubernetes** v1.24 or later
 - **Helm** v3.10 or later (for Helm deployments)
 - **kubectl** configured for your cluster
 - **Persistent Volume** provisioner for PostgreSQL storage
 
 ### For Local Development
+
 - **Node.js** v18 or later
 - **PostgreSQL** v14 or later
 - **npm** or **yarn** package manager
@@ -51,12 +54,12 @@ Before installing OpsKnight, ensure you have the following:
 
 Choose the deployment method that fits your needs:
 
-| Method | Best For | Complexity |
-|--------|----------|------------|
-| **Docker Compose** | Development, small teams, quick evaluation | Low |
-| **Kubernetes (Kustomize)** | Production, scaling, existing K8s infrastructure | Medium |
-| **Kubernetes (Helm)** | Production with templated configuration | Medium |
-| **Local Development** | Contributing, debugging, testing changes | Medium |
+| Method                     | Best For                                         | Complexity |
+| -------------------------- | ------------------------------------------------ | ---------- |
+| **Docker Compose**         | Development, small teams, quick evaluation       | Low        |
+| **Kubernetes (Kustomize)** | Production, scaling, existing K8s infrastructure | Medium     |
+| **Kubernetes (Helm)**      | Production with templated configuration          | Medium     |
+| **Local Development**      | Contributing, debugging, testing changes         | Medium     |
 
 ---
 
@@ -96,7 +99,7 @@ Once OpsKnight is running, you'll want to:
 4. **Configure Notifications** — Set up Email, SMS, Slack, or Push notifications
 5. **Connect Integrations** — Route alerts from Datadog, Prometheus, or other tools
 
-The [First Steps Guide](./first-steps) walks you through all of these in detail.
+The [First Steps Guide](./getting-started/first-steps) walks you through all of these in detail.
 
 ---
 
@@ -116,7 +119,7 @@ NEXTAUTH_SECRET=your-32-character-secret-key-here
 APP_URL=http://localhost:3000
 ```
 
-See the [Configuration Guide](./configuration) for the complete reference.
+See the [Configuration Guide](./getting-started/configuration) for the complete reference.
 
 ---
 
@@ -125,15 +128,19 @@ See the [Configuration Guide](./configuration) for the complete reference.
 After starting OpsKnight, verify everything is working:
 
 ### 1. Application Loads
+
 Navigate to `http://localhost:3000` — you should see the login page.
 
 ### 2. Login Works
+
 Log in with your admin credentials — you should reach the dashboard.
 
 ### 3. Database Connected
+
 Create a test service in **Services** — if it saves, the database is working.
 
 ### 4. Health Check (Optional)
+
 ```bash
 curl http://localhost:3000/api/health
 # Expected: {"status":"ok","database":"connected"}
@@ -177,9 +184,9 @@ docker compose up -d
 
 Ready to continue? Here's your path:
 
-1. **[Installation Guide](./installation)** — Detailed installation for all deployment methods
-2. **[Configuration Reference](./configuration)** — Complete environment variable documentation
-3. **[First Steps](./first-steps)** — Create your first service and incident
+1. **[Installation Guide](./getting-started/installation)** — Detailed installation for all deployment methods
+2. **[Configuration Reference](./getting-started/configuration)** — Complete environment variable documentation
+3. **[First Steps](./getting-started/first-steps)** — Create your first service and incident
 
 ---
 
@@ -187,4 +194,4 @@ Ready to continue? Here's your path:
 
 - Check the [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues) for known problems
 - Join the community Discord for real-time help
-- Review the [Architecture](../architecture/) section for deeper understanding
+- Review the [Architecture](./architecture) section for deeper understanding

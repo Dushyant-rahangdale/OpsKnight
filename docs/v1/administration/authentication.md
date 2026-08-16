@@ -502,4 +502,4 @@ Using both local and SSO authentication simultaneously.
 - [OIDC SSO Setup](../security/oidc-setup) — Provider-specific guides
 - [Users](../core-concepts/users) — User management
 - [Audit Logs](./audit-logs) — Authentication event logging
-- [Security Overview](../security/README) — Security best practices
+- [Security Overview](../security) — Security best practices

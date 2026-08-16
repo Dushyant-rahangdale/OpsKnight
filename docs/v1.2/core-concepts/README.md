@@ -134,13 +134,13 @@ Service ──────────────────┐
 
 If you're new to OpsKnight, we recommend reading the concepts in this order:
 
-1. **[Services](./services)** — Start here to understand the foundation
-2. **[Incidents](./incidents)** — Learn the core workflow
-3. **[Escalation Policies](./escalation-policies)** — Understand notification routing
-4. **[Schedules](./schedules)** — Configure on-call rotations
-5. **[Teams](./teams)** — Organize your responders
-6. **[Dashboard](./dashboard)** — Master the command center
-7. **[Analytics](./analytics)** — Track and improve performance
+1. **[Services](./core-concepts/services)** — Start here to understand the foundation
+2. **[Incidents](./core-concepts/incidents)** — Learn the core workflow
+3. **[Escalation Policies](./core-concepts/escalation-policies)** — Understand notification routing
+4. **[Schedules](./core-concepts/schedules)** — Configure on-call rotations
+5. **[Teams](./core-concepts/teams)** — Organize your responders
+6. **[Dashboard](./core-concepts/dashboard)** — Master the command center
+7. **[Analytics](./core-concepts/analytics)** — Track and improve performance
 
 ---
 
@@ -148,28 +148,28 @@ If you're new to OpsKnight, we recommend reading the concepts in this order:
 
 ### For Incident Responders
 
-- [Incident Lifecycle](./incidents.md#incident-lifecycle) — Understand statuses and actions
-- [Bulk Actions](./incidents.md#bulk-actions) — Manage alert storms efficiently
-- [Mobile Access](../mobile/) — Respond from anywhere
+- [Incident Lifecycle](./core-concepts/incidents#incident-lifecycle) — Understand statuses and actions
+- [Bulk Actions](./core-concepts/incidents#bulk-actions) — Manage alert storms efficiently
+- [Mobile Access](./mobile) — Respond from anywhere
 
 ### For On-Call Managers
 
-- [Schedule Layers](./schedules.md#layers) — Build complex coverage patterns
-- [Overrides](./schedules.md#overrides) — Handle vacations and swaps
-- [Fair Rotation](./schedules.md#fair-rotation) — Balance on-call burden
+- [Schedule Layers](./core-concepts/schedules#layers) — Build complex coverage patterns
+- [Overrides](./core-concepts/schedules#overrides) — Handle vacations and swaps
+- [Fair Rotation](./core-concepts/schedules#fair-rotation) — Balance on-call burden
 
 ### For Operations Teams
 
-- [SLA Configuration](./analytics.md#sla-tracking) — Set response time targets
-- [Custom Fields](../administration/custom-fields) — Track additional metadata
+- [SLA Configuration](./core-concepts/analytics#sla-tracking) — Set response time targets
+- [Custom Fields](./administration/custom-fields) — Track additional metadata
 - [Integrations](./integrations) — Connect your monitoring stack
 
 ### For Leadership
 
-- [Analytics Dashboard](./analytics.md#dashboard) — Executive metrics
-- [Status Pages](./status-page) — Customer communication
-- [Postmortems](./postmortems) — Organizational learning
-- [Scalability](./scalability) — Capacity planning and growth readiness
+- [Analytics Dashboard](./core-concepts/analytics#dashboard) — Executive metrics
+- [Status Pages](./core-concepts/status-page) — Customer communication
+- [Postmortems](./core-concepts/postmortems) — Organizational learning
+- [Scalability](./core-concepts/scalability) — Capacity planning and growth readiness
 
 ---
 
@@ -212,7 +212,7 @@ For global teams:
 
 Choose your path:
 
-- **New to incident management?** Start with [Services](./services)
-- **Setting up on-call?** Jump to [Schedules](./schedules)
+- **New to incident management?** Start with [Services](./core-concepts/services)
+- **Setting up on-call?** Jump to [Schedules](./core-concepts/schedules)
 - **Connecting tools?** See [Integrations](./integrations)
-- **Measuring performance?** Explore [Analytics](./analytics)
+- **Measuring performance?** Explore [Analytics](./core-concepts/analytics)

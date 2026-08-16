@@ -15,8 +15,8 @@ This section will take you from zero to a fully operational incident management 
 
 ## What You'll Learn
 
-| Guide                            | What You'll Accomplish                                    |
-| -------------------------------- | --------------------------------------------------------- |
+| Guide                                            | What You'll Accomplish                                    |
+| ------------------------------------------------ | --------------------------------------------------------- |
 | [Installation](./getting-started/installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
 | [Configuration](./getting-started/configuration) | Understand environment variables and system settings      |
 | [First Steps](./getting-started/first-steps)     | Create your first service, incident, and on-call schedule |
@@ -194,4 +194,4 @@ Ready to continue? Here's your path:
 
 - Check the [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues) for known problems
 - Join the community Discord for real-time help
-- Review the [Architecture](../architecture/) section for deeper understanding
+- Review the [Architecture](./architecture) section for deeper understanding

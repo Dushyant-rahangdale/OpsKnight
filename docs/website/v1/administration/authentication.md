@@ -17,9 +17,9 @@ Authentication controls how users prove their identity to access OpsKnight. This
 
 OpsKnight supports two authentication methods:
 
-| Method | Best For | Features |
-| ------ | -------- | -------- |
-| **Local** | Small teams, development, testing | Email/password, simple setup |
+| Method       | Best For                            | Features                          |
+| ------------ | ----------------------------------- | --------------------------------- |
+| **Local**    | Small teams, development, testing   | Email/password, simple setup      |
 | **SSO/OIDC** | Enterprise, compliance requirements | Centralized identity, MFA via IdP |
 
 You can enable both methods simultaneously, allowing users to choose their preferred login method.
@@ -70,6 +70,7 @@ The recommended way to add users after initial setup:
 4. Click **Send Invitation**
 
 **Invitation Flow**:
+
 ```
 Admin sends invite
         ↓
@@ -84,15 +85,16 @@ Account activated
 
 ### Password Requirements
 
-| Requirement | Value |
-| ----------- | ----- |
-| Minimum length | 8 characters |
-| Complexity | Recommended: mix of letters, numbers, symbols |
-| Expiration | None (configurable via policy) |
+| Requirement    | Value                                         |
+| -------------- | --------------------------------------------- |
+| Minimum length | 8 characters                                  |
+| Complexity     | Recommended: mix of letters, numbers, symbols |
+| Expiration     | None (configurable via policy)                |
 
 ### Password Reset
 
 **User-initiated reset**:
+
 1. Go to login page
 2. Click **Forgot Password**
 3. Enter email address
@@ -102,6 +104,7 @@ Account activated
 Reset links expire after **1 hour**.
 
 **Admin-initiated reset**:
+
 1. Go to **Settings** → **Users**
 2. Click on the user
 3. Click **Reset Password**
@@ -115,25 +118,25 @@ Single Sign-On (SSO) via OIDC is recommended for production environments.
 
 ### Benefits of SSO
 
-| Benefit | Description |
-| ------- | ----------- |
-| **Centralized identity** | Manage users in your IdP |
-| **MFA support** | Leverage IdP's MFA capabilities |
-| **Auto-provisioning** | Create users on first login |
-| **Role mapping** | Sync roles from IdP groups |
-| **Compliance** | Meet enterprise security requirements |
+| Benefit                  | Description                           |
+| ------------------------ | ------------------------------------- |
+| **Centralized identity** | Manage users in your IdP              |
+| **MFA support**          | Leverage IdP's MFA capabilities       |
+| **Auto-provisioning**    | Create users on first login           |
+| **Role mapping**         | Sync roles from IdP groups            |
+| **Compliance**           | Meet enterprise security requirements |
 
 ### Supported Identity Providers
 
-| Provider | Tested | Notes |
-| -------- | :----: | ----- |
-| **Google Workspace** | ✅ | OAuth consent screen required |
-| **Microsoft Entra ID** | ✅ | Formerly Azure AD |
-| **Okta** | ✅ | OIDC Web App integration |
-| **Auth0** | ✅ | Regular Web Application |
-| **Keycloak** | ✅ | OpenID Connect client |
-| **OneLogin** | ✅ | OIDC connector |
-| **Any OIDC Provider** | ✅ | Standard OIDC compliance |
+| Provider               | Tested | Notes                         |
+| ---------------------- | :----: | ----------------------------- |
+| **Google Workspace**   |   ✅   | OAuth consent screen required |
+| **Microsoft Entra ID** |   ✅   | Formerly Azure AD             |
+| **Okta**               |   ✅   | OIDC Web App integration      |
+| **Auth0**              |   ✅   | Regular Web Application       |
+| **Keycloak**           |   ✅   | OpenID Connect client         |
+| **OneLogin**           |   ✅   | OIDC connector                |
+| **Any OIDC Provider**  |   ✅   | Standard OIDC compliance      |
 
 ### SSO Configuration
 
@@ -141,12 +144,12 @@ Single Sign-On (SSO) via OIDC is recommended for production environments.
 2. Enable SSO toggle
 3. Configure provider settings:
 
-| Field | Description | Example |
-| ----- | ----------- | ------- |
-| **Issuer URL** | OIDC issuer URL | `https://accounts.google.com` |
-| **Client ID** | From your IdP | `abc123.apps.googleusercontent.com` |
-| **Client Secret** | From your IdP | `GOCSPX-xxxxx` |
-| **Scopes** | OIDC scopes | `openid email profile` (default) |
+| Field             | Description     | Example                             |
+| ----------------- | --------------- | ----------------------------------- |
+| **Issuer URL**    | OIDC issuer URL | `https://accounts.google.com`       |
+| **Client ID**     | From your IdP   | `abc123.apps.googleusercontent.com` |
+| **Client Secret** | From your IdP   | `GOCSPX-xxxxx`                      |
+| **Scopes**        | OIDC scopes     | `openid email profile` (default)    |
 
 4. Save configuration
 5. Test with **Test SSO** button
@@ -162,6 +165,7 @@ https://YOUR_OPSKNIGHT_URL/api/auth/callback/oidc
 ### Provider-Specific Guides
 
 See [OIDC SSO Setup](../security/oidc-setup) for detailed guides on:
+
 - Google Workspace
 - Microsoft Entra ID (Azure AD)
 - Okta
@@ -202,15 +206,16 @@ User assigned matching role
 
 ### Mapping Rule Format
 
-| Field | Description |
-| ----- | ----------- |
-| `claim` | The IdP claim to check |
-| `value` | The value to match |
-| `role` | OpsKnight role: `ADMIN`, `RESPONDER`, or `USER` |
+| Field   | Description                                     |
+| ------- | ----------------------------------------------- |
+| `claim` | The IdP claim to check                          |
+| `value` | The value to match                              |
+| `role`  | OpsKnight role: `ADMIN`, `RESPONDER`, or `USER` |
 
 ### Role Mapping Priority
 
 Rules are evaluated in order. First match wins:
+
 1. If user matches "admins" group → ADMIN
 2. Else if user matches "oncall-team" → RESPONDER
 3. Else → Default role (USER)
@@ -218,6 +223,7 @@ Rules are evaluated in order. First match wins:
 ### Default Role
 
 Users who don't match any rule receive the default role:
+
 - **Default**: `USER`
 - **Configurable**: Set in SSO settings
 
@@ -229,13 +235,13 @@ Sync user profile fields from identity provider claims.
 
 ### Supported Fields
 
-| OpsKnight Field | Common Claim Names |
-| --------------- | ------------------ |
-| **Name** | `name`, `preferred_username` |
-| **Email** | `email` |
-| **Department** | `department` |
-| **Job Title** | `jobTitle`, `title` |
-| **Avatar URL** | `picture`, `avatar_url` |
+| OpsKnight Field | Common Claim Names           |
+| --------------- | ---------------------------- |
+| **Name**        | `name`, `preferred_username` |
+| **Email**       | `email`                      |
+| **Department**  | `department`                 |
+| **Job Title**   | `jobTitle`, `title`          |
+| **Avatar URL**  | `picture`, `avatar_url`      |
 
 ### Configuring Profile Mapping
 
@@ -243,11 +249,11 @@ Sync user profile fields from identity provider claims.
 2. Scroll to **Profile Mapping**
 3. Map claim names to fields:
 
-| Field | Claim Name |
-| ----- | ---------- |
+| Field      | Claim Name   |
+| ---------- | ------------ |
 | Department | `department` |
-| Job Title | `title` |
-| Avatar URL | `picture` |
+| Job Title  | `title`      |
+| Avatar URL | `picture`    |
 
 ### Sync Behavior
 
@@ -268,11 +274,11 @@ Automatically create users on first SSO login.
 
 ### Provisioning Behavior
 
-| Setting | Enabled | Disabled |
-| ------- | ------- | -------- |
-| New user SSO login | Account created automatically | Login denied |
-| Existing user SSO login | Login succeeds | Login succeeds |
-| Default role | Applied from role mapping | N/A |
+| Setting                 | Enabled                       | Disabled       |
+| ----------------------- | ----------------------------- | -------------- |
+| New user SSO login      | Account created automatically | Login denied   |
+| Existing user SSO login | Login succeeds                | Login succeeds |
+| Default role            | Applied from role mapping     | N/A            |
 
 ### Domain Restrictions
 
@@ -290,10 +296,10 @@ Control how user sessions are handled.
 
 ### Session Duration
 
-| Setting | Default | Description |
-| ------- | ------- | ----------- |
+| Setting             | Default | Description              |
+| ------------------- | ------- | ------------------------ |
 | **Session timeout** | 30 days | Maximum session duration |
-| **Idle timeout** | 7 days | Timeout after inactivity |
+| **Idle timeout**    | 7 days  | Timeout after inactivity |
 
 ### Viewing Active Sessions
 
@@ -310,32 +316,33 @@ Users can view their sessions:
 ### Ending Sessions
 
 **End specific session**:
+
 1. Find session in list
 2. Click **Revoke**
 
 **End all sessions**:
+
 1. Click **Revoke All Sessions**
 2. Confirm action
 3. You'll be logged out everywhere
 
 **Admin force logout**:
 Admins can end all sessions for any user:
+
 1. Go to **Settings** → **Users**
 2. Click on user
 3. Click **Revoke All Sessions**
 
 ### Session Security
 
-| Feature | Description |
-| ------- | ----------- |
-| **Secure cookies** | HTTPS-only in production |
-| **HTTP-only** | Not accessible via JavaScript |
-| **SameSite** | Protection against CSRF |
-| **Rotation** | Session rotated on privilege changes |
+| Feature            | Description                          |
+| ------------------ | ------------------------------------ |
+| **Secure cookies** | HTTPS-only in production             |
+| **HTTP-only**      | Not accessible via JavaScript        |
+| **SameSite**       | Protection against CSRF              |
+| **Rotation**       | Session rotated on privilege changes |
 
 ---
-
-
 
 ## Security Settings
 
@@ -343,23 +350,21 @@ Admins can end all sessions for any user:
 
 Configure password requirements:
 
-| Setting | Options |
-| ------- | ------- |
-| **Minimum length** | 8-128 characters |
-| **Require uppercase** | Yes/No |
-| **Require numbers** | Yes/No |
-| **Require symbols** | Yes/No |
-| **Password history** | Prevent reuse of last N passwords |
+| Setting               | Options                           |
+| --------------------- | --------------------------------- |
+| **Minimum length**    | 8-128 characters                  |
+| **Require uppercase** | Yes/No                            |
+| **Require numbers**   | Yes/No                            |
+| **Require symbols**   | Yes/No                            |
+| **Password history**  | Prevent reuse of last N passwords |
 
 ### Login Security
 
-| Setting | Description |
-| ------- | ----------- |
+| Setting                  | Description                          |
+| ------------------------ | ------------------------------------ |
 | **Failed login lockout** | Lock account after N failed attempts |
-| **Lockout duration** | Minutes until auto-unlock |
-| **CAPTCHA** | Show CAPTCHA after N failures |
-
-
+| **Lockout duration**     | Minutes until auto-unlock            |
+| **CAPTCHA**              | Show CAPTCHA after N failures        |
 
 ---
 
@@ -367,11 +372,11 @@ Configure password requirements:
 
 Authentication-related environment variables:
 
-| Variable | Required | Description |
-| -------- | :------: | ----------- |
-| `NEXTAUTH_SECRET` | Yes | Secret for signing tokens |
-| `NEXTAUTH_URL` | Yes | Base URL for callbacks |
-| `ENCRYPTION_KEY` | Yes | Encryption for secrets (OIDC client secret) |
+| Variable          | Required | Description                                 |
+| ----------------- | :------: | ------------------------------------------- |
+| `NEXTAUTH_SECRET` |   Yes    | Secret for signing tokens                   |
+| `NEXTAUTH_URL`    |   Yes    | Base URL for callbacks                      |
+| `ENCRYPTION_KEY`  |   Yes    | Encryption for secrets (OIDC client secret) |
 
 ### Generating Secrets
 
@@ -415,12 +420,12 @@ Using both local and SSO authentication simultaneously.
 
 ### Use Cases
 
-| Scenario | Method |
-| -------- | ------ |
-| Regular employees | SSO |
-| Contractors without IdP access | Local |
-| Emergency admin access | Local |
-| Development/testing | Local |
+| Scenario                       | Method |
+| ------------------------------ | ------ |
+| Regular employees              | SSO    |
+| Contractors without IdP access | Local  |
+| Emergency admin access         | Local  |
+| Development/testing            | Local  |
 
 ---
 
@@ -497,5 +502,4 @@ Using both local and SSO authentication simultaneously.
 - [OIDC SSO Setup](../security/oidc-setup) — Provider-specific guides
 - [Users](../core-concepts/users) — User management
 - [Audit Logs](./audit-logs) — Authentication event logging
-- [Security Overview](../security/README) — Security best practices
-
+- [Security Overview](../security) — Security best practices
