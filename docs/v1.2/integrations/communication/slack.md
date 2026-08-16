@@ -132,14 +132,29 @@ The Slack app needs specific permissions to function.
 
 Add these scopes under **Bot Token Scopes**:
 
-| Scope               | Purpose                          |
-| ------------------- | -------------------------------- |
-| `chat:write`        | Send messages to channels        |
-| `chat:write.public` | Send to channels without joining |
-| `channels:read`     | List public channels             |
-| `groups:read`       | List private channels            |
-| `users:read`        | Get user information             |
-| `users:read.email`  | Match users by email             |
+**Required** — incident features break without these:
+
+| Scope              | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| `chat:write`       | Send messages to channels                            |
+| `channels:read`    | List public channels                                 |
+| `channels:join`    | Join channels the bot was not invited to             |
+| `channels:manage`  | Create, retitle and archive war-room channels        |
+| `channels:history` | Read a pinned message so it can be saved as a note   |
+| `reactions:read`   | Receive 📌 reactions                                 |
+| `users:read`       | Get user information                                 |
+| `users:read.email` | Match users by email, so responders are auto-invited |
+
+**Optional** — private channel and DM coverage:
+
+| Scope                                           | Purpose                   |
+| ----------------------------------------------- | ------------------------- |
+| `groups:read`, `groups:write`, `groups:history` | Private channels          |
+| `im:read`, `mpim:read`                          | Direct and group messages |
+
+> `chat:write.public` is **not** requested by OpsKnight; the bot joins channels
+> with `channels:join` instead. See
+> [Slack ChatOps & War Rooms](./slack-chatops) for what each scope enables.
 
 ### Add Redirect URL
 
