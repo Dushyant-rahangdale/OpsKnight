@@ -85,8 +85,12 @@ export default function IncidentTimeline({
     });
   });
 
-  // Sort by date (oldest first for timeline)
-  timelineEvents.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  // Sort by date (oldest first for timeline) with secondary ID tie-breaker for same-millisecond events
+  timelineEvents.sort((a, b) => {
+    const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (diff !== 0) return diff;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
 
   const getEventConfig = (type: string) => {
     switch (type) {

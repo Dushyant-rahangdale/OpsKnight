@@ -1,3 +1,5 @@
+import { getTimeZoneOffsetMs } from './timezone';
+
 type LayerUser = {
   userId: string;
   user: { name: string; avatarUrl?: string | null; gender?: string | null };
@@ -92,22 +94,14 @@ function addCalendarDaysInTimeZone(base: Date, days: number, timeZone: string): 
     get('second')
   );
 
-  // Convert back from target timezone to UTC
-  // We need the offset at the new date, so do a two-step correction
-  const tentative = new Date(baseUtc);
-  const tentativeParts = formatter.formatToParts(tentative);
-  const getTentative = (type: string) =>
-    Number(tentativeParts.find(p => p.type === type)?.value ?? '0');
-  const tentativeUtc = Date.UTC(
-    getTentative('year'),
-    getTentative('month') - 1,
-    getTentative('day'),
-    getTentative('hour'),
-    getTentative('minute'),
-    getTentative('second')
-  );
-  const offset = tentativeUtc - tentative.getTime();
-  return new Date(baseUtc - offset);
+  // Convert back from target timezone to UTC with two-step DST boundary refinement
+  const guessOffsetMs = getTimeZoneOffsetMs(new Date(baseUtc), timeZone);
+  let date = new Date(baseUtc - guessOffsetMs);
+  const actualOffsetMs = getTimeZoneOffsetMs(date, timeZone);
+  if (actualOffsetMs !== guessOffsetMs) {
+    date = new Date(baseUtc - actualOffsetMs);
+  }
+  return date;
 }
 
 function splitBlockByRestrictions(
@@ -147,9 +141,11 @@ function splitBlockByRestrictions(
       allowed = false;
     }
 
-    // Advance to next hour boundary or end
-    const nextHourMs = 3600000 - (cursor.getTime() % 3600000);
-    const stepMs = Math.min(Math.max(nextHourMs, 60000), 3600000);
+    // Advance to next local hour boundary or end (handles fractional timezones +5:30, +5:45, +12:45)
+    const offsetMs = getTimeZoneOffsetMs(cursor, timeZone);
+    const localMs = cursor.getTime() + offsetMs;
+    const nextLocalHourMs = 3600000 - (localMs % 3600000);
+    const stepMs = Math.min(Math.max(nextLocalHourMs, 60000), 3600000);
     const nextCursor = new Date(Math.min(cursor.getTime() + stepMs, end.getTime()));
 
     if (allowed) {
