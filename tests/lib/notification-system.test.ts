@@ -133,46 +133,89 @@ describe('Notification System Tests', () => {
     });
   });
 
-  describe('Schedule Escalation - Multiple On-Call Users', () => {
-    it('should return all active on-call users from all layers', async () => {
-      const user1Id = 'user-1';
-      const user2Id = 'user-2';
-      const scheduleId = 'sched-1';
+  describe('Schedule Escalation - Overlapping Layer Precedence', () => {
+    // Overlapping layers are priority-resolved to a single on-call user by
+    // getFinalScheduleBlocks: the highest-priority layer wins, ties broken on
+    // lexical layerId. This assertion previously expected every layer's users
+    // to be paged, which stopped being true when priority resolution landed.
+    const scheduleId = 'sched-1';
+    const user1Id = 'user-1';
+    const user2Id = 'user-2';
 
-      (vi.mocked(prisma.user.create) as any).mockImplementation(({ data }: any) =>
-        Promise.resolve({ id: data.email === 'user1@example.com' ? user1Id : user2Id, ...data })
+    const scheduleWithLayers = (layer1Priority?: number, layer2Priority?: number) => ({
+      id: scheduleId,
+      name: 'Test Schedule',
+      timeZone: 'UTC',
+      layers: [
+        {
+          id: 'layer-1',
+          name: 'Layer 1',
+          start: new Date('2024-01-01'),
+          rotationLengthHours: 24,
+          priority: layer1Priority,
+          users: [{ userId: user1Id, position: 0, user: { name: 'User 1' } }],
+        },
+        {
+          id: 'layer-2',
+          name: 'Layer 2',
+          start: new Date('2024-01-01'),
+          rotationLengthHours: 24,
+          priority: layer2Priority,
+          users: [{ userId: user2Id, position: 0, user: { name: 'User 2' } }],
+        },
+      ],
+      overrides: [],
+    });
+
+    it('should page a single user when equal-priority layers overlap', async () => {
+      vi.mocked(prisma.onCallSchedule.findUnique).mockResolvedValue(
+        scheduleWithLayers() as any // eslint-disable-line @typescript-eslint/no-explicit-any
       );
 
-      vi.mocked(prisma.onCallSchedule.findUnique).mockResolvedValue({
-        id: scheduleId,
-        name: 'Test Schedule',
-        timeZone: 'UTC',
-        layers: [
-          {
-            id: 'layer-1',
-            name: 'Layer 1',
-            start: new Date('2024-01-01'),
-            rotationLengthHours: 24,
-            users: [{ userId: user1Id, position: 0, user: { name: 'User 1' } }],
-          },
-          {
-            id: 'layer-2',
-            name: 'Layer 2',
-            start: new Date('2024-01-01'),
-            rotationLengthHours: 24,
-            users: [{ userId: user2Id, position: 0, user: { name: 'User 2' } }],
-          },
-        ],
-        overrides: [],
-      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-
-      // Mock resolveEscalationTarget internal logic dependencies if necessary
-      // Actually resolveEscalationTarget probably uses several prisma calls.
       const users = await resolveEscalationTarget('SCHEDULE', scheduleId, new Date());
 
-      expect(users.length).toBeGreaterThanOrEqual(1);
-      expect(users).toContain(user1Id);
-      expect(users).toContain(user2Id);
+      // Tie on priority resolves to the lexically-first layerId ('layer-1')
+      expect(users).toEqual([user1Id]);
+    });
+
+    it('should page the higher-priority layer when layers overlap', async () => {
+      vi.mocked(prisma.onCallSchedule.findUnique).mockResolvedValue(
+        scheduleWithLayers(0, 10) as any // eslint-disable-line @typescript-eslint/no-explicit-any
+      );
+
+      const users = await resolveEscalationTarget('SCHEDULE', scheduleId, new Date());
+
+      expect(users).toEqual([user2Id]);
+    });
+
+    it('should page every override user when overrides are active', async () => {
+      const now = new Date();
+      vi.mocked(prisma.onCallSchedule.findUnique).mockResolvedValue({
+        ...scheduleWithLayers(),
+        overrides: [
+          {
+            id: 'ovr-1',
+            userId: user1Id,
+            user: { name: 'User 1' },
+            start: new Date(now.getTime() - 3600_000),
+            end: new Date(now.getTime() + 3600_000),
+            replacesUserId: null,
+          },
+          {
+            id: 'ovr-2',
+            userId: user2Id,
+            user: { name: 'User 2' },
+            start: new Date(now.getTime() - 3600_000),
+            end: new Date(now.getTime() + 3600_000),
+            replacesUserId: null,
+          },
+        ],
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+      const users = await resolveEscalationTarget('SCHEDULE', scheduleId, now);
+
+      // Overrides replace the rotation outright, so both are paged
+      expect(users).toEqual(expect.arrayContaining([user1Id, user2Id]));
     });
   });
 
