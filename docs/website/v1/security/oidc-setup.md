@@ -33,17 +33,17 @@ Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL.
 
 ## Configuration Fields
 
-| Field | Required | Description |
-| ----- | :------: | ----------- |
-| **Issuer URL** | Yes | The OIDC issuer URL for your provider |
-| **Client ID** | Yes | From your IdP app |
-| **Client Secret** | Yes | From your IdP app (stored encrypted) |
-| **Custom Scopes** | No | Additional scopes beyond default |
-| **Auto-provision** | No | Create users on first login |
-| **Allowed Domains** | No | Email domain allowlist |
-| **Role Mapping** | No | Map IdP claims to roles |
-| **Profile Mapping** | No | Map IdP claims to user fields |
-| **Provider Label** | No | Custom text for SSO button |
+| Field               | Required | Description                           |
+| ------------------- | :------: | ------------------------------------- |
+| **Issuer URL**      |   Yes    | The OIDC issuer URL for your provider |
+| **Client ID**       |   Yes    | From your IdP app                     |
+| **Client Secret**   |   Yes    | From your IdP app (stored encrypted)  |
+| **Custom Scopes**   |    No    | Additional scopes beyond default      |
+| **Auto-provision**  |    No    | Create users on first login           |
+| **Allowed Domains** |    No    | Email domain allowlist                |
+| **Role Mapping**    |    No    | Map IdP claims to roles               |
+| **Profile Mapping** |    No    | Map IdP claims to user fields         |
+| **Provider Label**  |    No    | Custom text for SSO button            |
 
 **Default Scopes**: `openid email profile`
 
@@ -69,13 +69,13 @@ Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL.
 
 OpsKnight auto-detects provider type from the issuer URL:
 
-| Provider | Detection |
-| -------- | --------- |
-| **Google** | `accounts.google.com` in issuer |
+| Provider      | Detection                             |
+| ------------- | ------------------------------------- |
+| **Google**    | `accounts.google.com` in issuer       |
 | **Microsoft** | `login.microsoftonline.com` in issuer |
-| **Okta** | `okta` in issuer |
-| **Auth0** | `auth0` in issuer |
-| **Custom** | All other issuers |
+| **Okta**      | `okta` in issuer                      |
+| **Auth0**     | `auth0` in issuer                     |
+| **Custom**    | All other issuers                     |
 
 ---
 
@@ -91,6 +91,7 @@ OpsKnight auto-detects provider type from the issuer URL:
 6. **Scopes**: `openid email profile` (default)
 
 **Profile mapping claims**:
+
 - `avatarUrl`: `picture`
 - `department`: Not provided by Google
 - `jobTitle`: Not provided by Google
@@ -105,6 +106,7 @@ OpsKnight auto-detects provider type from the issuer URL:
 6. Optional: Add email and profile claims if not present
 
 **Profile mapping claims**:
+
 - `department`: `department`
 - `jobTitle`: `jobTitle`
 - `avatarUrl`: `picture`
@@ -117,6 +119,7 @@ OpsKnight auto-detects provider type from the issuer URL:
 4. **Scopes**: `openid email profile` (default)
 
 **Profile mapping claims**:
+
 - `department`: `department`
 - `jobTitle`: `title`
 - `avatarUrl`: `picture`
@@ -129,6 +132,7 @@ OpsKnight auto-detects provider type from the issuer URL:
 4. **Scopes**: `openid email profile` (default)
 
 **Profile mapping claims**:
+
 - `department`: Use custom claim, e.g., `https://example.com/department`
 - `jobTitle`: Use custom claim, e.g., `https://example.com/title`
 - `avatarUrl`: `picture`
@@ -142,6 +146,7 @@ OpsKnight auto-detects provider type from the issuer URL:
 5. **Scopes**: `openid email profile` (default)
 
 **Profile mapping claims**:
+
 - `department`: `department`
 - `jobTitle`: `jobTitle`
 - `avatarUrl`: `picture`
@@ -166,11 +171,11 @@ JSON array of rules:
 
 ### Rule Fields
 
-| Field | Description |
-| ----- | ----------- |
-| `claim` | The IdP claim name to check |
-| `value` | The value to match |
-| `role` | OpsKnight role: `ADMIN`, `RESPONDER`, or `USER` |
+| Field   | Description                                     |
+| ------- | ----------------------------------------------- |
+| `claim` | The IdP claim name to check                     |
+| `value` | The value to match                              |
+| `role`  | OpsKnight role: `ADMIN`, `RESPONDER`, or `USER` |
 
 ### Evaluation
 
@@ -186,11 +191,11 @@ Sync user profile fields from IdP claims.
 
 ### Supported Fields
 
-| OpsKnight Field | Description |
-| --------------- | ----------- |
-| `department` | User's department |
-| `jobTitle` | User's job title |
-| `avatarUrl` | Profile picture URL |
+| OpsKnight Field | Description         |
+| --------------- | ------------------- |
+| `department`    | User's department   |
+| `jobTitle`      | User's job title    |
+| `avatarUrl`     | Profile picture URL |
 
 ### Format
 
@@ -230,6 +235,7 @@ If empty, all email domains are allowed.
 **Disabled**: Only pre-existing users can sign in via SSO.
 
 When enabled:
+
 - New users get the role from role mapping (or default `USER`)
 - Profile fields populated from claims
 - Email domain must match allowed domains (if configured)
@@ -272,5 +278,4 @@ Ensure your IdP is configured to include the `email` claim in tokens. Some provi
 
 - [Authentication](../administration/authentication) — All authentication methods
 - [Users](../core-concepts/users) — User management
-- [Security Overview](./README) — Security best practices
-
+- [Security Overview](.) — Security best practices

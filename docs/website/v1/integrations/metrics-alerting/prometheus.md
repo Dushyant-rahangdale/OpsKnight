@@ -11,14 +11,15 @@ Receive alerts from Prometheus Alertmanager and create incidents automatically.
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/prometheus?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -50,8 +51,8 @@ Replace `YOUR_OPSKNIGHT_URL` with your OpsKnight instance URL and `YOUR_INTEGRAT
 
 ---
 
-
 ## Payload Format
+
 OpsKnight accepts the standard Alertmanager webhook payload:
 
 ```json
@@ -93,27 +94,27 @@ OpsKnight accepts the standard Alertmanager webhook payload:
 
 ---
 
-
 ## Event Mapping
+
 | Alertmanager Status | OpsKnight Action |
 | ------------------- | ---------------- |
-| `firing` | Trigger incident |
-| `resolved` | Resolve incident |
+| `firing`            | Trigger incident |
+| `resolved`          | Resolve incident |
 
 The integration checks both `status` at the payload level and individual alert `status`. If an alert has `endsAt` set, it's treated as resolved.
 
 ---
 
-
 ## Severity Mapping
+
 OpsKnight reads the `severity` label from alerts:
 
 | Prometheus Severity Label | OpsKnight Severity |
 | ------------------------- | ------------------ |
-| `critical`, `page` | critical |
-| `error` | error |
-| `warning` | warning |
-| (default) | warning |
+| `critical`, `page`        | critical           |
+| `error`                   | error              |
+| `warning`                 | warning            |
+| (default)                 | warning            |
 
 ### Setting Severity in Alert Rules
 
@@ -126,13 +127,13 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "CPU usage is above 90%"
+          summary: 'CPU usage is above 90%'
 ```
 
 ---
 
-
 ## Incident Title
+
 The incident title is extracted in this order:
 
 1. `annotations.summary`
@@ -142,8 +143,8 @@ The incident title is extracted in this order:
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated as follows:
 
 1. **Fingerprint** (preferred): Uses Alertmanager's `fingerprint` field
@@ -153,8 +154,8 @@ This ensures identical alerts map to the same incident, preventing duplicates du
 
 ---
 
-
 ## Security
+
 ### Signature Verification (Optional)
 
 You can secure the webhook with HMAC signature verification:
@@ -165,8 +166,8 @@ You can secure the webhook with HMAC signature verification:
 
 ---
 
-
 ## Testing
+
 ### Using Alertmanager API
 
 Manually fire a test alert:
@@ -215,8 +216,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/prometheus?integration
 
 ---
 
-
 ## Troubleshooting
+
 ### Alerts Not Appearing
 
 1. **Check Alertmanager logs** for webhook errors
@@ -237,10 +238,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/prometheus?integration
 
 ---
 
-
 ## Related Topics
+
 - [Grafana Integration](../apm-monitoring/grafana) — Grafana can also send Alertmanager-format webhooks
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

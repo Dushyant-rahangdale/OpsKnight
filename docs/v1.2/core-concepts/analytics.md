@@ -497,5 +497,5 @@ Set up alerts when metrics cross thresholds.
 - [Incidents](./incidents) — Incident lifecycle and management
 - [Services](./services) — Service configuration
 - [Teams](./teams) — Team management
-- [SLA](./sla) — SLA configuration
+- [SLA Metrics](#sla-metrics) — SLA compliance, per-urgency tracking and breach analysis
 - [Postmortems](./postmortems) — Post-incident analysis

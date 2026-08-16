@@ -15,12 +15,12 @@ Analytics provide deep visibility into incident patterns, team performance, and 
 
 ## Why Analytics Matter
 
-| Without Analytics | With Analytics |
-| ----------------- | -------------- |
-| Blind to patterns | Data-driven decisions |
-| Can't prove SLA compliance | Objective SLA tracking |
-| Unknown team workload | Fair on-call distribution |
-| Reactive improvements | Proactive optimization |
+| Without Analytics          | With Analytics            |
+| -------------------------- | ------------------------- |
+| Blind to patterns          | Data-driven decisions     |
+| Can't prove SLA compliance | Objective SLA tracking    |
+| Unknown team workload      | Fair on-call distribution |
+| Reactive improvements      | Proactive optimization    |
 
 ---
 
@@ -46,10 +46,10 @@ OpsKnight tracks 19+ metrics across incidents, response times, and SLA complianc
 
 Average time from incident creation to first acknowledgment.
 
-| Rating | MTTA | Interpretation |
-| ------ | ---- | -------------- |
-| 🟢 Excellent | < 5 minutes | Rapid response |
-| 🟡 Acceptable | 5–15 minutes | Room for improvement |
+| Rating        | MTTA         | Interpretation             |
+| ------------- | ------------ | -------------------------- |
+| 🟢 Excellent  | < 5 minutes  | Rapid response             |
+| 🟡 Acceptable | 5–15 minutes | Room for improvement       |
 | 🔴 Needs Work | > 15 minutes | Review escalation policies |
 
 **Calculation**: Sum of (acknowledgment time - creation time) / acknowledged incidents
@@ -58,11 +58,11 @@ Average time from incident creation to first acknowledgment.
 
 Average time from incident creation to resolution.
 
-| Rating | MTTR | Interpretation |
-| ------ | ---- | -------------- |
-| 🟢 Excellent | < 30 minutes | Efficient resolution |
+| Rating        | MTTR          | Interpretation             |
+| ------------- | ------------- | -------------------------- |
+| 🟢 Excellent  | < 30 minutes  | Efficient resolution       |
 | 🟡 Acceptable | 30–60 minutes | Typical for complex issues |
-| 🔴 Needs Work | > 60 minutes | Review processes |
+| 🔴 Needs Work | > 60 minutes  | Review processes           |
 
 **Calculation**: Sum of (resolution time - creation time) / resolved incidents
 
@@ -70,33 +70,33 @@ Average time from incident creation to resolution.
 
 Average time before incidents escalate beyond the first responder.
 
-| Rating | MTTE | Interpretation |
-| ------ | ---- | -------------- |
-| 🟢 Healthy | > 15 minutes | Primary responders handling most issues |
-| 🟡 Monitor | 5–15 minutes | Moderate escalation rate |
-| 🔴 Review | < 5 minutes | Check if first-level needs more training/tools |
+| Rating     | MTTE         | Interpretation                                 |
+| ---------- | ------------ | ---------------------------------------------- |
+| 🟢 Healthy | > 15 minutes | Primary responders handling most issues        |
+| 🟡 Monitor | 5–15 minutes | Moderate escalation rate                       |
+| 🔴 Review  | < 5 minutes  | Check if first-level needs more training/tools |
 
 ### Volume Metrics
 
-| Metric | Description |
-| ------ | ----------- |
-| **Total Incidents** | Count of incidents in the period |
-| **Open Incidents** | Currently unresolved incidents |
-| **Acknowledged** | Incidents acknowledged but not resolved |
-| **Resolved** | Incidents marked resolved |
-| **Snoozed** | Incidents temporarily muted |
-| **Suppressed** | Incidents auto-suppressed by rules |
+| Metric              | Description                             |
+| ------------------- | --------------------------------------- |
+| **Total Incidents** | Count of incidents in the period        |
+| **Open Incidents**  | Currently unresolved incidents          |
+| **Acknowledged**    | Incidents acknowledged but not resolved |
+| **Resolved**        | Incidents marked resolved               |
+| **Snoozed**         | Incidents temporarily muted             |
+| **Suppressed**      | Incidents auto-suppressed by rules      |
 
 ### Distribution Metrics
 
-| Metric | Description |
-| ------ | ----------- |
+| Metric         | Description                  |
+| -------------- | ---------------------------- |
 | **By Urgency** | Breakdown by HIGH/MEDIUM/LOW |
-| **By Service** | Incidents per service |
-| **By Team** | Incidents per owning team |
-| **By Source** | Incidents per integration |
-| **By Hour** | Hourly distribution pattern |
-| **By Day** | Daily distribution pattern |
+| **By Service** | Incidents per service        |
+| **By Team**    | Incidents per owning team    |
+| **By Source**  | Incidents per integration    |
+| **By Hour**    | Hourly distribution pattern  |
+| **By Day**     | Daily distribution pattern   |
 
 ---
 
@@ -112,22 +112,22 @@ SLA Compliance = (Incidents within SLA / Total Resolved Incidents) × 100
 
 ### Per-Urgency SLA Tracking
 
-| Urgency | Default Target | Metric |
-| ------- | -------------- | ------ |
-| **HIGH** | 15 minutes to acknowledge, 1 hour to resolve | Compliance % |
+| Urgency    | Default Target                                | Metric       |
+| ---------- | --------------------------------------------- | ------------ |
+| **HIGH**   | 15 minutes to acknowledge, 1 hour to resolve  | Compliance % |
 | **MEDIUM** | 30 minutes to acknowledge, 4 hours to resolve | Compliance % |
-| **LOW** | 2 hours to acknowledge, 24 hours to resolve | Compliance % |
+| **LOW**    | 2 hours to acknowledge, 24 hours to resolve   | Compliance % |
 
 ### SLA Breach Analysis
 
 Track which services and teams breach SLA most frequently:
 
-| Analysis | Purpose |
-| -------- | ------- |
+| Analysis                | Purpose                       |
+| ----------------------- | ----------------------------- |
 | **Breaches by Service** | Identify problematic services |
-| **Breaches by Team** | Spot training/staffing needs |
-| **Breach Trends** | Monitor improvement over time |
-| **Near-Miss Tracking** | Incidents close to breaching |
+| **Breaches by Team**    | Spot training/staffing needs  |
+| **Breach Trends**       | Monitor improvement over time |
+| **Near-Miss Tracking**  | Incidents close to breaching  |
 
 ---
 
@@ -137,11 +137,11 @@ OpsKnight provides 15+ visualization types for incident data.
 
 ### Time-Series Charts
 
-| Chart | Shows |
-| ----- | ----- |
-| **Incident Volume** | Incidents over time (line/bar) |
-| **MTTA Trend** | Acknowledgment time over time |
-| **MTTR Trend** | Resolution time over time |
+| Chart                    | Shows                           |
+| ------------------------ | ------------------------------- |
+| **Incident Volume**      | Incidents over time (line/bar)  |
+| **MTTA Trend**           | Acknowledgment time over time   |
+| **MTTR Trend**           | Resolution time over time       |
 | **SLA Compliance Trend** | Compliance percentage over time |
 
 <!-- placeholder:time-series-chart -->
@@ -149,31 +149,31 @@ OpsKnight provides 15+ visualization types for incident data.
 
 ### Distribution Charts
 
-| Chart | Shows |
-| ----- | ----- |
-| **By Urgency** | Pie/donut chart of urgency distribution |
-| **By Status** | Current status breakdown |
-| **By Service** | Top services by incident count |
-| **By Team** | Team workload comparison |
-| **By Hour of Day** | When incidents occur most |
-| **By Day of Week** | Daily patterns |
+| Chart              | Shows                                   |
+| ------------------ | --------------------------------------- |
+| **By Urgency**     | Pie/donut chart of urgency distribution |
+| **By Status**      | Current status breakdown                |
+| **By Service**     | Top services by incident count          |
+| **By Team**        | Team workload comparison                |
+| **By Hour of Day** | When incidents occur most               |
+| **By Day of Week** | Daily patterns                          |
 
 ### Heatmaps
 
-| Heatmap | Shows |
-| ------- | ----- |
-| **Hour × Day** | When incidents peak |
+| Heatmap               | Shows                               |
+| --------------------- | ----------------------------------- |
+| **Hour × Day**        | When incidents peak                 |
 | **Service × Urgency** | Which services have critical issues |
-| **Team × Service** | Coverage overlap |
+| **Team × Service**    | Coverage overlap                    |
 
 ### Tables
 
-| Table | Shows |
-| ----- | ----- |
-| **Top Incidents** | Longest-running or most impactful |
-| **Top Services** | Services with most incidents |
-| **Top Responders** | Most active incident handlers |
-| **Recent Breaches** | SLA violations |
+| Table               | Shows                             |
+| ------------------- | --------------------------------- |
+| **Top Incidents**   | Longest-running or most impactful |
+| **Top Services**    | Services with most incidents      |
+| **Top Responders**  | Most active incident handlers     |
+| **Recent Breaches** | SLA violations                    |
 
 ---
 
@@ -181,24 +181,24 @@ OpsKnight provides 15+ visualization types for incident data.
 
 ### Available Filters
 
-| Filter | Options |
-| ------ | ------- |
-| **Time Range** | Last 24h, 7d, 30d, 90d, custom range |
-| **Service** | Single or multiple services |
-| **Team** | Single or multiple teams |
-| **Assignee** | Specific responders |
-| **Status** | OPEN, ACKNOWLEDGED, RESOLVED, SNOOZED, SUPPRESSED |
-| **Urgency** | HIGH, MEDIUM, LOW |
-| **Source** | Integration that created the incident |
+| Filter         | Options                                           |
+| -------------- | ------------------------------------------------- |
+| **Time Range** | Last 24h, 7d, 30d, 90d, custom range              |
+| **Service**    | Single or multiple services                       |
+| **Team**       | Single or multiple teams                          |
+| **Assignee**   | Specific responders                               |
+| **Status**     | OPEN, ACKNOWLEDGED, RESOLVED, SNOOZED, SUPPRESSED |
+| **Urgency**    | HIGH, MEDIUM, LOW                                 |
+| **Source**     | Integration that created the incident             |
 
 ### Quick Filters
 
-| Quick Filter | Description |
-| ------------ | ----------- |
-| **My Incidents** | Incidents assigned to you |
-| **My Teams** | Incidents for teams you belong to |
-| **SLA Breached** | Only breached incidents |
-| **Unassigned** | Incidents without an assignee |
+| Quick Filter     | Description                       |
+| ---------------- | --------------------------------- |
+| **My Incidents** | Incidents assigned to you         |
+| **My Teams**     | Incidents for teams you belong to |
+| **SLA Breached** | Only breached incidents           |
+| **Unassigned**   | Incidents without an assignee     |
 
 ### Comparison Mode
 
@@ -211,6 +211,7 @@ This Quarter vs Last Quarter
 ```
 
 Comparison shows:
+
 - Percentage change
 - Absolute difference
 - Trend direction (↑ improving, ↓ declining)
@@ -224,6 +225,7 @@ Comparison shows:
 High-level overview for stakeholders.
 
 **Includes**:
+
 - Total incidents by urgency
 - Overall SLA compliance
 - MTTA and MTTR averages
@@ -277,11 +279,11 @@ Team capacity planning.
 
 ### Export Formats
 
-| Format | Use Case |
-| ------ | -------- |
-| **CSV** | Spreadsheet analysis, custom reporting |
-| **JSON** | Integration with other tools |
-| **PDF** | Stakeholder presentations |
+| Format   | Use Case                               |
+| -------- | -------------------------------------- |
+| **CSV**  | Spreadsheet analysis, custom reporting |
+| **JSON** | Integration with other tools           |
+| **PDF**  | Stakeholder presentations              |
 
 ### Export Options
 
@@ -313,24 +315,24 @@ Set up recurring exports:
 
 ### Analytics API Endpoints
 
-| Endpoint | Description |
-| -------- | ----------- |
-| `GET /api/analytics/summary` | Overview metrics |
+| Endpoint                       | Description                |
+| ------------------------------ | -------------------------- |
+| `GET /api/analytics/summary`   | Overview metrics           |
 | `GET /api/analytics/incidents` | Incident data with filters |
-| `GET /api/analytics/mtta` | MTTA metrics |
-| `GET /api/analytics/mttr` | MTTR metrics |
-| `GET /api/analytics/sla` | SLA compliance data |
+| `GET /api/analytics/mtta`      | MTTA metrics               |
+| `GET /api/analytics/mttr`      | MTTR metrics               |
+| `GET /api/analytics/sla`       | SLA compliance data        |
 
 ### Query Parameters
 
-| Parameter | Description | Example |
-| --------- | ----------- | ------- |
-| `start_date` | Period start | `2024-01-01` |
-| `end_date` | Period end | `2024-01-31` |
-| `service_id` | Filter by service | `svc_abc123` |
-| `team_id` | Filter by team | `team_xyz` |
-| `urgency` | Filter by urgency | `HIGH` |
-| `group_by` | Aggregation key | `service`, `team`, `day` |
+| Parameter    | Description       | Example                  |
+| ------------ | ----------------- | ------------------------ |
+| `start_date` | Period start      | `2024-01-01`             |
+| `end_date`   | Period end        | `2024-01-31`             |
+| `service_id` | Filter by service | `svc_abc123`             |
+| `team_id`    | Filter by team    | `team_xyz`               |
+| `urgency`    | Filter by urgency | `HIGH`                   |
+| `group_by`   | Aggregation key   | `service`, `team`, `day` |
 
 ### Example Request
 
@@ -383,23 +385,23 @@ curl -X GET "https://your-opsknight.com/api/analytics/summary?start_date=2024-01
 
 ### Widget Types
 
-| Widget | Configuration |
-| ------ | ------------- |
-| **Metric Card** | Single number with trend |
-| **Time Series** | Line/bar chart over time |
-| **Distribution** | Pie/donut/bar chart |
-| **Table** | Sortable data grid |
-| **Heatmap** | Two-dimensional pattern view |
-| **Text** | Markdown annotations |
+| Widget           | Configuration                |
+| ---------------- | ---------------------------- |
+| **Metric Card**  | Single number with trend     |
+| **Time Series**  | Line/bar chart over time     |
+| **Distribution** | Pie/donut/bar chart          |
+| **Table**        | Sortable data grid           |
+| **Heatmap**      | Two-dimensional pattern view |
+| **Text**         | Markdown annotations         |
 
 ### Sharing Dashboards
 
-| Share Option | Description |
-| ------------ | ----------- |
-| **Team Access** | Visible to team members |
-| **Organization** | Visible to all users |
-| **Public Link** | Shareable URL (read-only) |
-| **Embed** | iFrame embed code |
+| Share Option     | Description               |
+| ---------------- | ------------------------- |
+| **Team Access**  | Visible to team members   |
+| **Organization** | Visible to all users      |
+| **Public Link**  | Shareable URL (read-only) |
+| **Embed**        | iFrame embed code         |
 
 ---
 
@@ -409,12 +411,12 @@ Set up alerts when metrics cross thresholds.
 
 ### Alert Conditions
 
-| Condition | Example |
-| --------- | ------- |
-| **MTTA exceeds** | Alert if MTTA > 10 minutes |
-| **MTTR exceeds** | Alert if MTTR > 1 hour |
-| **SLA drops below** | Alert if compliance < 95% |
-| **Volume spikes** | Alert if incidents > 50/hour |
+| Condition           | Example                      |
+| ------------------- | ---------------------------- |
+| **MTTA exceeds**    | Alert if MTTA > 10 minutes   |
+| **MTTR exceeds**    | Alert if MTTR > 1 hour       |
+| **SLA drops below** | Alert if compliance < 95%    |
+| **Volume spikes**   | Alert if incidents > 50/hour |
 
 ### Alert Configuration
 
@@ -432,11 +434,11 @@ Set up alerts when metrics cross thresholds.
 
 ### Regular Review Cadence
 
-| Cadence | Focus |
-| ------- | ----- |
-| **Daily** | Open incidents, SLA breaches |
-| **Weekly** | MTTA/MTTR trends, team workload |
-| **Monthly** | Service health, pattern analysis |
+| Cadence       | Focus                                   |
+| ------------- | --------------------------------------- |
+| **Daily**     | Open incidents, SLA breaches            |
+| **Weekly**    | MTTA/MTTR trends, team workload         |
+| **Monthly**   | Service health, pattern analysis        |
 | **Quarterly** | Capacity planning, process improvements |
 
 ### Metric Interpretation
@@ -448,13 +450,13 @@ Set up alerts when metrics cross thresholds.
 
 ### Action Items from Analytics
 
-| Finding | Action |
-| ------- | ------ |
-| High MTTA | Review escalation policies, notification channels |
-| High MTTR | Improve runbooks, add automation |
-| Frequent breaches on service | Review service reliability |
-| Uneven team workload | Adjust on-call rotations |
-| Night/weekend spikes | Consider follow-the-sun coverage |
+| Finding                      | Action                                            |
+| ---------------------------- | ------------------------------------------------- |
+| High MTTA                    | Review escalation policies, notification channels |
+| High MTTR                    | Improve runbooks, add automation                  |
+| Frequent breaches on service | Review service reliability                        |
+| Uneven team workload         | Adjust on-call rotations                          |
+| Night/weekend spikes         | Consider follow-the-sun coverage                  |
 
 ### Reporting to Stakeholders
 
@@ -495,6 +497,5 @@ Set up alerts when metrics cross thresholds.
 - [Incidents](./incidents) — Incident lifecycle and management
 - [Services](./services) — Service configuration
 - [Teams](./teams) — Team management
-- [SLA](./sla) — SLA configuration
+- [SLA Metrics](#sla-metrics) — SLA compliance, per-urgency tracking and breach analysis
 - [Postmortems](./postmortems) — Post-incident analysis
-

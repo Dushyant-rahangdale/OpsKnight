@@ -326,6 +326,6 @@ Trigger automated responses:
 
 ## Related Topics
 
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-- [Status Page](../core-concepts/status-page) — Status page configuration
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations
+- [Status Page](../../core-concepts/status-page) — Status page configuration

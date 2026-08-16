@@ -12,5 +12,5 @@ Send metric-based alerts into OpsKnight using Alertmanager-compatible payloads.
 
 <!-- integrations-list:start -->
 
-- [Prometheus / Alertmanager](./prometheus) — Receive Prometheus Alertmanager alerts in OpsKnight
+- [Prometheus / Alertmanager](./metrics-alerting/prometheus) — Receive Prometheus Alertmanager alerts in OpsKnight
 <!-- integrations-list:end -->

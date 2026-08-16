@@ -11,14 +11,15 @@ Receive alerts from GitHub Actions workflow failures, check failures, and deploy
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/github?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -34,11 +35,11 @@ POST /api/integrations/github?integrationId=YOUR_INTEGRATION_ID
 2. Click **Add webhook**
 3. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Payload URL** | `https://YOUR_OPSKNIGHT_URL/api/integrations/github?integrationId=YOUR_INTEGRATION_ID` |
-| **Content type** | `application/json` |
-| **Secret** | Your signing secret (if using) |
+| Field            | Value                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| **Payload URL**  | `https://YOUR_OPSKNIGHT_URL/api/integrations/github?integrationId=YOUR_INTEGRATION_ID` |
+| **Content type** | `application/json`                                                                     |
+| **Secret**       | Your signing secret (if using)                                                         |
 
 4. Select **Let me select individual events**
 5. Check the events you want:
@@ -49,16 +50,16 @@ POST /api/integrations/github?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Security
+
 > **Strict Security Enforcement**: If you generate a Signing Secret in OpsKnight, you **MUST** configure the same secret in GitHub webhook settings. OpsKnight will reject any requests without a valid signature if a secret exists.
 
 GitHub signs webhooks using HMAC-SHA256 with the secret you provide.
 
 ---
 
-
 ## Supported Events
+
 ### Workflow Runs
 
 Triggers when GitHub Actions workflows complete.
@@ -122,35 +123,36 @@ Triggers when deployments fail.
 
 ---
 
-
 ## Event Mapping
-| GitHub Event | OpsKnight Action |
-| ------------ | ---------------- |
-| `conclusion: failure` | Trigger incident |
-| `conclusion: timed_out` | Trigger incident |
-| `conclusion: cancelled` | Trigger incident |
-| `conclusion: success` | Resolve incident |
+
+| GitHub Event                 | OpsKnight Action              |
+| ---------------------------- | ----------------------------- |
+| `conclusion: failure`        | Trigger incident              |
+| `conclusion: timed_out`      | Trigger incident              |
+| `conclusion: cancelled`      | Trigger incident              |
+| `conclusion: success`        | Resolve incident              |
 | `status: queued/in_progress` | Acknowledge (no new incident) |
 
 ### Pending State Handling
 
 When workflows or checks are pending/in-progress:
+
 - If an incident exists, it's acknowledged (retry is in progress)
 - No new incident is created for pending states
 
 ---
 
-
 ## Severity Mapping
-| Conclusion | OpsKnight Severity |
-| ---------- | ------------------ |
-| `failure`, `timed_out`, `cancelled` | critical |
-| Others | info |
+
+| Conclusion                          | OpsKnight Severity |
+| ----------------------------------- | ------------------ |
+| `failure`, `timed_out`, `cancelled` | critical           |
+| Others                              | info               |
 
 ---
 
-
 ## Incident Title
+
 Titles are generated based on event type:
 
 - **Workflow failure**: `Workflow failed: {workflow_name}`
@@ -161,8 +163,8 @@ Source is formatted as: `GitHub - {repository.full_name}`
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated as:
 
 - **Workflow runs**: `github-{workflow_run.id}`
@@ -171,8 +173,8 @@ Dedup keys are generated as:
 
 ---
 
-
 ## GitLab Support
+
 This integration also supports GitLab CI/CD webhooks:
 
 ```json
@@ -193,8 +195,8 @@ This integration also supports GitLab CI/CD webhooks:
 
 ---
 
-
 ## Testing
+
 ### Using GitHub UI
 
 1. Go to repository **Settings** → **Webhooks**
@@ -229,8 +231,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/github?integrationId=Y
 
 ---
 
-
 ## Troubleshooting
+
 ### Webhooks Not Received
 
 1. **Check webhook deliveries** in GitHub settings
@@ -255,10 +257,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/github?integrationId=Y
 
 ---
 
-
 ## Related Topics
+
 - [Bitbucket Integration](./bitbucket) — Bitbucket Pipelines
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

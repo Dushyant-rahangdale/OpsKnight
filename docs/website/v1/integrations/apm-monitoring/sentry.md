@@ -11,14 +11,15 @@ Receive error and issue alerts from Sentry and create incidents automatically.
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/sentry?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -49,8 +50,8 @@ POST /api/integrations/sentry?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Security
+
 > **Strict Security Enforcement**: If you generate a Signing Secret in OpsKnight, you **MUST** configure the same secret in Sentry. OpsKnight will reject any requests without a valid signature if a secret exists.
 
 ### Configuring Signing Secret
@@ -61,8 +62,8 @@ POST /api/integrations/sentry?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Supported Formats
+
 ### Issue Format
 
 ```json
@@ -111,32 +112,32 @@ POST /api/integrations/sentry?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Event Mapping
-| Sentry Action | OpsKnight Action |
-| ------------- | ---------------- |
-| `created` | Trigger incident |
-| `resolved` | Resolve incident |
-| `ignored` | Acknowledge incident |
+
+| Sentry Action | OpsKnight Action     |
+| ------------- | -------------------- |
+| `created`     | Trigger incident     |
+| `resolved`    | Resolve incident     |
+| `ignored`     | Acknowledge incident |
 
 If `issue.status` is `resolved` or `ignored`, the corresponding action is taken regardless of the `action` field.
 
 ---
 
-
 ## Severity Mapping
+
 | Sentry Level | OpsKnight Severity |
 | ------------ | ------------------ |
-| `fatal` | critical |
-| `error` | error |
-| `warning` | warning |
-| `info` | info |
-| `debug` | info |
+| `fatal`      | critical           |
+| `error`      | error              |
+| `warning`    | warning            |
+| `info`       | info               |
+| `debug`      | info               |
 
 ---
 
-
 ## Incident Title
+
 The incident title is extracted as:
 
 - **Issue format**: `issue.title`
@@ -146,8 +147,8 @@ The source includes project name: `Sentry - {project.name}`
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated as:
 
 - **Issue format**: `sentry-{issue.id}`
@@ -157,8 +158,8 @@ This ensures the same Sentry issue maps to the same OpsKnight incident.
 
 ---
 
-
 ## Testing
+
 ### Using Sentry UI
 
 1. Go to **Alerts** in Sentry
@@ -193,8 +194,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/sentry?integrationId=Y
 
 ---
 
-
 ## Troubleshooting
+
 ### Alerts Not Appearing
 
 1. **Check webhook URL** is correct in Sentry
@@ -220,9 +221,7 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/sentry?integrationId=Y
 
 ---
 
-
 ## Related Topics
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
 
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

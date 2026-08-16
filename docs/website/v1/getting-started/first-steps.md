@@ -33,6 +33,7 @@ Each step builds on the previous, so follow them in order.
 When you first access OpsKnight, you'll be automatically redirected to the setup page at `/setup`.
 
 ### On the Setup Page:
+
 1. Enter your **Name** (e.g., "Jane Admin")
 2. Enter your **Email** (e.g., jane@example.com)
 3. Click **Create Admin Account**
@@ -43,6 +44,7 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 **Important**: A secure password will be generated for you and displayed **only once**. Copy it immediately and store it safely — you won't be able to see it again.
 
 ### After Setup:
+
 1. You'll be redirected to the login page
 2. Log in with your email and the generated password
 3. Once logged in, you can change your password in **Profile** settings
@@ -59,10 +61,12 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 Before setting up schedules, you need team members to put on-call.
 
 ### Navigate to Users
+
 1. Click **Settings** in the sidebar
 2. Select **Users**
 
 ### Invite a User
+
 1. Click **Invite User**
 2. Enter their email address
 3. Select a role:
@@ -85,9 +89,11 @@ The user receives an email with a link to set their password and activate their 
 Teams organize users and can be targeted by escalation policies.
 
 ### Navigate to Teams
+
 1. Click **Teams** in the sidebar
 
 ### Create Your Team
+
 1. Click **Create Team**
 2. Enter team details:
    - **Name**: `Platform Engineering`
@@ -95,6 +101,7 @@ Teams organize users and can be targeted by escalation policies.
 3. Click **Create**
 
 ### Add Members
+
 1. Open your new team
 2. Click **Add Members**
 3. Select users and assign roles:
@@ -106,6 +113,7 @@ Teams organize users and can be targeted by escalation policies.
 <!-- Add: Screenshot of team creation form with members list -->
 
 **Why Teams Matter**:
+
 - Escalation policies can notify entire teams
 - Incidents can be assigned to teams
 - Dashboards can filter by team
@@ -117,9 +125,11 @@ Teams organize users and can be targeted by escalation policies.
 Services represent the systems you monitor — APIs, databases, applications, or infrastructure components.
 
 ### Navigate to Services
+
 1. Click **Services** in the sidebar
 
 ### Create Your Service
+
 1. Click **Create Service**
 2. Fill in the details:
    - **Name**: `Payment API`
@@ -132,6 +142,7 @@ Services represent the systems you monitor — APIs, databases, applications, or
 <!-- Add: Screenshot of the service creation form -->
 
 **Why Services Matter**:
+
 - Alerts route through services to reach the right people
 - Services connect to escalation policies
 - Analytics track metrics per service
@@ -144,9 +155,11 @@ Services represent the systems you monitor — APIs, databases, applications, or
 Escalation policies define who gets notified when an incident occurs and how notifications escalate if no one responds.
 
 ### Navigate to Escalation Policies
+
 1. Click **Policies** in the sidebar
 
 ### Create Your Policy
+
 1. Click **Create Policy**
 2. Enter basic info:
    - **Name**: `Payment API Escalation`
@@ -155,12 +168,14 @@ Escalation policies define who gets notified when an incident occurs and how not
 ### Add Escalation Steps
 
 **Step 1 — Primary On-Call**:
+
 1. Click **Add Step**
 2. Configure:
    - **Target Type**: `Schedule` (we'll create this next)
    - **Delay**: `0 minutes` (notify immediately)
 
 **Step 2 — Secondary Backup**:
+
 1. Click **Add Step**
 2. Configure:
    - **Target Type**: `User`
@@ -168,6 +183,7 @@ Escalation policies define who gets notified when an incident occurs and how not
    - **Delay**: `5 minutes` (if no ack after 5 min)
 
 **Step 3 — Team Escalation**:
+
 1. Click **Add Step**
 2. Configure:
    - **Target Type**: `Team`
@@ -200,9 +216,11 @@ Step 3: Notify Entire Team
 On-call schedules define who is responsible for responding during specific time periods.
 
 ### Navigate to Schedules
+
 1. Click **Schedules** in the sidebar
 
 ### Create Your Schedule
+
 1. Click **Create Schedule**
 2. Enter details:
    - **Name**: `Payment API Primary On-Call`
@@ -229,6 +247,7 @@ Layers allow multiple rotation patterns (e.g., weekday vs. weekend coverage).
 <!-- Add: Screenshot of the schedule calendar view showing rotation timeline -->
 
 **Schedule Concepts**:
+
 - **Layers** — Different rotation patterns (primary, secondary, holiday)
 - **Rotation Length** — How long each person is on-call (24h, 168h, etc.)
 - **Overrides** — Temporary changes (vacation coverage, swaps)
@@ -240,12 +259,14 @@ Layers allow multiple rotation patterns (e.g., weekday vs. weekend coverage).
 Now link everything together.
 
 ### Update Your Service
+
 1. Go to **Services** → **Payment API**
 2. Click **Edit**
 3. Set **Escalation Policy**: `Payment API Escalation`
 4. Click **Save**
 
 **The Chain is Complete**:
+
 ```
 Payment API (Service)
     ↓
@@ -263,11 +284,13 @@ Currently: Jane Admin (based on rotation)
 Before testing, set up at least one notification channel.
 
 ### Email (Simplest)
+
 1. Go to **Settings** → **Notifications**
 2. Configure SMTP or a provider (SendGrid, Resend, etc.)
 3. Test with **Send Test Email**
 
 ### Slack (Recommended)
+
 1. Go to **Settings** → **Integrations** → **Slack**
 2. Click **Connect to Slack**
 3. Authorize OpsKnight in your workspace
@@ -282,6 +305,7 @@ See the [Notifications Guide](../administration/notifications) for detailed setu
 Let's verify everything works by creating a manual incident.
 
 ### Create the Incident
+
 1. Click **Incidents** in the sidebar
 2. Click **Create Incident**
 3. Fill in:
@@ -301,6 +325,7 @@ Let's verify everything works by creating a manual incident.
 3. **Timeline Updated** — Shows "Incident triggered" event
 
 ### Verify the Flow
+
 1. Open the incident to see the timeline
 2. Check that notifications were sent (look for delivery status)
 3. Click **Acknowledge** to stop escalation
@@ -355,27 +380,37 @@ You've successfully set up OpsKnight with:
 Now that the basics are working, explore these areas:
 
 ### Connect Real Monitoring Tools
+
 Route alerts from your actual infrastructure:
+
 - [Datadog Integration](../integrations/apm-monitoring/datadog)
 - [Prometheus Integration](../integrations/metrics-alerting/prometheus)
 - [Generic Webhooks](../integrations/custom/webhooks)
 
 ### Set Up More Notification Channels
+
 Reach responders through multiple channels:
-- [SMS via Twilio](../administration/notifications.md#sms)
-- [Push Notifications](../administration/notifications.md#push)
+
+- [SMS via Twilio](../administration/notifications#sms)
+- [Push Notifications](../administration/notifications#push)
 - [Slack Integration](../integrations/communication/slack)
 
 ### Configure SLAs
+
 Track response time commitments:
-- [SLA Configuration](../core-concepts/analytics.md#sla-tracking)
+
+- [SLA Configuration](../core-concepts/analytics#sla-tracking)
 
 ### Create a Status Page
+
 Communicate with customers:
+
 - [Status Page Setup](../core-concepts/status-page)
 
 ### Understand Core Concepts
+
 Deepen your knowledge:
+
 - [Incident Lifecycle](../core-concepts/incidents)
 - [Schedule Deep Dive](../core-concepts/schedules)
 - [Escalation Details](../core-concepts/escalation-policies)
@@ -384,13 +419,13 @@ Deepen your knowledge:
 
 ## Quick Reference
 
-| What | Where |
-|------|-------|
-| Create/manage users | Settings → Users |
-| Create/manage teams | Teams |
-| Create/manage services | Services |
-| Create escalation policies | Policies |
-| Create on-call schedules | Schedules |
-| View/manage incidents | Incidents |
-| Configure notifications | Settings → Notifications |
-| Connect integrations | Settings → Integrations |
+| What                       | Where                    |
+| -------------------------- | ------------------------ |
+| Create/manage users        | Settings → Users         |
+| Create/manage teams        | Teams                    |
+| Create/manage services     | Services                 |
+| Create escalation policies | Policies                 |
+| Create on-call schedules   | Schedules                |
+| View/manage incidents      | Incidents                |
+| Configure notifications    | Settings → Notifications |
+| Connect integrations       | Settings → Integrations  |

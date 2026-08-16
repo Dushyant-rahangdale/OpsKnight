@@ -11,14 +11,15 @@ Receive CloudWatch alarms in OpsKnight via Amazon SNS.
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/cloudwatch?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -41,9 +42,9 @@ POST /api/integrations/cloudwatch?integrationId=YOUR_INTEGRATION_ID
 2. Click **Create subscription**
 3. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Protocol** | HTTPS |
+| Field        | Value                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| **Protocol** | HTTPS                                                                                      |
 | **Endpoint** | `https://YOUR_OPSKNIGHT_URL/api/integrations/cloudwatch?integrationId=YOUR_INTEGRATION_ID` |
 
 4. Click **Create subscription**
@@ -67,8 +68,8 @@ To confirm the subscription:
 
 ---
 
-
 ## Payload Format
+
 CloudWatch alarms are wrapped in SNS notifications:
 
 ### SNS Notification Wrapper
@@ -104,26 +105,26 @@ CloudWatch alarms are wrapped in SNS notifications:
 
 ---
 
-
 ## Event Mapping
-| CloudWatch State | OpsKnight Action |
-| ---------------- | ---------------- |
-| `ALARM` | Trigger incident |
-| `OK` | Resolve incident |
-| `INSUFFICIENT_DATA` | No action |
+
+| CloudWatch State    | OpsKnight Action |
+| ------------------- | ---------------- |
+| `ALARM`             | Trigger incident |
+| `OK`                | Resolve incident |
+| `INSUFFICIENT_DATA` | No action        |
 
 ---
 
-
 ## Severity Mapping
+
 Severity is determined by keywords in `AlarmDescription`:
 
-| AlarmDescription Contains | OpsKnight Severity |
-| ------------------------- | ------------------ |
-| `CRITICAL`, `HIGH` | critical |
-| `WARNING`, `ERROR`, `MEDIUM` | error |
-| `INFO`, `LOW` | info |
-| (default for ALARM) | critical |
+| AlarmDescription Contains    | OpsKnight Severity |
+| ---------------------------- | ------------------ |
+| `CRITICAL`, `HIGH`           | critical           |
+| `WARNING`, `ERROR`, `MEDIUM` | error              |
+| `INFO`, `LOW`                | info               |
+| (default for ALARM)          | critical           |
 
 ### Best Practice
 
@@ -136,24 +137,24 @@ Memory Usage Warning - WARNING - Development
 
 ---
 
-
 ## Incident Title
+
 The incident title is set to the `AlarmName`.
 
 The source is formatted as: `AWS CloudWatch ({Region})`
 
 ---
 
-
 ## Deduplication
+
 Dedup key format: `cloudwatch-{Region}-{AlarmName}`
 
 This ensures the same alarm in the same region maps to the same incident.
 
 ---
 
-
 ## Testing
+
 ### Using AWS Console
 
 1. Go to **CloudWatch** → **Alarms**
@@ -181,8 +182,8 @@ aws cloudwatch set-alarm-state \
 
 ---
 
-
 ## Troubleshooting
+
 ### Subscription Not Confirming
 
 1. **Check logs** for the SubscribeURL
@@ -207,11 +208,9 @@ aws cloudwatch set-alarm-state \
 
 ---
 
-
 ## Related Topics
+
 - [Azure Monitor Integration](./azure-monitor) — Azure monitoring
 - [Google Cloud Monitoring Integration](./google-cloud-monitoring) — GCP monitoring
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

@@ -12,27 +12,27 @@ This section covers production deployment of OpsKnight. Choose the deployment me
 
 ## Deployment Options
 
-| Method | Best For | Complexity | HA Support |
-|--------|----------|------------|------------|
-| [Docker Compose](./docker) | Small teams, dev/staging | Low | No |
-| [Kubernetes](./kubernetes) | Production, enterprise | Medium | Yes |
-| [Helm](./helm) | Templated K8s deployments | Medium | Yes |
-| [Mobile PWA](./mobile-pwa) | Mobile access | N/A | N/A |
+| Method                                | Best For                  | Complexity | HA Support |
+| ------------------------------------- | ------------------------- | ---------- | ---------- |
+| [Docker Compose](./deployment/docker) | Small teams, dev/staging  | Low        | No         |
+| [Kubernetes](./deployment/kubernetes) | Production, enterprise    | Medium     | Yes        |
+| [Helm](./deployment/helm)             | Templated K8s deployments | Medium     | Yes        |
+| [Mobile PWA](./deployment/mobile-pwa) | Mobile access             | N/A        | N/A        |
 
 ---
 
 ## Quick Comparison
 
-| Feature | Docker Compose | Kubernetes | Helm |
-|---------|----------------|------------|------|
-| **Setup Time** | 5 minutes | 30 minutes | 15 minutes |
-| **Scaling** | Manual | Auto (HPA) | Auto (HPA) |
-| **High Availability** | No | Yes | Yes |
-| **Rolling Updates** | Limited | Yes | Yes |
-| **Resource Limits** | Basic | Advanced | Advanced |
-| **Secrets Management** | Env files | K8s Secrets | Values/Secrets |
-| **Ingress/TLS** | Manual | Ingress Controller | Ingress Controller |
-| **Monitoring** | Manual | Built-in | Built-in |
+| Feature                | Docker Compose | Kubernetes         | Helm               |
+| ---------------------- | -------------- | ------------------ | ------------------ |
+| **Setup Time**         | 5 minutes      | 30 minutes         | 15 minutes         |
+| **Scaling**            | Manual         | Auto (HPA)         | Auto (HPA)         |
+| **High Availability**  | No             | Yes                | Yes                |
+| **Rolling Updates**    | Limited        | Yes                | Yes                |
+| **Resource Limits**    | Basic          | Advanced           | Advanced           |
+| **Secrets Management** | Env files      | K8s Secrets        | Values/Secrets     |
+| **Ingress/TLS**        | Manual         | Ingress Controller | Ingress Controller |
+| **Monitoring**         | Manual         | Built-in           | Built-in           |
 
 ---
 
@@ -40,11 +40,11 @@ This section covers production deployment of OpsKnight. Choose the deployment me
 
 ### All Deployments
 
-| Requirement | Notes |
-|-------------|-------|
-| **PostgreSQL 14+** | Primary database |
-| **Domain name** | For production access |
-| **SSL certificate** | HTTPS required for auth |
+| Requirement                | Notes                   |
+| -------------------------- | ----------------------- |
+| **PostgreSQL 14+**         | Primary database        |
+| **Domain name**            | For production access   |
+| **SSL certificate**        | HTTPS required for auth |
 | **SMTP server** (optional) | For email notifications |
 
 ### Docker Compose
@@ -137,7 +137,7 @@ docker compose up -d
 
 Access at `http://localhost:3000` — you'll be directed to `/setup` to create your admin account.
 
-[Full Docker Guide →](./docker)
+[Full Docker Guide →](./deployment/docker)
 
 ---
 
@@ -166,7 +166,7 @@ kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 ```
 
-[Full Kubernetes Guide →](./kubernetes)
+[Full Kubernetes Guide →](./deployment/kubernetes)
 
 ---
 
@@ -188,7 +188,7 @@ helm install opsknight ./opsknight \
   --values values.yaml
 ```
 
-[Full Helm Guide →](./helm)
+[Full Helm Guide →](./deployment/helm)
 
 ---
 
@@ -196,17 +196,17 @@ helm install opsknight ./opsknight \
 
 ### Required Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection | `postgresql://user:pass@host:5432/db` |
-| `NEXTAUTH_URL` | Application base URL | `https://opsknight.yourco.com` |
-| `NEXTAUTH_SECRET` | Session secret (32+ chars) | Generate with `openssl rand -base64 32` |
-| `APP_URL` | Application URL (for links) | `https://opsknight.yourco.com` |
+| Variable          | Description                 | Example                                 |
+| ----------------- | --------------------------- | --------------------------------------- |
+| `DATABASE_URL`    | PostgreSQL connection       | `postgresql://user:pass@host:5432/db`   |
+| `NEXTAUTH_URL`    | Application base URL        | `https://opsknight.yourco.com`          |
+| `NEXTAUTH_SECRET` | Session secret (32+ chars)  | Generate with `openssl rand -base64 32` |
+| `APP_URL`         | Application URL (for links) | `https://opsknight.yourco.com`          |
 
 ### Optional Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable         | Description                      | Default        |
+| ---------------- | -------------------------------- | -------------- |
 | `ENCRYPTION_KEY` | Secrets encryption (32-byte hex) | Auto-generated |
 
 | `LOG_LEVEL` | Logging verbosity | `info` |
@@ -215,15 +215,15 @@ helm install opsknight ./opsknight \
 
 Configure in UI or via environment:
 
-| Variable | Description |
-|----------|-------------|
-| `SMTP_HOST` | SMTP server host |
-| `SMTP_PORT` | SMTP server port |
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_PHONE` | Twilio phone number |
+| Variable             | Description         |
+| -------------------- | ------------------- |
+| `SMTP_HOST`          | SMTP server host    |
+| `SMTP_PORT`          | SMTP server port    |
+| `SMTP_USER`          | SMTP username       |
+| `SMTP_PASS`          | SMTP password       |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID  |
+| `TWILIO_AUTH_TOKEN`  | Twilio auth token   |
+| `TWILIO_PHONE`       | Twilio phone number |
 
 ---
 
@@ -345,7 +345,7 @@ kubectl logs -l app=postgres
 
 ## Related Topics
 
-- [Getting Started](../getting-started/) — Initial setup
-- [Configuration](../getting-started/configuration) — Environment reference
-- [Architecture](../architecture/) — System design
-- [Security](../security/) — Security configuration
+- [Getting Started](./getting-started) — Initial setup
+- [Configuration](./getting-started/configuration) — Environment reference
+- [Architecture](./architecture) — System design
+- [Security](./security) — Security configuration

@@ -212,5 +212,5 @@ aws cloudwatch set-alarm-state \
 
 - [Azure Monitor Integration](./azure-monitor) — Azure monitoring
 - [Google Cloud Monitoring Integration](./google-cloud-monitoring) — GCP monitoring
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

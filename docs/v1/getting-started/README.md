@@ -15,11 +15,11 @@ This section will take you from zero to a fully operational incident management 
 
 ## What You'll Learn
 
-| Guide                            | What You'll Accomplish                                    |
-| -------------------------------- | --------------------------------------------------------- |
-| [Installation](./installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
-| [Configuration](./configuration) | Understand environment variables and system settings      |
-| [First Steps](./first-steps)     | Create your first service, incident, and on-call schedule |
+| Guide                                            | What You'll Accomplish                                    |
+| ------------------------------------------------ | --------------------------------------------------------- |
+| [Installation](./getting-started/installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
+| [Configuration](./getting-started/configuration) | Understand environment variables and system settings      |
+| [First Steps](./getting-started/first-steps)     | Create your first service, incident, and on-call schedule |
 
 ---
 
@@ -99,7 +99,7 @@ Once OpsKnight is running, you'll want to:
 4. **Configure Notifications** — Set up Email, SMS, Slack, or Push notifications
 5. **Connect Integrations** — Route alerts from Datadog, Prometheus, or other tools
 
-The [First Steps Guide](./first-steps) walks you through all of these in detail.
+The [First Steps Guide](./getting-started/first-steps) walks you through all of these in detail.
 
 ---
 
@@ -119,7 +119,7 @@ NEXTAUTH_SECRET=your-32-character-secret-key-here
 APP_URL=http://localhost:3000
 ```
 
-See the [Configuration Guide](./configuration) for the complete reference.
+See the [Configuration Guide](./getting-started/configuration) for the complete reference.
 
 ---
 
@@ -184,9 +184,9 @@ docker compose up -d
 
 Ready to continue? Here's your path:
 
-1. **[Installation Guide](./installation)** — Detailed installation for all deployment methods
-2. **[Configuration Reference](./configuration)** — Complete environment variable documentation
-3. **[First Steps](./first-steps)** — Create your first service and incident
+1. **[Installation Guide](./getting-started/installation)** — Detailed installation for all deployment methods
+2. **[Configuration Reference](./getting-started/configuration)** — Complete environment variable documentation
+3. **[First Steps](./getting-started/first-steps)** — Create your first service and incident
 
 ---
 
@@ -194,4 +194,4 @@ Ready to continue? Here's your path:
 
 - Check the [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues) for known problems
 - Join the community Discord for real-time help
-- Review the [Architecture](../architecture/) section for deeper understanding
+- Review the [Architecture](./architecture) section for deeper understanding

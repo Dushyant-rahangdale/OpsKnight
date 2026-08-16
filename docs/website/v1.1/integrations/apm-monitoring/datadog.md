@@ -214,5 +214,5 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/datadog?integrationId=
 
 ## Related Topics
 
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

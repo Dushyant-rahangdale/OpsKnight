@@ -12,14 +12,14 @@ The OpsKnight API lets you programmatically manage incidents, integrate monitori
 
 ## API Endpoints Overview
 
-| Endpoint | Description | Common Use Cases |
-|----------|-------------|------------------|
-| [Events API](./events) | Trigger, acknowledge, resolve incidents | Monitoring integrations |
-| [Incidents API](./incidents) | List, create, update incidents | Custom dashboards, automation |
-| Services API | Manage services | Service catalog automation |
-| Schedules API | Query on-call schedules | Who's on-call integrations |
-| Users API | Manage users | User provisioning |
-| Teams API | Manage teams | Team automation |
+| Endpoint                         | Description                             | Common Use Cases              |
+| -------------------------------- | --------------------------------------- | ----------------------------- |
+| [Events API](./api/events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
+| [Incidents API](./api/incidents) | List, create, update incidents          | Custom dashboards, automation |
+| Services API                     | Manage services                         | Service catalog automation    |
+| Schedules API                    | Query on-call schedules                 | Who's on-call integrations    |
+| Users API                        | Manage users                            | User provisioning             |
+| Teams API                        | Manage teams                            | Team automation               |
 
 ---
 
@@ -58,28 +58,28 @@ curl -H "X-API-Key: sk_live_abc123..." \
 
 ### API Key Prefixes
 
-| Prefix | Type | Description |
-|--------|------|-------------|
+| Prefix     | Type       | Description                 |
+| ---------- | ---------- | --------------------------- |
 | `sk_live_` | Production | Full access based on scopes |
-| `sk_test_` | Test | Sandbox/test environment |
+| `sk_test_` | Test       | Sandbox/test environment    |
 
 ### Scopes
 
 API keys have scoped permissions. Select only what you need:
 
-| Scope | Description |
-|-------|-------------|
-| `events:write` | Send events (trigger, acknowledge, resolve) |
-| `incidents:read` | Read incidents and incident details |
-| `incidents:write` | Create and update incidents |
-| `services:read` | Read services |
-| `services:write` | Create and update services |
-| `schedules:read` | Read schedules and on-call |
-| `schedules:write` | Create and update schedules |
-| `users:read` | Read users |
-| `users:write` | Manage users (admin) |
-| `teams:read` | Read teams |
-| `teams:write` | Manage teams |
+| Scope             | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `events:write`    | Send events (trigger, acknowledge, resolve) |
+| `incidents:read`  | Read incidents and incident details         |
+| `incidents:write` | Create and update incidents                 |
+| `services:read`   | Read services                               |
+| `services:write`  | Create and update services                  |
+| `schedules:read`  | Read schedules and on-call                  |
+| `schedules:write` | Create and update schedules                 |
+| `users:read`      | Read users                                  |
+| `users:write`     | Manage users (admin)                        |
+| `teams:read`      | Read teams                                  |
+| `teams:write`     | Manage teams                                |
 
 ---
 
@@ -92,6 +92,7 @@ https://your-opsknight-instance.com/api
 ```
 
 Example:
+
 ```
 https://opsknight.yourco.com/api/incidents
 ```
@@ -172,15 +173,15 @@ JSON format for POST/PATCH requests:
 
 ## Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `UNAUTHORIZED` | 401 | Invalid or missing API key |
-| `FORBIDDEN` | 403 | API key lacks required scope |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 400 | Invalid request data |
-| `CONFLICT` | 409 | Resource conflict (e.g., duplicate) |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Server error |
+| Code               | HTTP Status | Description                         |
+| ------------------ | ----------- | ----------------------------------- |
+| `UNAUTHORIZED`     | 401         | Invalid or missing API key          |
+| `FORBIDDEN`        | 403         | API key lacks required scope        |
+| `NOT_FOUND`        | 404         | Resource not found                  |
+| `VALIDATION_ERROR` | 400         | Invalid request data                |
+| `CONFLICT`         | 409         | Resource conflict (e.g., duplicate) |
+| `RATE_LIMITED`     | 429         | Too many requests                   |
+| `INTERNAL_ERROR`   | 500         | Server error                        |
 
 ---
 
@@ -188,10 +189,10 @@ JSON format for POST/PATCH requests:
 
 API requests are rate limited to ensure fair usage:
 
-| Endpoint Type | Limit | Window |
-|---------------|-------|--------|
-| Events API | 100 requests | per minute |
-| Read endpoints | 300 requests | per minute |
+| Endpoint Type   | Limit        | Window     |
+| --------------- | ------------ | ---------- |
+| Events API      | 100 requests | per minute |
+| Read endpoints  | 300 requests | per minute |
 | Write endpoints | 100 requests | per minute |
 
 ### Rate Limit Headers
@@ -219,6 +220,7 @@ When rate limited, you'll receive a `429` response:
 ```
 
 **Best practices**:
+
 - Implement exponential backoff
 - Respect the `Retry-After` header
 - Cache responses where appropriate
@@ -230,10 +232,10 @@ When rate limited, you'll receive a `429` response:
 
 List endpoints support pagination:
 
-| Parameter | Default | Max | Description |
-|-----------|---------|-----|-------------|
-| `limit` | 25 | 100 | Items per page |
-| `offset` | 0 | - | Skip N items |
+| Parameter | Default | Max | Description    |
+| --------- | ------- | --- | -------------- |
+| `limit`   | 25      | 100 | Items per page |
+| `offset`  | 0       | -   | Skip N items   |
 
 ### Example
 
@@ -274,15 +276,15 @@ List endpoints support filtering via query parameters:
 GET /api/incidents?status=OPEN&urgency=HIGH&service_id=svc_abc123
 ```
 
-| Filter | Values | Description |
-|--------|--------|-------------|
-| `status` | OPEN, ACKNOWLEDGED, RESOLVED, SNOOZED, SUPPRESSED | Incident status |
-| `urgency` | HIGH, MEDIUM, LOW | Urgency level |
-| `service_id` | Service ID | Filter by service |
-| `team_id` | Team ID | Filter by team |
-| `assignee_id` | User ID | Filter by assignee |
-| `created_after` | ISO 8601 date | Created after date |
-| `created_before` | ISO 8601 date | Created before date |
+| Filter           | Values                                            | Description         |
+| ---------------- | ------------------------------------------------- | ------------------- |
+| `status`         | OPEN, ACKNOWLEDGED, RESOLVED, SNOOZED, SUPPRESSED | Incident status     |
+| `urgency`        | HIGH, MEDIUM, LOW                                 | Urgency level       |
+| `service_id`     | Service ID                                        | Filter by service   |
+| `team_id`        | Team ID                                           | Filter by team      |
+| `assignee_id`    | User ID                                           | Filter by assignee  |
+| `created_after`  | ISO 8601 date                                     | Created after date  |
+| `created_before` | ISO 8601 date                                     | Created before date |
 
 ### Multiple Values
 
@@ -302,10 +304,10 @@ List endpoints support sorting:
 GET /api/incidents?sort=created_at&order=desc
 ```
 
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `sort` | created_at, updated_at, urgency, status | created_at |
-| `order` | asc, desc | desc |
+| Parameter | Values                                  | Default    |
+| --------- | --------------------------------------- | ---------- |
+| `sort`    | created_at, updated_at, urgency, status | created_at |
+| `order`   | asc, desc                               | desc       |
 
 ---
 
@@ -362,7 +364,7 @@ curl -X GET "https://opsknight.yourco.com/api/schedules/sch_abc123/on-call" \
 
 ### Official Tools
 
-- **CLI Tool**: [CLI Documentation](./cli)
+- **CLI Tool**: [CLI Documentation](./api/cli)
 
 ### Community Tools
 
@@ -378,13 +380,13 @@ OpsKnight can send webhooks to your systems when events occur.
 
 ### Supported Events
 
-| Event | Description |
-|-------|-------------|
-| `incident.triggered` | New incident created |
-| `incident.acknowledged` | Incident acknowledged |
-| `incident.resolved` | Incident resolved |
-| `incident.escalated` | Incident escalated to next step |
-| `incident.assigned` | Incident assigned/reassigned |
+| Event                   | Description                     |
+| ----------------------- | ------------------------------- |
+| `incident.triggered`    | New incident created            |
+| `incident.acknowledged` | Incident acknowledged           |
+| `incident.resolved`     | Incident resolved               |
+| `incident.escalated`    | Incident escalated to next step |
+| `incident.assigned`     | Incident assigned/reassigned    |
 
 ### Webhook Payload
 
@@ -435,7 +437,7 @@ Verify by computing HMAC of the raw request body using your webhook secret.
 
 ## Need Help?
 
-- Check the [CLI Tool](./cli) for command-line access
-- See [Events API](./events) for alert integration
-- See [Incidents API](./incidents) for incident management
+- Check the [CLI Tool](./api/cli) for command-line access
+- See [Events API](./api/events) for alert integration
+- See [Incidents API](./api/incidents) for incident management
 - Report issues on [GitHub](https://github.com/dushyant-rahangdale/opsknight/issues)

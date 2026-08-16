@@ -43,17 +43,17 @@ When an incident strikes, every second counts. OpsKnight ensures the right perso
 
 ## Documentation Sections
 
-| Section                               | Description                                              | Start Here If...                         |
-| ------------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
-| [Getting Started](./getting-started/) | Installation, configuration, and your first incident     | You're new to OpsKnight                  |
-| [Core Concepts](./core-concepts/)     | Services, incidents, schedules, escalation policies      | You want to understand how things work   |
-| [Integrations](./integrations/)       | Connect 20+ monitoring tools, Slack, and custom webhooks | You need to route alerts from your stack |
-| [Administration](./administration/)   | Notifications, audit logs, data retention, custom fields | You're setting up for a team             |
-| [API Reference](./api/)               | Events API, incident management, CLI tooling             | You're building automations              |
-| [Deployment](./deployment/)           | Docker, Kubernetes, Helm, and PWA setup                  | You're ready for production              |
-| [Security](./security/)               | SSO/OIDC, encryption, access control                     | Security and compliance matter           |
-| [Architecture](./architecture/)       | System design, observability, and scaling                | You need to understand the internals     |
-| [Mobile](./mobile/)                   | PWA features, mobile UX, push notifications              | You need on-call on the go               |
+| Section                              | Description                                              | Start Here If...                         |
+| ------------------------------------ | -------------------------------------------------------- | ---------------------------------------- |
+| [Getting Started](./getting-started) | Installation, configuration, and your first incident     | You're new to OpsKnight                  |
+| [Core Concepts](./core-concepts)     | Services, incidents, schedules, escalation policies      | You want to understand how things work   |
+| [Integrations](./integrations)       | Connect 20+ monitoring tools, Slack, and custom webhooks | You need to route alerts from your stack |
+| [Administration](./administration)   | Notifications, audit logs, data retention, custom fields | You're setting up for a team             |
+| [API Reference](./api)               | Events API, incident management, CLI tooling             | You're building automations              |
+| [Deployment](./deployment)           | Docker, Kubernetes, Helm, and PWA setup                  | You're ready for production              |
+| [Security](./security)               | SSO/OIDC, encryption, access control                     | Security and compliance matter           |
+| [Architecture](./architecture)       | System design, observability, and scaling                | You need to understand the internals     |
+| [Mobile](./mobile)                   | PWA features, mobile UX, push notifications              | You need on-call on the go               |
 
 ---
 
@@ -227,8 +227,8 @@ OpsKnight is built on modern, battle-tested technologies:
 
 1. **[Install OpsKnight](./getting-started/installation)** — Get a running instance
 2. **[Complete First Steps](./getting-started/first-steps)** — Create your first incident
-3. **[Understand Core Concepts](./core-concepts/)** — Learn how everything works
-4. **[Connect Integrations](./integrations/)** — Route alerts from your stack
+3. **[Understand Core Concepts](./core-concepts)** — Learn how everything works
+4. **[Connect Integrations](./integrations)** — Route alerts from your stack
 5. **[Configure Notifications](./administration/notifications)** — Set up alert channels
 
 ---

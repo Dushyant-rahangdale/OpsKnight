@@ -278,4 +278,4 @@ Ensure your IdP is configured to include the `email` claim in tokens. Some provi
 
 - [Authentication](../administration/authentication) — All authentication methods
 - [Users](../core-concepts/users) — User management
-- [Security Overview](./README) — Security best practices
+- [Security Overview](.) — Security best practices

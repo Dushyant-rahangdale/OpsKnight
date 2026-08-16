@@ -42,23 +42,23 @@ When setting up OpsKnight for your organization, complete these administrative t
 
 Without notifications, OpsKnight can't alert responders. Set up at least one channel:
 
-| Priority                | Channel | Setup Guide                                                                |
-| ----------------------- | ------- | -------------------------------------------------------------------------- |
-| **Essential**           | Email   | [SMTP/SendGrid/Resend setup](./notifications.md#email)                     |
-| **Recommended**         | Slack   | [Slack OAuth integration](../integrations/communication/slack-oauth-setup) |
-| **For Critical Alerts** | SMS     | [Twilio/AWS SNS setup](./notifications.md#sms)                             |
-| **For Mobile**          | Push    | [FCM/OneSignal setup](./notifications.md#push)                             |
+| Priority                | Channel | Setup Guide                                                               |
+| ----------------------- | ------- | ------------------------------------------------------------------------- |
+| **Essential**           | Email   | [SMTP/SendGrid/Resend setup](./administration/notifications#email)        |
+| **Recommended**         | Slack   | [Slack OAuth integration](./integrations/communication/slack-oauth-setup) |
+| **For Critical Alerts** | SMS     | [Twilio/AWS SNS setup](./administration/notifications#sms)                |
+| **For Mobile**          | Push    | [FCM/OneSignal setup](./administration/notifications#push)                |
 
 ### 2. Set Up Authentication
 
 Choose your authentication strategy:
 
-| Option              | Best For                 | Setup                                |
-| ------------------- | ------------------------ | ------------------------------------ |
-| **Local Auth**      | Small teams, quick start | Default, no config needed            |
-| **Google SSO**      | Google Workspace orgs    | [OIDC setup](../security/oidc-setup) |
-| **Microsoft Entra** | Microsoft 365 orgs       | [OIDC setup](../security/oidc-setup) |
-| **Okta/Auth0**      | Enterprise with IdP      | [OIDC setup](../security/oidc-setup) |
+| Option              | Best For                 | Setup                               |
+| ------------------- | ------------------------ | ----------------------------------- |
+| **Local Auth**      | Small teams, quick start | Default, no config needed           |
+| **Google SSO**      | Google Workspace orgs    | [OIDC setup](./security/oidc-setup) |
+| **Microsoft Entra** | Microsoft 365 orgs       | [OIDC setup](./security/oidc-setup) |
+| **Okta/Auth0**      | Enterprise with IdP      | [OIDC setup](./security/oidc-setup) |
 
 ### 3. Create Teams and Invite Users
 
@@ -216,6 +216,6 @@ OpsKnight stores sensitive configuration that should be protected:
 
 ## Related Topics
 
-- [Security](../security/) — Encryption, SSO, access control
-- [Deployment](../deployment/) — Production setup
-- [Architecture](../architecture/) — System internals
+- [Security](./security) — Encryption, SSO, access control
+- [Deployment](./deployment) — Production setup
+- [Architecture](./architecture) — System internals

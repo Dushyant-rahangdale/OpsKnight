@@ -11,14 +11,15 @@ Receive alerts from Grafana (Legacy Alerting or Unified Alerting) and create inc
 ---
 
 ## Endpoint
+
 ```
 POST /api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID
 ```
 
 ---
 
-
 ## Setup
+
 ### Step 1: Create Integration in OpsKnight
 
 1. Go to **Services** and select your service
@@ -36,11 +37,11 @@ POST /api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID
 2. Click **+ Add contact point**
 3. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Name** | `OpsKnight` |
-| **Integration** | Webhook |
-| **URL** | `https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID` |
+| Field           | Value                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------- |
+| **Name**        | `OpsKnight`                                                                             |
+| **Integration** | Webhook                                                                                 |
+| **URL**         | `https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID` |
 
 4. Click **Save contact point**
 5. Click **Test** to verify
@@ -51,11 +52,11 @@ POST /api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID
 2. Click **Add channel**
 3. Configure:
 
-| Field | Value |
-| ----- | ----- |
-| **Name** | `OpsKnight` |
-| **Type** | webhook |
-| **URL** | `https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID` |
+| Field    | Value                                                                                   |
+| -------- | --------------------------------------------------------------------------------------- |
+| **Name** | `OpsKnight`                                                                             |
+| **Type** | webhook                                                                                 |
+| **URL**  | `https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID` |
 
 4. Click **Save**
 
@@ -68,14 +69,14 @@ POST /api/integrations/grafana?integrationId=YOUR_INTEGRATION_ID
 
 ---
 
-
 ## Security
+
 > **Strict Security Enforcement**: If you generate a Signing Secret in OpsKnight, you **MUST** configure signature sending from your source. OpsKnight will reject any requests without a valid signature if a secret exists.
 
 ---
 
-
 ## Supported Formats
+
 ### Unified Alerting Format
 
 ```json
@@ -139,33 +140,34 @@ Grafana can also send Prometheus Alertmanager-compatible payloads:
 
 ---
 
-
 ## Event Mapping
-| Grafana State | OpsKnight Action |
-| ------------- | ---------------- |
-| `alerting` | Trigger incident |
-| `no_data` | Trigger incident |
-| `ok` | Resolve incident |
-| `pending`, `paused` | No action |
+
+| Grafana State       | OpsKnight Action |
+| ------------------- | ---------------- |
+| `alerting`          | Trigger incident |
+| `no_data`           | Trigger incident |
+| `ok`                | Resolve incident |
+| `pending`, `paused` | No action        |
 
 For Alertmanager format:
+
 - `status: firing` triggers incident
 - `status: resolved` or `endsAt` present resolves incident
 
 ---
 
-
 ## Severity Mapping
-| Grafana State | OpsKnight Severity |
-| ------------- | ------------------ |
-| `alerting` | critical |
-| `no_data` | warning |
+
+| Grafana State       | OpsKnight Severity |
+| ------------------- | ------------------ |
+| `alerting`          | critical           |
+| `no_data`           | warning            |
 | Alertmanager format | critical (default) |
 
 ---
 
-
 ## Incident Title
+
 The incident title is extracted in this order:
 
 1. `title`
@@ -176,8 +178,8 @@ The incident title is extracted in this order:
 
 ---
 
-
 ## Deduplication
+
 Dedup keys are generated as:
 
 - **Unified Alerting**: `grafana-{ruleId}`
@@ -186,8 +188,8 @@ Dedup keys are generated as:
 
 ---
 
-
 ## Testing
+
 ### Using Grafana UI
 
 1. Go to **Alerting** → **Contact points**
@@ -213,8 +215,8 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=
 
 ---
 
-
 ## Troubleshooting
+
 ### Alerts Not Appearing
 
 1. **Check contact point URL** is correct
@@ -235,15 +237,14 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/grafana?integrationId=
 ### Wrong Severity
 
 Grafana alerts default to `critical` severity. To customize:
+
 1. Use Alertmanager format with severity labels
 2. Or accept default severity mapping
 
 ---
 
-
 ## Related Topics
+
 - [Prometheus Integration](../metrics-alerting/prometheus) — Prometheus Alertmanager
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
-
-
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

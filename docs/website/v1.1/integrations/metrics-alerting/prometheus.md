@@ -241,5 +241,5 @@ curl -X POST "https://YOUR_OPSKNIGHT_URL/api/integrations/prometheus?integration
 ## Related Topics
 
 - [Grafana Integration](../apm-monitoring/grafana) — Grafana can also send Alertmanager-format webhooks
-- [Events API](../api/events) — Programmatic event submission
-- [Integrations Overview](./README) — All integrations
+- [Events API](../../api/events) — Programmatic event submission
+- [Integrations Overview](.) — All integrations

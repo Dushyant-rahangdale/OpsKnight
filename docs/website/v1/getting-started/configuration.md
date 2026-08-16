@@ -8,25 +8,23 @@ This page lists the primary environment variables used by OpsKnight and how to s
 
 ## Required
 
-| Variable          | Description                   | Example                                 |
-| ----------------- | ----------------------------- | --------------------------------------- |
-| `DATABASE_URL`    | PostgreSQL connection string  | `postgresql://user:pass@host:5432/db`   |
-| `NEXTAUTH_URL`    | Public URL of the application | `https://ops.yourcompany.com`           |
-| `NEXTAUTH_SECRET` | Secret for session encryption | `openssl rand -base64 32`               |
+| Variable          | Description                   | Example                               |
+| ----------------- | ----------------------------- | ------------------------------------- |
+| `DATABASE_URL`    | PostgreSQL connection string  | `postgresql://user:pass@host:5432/db` |
+| `NEXTAUTH_URL`    | Public URL of the application | `https://ops.yourcompany.com`         |
+| `NEXTAUTH_SECRET` | Secret for session encryption | `openssl rand -base64 32`             |
 
 > **Important:** `NEXTAUTH_URL` must match the exact base URL users will access.
 
 ## Database
 
-| Variable            | Description       | Default          |
-| ------------------- | ----------------- | ---------------- |
+| Variable            | Description       | Default        |
+| ------------------- | ----------------- | -------------- |
 | `POSTGRES_USER`     | Database user     | `opsknight`    |
-| `POSTGRES_PASSWORD` | Database password | -                |
+| `POSTGRES_PASSWORD` | Database password | -              |
 | `POSTGRES_DB`       | Database name     | `opsknight_db` |
 
 These are used by Docker Compose. For Kubernetes or Helm, configure your database connection in the chart values and ensure `DATABASE_URL` points to the correct host.
-
-
 
 ## Email (SMTP)
 
@@ -65,9 +63,9 @@ Configure via **Settings → Notifications** in the UI, or set variables:
 
 ## Security
 
-| Variable         | Description                                  |
-| ---------------- | -------------------------------------------- |
-| `ENCRYPTION_KEY` | Key for encrypting integration secrets       |
+| Variable         | Description                            |
+| ---------------- | -------------------------------------- |
+| `ENCRYPTION_KEY` | Key for encrypting integration secrets |
 
 See [Encryption](../security/encryption) for key rotation guidance.
 

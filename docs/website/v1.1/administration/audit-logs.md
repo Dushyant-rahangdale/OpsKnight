@@ -260,5 +260,5 @@ When investigating an issue:
 
 - [Authentication](./authentication) — Login and session management
 - [Users](../core-concepts/users) — User management
-- [Security Overview](../security/README) — Security best practices
+- [Security Overview](../security) — Security best practices
 - [Data Retention](./data-retention) — Retention policies
