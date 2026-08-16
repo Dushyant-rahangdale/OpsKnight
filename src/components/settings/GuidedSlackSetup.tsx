@@ -236,7 +236,21 @@ export default function GuidedSlackSetup() {
                   Scroll to &quot;Scopes&quot; → &quot;Bot Token Scopes&quot; and add these:
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {['chat:write', 'channels:read', 'channels:join', 'groups:read'].map(scope => (
+                  {[
+                    'chat:write',
+                    'channels:read',
+                    'channels:join',
+                    'channels:manage',
+                    'channels:history',
+                    'reactions:read',
+                    'users:read',
+                    'users:read.email',
+                    'groups:read',
+                    'groups:write',
+                    'groups:history',
+                    'im:read',
+                    'mpim:read',
+                  ].map(scope => (
                     <Badge key={scope} variant="secondary" size="xs" className="font-mono">
                       {scope}
                     </Badge>
@@ -245,8 +259,33 @@ export default function GuidedSlackSetup() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>groups:read</strong> is optional but required for private channel
-                    support.
+                    <strong>channels:manage</strong> creates incident war-room channels,{' '}
+                    <strong>users:read.email</strong> matches Slack users to OpsKnight accounts so
+                    responders are auto-invited, and <strong>reactions:read</strong> plus{' '}
+                    <strong>channels:history</strong> capture 📌 pinned messages as incident notes.
+                    The <strong>groups:*</strong> scopes add private channel support.
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              {/* 2b-ii: Event Subscriptions */}
+              <div className="space-y-3 pl-8">
+                <h4 className="text-sm font-semibold">2b-ii. Enable Event Subscriptions</h4>
+                <p className="text-sm text-muted-foreground">
+                  Open &quot;Event Subscriptions&quot;, turn it on, and set the Request URL:
+                </p>
+                <Input value={`${getBaseUrl()}/api/slack/events`} readOnly className="font-mono" />
+                <p className="text-sm text-muted-foreground">
+                  Then under &quot;Subscribe to bot events&quot; add{' '}
+                  <Badge variant="secondary" size="xs" className="font-mono">
+                    reaction_added
+                  </Badge>
+                </p>
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Without this, reacting 📌 to a message will not save it to the incident. This is
+                    separate from Interactivity — buttons can work while events do not.
                   </AlertDescription>
                 </Alert>
               </div>

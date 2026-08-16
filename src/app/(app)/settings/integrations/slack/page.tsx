@@ -1,14 +1,14 @@
-import { getUserPermissions } from '@/lib/rbac'
-import { redirect } from 'next/navigation'
-import prisma from '@/lib/prisma'
-import SlackIntegrationPage from '@/components/settings/SlackIntegrationPage'
-import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader'
+import { getUserPermissions } from '@/lib/rbac';
+import { redirect } from 'next/navigation';
+import prisma from '@/lib/prisma';
+import SlackIntegrationPage from '@/components/settings/SlackIntegrationPage';
+import { SettingsPageHeader } from '@/components/settings/layout/SettingsPageHeader';
 
 export default async function GlobalSlackIntegrationPage() {
-  const permissions = await getUserPermissions()
+  const permissions = await getUserPermissions();
 
   if (!permissions) {
-    redirect('/login')
+    redirect('/login');
   }
 
   // Get global Slack integration (not tied to any service)
@@ -33,15 +33,17 @@ export default async function GlobalSlackIntegrationPage() {
       },
     },
     orderBy: { updatedAt: 'desc' },
-  })
+  });
 
   // Check if OAuth is configured (database only - no env vars for UI-driven setup)
   const oauthConfig = await prisma.slackOAuthConfig.findFirst({
     where: { enabled: true },
     orderBy: { updatedAt: 'desc' },
-  })
+  });
 
-  const isOAuthConfigured = !!(oauthConfig?.clientId && oauthConfig?.clientSecret)
+  const isOAuthConfigured = !!(oauthConfig?.clientId && oauthConfig?.clientSecret);
+  const isSigningSecretConfigured =
+    !!oauthConfig?.signingSecret || !!process.env.SLACK_SIGNING_SECRET;
 
   return (
     <div className="space-y-6">
@@ -60,8 +62,9 @@ export default async function GlobalSlackIntegrationPage() {
       <SlackIntegrationPage
         integration={globalIntegration}
         isOAuthConfigured={isOAuthConfigured}
+        isSigningSecretConfigured={isSigningSecretConfigured}
         isAdmin={permissions.isAdmin}
       />
     </div>
-  )
+  );
 }
