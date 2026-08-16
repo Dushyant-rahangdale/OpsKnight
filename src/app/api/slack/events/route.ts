@@ -9,48 +9,18 @@ import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { getSlackBotToken } from '@/lib/slack';
 import { retryFetch } from '@/lib/retry';
-import crypto from 'crypto';
+import { verifySlackSignature } from '@/lib/slack-signature';
 
-const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET;
-
-const PIN_EMOJIS = new Set(['pushpin', 'round_pushpin', 'memo', 'star', 'bookmark', 'pin', 'push_pin', 'note']);
-
-/**
- * Verify Slack request signature
- */
-function verifySlackSignature(
-  body: string,
-  signature: string,
-  timestamp: string
-): boolean {
-  if (!SLACK_SIGNING_SECRET) {
-    return true; // Allow in dev if no secret configured
-  }
-
-  const currentTime = Math.floor(Date.now() / 1000);
-  const requestTime = parseInt(timestamp, 10);
-  if (Math.abs(currentTime - requestTime) > 300) {
-    return false;
-  }
-
-  const sigBaseString = `v0:${timestamp}:${body}`;
-  const computedSignature =
-    'v0=' +
-    crypto
-      .createHmac('sha256', SLACK_SIGNING_SECRET)
-      .update(sigBaseString)
-      .digest('hex');
-
-  // timingSafeEqual throws on length mismatch — treat a malformed signature as invalid
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(computedSignature),
-      Buffer.from(signature)
-    );
-  } catch {
-    return false;
-  }
-}
+const PIN_EMOJIS = new Set([
+  'pushpin',
+  'round_pushpin',
+  'memo',
+  'star',
+  'bookmark',
+  'pin',
+  'push_pin',
+  'note',
+]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,8 +29,9 @@ export async function POST(request: NextRequest) {
     const timestamp = request.headers.get('x-slack-request-timestamp') || '';
 
     // Verify signature
-    if (!verifySlackSignature(rawBody, signature, timestamp)) {
-      logger.warn('[Slack Events] Invalid signature');
+    const verification = await verifySlackSignature(rawBody, signature, timestamp);
+    if (!verification.valid) {
+      logger.warn('[Slack Events] Rejected unverified request', { reason: verification.reason });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -123,7 +94,9 @@ export async function POST(request: NextRequest) {
           }
 
           const foundMsg = historyData.ok
-            ? historyData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || historyData.messages?.[0]
+            ? historyData.messages?.find(
+                (m: { ts: string; text?: string }) => m.ts === messageTs
+              ) || historyData.messages?.[0]
             : null;
 
           if (foundMsg?.text) {
@@ -139,7 +112,9 @@ export async function POST(request: NextRequest) {
               lookupError = lookupError || repliesData.error || 'unknown_error';
             }
             const foundReply = repliesData.ok
-              ? repliesData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || repliesData.messages?.[0]
+              ? repliesData.messages?.find(
+                  (m: { ts: string; text?: string }) => m.ts === messageTs
+                ) || repliesData.messages?.[0]
               : null;
             if (foundReply?.text) {
               messageText = foundReply.text;
