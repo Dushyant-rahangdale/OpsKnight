@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateBridgeUrl, createIncidentWarRoom, postWarRoomUpdate, archiveWarRoomChannel } from '@/lib/chatops/war-room';
+import { generateBridgeUrl, createIncidentWarRoom, postWarRoomUpdate, archiveWarRoomChannel, slackApiCall } from '@/lib/chatops/war-room';
 import prisma from '@/lib/prisma';
 import * as retryModule from '@/lib/retry';
 
@@ -17,6 +17,17 @@ vi.mock('@/lib/prisma', () => ({
     },
     incidentEvent: {
       create: vi.fn(),
+    },
+    // Required by the responder auto-invite path. Without it, prisma.user is
+    // undefined, the invite block throws immediately and is swallowed by its
+    // catch — so the tests pass without ever exercising the invite logic.
+    user: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    teamMember: {
+      findMany: vi.fn(),
     },
   },
 }));
@@ -196,6 +207,81 @@ describe('ChatOps War-Room Engine', () => {
         })
       );
     });
+
+    it('should look up responders via HTTP GET and invite them to the channel', async () => {
+      // Regression guard for a bug fixed five separate times: users.lookupByEmail
+      // must be a GET with query params. POST+JSON returns invalid_arguments and
+      // silently invites nobody, leaving an empty war-room.
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        id: 'inc-abcdef123456',
+        title: 'Database Overload',
+        urgency: 'HIGH',
+        status: 'OPEN',
+        slackChannelId: null,
+        serviceId: 'srv-1',
+        assigneeId: 'usr-1',
+        service: {
+          id: 'srv-1',
+          name: 'Database Cluster',
+          autoCreateWarRoom: true,
+          warRoomVideoBridge: 'JITSI',
+        },
+        assignee: { id: 'usr-1', name: 'Dev', email: 'dev@test.com' },
+      } as any);
+
+      vi.mocked(prisma.chatOpsConfig.findUnique).mockResolvedValue({
+        enabled: true,
+        channelPrefix: 'inc',
+        autoCreateOnUrgency: ['HIGH'],
+        autoCreateOnPriority: ['P1'],
+        defaultVideoBridge: 'JITSI',
+      } as any);
+
+      vi.mocked(prisma.service.findUnique).mockResolvedValue({
+        id: 'srv-1',
+        policy: { steps: [] },
+      } as any);
+
+      // Mixed case on purpose — the lookup must normalise before querying Slack
+      vi.mocked(prisma.user.findMany).mockResolvedValue([
+        { id: 'usr-1', name: 'Dev', email: 'Dev@Test.com' },
+      ] as any);
+      vi.mocked(prisma.incident.update).mockResolvedValue({} as any);
+      vi.mocked(prisma.incidentEvent.create).mockResolvedValue({} as any);
+
+      const requests: Array<{ url: string; method: string; body?: unknown }> = [];
+      vi.mocked(retryModule.retryFetch).mockReset();
+      vi.mocked(retryModule.retryFetch).mockImplementation((async (url: any, init: any) => {
+        const href = String(url);
+        requests.push({ url: href, method: init?.method || 'GET', body: init?.body });
+
+        if (href.includes('conversations.create')) {
+          return {
+            json: async () => ({ ok: true, channel: { id: 'C999888', name: 'inc-123456-database-cluster' } }),
+          };
+        }
+        if (href.includes('users.lookupByEmail')) {
+          return { json: async () => ({ ok: true, user: { id: 'U-SLACK-1' } }) };
+        }
+        return { json: async () => ({ ok: true }) };
+      }) as any);
+
+      const result = await createIncidentWarRoom('inc-abcdef123456');
+      expect(result.success).toBe(true);
+
+      const lookup = requests.find(r => r.url.includes('users.lookupByEmail'));
+      expect(lookup).toBeDefined();
+      expect(lookup!.method).toBe('GET');
+      expect(lookup!.body).toBeUndefined();
+      expect(lookup!.url).toContain(`email=${encodeURIComponent('dev@test.com')}`);
+
+      const invite = requests.find(r => r.url.includes('conversations.invite'));
+      expect(invite).toBeDefined();
+      expect(JSON.parse(String(invite!.body))).toMatchObject({
+        channel: 'C999888',
+        users: 'U-SLACK-1',
+      });
+    });
   });
 
   describe('postWarRoomUpdate', () => {
@@ -253,6 +339,63 @@ describe('ChatOps War-Room Engine', () => {
 
       const result = await archiveWarRoomChannel('inc-104');
       expect(result.success).toBe(true);
+    });
+
+    it('should refuse to auto-archive when archiveOnResolve is disabled', async () => {
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        slackChannelId: 'C123',
+        slackChannelName: 'inc-104-payments',
+        serviceId: 'srv-1',
+      } as any);
+
+      vi.mocked(prisma.chatOpsConfig.findUnique).mockResolvedValue({
+        archiveOnResolve: false,
+      } as any);
+
+      const result = await archiveWarRoomChannel('inc-104');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Archive on resolve is disabled');
+    });
+
+    it('should archive when forced even if archiveOnResolve is disabled', async () => {
+      // The Archive button on the incident page is an explicit operator action.
+      // The auto-archive setting governs resolve-time behaviour only.
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        slackChannelId: 'C123',
+        slackChannelName: 'inc-104-payments',
+        serviceId: 'srv-1',
+      } as any);
+
+      vi.mocked(prisma.chatOpsConfig.findUnique).mockResolvedValue({
+        archiveOnResolve: false,
+      } as any);
+
+      vi.mocked(prisma.incidentEvent.create).mockResolvedValue({} as any);
+      vi.spyOn(retryModule, 'retryFetch').mockResolvedValue({
+        json: async () => ({ ok: true }),
+      } as any);
+
+      const result = await archiveWarRoomChannel('inc-104', { force: true });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('slackApiCall', () => {
+    it('should return an error result rather than throwing when Slack rate limits', async () => {
+      // retryFetch surfaces 429/5xx as a thrown `HTTP <status>` error. Callers
+      // branch on result.ok, so throwing made rate limits crash some paths and
+      // get silently swallowed on others.
+      vi.mocked(retryModule.retryFetch).mockReset();
+      vi.mocked(retryModule.retryFetch).mockRejectedValue(
+        new Error('HTTP 429: Too Many Requests')
+      );
+
+      const result = await slackApiCall('chat.postMessage', 'xoxb-test-token', {
+        channel: 'C123',
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain('429');
     });
   });
 });

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { createIncidentWarRoom, archiveWarRoomChannel } from '@/lib/chatops/war-room';
-import { getUserPermissions } from '@/lib/rbac';
+import { getUserPermissions, assertCanModifyIncident } from '@/lib/rbac';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +29,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Authenticated is not sufficient — creating or archiving a war-room is an
+    // incident mutation, so require modify rights on this specific incident.
+    try {
+      await assertCanModifyIncident(incidentId);
+    } catch (authzError) {
+      const message =
+        authzError instanceof Error ? authzError.message : 'Unauthorized';
+      return NextResponse.json(
+        { error: message },
+        { status: message === 'Incident not found' ? 404 : 403 }
+      );
+    }
+
     if (action === 'create') {
       const result = await createIncidentWarRoom(incidentId);
       if (!result.success) {
@@ -41,7 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'archive') {
-      const result = await archiveWarRoomChannel(incidentId);
+      // Explicit operator action — not subject to the archiveOnResolve setting
+      const result = await archiveWarRoomChannel(incidentId, { force: true });
       if (!result.success) {
         return NextResponse.json(
           { error: result.error },

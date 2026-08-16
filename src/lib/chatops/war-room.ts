@@ -93,29 +93,43 @@ export async function slackApiCall(
   botToken: string,
   body: Record<string, unknown>
 ): Promise<{ ok: boolean; error?: string; channel?: { id: string; name: string }; user?: { profile?: { email?: string } } }> {
-  const response = await retryFetch(
-    `https://slack.com/api/${method}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${botToken}`,
+  try {
+    const response = await retryFetch(
+      `https://slack.com/api/${method}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${botToken}`,
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-    {
-      maxAttempts: 2,
-      initialDelayMs: 500,
-      retryableErrors: (error) => {
-        if (error instanceof Error) {
-          return error.message.includes('fetch') || error.message.includes('network');
-        }
-        return false;
-      },
-    }
-  );
+      {
+        maxAttempts: 2,
+        initialDelayMs: 500,
+        retryableErrors: (error) => {
+          if (error instanceof Error) {
+            // Network blips, plus Slack rate limiting and server errors, which
+            // retryFetch surfaces as a thrown `HTTP <status>: <text>` error.
+            return (
+              error.message.includes('fetch') ||
+              error.message.includes('network') ||
+              /^HTTP (429|5\d{2}):/.test(error.message)
+            );
+          }
+          return false;
+        },
+      }
+    );
 
-  return response.json();
+    return await response.json();
+  } catch (error) {
+    // Callers branch on `result.ok`; throwing here made rate limits surface as
+    // an exception on some paths and get silently swallowed on others.
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('[ChatOps] Slack API call failed', { method, error: message });
+    return { ok: false, error: message };
+  }
 }
 
 /**
@@ -126,20 +140,26 @@ async function findSlackUserByEmail(
   email: string
 ): Promise<{ ok: boolean; error?: string; user?: { id: string } }> {
   const url = `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`;
-  const response = await retryFetch(
-    url,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${botToken}`,
+  try {
+    const response = await retryFetch(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${botToken}`,
+        },
       },
-    },
-    {
-      maxAttempts: 2,
-      initialDelayMs: 500,
-    }
-  );
-  return response.json();
+      {
+        maxAttempts: 2,
+        initialDelayMs: 500,
+      }
+    );
+    return await response.json();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('[ChatOps] Slack user lookup failed', { error: message });
+    return { ok: false, error: message };
+  }
 }
 
 /**
@@ -444,10 +464,15 @@ export async function postWarRoomUpdate(
 }
 
 /**
- * Archive a war-room channel when incident is resolved
+ * Archive a war-room channel when incident is resolved.
+ *
+ * `force` bypasses the `archiveOnResolve` config gate. That setting governs
+ * whether archiving happens *automatically* on resolve; it must not block an
+ * operator who explicitly asked to archive from the incident page.
  */
 export async function archiveWarRoomChannel(
-  incidentId: string
+  incidentId: string,
+  options: { force?: boolean } = {}
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const incident = await prisma.incident.findUnique({
@@ -459,12 +484,14 @@ export async function archiveWarRoomChannel(
       return { success: false, error: 'No war-room channel' };
     }
 
-    const config = await prisma.chatOpsConfig.findUnique({
-      where: { id: 'default' },
-    });
+    if (!options.force) {
+      const config = await prisma.chatOpsConfig.findUnique({
+        where: { id: 'default' },
+      });
 
-    if (!config?.archiveOnResolve) {
-      return { success: false, error: 'Archive on resolve is disabled' };
+      if (!config?.archiveOnResolve) {
+        return { success: false, error: 'Archive on resolve is disabled' };
+      }
     }
 
     const botToken = await getSlackBotToken(incident.serviceId);
