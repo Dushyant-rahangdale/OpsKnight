@@ -68,6 +68,7 @@ describe('SLABreachWarningBadge', () => {
     slackChannelId: null,
     slackChannelName: null,
     warRoomUrl: null,
+    warRoomArchivedAt: null,
   };
 
   it('renders correctly with Date objects', () => {

@@ -495,6 +495,7 @@ model Incident {
   slackChannelId         String? // Slack channel ID of dedicated war-room (e.g. "C0123456789")
   slackChannelName       String? // Channel name (e.g. "inc-104-payments-api")
   warRoomUrl             String? // Video bridge URL (Jitsi/Zoom/Meet)
+  warRoomArchivedAt      DateTime? // Set when the Slack channel is archived; the channel id is kept for history
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 
@@ -512,6 +513,7 @@ model Incident {
   tags                    IncidentTag[]
   actionItemRecords       ActionItem[]
   externalIssueLinks      ExternalIssueLink[]
+  pinnedMessages          SlackPinnedMessage[]
 
   @@index([dedupKey]) // Index for fast deduplication lookups
   @@index([serviceId, dedupKey, status]) // For service-scoped deduplication checks
@@ -1485,6 +1487,23 @@ model RateLimit {
 }
 
 // ChatOps War-Room Configuration (Global)
+/// One row per Slack message captured into an incident via an emoji pin.
+/// The unique key makes pinning idempotent: re-reacting, or a second person
+/// reacting to the same message, no longer creates duplicate notes.
+model SlackPinnedMessage {
+  id         String   @id @default(cuid())
+  incidentId String
+  channelId  String // Slack channel the message lives in
+  messageTs  String // Slack message timestamp — unique within a channel
+  pinnedBy   String? // Display name of whoever reacted
+  createdAt  DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, messageTs])
+  @@index([incidentId])
+}
+
 model ChatOpsConfig {
   id                      String   @id @default("default")
   enabled                 Boolean  @default(false)

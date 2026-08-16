@@ -196,8 +196,9 @@ export async function createIncidentWarRoom(
       return { success: false, error: 'Incident not found' };
     }
 
-    // Already has a war-room
-    if (incident.slackChannelId) {
+    // Already has a live war-room. An archived one does not count — reopening an
+    // incident should be able to provision a fresh channel.
+    if (incident.slackChannelId && !incident.warRoomArchivedAt) {
       return {
         success: true,
         channelId: incident.slackChannelId,
@@ -348,7 +349,6 @@ export async function createIncidentWarRoom(
         Array.from(emailsToInvite).map(async email => {
           const lookupResult = await findSlackUserByEmail(botToken, email.trim().toLowerCase());
           if (lookupResult.ok && (lookupResult as any).user?.id) {
-            // eslint-disable-line @typescript-eslint/no-explicit-any
             return (lookupResult as any).user.id as string; // eslint-disable-line @typescript-eslint/no-explicit-any
           }
           const lookupErr = lookupResult.error || 'User not found in Slack workspace';
@@ -428,6 +428,7 @@ export async function createIncidentWarRoom(
         slackChannelId: channelId,
         slackChannelName: channelName,
         warRoomUrl,
+        warRoomArchivedAt: null,
       },
     });
 
@@ -464,11 +465,15 @@ export async function postWarRoomUpdate(
   try {
     const incident = await prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { slackChannelId: true, serviceId: true },
+      select: { slackChannelId: true, serviceId: true, warRoomArchivedAt: true },
     });
 
     if (!incident?.slackChannelId) {
       return { success: false, error: 'No war-room channel for this incident' };
+    }
+
+    if (incident.warRoomArchivedAt) {
+      return { success: false, error: 'War-room channel is archived' };
     }
 
     const botToken = await getSlackBotToken(incident.serviceId);
@@ -556,6 +561,13 @@ export async function archiveWarRoomChannel(
       logger.warn('[ChatOps] Failed to archive channel', { error: archiveResult.error });
     }
 
+    // Mark the war-room as archived. The channel id is kept so the incident
+    // retains its history; this is what stops the UI advertising a live channel
+    // and stops later updates being posted where nobody will read them.
+    await prisma.incident
+      .update({ where: { id: incidentId }, data: { warRoomArchivedAt: new Date() } })
+      .catch(err => logger.warn('[ChatOps] Failed to record archive time', { error: err }));
+
     // Log event
     await prisma.incidentEvent.create({
       data: {
@@ -590,12 +602,13 @@ export async function updateWarRoomTopic(incidentId: string, newStatus?: string)
         status: true,
         slackChannelId: true,
         serviceId: true,
+        warRoomArchivedAt: true,
         assignee: { select: { name: true } },
         team: { select: { name: true } },
       },
     });
 
-    if (!incident?.slackChannelId) return;
+    if (!incident?.slackChannelId || incident.warRoomArchivedAt) return;
 
     const botToken = await getSlackBotToken(incident.serviceId);
     if (!botToken) return;
@@ -656,7 +669,6 @@ export async function inviteUserToWarRoom(
     const lookupResult = await findSlackUserByEmail(botToken, normalizedEmail);
 
     if (!lookupResult.ok || !(lookupResult as any).user?.id) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       const lookupErr = lookupResult.error || 'User not found in Slack workspace';
       const reason =
         lookupErr === 'user_not_found'
@@ -684,7 +696,6 @@ export async function inviteUserToWarRoom(
     });
 
     if (!inviteResult.ok && (inviteResult as any).error !== 'already_in_channel') {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       const inviteErr = (inviteResult as any).error || 'Failed to invite user'; // eslint-disable-line @typescript-eslint/no-explicit-any
       await prisma.incidentEvent
         .create({

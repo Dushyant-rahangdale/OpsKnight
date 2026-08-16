@@ -616,6 +616,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               slackChannelId: incident.slackChannelId,
               slackChannelName: incident.slackChannelName,
               warRoomUrl: incident.warRoomUrl,
+              warRoomArchivedAt: incident.warRoomArchivedAt,
               status: incident.status,
               service: { name: incident.service.name },
             }}
