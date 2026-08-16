@@ -108,7 +108,38 @@ export async function checkSLABreaches(
 
   for (const rawIncident of incidents) {
     const incident = rawIncident as any;
-    const elapsedMs = now.getTime() - incident.createdAt.getTime();
+    // Calculate total time spent in SNOOZED state to deduct from elapsedMs
+    let snoozedMs = 0;
+    try {
+      const snoozeEvents = await prisma.incidentEvent.findMany({
+        where: {
+          incidentId: incident.id,
+          message: {
+            contains: 'snooz',
+            mode: 'insensitive',
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      let currentSnoozeStart: Date | null = null;
+      for (const ev of snoozeEvents) {
+        const msg = ev.message.toLowerCase();
+        if (msg.includes('snoozed') && !msg.includes('unsnoozed') && !currentSnoozeStart) {
+          currentSnoozeStart = ev.createdAt;
+        } else if (msg.includes('unsnoozed') && currentSnoozeStart) {
+          snoozedMs += ev.createdAt.getTime() - currentSnoozeStart.getTime();
+          currentSnoozeStart = null;
+        }
+      }
+      if (currentSnoozeStart) {
+        snoozedMs += now.getTime() - currentSnoozeStart.getTime();
+      }
+    } catch {
+      // Fallback if event query fails
+    }
+
+    const elapsedMs = Math.max(0, now.getTime() - incident.createdAt.getTime() - snoozedMs);
 
     // Default SLA targets
     const ackTargetMinutes = incident.service.targetAckMinutes ?? 15;

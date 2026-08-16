@@ -78,6 +78,29 @@ export async function processAutoUnsnooze() {
   let processedCount = 0;
   for (const incident of incidentsToUnsnooze) {
     try {
+      const policyData = await prisma.incident.findUnique({
+        where: { id: incident.id },
+        select: {
+          currentEscalationStep: true,
+          service: {
+            select: {
+              policy: {
+                select: {
+                  steps: {
+                    orderBy: { stepOrder: 'asc' },
+                    select: { delayMinutes: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const stepIndex = policyData?.currentEscalationStep ?? 0;
+      const delayMinutes = policyData?.service?.policy?.steps?.[stepIndex]?.delayMinutes ?? 0;
+      const nextEscalationAt = new Date(Date.now() + delayMinutes * 60 * 1000);
+
       await prisma.incident.update({
         where: { id: incident.id },
         data: {
@@ -85,7 +108,7 @@ export async function processAutoUnsnooze() {
           snoozedUntil: null,
           snoozeReason: null,
           escalationStatus: 'ESCALATING',
-          nextEscalationAt: new Date(),
+          nextEscalationAt,
           events: {
             create: {
               message: 'Incident auto-unsnoozed (snooze duration expired)',
