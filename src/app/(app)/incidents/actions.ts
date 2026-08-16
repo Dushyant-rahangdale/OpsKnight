@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { runSerializableTransaction } from '@/lib/db-utils';
 import { revalidatePath } from 'next/cache';
 import { IncidentStatus, IncidentUrgency } from '@prisma/client';
 import { getCurrentUser, assertResponderOrAbove, assertCanModifyIncident } from '@/lib/rbac';
@@ -23,7 +24,7 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
   } catch (error) {
     throw new Error(getUserFriendlyError(error));
   }
-  const currentIncident = await prisma.$transaction(async tx => {
+  const currentIncident = await runSerializableTransaction(async tx => {
     // Get current incident to check if we're setting acknowledgedAt for the first time
     const incident = await tx.incident.findUnique({
       where: { id },
@@ -289,7 +290,7 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
   }
   const user = await getCurrentUser();
 
-  await prisma.$transaction(async tx => {
+  await runSerializableTransaction(async tx => {
     // Get current incident to check if we're setting resolvedAt for the first time
     const currentIncident = await tx.incident.findUnique({ where: { id } });
     if (!currentIncident) {

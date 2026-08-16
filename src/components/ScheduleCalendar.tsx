@@ -76,44 +76,10 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[], timeZone: string
       return start < dayEnd && end > dayStart;
     });
 
-    // Group by layer - show only ONE shift per layer per day
-    const byLayer = new Map<string, CalendarShift>();
-    overlapping.forEach(shift => {
-      const layerName = shift.label.split(':')[0].trim();
-
-      // If we haven't seen this layer yet, or if this shift starts on this day (preferred)
-      if (!byLayer.has(layerName)) {
-        byLayer.set(layerName, shift);
-      } else {
-        const existing = byLayer.get(layerName)!;
-        const shiftStart = new Date(shift.start).getTime();
-        const existingStart = new Date(existing.start).getTime();
-        const dayStartTime = dayStart.getTime();
-        const dayEndTime = dayEnd.getTime();
-
-        // Prefer shift that starts on this day
-        const shiftStartsToday = shiftStart >= dayStartTime && shiftStart < dayEndTime;
-        const existingStartsToday = existingStart >= dayStartTime && existingStart < dayEndTime;
-
-        if (shiftStartsToday && !existingStartsToday) {
-          byLayer.set(layerName, shift);
-        } else if (!shiftStartsToday && !existingStartsToday) {
-          // If neither starts today, prefer the one with more overlap
-          const shiftOverlap =
-            Math.min(new Date(shift.end).getTime(), dayEndTime) -
-            Math.max(new Date(shift.start).getTime(), dayStartTime);
-          const existingOverlap =
-            Math.min(new Date(existing.end).getTime(), dayEndTime) -
-            Math.max(existingStart, dayStartTime);
-          if (shiftOverlap > existingOverlap) {
-            byLayer.set(layerName, shift);
-          }
-        }
-      }
-    });
-
-    // Return only one shift per layer, sorted by layer name for consistency
-    return Array.from(byLayer.values()).sort((a, b) => {
+    // Return all active shifts for this day, sorted by start time and layer name
+    return overlapping.sort((a, b) => {
+      const timeDiff = new Date(a.start).getTime() - new Date(b.start).getTime();
+      if (timeDiff !== 0) return timeDiff;
       const layerA = a.label.split(':')[0].trim();
       const layerB = b.label.split(':')[0].trim();
       return layerA.localeCompare(layerB);

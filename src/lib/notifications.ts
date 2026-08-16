@@ -142,7 +142,9 @@ export async function sendNotification(
             : incidentForWhatsApp?.status === 'ACKNOWLEDGED'
               ? 'acknowledged'
               : 'triggered';
-        result = await sendIncidentWhatsApp(userId, incidentId, eventTypeWhatsApp);
+        result = await CircuitBreakers.whatsapp().execute(() =>
+          sendIncidentWhatsApp(userId, incidentId, eventTypeWhatsApp)
+        );
         break;
 
       default:

@@ -284,6 +284,13 @@ export const CircuitBreakers = {
       resetTimeout: 30000,
       timeout: 5000, // 5 seconds for push
     }),
+
+  whatsapp: () =>
+    getCircuitBreaker('whatsapp', {
+      failureThreshold: 3,
+      resetTimeout: 30000,
+      timeout: 10000,
+    }),
 };
 
 /**

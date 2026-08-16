@@ -385,18 +385,16 @@ export async function createIncidentWarRoom(
         if (!batchResult.ok && batchResult.error !== 'already_in_channel') {
           // Fallback to individual invites if batch encountered a mixed error
           for (const slackUserId of slackUserIds) {
-            await slackApiCall('conversations.invite', botToken, {
+            const indResult = await slackApiCall('conversations.invite', botToken, {
               channel: channelId,
               users: slackUserId,
-            }).catch(err => {
-              const errMsg = err?.error || (err instanceof Error ? err.message : String(err));
-              if (errMsg !== 'already_in_channel') {
-                logger.warn('[ChatOps] Failed to invite user to war-room', {
-                  slackUserId,
-                  error: errMsg,
-                });
-              }
             });
+            if (!indResult.ok && indResult.error !== 'already_in_channel') {
+              logger.warn('[ChatOps] Failed to invite user to war-room', {
+                slackUserId,
+                error: indResult.error,
+              });
+            }
           }
         }
       }

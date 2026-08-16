@@ -319,12 +319,13 @@ async function calculateDbAggregateMetrics(
       SELECT
         COUNT(*) as total_incidents,
         COUNT(*) FILTER (WHERE "status" = 'RESOLVED') as resolved_count,
-        AVG(EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
-          FILTER (WHERE "acknowledgedAt" IS NOT NULL) as avg_mtta_ms,
-        AVG(EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
-          FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as avg_mttr_ms,
+        AVG(GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000))
+          FILTER (WHERE "acknowledgedAt" IS NOT NULL AND "acknowledgedAt" >= "createdAt") as avg_mtta_ms,
+        AVG(GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000))
+          FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL AND COALESCE("resolvedAt", "updatedAt") >= "createdAt") as avg_mttr_ms,
         COUNT(*) FILTER (
           WHERE "acknowledgedAt" IS NOT NULL
+          AND "acknowledgedAt" >= "createdAt"
           AND EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000 <= ${defaultAckMs}
         ) as ack_sla_met,
         COUNT(*) FILTER (
@@ -337,6 +338,7 @@ async function calculateDbAggregateMetrics(
         COUNT(*) FILTER (
           WHERE "status" = 'RESOLVED'
           AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
+          AND COALESCE("resolvedAt", "updatedAt") >= "createdAt"
           AND EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000 <= ${defaultResolveMs}
         ) as resolve_sla_met,
         COUNT(*) FILTER (
