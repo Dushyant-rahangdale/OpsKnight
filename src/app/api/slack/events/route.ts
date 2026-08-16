@@ -67,6 +67,23 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true }); // Not a war-room channel
         }
 
+        // Claim this message before doing any work. The unique key on
+        // (channelId, messageTs) makes pinning idempotent, so re-reacting or a
+        // second person reacting to the same message cannot duplicate the note.
+        const alreadyPinned = await prisma.slackPinnedMessage.findUnique({
+          where: { channelId_messageTs: { channelId, messageTs } },
+          select: { id: true },
+        });
+
+        if (alreadyPinned) {
+          logger.info('[Slack Events] Message already pinned, ignoring duplicate', {
+            incidentId: incident.id,
+            channelId,
+            messageTs,
+          });
+          return NextResponse.json({ ok: true });
+        }
+
         const botToken = await getSlackBotToken(incident.serviceId);
         if (!botToken) {
           return NextResponse.json({ ok: true });
@@ -179,8 +196,9 @@ export async function POST(request: NextRequest) {
               select: { id: true },
             });
           }
-          const fallbackUser = await prisma.user.findFirst({ select: { id: true } });
-          const noteUserId = resolvedUser?.id || incident.assigneeId || fallbackUser?.id;
+          // No arbitrary-user fallback: crediting a pin to whoever happens to be
+          // first in the table is worse than not recording an owner for it.
+          const noteUserId = resolvedUser?.id || incident.assigneeId;
 
           // The note is now the only record of a pin, so a missing author means
           // the pin captured nothing — say so rather than reporting success.
@@ -199,6 +217,14 @@ export async function POST(request: NextRequest) {
               content: `📌 [Slack Pin by ${authorName}]: ${messageText}`,
             },
           });
+
+          // Records the claim so a repeat reaction is ignored above. Best-effort:
+          // a lost race here means at worst one duplicate, never a lost note.
+          await prisma.slackPinnedMessage
+            .create({
+              data: { incidentId: incident.id, channelId, messageTs, pinnedBy: authorName },
+            })
+            .catch(() => {});
 
           // Deliberately no timeline event: a pin captures the message itself,
           // which is what the note holds. Emitting an event as well duplicated
