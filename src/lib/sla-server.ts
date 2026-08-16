@@ -350,13 +350,17 @@ async function calculateDbAggregateMetrics(
         COUNT(*) FILTER (WHERE "urgency" = 'MEDIUM') as medium_urgency_count,
         COUNT(*) FILTER (WHERE "urgency" = 'LOW') as low_urgency_count,
         -- After-hours classification uses BUSINESS_HOURS_TIMEZONE (UTC)
-        -- so this aggregate agrees with the rollup-generation path. See
-        -- BUSINESS_HOURS_TIMEZONE comment for follow-up to make this
-        -- tenant-configurable.
+        -- so this aggregate agrees with the rollup-generation path.
         COUNT(*) FILTER (
           WHERE EXTRACT(DOW FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) IN (0, 6)
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) < ${BUSINESS_HOURS_START}
-          OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) >= ${BUSINESS_HOURS_END}
+          OR CASE
+               WHEN ${BUSINESS_HOURS_START} <= ${BUSINESS_HOURS_END} THEN
+                 EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) < ${BUSINESS_HOURS_START}
+                 OR EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) >= ${BUSINESS_HOURS_END}
+               ELSE
+                 EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) >= ${BUSINESS_HOURS_END}
+                 AND EXTRACT(HOUR FROM "createdAt" AT TIME ZONE ${businessHoursTimeZone}) < ${BUSINESS_HOURS_START}
+             END
         ) as after_hours_count
       FROM "Incident"
       WHERE "createdAt" >= ${start}
@@ -570,7 +574,7 @@ function toHourKeyInTimeZone(date: Date, timeZone: string): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
     hour: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
   });
   const hour = formatter.format(date).padStart(2, '0');
   return `${dayKey}-${hour}`;
@@ -711,7 +715,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
   // the pure-rollup path above).
   const realtimeStart = await (async () => {
     const r = new Date(now);
-    r.setDate(r.getDate() - retentionPolicy.realTimeWindowDays);
+    r.setUTCDate(r.getUTCDate() - retentionPolicy.realTimeWindowDays);
+    r.setUTCHours(0, 0, 0, 0); // Align boundary to UTC midnight to prevent double-counting
     return r;
   })();
   // Hybrid path: rollup-derived historical + live-derived recent +

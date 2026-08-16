@@ -199,7 +199,7 @@ export default function StatusPageServices({
             return false;
           }
           const incidentEnd = incident.resolvedAt || now;
-          return incident.createdAt < dayEnd && incidentEnd >= dayStart;
+          return incident.createdAt < dayEnd && incidentEnd > dayStart;
         });
 
         const hasOutage = active.some(incident => incident.urgency === 'HIGH');

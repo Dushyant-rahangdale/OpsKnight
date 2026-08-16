@@ -217,7 +217,7 @@ async function getNextScheduledTime(): Promise<Date> {
 function scheduleNextRun(targetTime: Date) {
   const now = Date.now();
   const rawDelay = targetTime.getTime() - now;
-  const delay = Math.min(Math.max(rawDelay, MIN_DELAY_MS), MAX_DELAY_MS);
+  const delay = rawDelay <= 0 ? 0 : Math.min(Math.max(rawDelay, MIN_DELAY_MS), MAX_DELAY_MS);
   const nextRunAt = new Date(now + delay);
 
   if (timer) {
@@ -335,9 +335,7 @@ async function runOnce() {
           },
           select: { date: true },
         });
-        const existingKeys = new Set(
-          existing.map(r => r.date.toISOString().split('T')[0])
-        );
+        const existingKeys = new Set(existing.map(r => r.date.toISOString().split('T')[0]));
 
         // Build the list of missing days (newest-first so the most
         // recent data populates first — analytics queries care most

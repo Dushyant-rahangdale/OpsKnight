@@ -171,6 +171,18 @@ export async function checkSLABreaches(
         });
 
         if (!recentWarning) {
+          // Record the event in DB immediately to prevent repeat notification spam across cron loops
+          try {
+            await prisma.incidentEvent.create({
+              data: {
+                incidentId: incident.id,
+                message: `⏰ SLA ACK Warning: ${Math.max(1, Math.round(ackRemainingMs / 60000))} min remaining`,
+              },
+            });
+          } catch {
+            // Non-critical if event logging fails
+          }
+
           warnings.push({
             incidentId: incident.id,
             title: incident.title,
@@ -209,6 +221,18 @@ export async function checkSLABreaches(
       });
 
       if (!recentWarning) {
+        // Record the event in DB immediately to prevent repeat notification spam across cron loops
+        try {
+          await prisma.incidentEvent.create({
+            data: {
+              incidentId: incident.id,
+              message: `⚠️ SLA RESOLVE Warning: ${Math.max(1, Math.round(resolveRemainingMs / 60000))} min remaining`,
+            },
+          });
+        } catch {
+          // Non-critical if event logging fails
+        }
+
         warnings.push({
           incidentId: incident.id,
           title: incident.title,

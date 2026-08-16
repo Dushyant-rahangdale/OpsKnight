@@ -207,8 +207,8 @@ function generateLayerBlocks(
 
   while (guard < maxBlocks) {
     let blockStart: Date;
-    if (layer.rotationLengthHours === 24 || layer.rotationLengthHours === 168) {
-      // Calendar-day math to avoid DST drift for daily/weekly rotations
+    if (layer.rotationLengthHours % 24 === 0) {
+      // Calendar-day math to avoid DST drift for daily/weekly/multi-day rotations
       blockStart = addCalendarDaysInTimeZone(
         layerStart,
         index * (layer.rotationLengthHours / 24),
@@ -227,22 +227,10 @@ function generateLayerBlocks(
       break;
     }
 
-    // The "end of the block" logic needs to consider rotation boundary?
-    // No, duty can be shorter than rotation (gap) or longer (overlap? not supported well).
-    // Assuming shift <= rotation usually. If shift > rotation, it overlaps next user.
-    // Existing logic handles overlaps by "next user starts at next index".
-    // We just emit blocks. Overlapping blocks are rendered overlappingly (now fixed in Timeline to stack).
-
     let rawEnd: Date;
-    if (
-      (layer.shiftLengthHours || layer.rotationLengthHours) === 24 ||
-      (layer.shiftLengthHours || layer.rotationLengthHours) === 168
-    ) {
-      rawEnd = addCalendarDaysInTimeZone(
-        blockStart,
-        (layer.shiftLengthHours || layer.rotationLengthHours) / 24,
-        timeZone
-      );
+    const shiftHours = layer.shiftLengthHours || layer.rotationLengthHours;
+    if (shiftHours % 24 === 0) {
+      rawEnd = addCalendarDaysInTimeZone(blockStart, shiftHours / 24, timeZone);
     } else {
       rawEnd = new Date(blockStart.getTime() + shiftMs);
     }
@@ -259,8 +247,8 @@ function generateLayerBlocks(
     // Determine User
     const user = layer.users[index % layer.users.length];
 
-    // Clamp to Window
-    const clampedStart = blockStart < effectiveWindowStart ? effectiveWindowStart : blockStart;
+    // Clamping to visual window
+    const clampedStart = blockStart < windowStart ? windowStart : blockStart;
     const clampedEnd = blockEnd > windowEnd ? windowEnd : blockEnd;
 
     if (clampedStart < clampedEnd) {
@@ -318,6 +306,8 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
 
   for (const override of sortedOverrides) {
     const next: OnCallBlock[] = [];
+    let matchedAny = false;
+
     for (const block of result) {
       if (override.end <= block.start || override.start >= block.end) {
         next.push(block);
@@ -329,6 +319,7 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
         continue;
       }
 
+      matchedAny = true;
       const overrideStart = override.start > block.start ? override.start : block.start;
       const overrideEnd = override.end < block.end ? override.end : block.end;
 
@@ -352,6 +343,23 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
         next.push({ ...block, start: overrideEnd });
       }
     }
+
+    // If override did not intersect any existing block (e.g. coverage gap), include it as standalone
+    if (!matchedAny && !override.replacesUserId) {
+      next.push({
+        id: `override-${override.id}`,
+        start: override.start,
+        end: override.end,
+        userId: override.userId,
+        userName: override.user.name,
+        userAvatar: override.user.avatarUrl,
+        userGender: override.user.gender,
+        layerId: 'override',
+        layerName: 'Override',
+        source: 'override',
+      });
+    }
+
     result = next;
   }
 

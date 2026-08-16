@@ -281,7 +281,9 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
                         const end = new Date(shift.end);
                         const startTime = formatDateTime(start, timeZone, { format: 'time' });
                         const endTime = formatDateTime(end, timeZone, { format: 'time' });
-                        const isMultiDay = start.toDateString() !== end.toDateString();
+                        const isMultiDay =
+                          formatDateTime(start, timeZone, { format: 'date' }) !==
+                          formatDateTime(end, timeZone, { format: 'date' });
 
                         return (
                           <div

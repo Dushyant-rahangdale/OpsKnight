@@ -283,6 +283,13 @@ export async function generateDailyRollup(
                 else p.ackSlaBreached++;
               }
             }
+          } else if (incident.status !== 'RESOLVED') {
+            const elapsedMin = (Date.now() - incident.createdAt.getTime()) / 60000;
+            const targetAck = incident.service?.targetAckMinutes || DEFAULT_ACK_TARGET;
+            if (elapsedMin > targetAck) {
+              ackSlaBreached++;
+              if (priorityBucket) perPriority[priorityBucket].ackSlaBreached++;
+            }
           }
 
           // MTTR calculation
@@ -305,6 +312,13 @@ export async function generateDailyRollup(
                 if (resolveMet) p.resolveSlaMet++;
                 else p.resolveSlaBreached++;
               }
+            }
+          } else if (incident.status !== 'RESOLVED') {
+            const elapsedMin = (Date.now() - incident.createdAt.getTime()) / 60000;
+            const targetResolve = incident.service?.targetResolveMinutes || DEFAULT_RESOLVE_TARGET;
+            if (elapsedMin > targetResolve) {
+              resolveSlaBreached++;
+              if (priorityBucket) perPriority[priorityBucket].resolveSlaBreached++;
             }
           }
 
@@ -712,7 +726,7 @@ export async function backfillRollups(
   let count = 0;
   while (current <= end) {
     await generateDailyRollup(current, serviceId);
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
     count++;
   }
 

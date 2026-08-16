@@ -38,7 +38,7 @@ export function isIncidentAfterHours(
     timeZone,
     weekday: 'short',
     hour: 'numeric',
-    hour12: false,
+    hourCycle: 'h23',
   });
   const parts = formatter.formatToParts(date);
   const weekday = parts.find(p => p.type === 'weekday')?.value || '';
@@ -49,7 +49,10 @@ export function isIncidentAfterHours(
   const hour = hourStr !== undefined ? parseInt(hourStr, 10) : 12;
 
   const isWeekend = weekday === 'Sat' || weekday === 'Sun';
-  const isBusinessHours = hour >= startHour && hour < endHour;
+  const isBusinessHours =
+    startHour <= endHour
+      ? hour >= startHour && hour < endHour
+      : hour >= startHour || hour < endHour;
   return isWeekend || !isBusinessHours;
 }
 
