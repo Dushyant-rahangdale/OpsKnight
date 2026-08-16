@@ -30,15 +30,16 @@ export default function GuidedSlackSetup() {
   const [step, setStep] = useState<SetupStep>(1);
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [signingSecret, setSigningSecret] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
   const redirectUri = `${getBaseUrl()}/api/slack/oauth/callback`;
 
   const handleSave = async () => {
-    if (!clientId || !clientSecret) {
+    if (!clientId || !clientSecret || !signingSecret) {
       toast.error('Missing credentials', {
-        description: 'Please enter both Client ID and Client Secret',
+        description: 'Please enter the Client ID, Client Secret and Signing Secret',
       });
       return;
     }
@@ -48,6 +49,7 @@ export default function GuidedSlackSetup() {
       const formData = new FormData();
       formData.append('clientId', clientId);
       formData.append('clientSecret', clientSecret);
+      formData.append('signingSecret', signingSecret);
       formData.append('redirectUri', redirectUri);
       formData.append('enabled', 'true');
 
@@ -290,6 +292,26 @@ export default function GuidedSlackSetup() {
                       Click &quot;Show&quot; next to Client Secret in Slack, then copy it here
                     </p>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signingSecret">
+                      Signing Secret <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="signingSecret"
+                      type="password"
+                      value={signingSecret}
+                      onChange={e => setSigningSecret(e.target.value)}
+                      placeholder="Paste Signing Secret here"
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Same page in Slack, just below Client Secret. Required to verify that slash
+                      commands, buttons and events genuinely came from Slack — without it those
+                      requests are rejected. Slack never sends this during OAuth, so reconnecting
+                      will not fill it in.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -299,7 +321,10 @@ export default function GuidedSlackSetup() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleSave} disabled={!clientId || !clientSecret || isSaving}>
+              <Button
+                onClick={handleSave}
+                disabled={!clientId || !clientSecret || !signingSecret || isSaving}
+              >
                 {isSaving ? 'Saving...' : 'Save & Continue'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
