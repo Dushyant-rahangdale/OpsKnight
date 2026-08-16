@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { verifySlackSignature, isTrustedSlackResponseUrl } from '@/lib/slack-signature';
+import { verifySlackSignature, toSlackResponseUrl } from '@/lib/slack-signature';
 
 export async function POST(request: NextRequest) {
   try {
@@ -269,9 +269,10 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        // Attacker-controlled input — only ever POST back to Slack's own host
-        if (isTrustedSlackResponseUrl(payload.response_url)) {
-          await fetch(payload.response_url, {
+        // Rebuilt against a literal origin, so this can only ever reach Slack
+        const slackResponseUrl = toSlackResponseUrl(payload.response_url);
+        if (slackResponseUrl) {
+          await fetch(slackResponseUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -292,7 +293,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('[Slack] Actions API error', {
       error: error.message,
       stack: error.stack,

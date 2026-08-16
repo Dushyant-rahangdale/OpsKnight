@@ -78,19 +78,42 @@ export async function getSlackSigningSecret(): Promise<string | null> {
  *
  * Slack only ever issues these on hooks.slack.com over HTTPS.
  */
-const TRUSTED_RESPONSE_HOSTS = new Set(['hooks.slack.com']);
+const SLACK_RESPONSE_ORIGIN = 'https://hooks.slack.com';
 
 export function isTrustedSlackResponseUrl(value: unknown): value is string {
+  return toSlackResponseUrl(value) !== null;
+}
+
+/**
+ * Validate a `response_url` and rebuild it against a literal origin.
+ *
+ * Returning a reconstructed URL rather than the caller's string is deliberate:
+ * the host is a compile-time constant, so no attacker-controlled value can
+ * influence which server is contacted, only the path beneath Slack's own host.
+ * A boolean-only guard leaves the tainted string flowing into fetch(), which is
+ * both weaker and unprovable to static analysis.
+ *
+ * Returns null when the value is not an HTTPS Slack hooks URL.
+ */
+export function toSlackResponseUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value) {
-    return false;
+    return null;
   }
 
+  let parsed: URL;
   try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && TRUSTED_RESPONSE_HOSTS.has(url.hostname);
+    parsed = new URL(value);
   } catch {
-    return false;
+    return null;
   }
+
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'hooks.slack.com') {
+    return null;
+  }
+
+  // URL.pathname is always normalised and leading-slashed, so concatenating it
+  // onto the literal origin cannot escape the host.
+  return `${SLACK_RESPONSE_ORIGIN}${parsed.pathname}${parsed.search}`;
 }
 
 export type SignatureFailure = 'no_secret' | 'missing_headers' | 'stale_timestamp' | 'mismatch';

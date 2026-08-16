@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { handleSlashCommand } from '@/lib/chatops/slash-commands';
-import { verifySlackSignature, isTrustedSlackResponseUrl } from '@/lib/slack-signature';
+import { verifySlackSignature, toSlackResponseUrl } from '@/lib/slack-signature';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +37,12 @@ export async function POST(request: NextRequest) {
 
     if ('timeout' in raceResult && raceResult.timeout) {
       // Processing taking longer than 1.5s -> finish in background and post to response_url
-      const responseUrl = payload.response_url;
+      // Rebuilt against a literal origin, so this can only ever reach Slack
+      const responseUrl = toSlackResponseUrl(payload.response_url);
       handlePromise
         .then(async result => {
           // Attacker-controlled input — only ever POST back to Slack's own host
-          if (isTrustedSlackResponseUrl(responseUrl) && result) {
+          if (responseUrl && result) {
             try {
               await fetch(responseUrl, {
                 method: 'POST',
@@ -68,7 +69,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(await handlePromise);
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('[Slack] Commands API error', {
       error: error.message,
       stack: error.stack,

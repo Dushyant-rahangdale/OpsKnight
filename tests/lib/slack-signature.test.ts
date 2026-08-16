@@ -7,6 +7,7 @@ import {
   getSlackSigningSecret,
   resetSigningSecretCache,
   isTrustedSlackResponseUrl,
+  toSlackResponseUrl,
 } from '@/lib/slack-signature';
 
 vi.mock('@/lib/prisma', () => ({
@@ -168,6 +169,17 @@ describe('Slack signature verification', () => {
     // server-side request forgery primitive (CodeQL js/request-forgery).
     it('accepts Slack response URLs', () => {
       expect(isTrustedSlackResponseUrl('https://hooks.slack.com/actions/T1/2/abc')).toBe(true);
+    });
+
+    it('rebuilds the URL against a literal Slack origin', () => {
+      // The returned host is a constant, so no input can redirect the request.
+      expect(toSlackResponseUrl('https://hooks.slack.com/actions/T1/2/abc?x=1')).toBe(
+        'https://hooks.slack.com/actions/T1/2/abc?x=1'
+      );
+      expect(toSlackResponseUrl('https://hooks.slack.com/a/../../b')).toBe(
+        'https://hooks.slack.com/b'
+      );
+      expect(toSlackResponseUrl('https://attacker.example.com/x')).toBeNull();
     });
 
     it('rejects internal and metadata targets', () => {
