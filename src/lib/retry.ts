@@ -59,8 +59,11 @@ function calculateDelay(
   attempt: number,
   options: Required<Omit<RetryOptions, 'retryableErrors' | 'onRetry'>>
 ): number {
-  const delay = options.initialDelayMs * Math.pow(options.backoffMultiplier, attempt - 1);
-  return Math.min(delay, options.maxDelayMs);
+  const baseDelay = options.initialDelayMs * Math.pow(options.backoffMultiplier, attempt - 1);
+  const cappedDelay = Math.min(baseDelay, options.maxDelayMs);
+  // Add subtle 10-20% random jitter to prevent thundering herd retries
+  const jitter = cappedDelay * (0.1 + Math.random() * 0.1);
+  return Math.min(cappedDelay + jitter, options.maxDelayMs);
 }
 
 /**
@@ -154,9 +157,19 @@ export async function retryFetch(
     if (!response.ok && isRetryableHttpError(response.status)) {
       const retryAfter = response.headers.get('Retry-After');
       if (response.status === 429 && retryAfter) {
+        let waitMs = 0;
         const seconds = parseInt(retryAfter, 10);
         if (!isNaN(seconds) && seconds > 0) {
-          await sleep(Math.min(seconds * 1000, 30000));
+          waitMs = seconds * 1000;
+        } else {
+          // Check if it's an HTTP-Date format (RFC 7231)
+          const targetTime = new Date(retryAfter).getTime();
+          if (!isNaN(targetTime)) {
+            waitMs = Math.max(0, targetTime - Date.now());
+          }
+        }
+        if (waitMs > 0) {
+          await sleep(Math.min(waitMs, 60000));
         }
       }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -107,15 +107,10 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
     return Array.from(userIds);
   }
 
-  // Fallback: if no active block was found (e.g., schedule gaps or data issues), return all unique
-  // users in the schedule so escalation still reaches someone instead of failing silently.
-  const rosterUserIds = new Set<string>();
-  for (const layer of schedule.layers) {
-    for (const lu of layer.users) {
-      rosterUserIds.add(lu.userId);
-    }
-  }
-  return Array.from(rosterUserIds);
+  // If no active block was found (e.g. coverage gap in schedule), return empty array
+  // so escalation logic cleanly advances to the next step or policy tier rather than
+  // blasting every user in the entire schedule roster.
+  return [];
 }
 
 /**

@@ -375,20 +375,30 @@ export async function createIncidentWarRoom(
         )
         .map(r => r.value);
 
-      // Invite users individually to prevent one failure from blocking all
-      for (const slackUserId of slackUserIds) {
-        await slackApiCall('conversations.invite', botToken, {
+      if (slackUserIds.length > 0) {
+        // Try batch invite first to conserve Slack Tier 3 rate limits
+        const batchResult = await slackApiCall('conversations.invite', botToken, {
           channel: channelId,
-          users: slackUserId,
-        }).catch(err => {
-          const errMsg = err?.error || (err instanceof Error ? err.message : String(err));
-          if (errMsg !== 'already_in_channel') {
-            logger.warn('[ChatOps] Failed to invite user to war-room', {
-              slackUserId,
-              error: errMsg,
+          users: slackUserIds.join(','),
+        });
+
+        if (!batchResult.ok && batchResult.error !== 'already_in_channel') {
+          // Fallback to individual invites if batch encountered a mixed error
+          for (const slackUserId of slackUserIds) {
+            await slackApiCall('conversations.invite', botToken, {
+              channel: channelId,
+              users: slackUserId,
+            }).catch(err => {
+              const errMsg = err?.error || (err instanceof Error ? err.message : String(err));
+              if (errMsg !== 'already_in_channel') {
+                logger.warn('[ChatOps] Failed to invite user to war-room', {
+                  slackUserId,
+                  error: errMsg,
+                });
+              }
             });
           }
-        });
+        }
       }
     } catch (err) {
       logger.warn('[ChatOps] Failed to resolve/invite responders', { error: err, incidentId });

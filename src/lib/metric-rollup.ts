@@ -284,7 +284,8 @@ export async function generateDailyRollup(
               }
             }
           } else if (incident.status !== 'RESOLVED') {
-            const elapsedMin = (Date.now() - incident.createdAt.getTime()) / 60000;
+            const snapshotTime = Math.min(Date.now(), nextDayStart.getTime());
+            const elapsedMin = (snapshotTime - incident.createdAt.getTime()) / 60000;
             const targetAck = incident.service?.targetAckMinutes || DEFAULT_ACK_TARGET;
             if (elapsedMin > targetAck) {
               ackSlaBreached++;
@@ -314,7 +315,8 @@ export async function generateDailyRollup(
               }
             }
           } else if (incident.status !== 'RESOLVED') {
-            const elapsedMin = (Date.now() - incident.createdAt.getTime()) / 60000;
+            const snapshotTime = Math.min(Date.now(), nextDayStart.getTime());
+            const elapsedMin = (snapshotTime - incident.createdAt.getTime()) / 60000;
             const targetResolve = incident.service?.targetResolveMinutes || DEFAULT_RESOLVE_TARGET;
             if (elapsedMin > targetResolve) {
               resolveSlaBreached++;

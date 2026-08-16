@@ -306,7 +306,7 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
 
   for (const override of sortedOverrides) {
     const next: OnCallBlock[] = [];
-    let matchedAny = false;
+    const coveredIntervals: Array<{ start: Date; end: Date }> = [];
 
     for (const block of result) {
       if (override.end <= block.start || override.start >= block.end) {
@@ -319,7 +319,6 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
         continue;
       }
 
-      matchedAny = true;
       const overrideStart = override.start > block.start ? override.start : block.start;
       const overrideEnd = override.end < block.end ? override.end : block.end;
 
@@ -338,26 +337,50 @@ function applyOverrides(blocks: OnCallBlock[], overrides: OverrideInput[]): OnCa
         userGender: override.user.gender,
         source: 'override',
       });
+      coveredIntervals.push({ start: overrideStart, end: overrideEnd });
 
       if (overrideEnd < block.end) {
         next.push({ ...block, start: overrideEnd });
       }
     }
 
-    // If override did not intersect any existing block (e.g. coverage gap), include it as standalone
-    if (!matchedAny && !override.replacesUserId) {
-      next.push({
-        id: `override-${override.id}`,
-        start: override.start,
-        end: override.end,
-        userId: override.userId,
-        userName: override.user.name,
-        userAvatar: override.user.avatarUrl,
-        userGender: override.user.gender,
-        layerId: 'override',
-        layerName: 'Override',
-        source: 'override',
-      });
+    // If override has intervals not covered by existing blocks, emit standalone override segments for gaps
+    if (!override.replacesUserId) {
+      coveredIntervals.sort((a, b) => a.start.getTime() - b.start.getTime());
+      let cursor = override.start;
+      for (const cov of coveredIntervals) {
+        if (cursor < cov.start) {
+          next.push({
+            id: `override-${override.id}-${cursor.getTime()}`,
+            start: cursor,
+            end: cov.start,
+            userId: override.userId,
+            userName: override.user.name,
+            userAvatar: override.user.avatarUrl,
+            userGender: override.user.gender,
+            layerId: 'override',
+            layerName: 'Override',
+            source: 'override',
+          });
+        }
+        if (cursor < cov.end) {
+          cursor = cov.end;
+        }
+      }
+      if (cursor < override.end) {
+        next.push({
+          id: `override-${override.id}-${cursor.getTime()}`,
+          start: cursor,
+          end: override.end,
+          userId: override.userId,
+          userName: override.user.name,
+          userAvatar: override.user.avatarUrl,
+          userGender: override.user.gender,
+          layerId: 'override',
+          layerName: 'Override',
+          source: 'override',
+        });
+      }
     }
 
     result = next;
