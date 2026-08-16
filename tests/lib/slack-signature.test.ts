@@ -173,12 +173,17 @@ describe('Slack signature verification', () => {
 
     it('rebuilds the URL against a literal Slack origin', () => {
       // The returned host is a constant, so no input can redirect the request.
+      expect(toSlackResponseUrl('https://hooks.slack.com/actions/T1/2/abc')).toBe(
+        'https://hooks.slack.com/actions/T1/2/abc'
+      );
+      // Query strings are dropped — Slack never sets one
       expect(toSlackResponseUrl('https://hooks.slack.com/actions/T1/2/abc?x=1')).toBe(
-        'https://hooks.slack.com/actions/T1/2/abc?x=1'
+        'https://hooks.slack.com/actions/T1/2/abc'
       );
-      expect(toSlackResponseUrl('https://hooks.slack.com/a/../../b')).toBe(
-        'https://hooks.slack.com/b'
-      );
+      // Path must match the expected shape
+      expect(toSlackResponseUrl('https://hooks.slack.com/a/../../b')).toBeNull();
+      expect(toSlackResponseUrl('https://hooks.slack.com/actions/T1/2/a%2Fb')).toBeNull();
+      expect(toSlackResponseUrl('https://hooks.slack.com/')).toBeNull();
       expect(toSlackResponseUrl('https://attacker.example.com/x')).toBeNull();
     });
 

@@ -1,7 +1,7 @@
 /**
  * Slack Event Subscriptions API
  * Listens for Slack events such as `reaction_added` (:pushpin:, :memo:)
- * and automatically captures pinned messages into the OpsKnight incident timeline.
+ * and automatically captures pinned messages as OpsKnight incident notes.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -182,23 +182,27 @@ export async function POST(request: NextRequest) {
           const fallbackUser = await prisma.user.findFirst({ select: { id: true } });
           const noteUserId = resolvedUser?.id || incident.assigneeId || fallbackUser?.id;
 
-          if (noteUserId) {
-            await prisma.incidentNote.create({
-              data: {
-                incidentId: incident.id,
-                userId: noteUserId,
-                content: `📌 [Slack Pin by ${authorName}]: ${messageText}`,
-              },
+          // The note is now the only record of a pin, so a missing author means
+          // the pin captured nothing — say so rather than reporting success.
+          if (!noteUserId) {
+            logger.warn('[Slack Events] No OpsKnight user available to attribute pinned note to', {
+              incidentId: incident.id,
+              authorName,
             });
+            return NextResponse.json({ ok: true });
           }
 
-          // Create timeline event
-          await prisma.incidentEvent.create({
+          await prisma.incidentNote.create({
             data: {
               incidentId: incident.id,
-              message: `Message pinned to timeline via 📌 emoji by @${authorName}`,
+              userId: noteUserId,
+              content: `📌 [Slack Pin by ${authorName}]: ${messageText}`,
             },
           });
+
+          // Deliberately no timeline event: a pin captures the message itself,
+          // which is what the note holds. Emitting an event as well duplicated
+          // every pin across both the notes list and the timeline.
 
           // Post confirmation thread reply in Slack
           await retryFetch('https://slack.com/api/chat.postMessage', {
@@ -210,11 +214,11 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
               channel: channelId,
               thread_ts: messageTs,
-              text: `📌 *Pinned to OpsKnight Incident Timeline!*`,
+              text: `📌 *Saved to OpsKnight incident notes.*`,
             }),
           }).catch(() => {});
 
-          logger.info('[Slack Events] Pinned message synced to timeline', {
+          logger.info('[Slack Events] Pinned message saved as incident note', {
             incidentId: incident.id,
             authorName,
           });

@@ -80,6 +80,9 @@ export async function getSlackSigningSecret(): Promise<string | null> {
  */
 const SLACK_RESPONSE_ORIGIN = 'https://hooks.slack.com';
 
+/** /actions/<team>/<request>/<token> — alphanumeric segments only. */
+const SLACK_RESPONSE_PATH = /^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+){1,5}$/;
+
 export function isTrustedSlackResponseUrl(value: unknown): value is string {
   return toSlackResponseUrl(value) !== null;
 }
@@ -111,9 +114,17 @@ export function toSlackResponseUrl(value: unknown): string | null {
     return null;
   }
 
-  // URL.pathname is always normalised and leading-slashed, so concatenating it
-  // onto the literal origin cannot escape the host.
-  return `${SLACK_RESPONSE_ORIGIN}${parsed.pathname}${parsed.search}`;
+  // Slack response URLs are /actions/<team>/<request>/<token> — plain
+  // alphanumeric segments. Requiring that shape means nothing from the request
+  // body reaches fetch() except characters matched by this literal pattern, and
+  // the query string is dropped entirely since Slack never sets one.
+  if (!SLACK_RESPONSE_PATH.test(parsed.pathname)) {
+    return null;
+  }
+
+  // Origin is a compile-time constant, so the destination host cannot be
+  // influenced; only the validated path below it varies.
+  return `${SLACK_RESPONSE_ORIGIN}${parsed.pathname}`;
 }
 
 export type SignatureFailure = 'no_secret' | 'missing_headers' | 'stale_timestamp' | 'mismatch';
