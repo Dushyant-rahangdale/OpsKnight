@@ -30,19 +30,13 @@ export default function IncidentTimeline({
   const { userTimeZone } = useTimezone();
 
   const formatEscalationMessage = (message: string) => {
-    const match = message.match(/\[\[scheduledAt=([^\]]+)\]\]/);
-    if (!match) {
-      return message;
-    }
-
-    const scheduledAtRaw = match[1];
-    const scheduledAt = new Date(scheduledAtRaw);
-    if (Number.isNaN(scheduledAt.getTime())) {
-      return message.replace(match[0], scheduledAtRaw);
-    }
-
-    const formatted = formatDateTime(scheduledAt, userTimeZone, { format: 'datetime' });
-    return message.replace(match[0], formatted);
+    return message.replace(/\[\[scheduledAt=([^\]]+)\]\]/g, (_match, scheduledAtRaw) => {
+      const scheduledAt = new Date(scheduledAtRaw);
+      if (Number.isNaN(scheduledAt.getTime())) {
+        return scheduledAtRaw;
+      }
+      return formatDateTime(scheduledAt, userTimeZone, { format: 'datetime' });
+    });
   };
 
   // Create a comprehensive timeline with incident lifecycle events
@@ -158,7 +152,9 @@ export default function IncidentTimeline({
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {/* Node Icon */}
-            <div className={`relative z-10 rounded-full border-4 border-white shrink-0 h-10 w-10 flex items-center justify-center shadow-sm ${config.avatarBg} ${config.avatarText}`}>
+            <div
+              className={`relative z-10 rounded-full border-4 border-white shrink-0 h-10 w-10 flex items-center justify-center shadow-sm ${config.avatarBg} ${config.avatarText}`}
+            >
               {config.icon}
             </div>
 
@@ -166,7 +162,9 @@ export default function IncidentTimeline({
             <div className="flex-1 pt-1.5 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-semibold ${isMajorEvent ? 'text-slate-900' : 'text-slate-700'}`}>
+                  <span
+                    className={`text-sm font-semibold ${isMajorEvent ? 'text-slate-900' : 'text-slate-700'}`}
+                  >
                     {config.label}
                   </span>
                   {isMajorEvent && (
@@ -180,7 +178,9 @@ export default function IncidentTimeline({
                 </span>
               </div>
 
-              <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isMajorEvent ? 'text-slate-900 font-medium' : 'text-slate-600'}`}>
+              <p
+                className={`text-sm leading-relaxed whitespace-pre-wrap ${isMajorEvent ? 'text-slate-900 font-medium' : 'text-slate-600'}`}
+              >
                 {formatEscalationMessage(event.message)}
               </p>
             </div>

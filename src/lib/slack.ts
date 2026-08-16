@@ -264,7 +264,7 @@ function buildSlackBlocks(
       elements: [
         {
           type: 'mrkdwn',
-          text: `*OpsKnight*  |  <!date^${timestamp}^{date} at {time}|${new Date().toLocaleString()}>`,
+          text: `*OpsKnight*  |  <!date^${timestamp}^{date} at {time}|${new Date().toLocaleString('en-US', { timeZone: 'UTC' })}>`,
         },
       ],
     },

@@ -393,6 +393,7 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
           where: { id: incidentId },
           data: {
             currentEscalationStep: currentStepIndex + 1,
+            nextEscalationAt: null,
             escalationProcessingAt: null,
           },
         });
@@ -490,6 +491,7 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
           where: { id: incidentId },
           data: {
             currentEscalationStep: currentStepIndex + 1,
+            nextEscalationAt: null,
             escalationProcessingAt: null,
           },
         });

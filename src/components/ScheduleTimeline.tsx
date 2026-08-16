@@ -424,8 +424,8 @@ export default function ScheduleTimeline({
                           const shiftStart = shift.start < startDate ? startDate : shift.start;
                           const shiftEnd = shift.end > endDate ? endDate : shift.end;
 
-                          const startHours = differenceInHours(shiftStart, startDate);
-                          const endHours = differenceInHours(shiftEnd, startDate);
+                          const startHours = (shiftStart.getTime() - startDate.getTime()) / 3600000;
+                          const endHours = (shiftEnd.getTime() - startDate.getTime()) / 3600000;
 
                           const leftPercent = (startHours / totalHours) * 100;
                           const widthPercent = ((endHours - startHours) / totalHours) * 100;
@@ -581,8 +581,8 @@ export default function ScheduleTimeline({
                       const blockStart = block.start < startDate ? startDate : block.start;
                       const blockEnd = block.end > endDate ? endDate : block.end;
 
-                      const startHours = differenceInHours(blockStart, startDate);
-                      const endHours = differenceInHours(blockEnd, startDate);
+                      const startHours = (blockStart.getTime() - startDate.getTime()) / 3600000;
+                      const endHours = (blockEnd.getTime() - startDate.getTime()) / 3600000;
 
                       const leftPercent = (startHours / totalHours) * 100;
                       const widthPercent = ((endHours - startHours) / totalHours) * 100;

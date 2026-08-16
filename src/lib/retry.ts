@@ -55,14 +55,17 @@ function sleep(ms: number): Promise<void> {
 /**
  * Calculate delay for retry attempt with exponential backoff
  */
-function calculateDelay(attempt: number, options: Required<Omit<RetryOptions, 'retryableErrors' | 'onRetry'>>): number {
+function calculateDelay(
+  attempt: number,
+  options: Required<Omit<RetryOptions, 'retryableErrors' | 'onRetry'>>
+): number {
   const delay = options.initialDelayMs * Math.pow(options.backoffMultiplier, attempt - 1);
   return Math.min(delay, options.maxDelayMs);
 }
 
 /**
  * Retry a function with exponential backoff
- * 
+ *
  * @example
  * const result = await retry(() => fetch('https://api.example.com'), {
  *   maxAttempts: 3,
@@ -104,7 +107,7 @@ export async function retry<T>(
       // Don't retry on last attempt
       if (attempt < opts.maxAttempts) {
         const delay = calculateDelay(attempt, opts);
-        
+
         // Call onRetry callback if provided
         if (options.onRetry) {
           options.onRetry(attempt, error);
@@ -132,7 +135,7 @@ export function isRetryableHttpError(status: number): boolean {
 
 /**
  * Retry HTTP fetch calls with proper error handling
- * 
+ *
  * @example
  * const result = await retryFetch('https://api.example.com', {
  *   method: 'POST',
@@ -149,6 +152,13 @@ export async function retryFetch(
 
     // Check if response status is retryable
     if (!response.ok && isRetryableHttpError(response.status)) {
+      const retryAfter = response.headers.get('Retry-After');
+      if (response.status === 429 && retryAfter) {
+        const seconds = parseInt(retryAfter, 10);
+        if (!isNaN(seconds) && seconds > 0) {
+          await sleep(Math.min(seconds * 1000, 30000));
+        }
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -166,17 +176,12 @@ export async function retryFetch(
  * Simple retry wrapper for common async operations
  * Returns the value directly or throws the last error
  */
-export async function retryWithThrow<T>(
-  fn: () => Promise<T>,
-  options?: RetryOptions
-): Promise<T> {
+export async function retryWithThrow<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T> {
   const result = await retry(fn, options);
-  
+
   if (!result.success) {
     throw result.error || new Error('Operation failed after retries');
   }
 
   return result.data!;
 }
-
-

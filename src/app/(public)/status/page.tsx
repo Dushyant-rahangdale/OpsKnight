@@ -346,7 +346,9 @@ async function renderStatusPage(statusPage: any) {
 
   const now = new Date();
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  ninetyDaysAgo.setUTCHours(0, 0, 0, 0);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
   const serviceIdsForSLA = statusPage.services.map((sp: any) => sp.serviceId);
 
   // Optimized: Single call to get metrics for all services
