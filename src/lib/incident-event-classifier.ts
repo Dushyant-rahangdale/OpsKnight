@@ -51,6 +51,20 @@ export function incidentEventWhereFor(
   kind: ClassifiedEventKind
 ): PrismaTypes.IncidentEventWhereInput {
   const spec = SPECS[kind];
+  if (kind === 'ACKNOWLEDGED') {
+    return {
+      OR: [
+        { type: spec.type },
+        {
+          AND: [
+            { type: null },
+            { message: { contains: spec.legacySubstring, mode: 'insensitive' } },
+            { NOT: { message: { contains: 'unacknowledged', mode: 'insensitive' } } },
+          ],
+        },
+      ],
+    };
+  }
   return {
     OR: [
       { type: spec.type },
@@ -58,10 +72,7 @@ export function incidentEventWhereFor(
       // After full backfill this branch becomes unreachable and can
       // be dropped by a follow-up release.
       {
-        AND: [
-          { type: null },
-          { message: { contains: spec.legacySubstring, mode: 'insensitive' } },
-        ],
+        AND: [{ type: null }, { message: { contains: spec.legacySubstring, mode: 'insensitive' } }],
       },
     ],
   };
@@ -92,5 +103,10 @@ export function incidentEventSqlPredicate(
   // is parameterized.
   const typeCol = Prisma.raw(`${tableAlias}."type"`);
   const msgCol = Prisma.raw(`${tableAlias}."message"`);
+
+  if (kind === 'ACKNOWLEDGED') {
+    return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'} AND ${msgCol} NOT ILIKE '%unacknowledged%'))`;
+  }
+
   return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'}))`;
 }

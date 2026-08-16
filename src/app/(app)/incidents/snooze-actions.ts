@@ -17,6 +17,19 @@ export async function snoozeIncidentWithDuration(
     throw new Error(error instanceof Error ? error.message : 'Unauthorized');
   }
 
+  const incident = await prisma.incident.findUnique({
+    where: { id: incidentId },
+    select: { status: true },
+  });
+
+  if (!incident) {
+    throw new Error('Incident not found');
+  }
+
+  if (incident.status === 'RESOLVED') {
+    throw new Error('Cannot snooze an already resolved incident');
+  }
+
   const snoozedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
   const user = await getCurrentUser();
   const userTimeZone = getUserTimeZone(user ?? undefined);

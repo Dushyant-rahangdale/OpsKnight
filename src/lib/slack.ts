@@ -427,6 +427,7 @@ export async function sendSlackMessageToChannel(
       : channel.startsWith('#')
         ? channel
         : `#${channel}`,
+    text: `[${eventType.toUpperCase()}] ${incident.title}`,
     blocks,
     attachments: [
       {

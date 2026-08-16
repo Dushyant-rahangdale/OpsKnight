@@ -56,24 +56,51 @@ export function mergeHybridMetrics(
   // Compliance = met / (met + breached) * 100. If both met+breached = 0
   // compliance is null (no evaluation possible). When compliance is
   // null we treat met as 0.
-  const reconstructMet = (compliance: number | null, breaches: number): number => {
+  const reconstructMet = (
+    compliance: number | null,
+    breaches: number,
+    totalIncidents: number,
+    rate: number
+  ): number => {
     if (compliance === null || compliance <= 0) return 0;
-    if (compliance >= 100) return Number.MAX_SAFE_INTEGER; // shouldn't happen with breaches > 0
-    // total_evaluated = breaches / (1 - compliance/100); met = total - breaches.
-    if (breaches === 0) return 0; // all-zero evaluation → no met inferred
+    const evaluatedTotal = Math.round((rate / 100) * totalIncidents);
+    if (breaches === 0) {
+      return compliance >= 100 ? evaluatedTotal : 0;
+    }
+    if (compliance >= 100) return Math.max(0, evaluatedTotal - breaches);
     const totalEvaluated = breaches / (1 - compliance / 100);
     return Math.max(0, Math.round(totalEvaluated - breaches));
   };
 
-  const ackMetHist = reconstructMet(historical.ackCompliance, historical.ackBreaches);
-  const ackMetLive = reconstructMet(live.ackCompliance, live.ackBreaches);
+  const ackMetHist = reconstructMet(
+    historical.ackCompliance,
+    historical.ackBreaches,
+    historical.totalIncidents,
+    historical.ackRate
+  );
+  const ackMetLive = reconstructMet(
+    live.ackCompliance,
+    live.ackBreaches,
+    live.totalIncidents,
+    live.ackRate
+  );
   const ackBreachesTotal = historical.ackBreaches + live.ackBreaches;
   const ackMetTotal = ackMetHist + ackMetLive;
   const ackEvaluatedTotal = ackMetTotal + ackBreachesTotal;
   const ackCompliance = ackEvaluatedTotal > 0 ? (ackMetTotal / ackEvaluatedTotal) * 100 : null;
 
-  const resolveMetHist = reconstructMet(historical.resolveCompliance, historical.resolveBreaches);
-  const resolveMetLive = reconstructMet(live.resolveCompliance, live.resolveBreaches);
+  const resolveMetHist = reconstructMet(
+    historical.resolveCompliance,
+    historical.resolveBreaches,
+    historical.totalIncidents,
+    historical.resolveRate
+  );
+  const resolveMetLive = reconstructMet(
+    live.resolveCompliance,
+    live.resolveBreaches,
+    live.totalIncidents,
+    live.resolveRate
+  );
   const resolveBreachesTotal = historical.resolveBreaches + live.resolveBreaches;
   const resolveMetTotal = resolveMetHist + resolveMetLive;
   const resolveEvaluatedTotal = resolveMetTotal + resolveBreachesTotal;
@@ -230,9 +257,7 @@ export function mergeHybridMetrics(
     serviceSlaTable: live.serviceSlaTable,
     recurringTitles: live.recurringTitles,
     eventsPerIncident:
-      totalIncidents > 0
-        ? (historical.eventsCount + live.eventsCount) / totalIncidents
-        : 0,
+      totalIncidents > 0 ? (historical.eventsCount + live.eventsCount) / totalIncidents : 0,
     heatmapData: live.heatmapData, // 365-day heatmap always comes from live
     serviceMetrics: live.serviceMetrics,
     insights: live.insights,

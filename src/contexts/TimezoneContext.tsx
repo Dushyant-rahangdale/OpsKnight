@@ -49,7 +49,7 @@ export function useTimezone() {
     // Return default values if context is not available (for public pages)
     return {
       userTimeZone: 'UTC',
-      browserTimeZone: getBrowserTimeZone(),
+      browserTimeZone: typeof window !== 'undefined' ? getBrowserTimeZone() : 'UTC',
       setUserTimeZone: () => {},
     };
   }

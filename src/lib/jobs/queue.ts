@@ -252,7 +252,7 @@ export async function processJob(job: any): Promise<boolean> {
           return true;
         }
 
-        // Cap notification retries to avoid infinite loops on bad payloads
+        // Cap notification retries to avoid infinite loops on bad payloads or spamming users
         const cappedMaxAttempts = Math.min(job.maxAttempts, 3);
         if (job.attempts + 1 >= cappedMaxAttempts) {
           await prisma.backgroundJob.update({
