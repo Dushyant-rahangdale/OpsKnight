@@ -38,11 +38,16 @@ function verifySlackSignature(
         .update(sigBaseString)
         .digest('hex');
 
-    // Timing-safe comparison
-    return crypto.timingSafeEqual(
-        Buffer.from(computedSignature),
-        Buffer.from(signature)
-    );
+    // Timing-safe comparison — throws on length mismatch, so a malformed
+    // signature must be treated as invalid rather than crashing the handler
+    try {
+        return crypto.timingSafeEqual(
+            Buffer.from(computedSignature),
+            Buffer.from(signature)
+        );
+    } catch {
+        return false;
+    }
 }
 
 export async function POST(request: NextRequest) {
@@ -115,7 +120,15 @@ export async function POST(request: NextRequest) {
                 if (incident.status === 'OPEN') {
                     await prisma.incident.update({
                         where: { id: incidentId },
-                        data: { status: 'ACKNOWLEDGED', acknowledgedAt: new Date() }
+                        data: {
+                            status: 'ACKNOWLEDGED',
+                            acknowledgedAt: incident.acknowledgedAt ?? new Date(),
+                            // Acknowledging must stop the escalation chain, exactly as
+                            // `/incident ack` does — otherwise the button changes the
+                            // status label while OpsKnight keeps paging the next step.
+                            escalationStatus: 'COMPLETED',
+                            nextEscalationAt: null,
+                        }
                     });
                     responseMessage = `👀 Incident acknowledged by <@${slackUserId || 'responder'}>`;
                 } else {
@@ -127,7 +140,13 @@ export async function POST(request: NextRequest) {
                 if (incident.status !== 'RESOLVED') {
                     await prisma.incident.update({
                         where: { id: incidentId },
-                        data: { status: 'RESOLVED', resolvedAt: new Date() }
+                        data: {
+                            status: 'RESOLVED',
+                            resolvedAt: incident.resolvedAt ?? new Date(),
+                            acknowledgedAt: incident.acknowledgedAt ?? new Date(),
+                            escalationStatus: 'COMPLETED',
+                            nextEscalationAt: null,
+                        }
                     });
                     responseMessage = `✅ Incident resolved by <@${slackUserId || 'responder'}>`;
 
@@ -194,7 +213,7 @@ export async function POST(request: NextRequest) {
                             }
                         }
 
-                        // 2. Fallback to name search or first active responder/admin
+                        // 2. Fall back to matching on the Slack username
                         if (!targetUser && slackUserName) {
                             targetUser = await prisma.user.findFirst({
                                 where: {
@@ -207,27 +226,39 @@ export async function POST(request: NextRequest) {
                             });
                         }
 
+                        // No "first active user" fallback: assigning the incident to an
+                        // arbitrary person is worse than not assigning it. Fail loudly
+                        // and tell the clicker how to make resolution work.
                         if (!targetUser) {
-                            targetUser = await prisma.user.findFirst({
-                                where: { status: 'ACTIVE' },
-                                select: { id: true, name: true }
+                            logger.warn('[Slack] assign_me could not resolve Slack user to an OpsKnight account', {
+                                slackUserId,
+                                slackUserName,
+                                incidentId,
+                            });
+                            return NextResponse.json({
+                                response_type: 'ephemeral',
+                                text: '⚠️ Could not match your Slack account to an OpsKnight user, so the incident was left unchanged. Make sure your Slack email matches your OpsKnight account email, then try again.',
                             });
                         }
 
-                        if (targetUser) {
-                            await prisma.incident.update({
-                                where: { id: incidentId },
-                                data: { assigneeId: targetUser.id }
-                            });
-                            updateWarRoomTopic(incidentId).catch(() => {});
-                            responseMessage = `🙋 Incident assigned to *${targetUser.name}* (<@${slackUserId}>)`;
-                        } else {
-                            responseMessage = `🙋 Incident assigned to <@${slackUserId}>`;
-                        }
+                        await prisma.incident.update({
+                            where: { id: incidentId },
+                            data: { assigneeId: targetUser.id }
+                        });
+                        updateWarRoomTopic(incidentId).catch(() => {});
+                        responseMessage = `🙋 Incident assigned to *${targetUser.name}* (<@${slackUserId}>)`;
                     } catch (err) {
-                        logger.warn('[Slack] Reassign failed via button', { error: err });
-                        responseMessage = `🙋 Incident assigned to <@${slackUserId}>`;
+                        logger.warn('[Slack] Assign to Me failed', { error: err, incidentId });
+                        return NextResponse.json({
+                            response_type: 'ephemeral',
+                            text: '⚠️ Could not assign this incident. Please try again, or assign it from the OpsKnight incident page.',
+                        });
                     }
+                } else {
+                    return NextResponse.json({
+                        response_type: 'ephemeral',
+                        text: '⚠️ Could not identify your Slack user, so the incident was left unchanged.',
+                    });
                 }
             } else {
                 return NextResponse.json(

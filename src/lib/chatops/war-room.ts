@@ -92,30 +92,49 @@ export async function slackApiCall(
   method: string,
   botToken: string,
   body: Record<string, unknown>
-): Promise<{ ok: boolean; error?: string; channel?: { id: string; name: string }; user?: { profile?: { email?: string } } }> {
-  const response = await retryFetch(
-    `https://slack.com/api/${method}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${botToken}`,
+): Promise<{
+  ok: boolean;
+  error?: string;
+  channel?: { id: string; name: string };
+  user?: { profile?: { email?: string } };
+}> {
+  try {
+    const response = await retryFetch(
+      `https://slack.com/api/${method}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${botToken}`,
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-    {
-      maxAttempts: 2,
-      initialDelayMs: 500,
-      retryableErrors: (error) => {
-        if (error instanceof Error) {
-          return error.message.includes('fetch') || error.message.includes('network');
-        }
-        return false;
-      },
-    }
-  );
+      {
+        maxAttempts: 2,
+        initialDelayMs: 500,
+        retryableErrors: error => {
+          if (error instanceof Error) {
+            // Network blips, plus Slack rate limiting and server errors, which
+            // retryFetch surfaces as a thrown `HTTP <status>: <text>` error.
+            return (
+              error.message.includes('fetch') ||
+              error.message.includes('network') ||
+              /^HTTP (429|5\d{2}):/.test(error.message)
+            );
+          }
+          return false;
+        },
+      }
+    );
 
-  return response.json();
+    return await response.json();
+  } catch (error) {
+    // Callers branch on `result.ok`; throwing here made rate limits surface as
+    // an exception on some paths and get silently swallowed on others.
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('[ChatOps] Slack API call failed', { method, error: message });
+    return { ok: false, error: message };
+  }
 }
 
 /**
@@ -126,27 +145,43 @@ async function findSlackUserByEmail(
   email: string
 ): Promise<{ ok: boolean; error?: string; user?: { id: string } }> {
   const url = `https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`;
-  const response = await retryFetch(
-    url,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${botToken}`,
+  try {
+    const response = await retryFetch(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${botToken}`,
+        },
       },
-    },
-    {
-      maxAttempts: 2,
-      initialDelayMs: 500,
-    }
-  );
-  return response.json();
+      {
+        maxAttempts: 2,
+        initialDelayMs: 500,
+      }
+    );
+    return await response.json();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn('[ChatOps] Slack user lookup failed', { error: message });
+    return { ok: false, error: message };
+  }
 }
 
 /**
  * Create a dedicated Slack war-room channel for a critical incident.
  * Checks eligibility based on ChatOpsConfig thresholds and service settings.
+ *
+ * `force` skips the auto-creation gates — the urgency/priority threshold and
+ * the per-service autoCreateWarRoom toggle. Both exist to decide when a
+ * war-room appears *by itself*; neither should refuse an operator who pressed
+ * "Create War-Room" on the incident page. The global `enabled` flag and the
+ * bot-token requirement still apply, since without them there is no
+ * integration to create anything in.
  */
-export async function createIncidentWarRoom(incidentId: string): Promise<WarRoomResult> {
+export async function createIncidentWarRoom(
+  incidentId: string,
+  options: { force?: boolean } = {}
+): Promise<WarRoomResult> {
   try {
     // Load incident with service
     const incident = await prisma.incident.findUnique({
@@ -163,7 +198,11 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
 
     // Already has a war-room
     if (incident.slackChannelId) {
-      return { success: true, channelId: incident.slackChannelId, channelName: incident.slackChannelName || undefined };
+      return {
+        success: true,
+        channelId: incident.slackChannelId,
+        channelName: incident.slackChannelName || undefined,
+      };
     }
 
     // Load global ChatOps config
@@ -175,17 +214,21 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
       return { success: false, error: 'ChatOps is not enabled' };
     }
 
-    // Check per-service override
-    if (!incident.service.autoCreateWarRoom) {
-      return { success: false, error: 'War-room auto-creation disabled for this service' };
-    }
+    if (!options.force) {
+      // Check per-service override
+      if (!incident.service.autoCreateWarRoom) {
+        return { success: false, error: 'War-room auto-creation disabled for this service' };
+      }
 
-    // Check urgency threshold
-    const urgencyMatch = config.autoCreateOnUrgency.includes(incident.urgency);
-    const priorityMatch = incident.priority ? config.autoCreateOnPriority.includes(incident.priority) : false;
+      // Check urgency threshold
+      const urgencyMatch = config.autoCreateOnUrgency.includes(incident.urgency);
+      const priorityMatch = incident.priority
+        ? config.autoCreateOnPriority.includes(incident.priority)
+        : false;
 
-    if (!urgencyMatch && !priorityMatch) {
-      return { success: false, error: 'Incident does not meet urgency/priority threshold' };
+      if (!urgencyMatch && !priorityMatch) {
+        return { success: false, error: 'Incident does not meet urgency/priority threshold' };
+      }
     }
 
     // Get bot token
@@ -302,9 +345,10 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
       // Parallel email lookups using GET-based findSlackUserByEmail
       // (slackApiCall sends POST+JSON which causes `invalid_arguments` for users.lookupByEmail)
       const lookupResults = await Promise.allSettled(
-        Array.from(emailsToInvite).map(async (email) => {
+        Array.from(emailsToInvite).map(async email => {
           const lookupResult = await findSlackUserByEmail(botToken, email.trim().toLowerCase());
-          if (lookupResult.ok && (lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
+          if (lookupResult.ok && (lookupResult as any).user?.id) {
+            // eslint-disable-line @typescript-eslint/no-explicit-any
             return (lookupResult as any).user.id as string; // eslint-disable-line @typescript-eslint/no-explicit-any
           }
           const lookupErr = lookupResult.error || 'User not found in Slack workspace';
@@ -313,18 +357,22 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
             error: lookupErr,
           });
           // Log to incident timeline for visibility
-          await prisma.incidentEvent.create({
-            data: {
-              incidentId,
-              message: `War-room: Could not invite user (${email}) — ${lookupErr === 'users_not_found' ? 'email not found in Slack workspace' : lookupErr}`,
-            },
-          }).catch(() => {});
+          await prisma.incidentEvent
+            .create({
+              data: {
+                incidentId,
+                message: `War-room: Could not invite user (${email}) — ${lookupErr === 'users_not_found' ? 'email not found in Slack workspace' : lookupErr}`,
+              },
+            })
+            .catch(() => {});
           return null;
         })
       );
 
       const slackUserIds: string[] = lookupResults
-        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .filter(
+          (r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null
+        )
         .map(r => r.value);
 
       // Invite users individually to prevent one failure from blocking all
@@ -335,7 +383,10 @@ export async function createIncidentWarRoom(incidentId: string): Promise<WarRoom
         }).catch(err => {
           const errMsg = err?.error || (err instanceof Error ? err.message : String(err));
           if (errMsg !== 'already_in_channel') {
-            logger.warn('[ChatOps] Failed to invite user to war-room', { slackUserId, error: errMsg });
+            logger.warn('[ChatOps] Failed to invite user to war-room', {
+              slackUserId,
+              error: errMsg,
+            });
           }
         });
       }
@@ -444,10 +495,15 @@ export async function postWarRoomUpdate(
 }
 
 /**
- * Archive a war-room channel when incident is resolved
+ * Archive a war-room channel when incident is resolved.
+ *
+ * `force` bypasses the `archiveOnResolve` config gate. That setting governs
+ * whether archiving happens *automatically* on resolve; it must not block an
+ * operator who explicitly asked to archive from the incident page.
  */
 export async function archiveWarRoomChannel(
-  incidentId: string
+  incidentId: string,
+  options: { force?: boolean } = {}
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const incident = await prisma.incident.findUnique({
@@ -459,12 +515,14 @@ export async function archiveWarRoomChannel(
       return { success: false, error: 'No war-room channel' };
     }
 
-    const config = await prisma.chatOpsConfig.findUnique({
-      where: { id: 'default' },
-    });
+    if (!options.force) {
+      const config = await prisma.chatOpsConfig.findUnique({
+        where: { id: 'default' },
+      });
 
-    if (!config?.archiveOnResolve) {
-      return { success: false, error: 'Archive on resolve is disabled' };
+      if (!config?.archiveOnResolve) {
+        return { success: false, error: 'Archive on resolve is disabled' };
+      }
     }
 
     const botToken = await getSlackBotToken(incident.serviceId);
@@ -522,10 +580,7 @@ export async function archiveWarRoomChannel(
 /**
  * Update the Slack war-room channel topic when incident status or metadata changes
  */
-export async function updateWarRoomTopic(
-  incidentId: string,
-  newStatus?: string
-): Promise<void> {
+export async function updateWarRoomTopic(incidentId: string, newStatus?: string): Promise<void> {
   try {
     const incident = await prisma.incident.findUnique({
       where: { id: incidentId },
@@ -548,8 +603,13 @@ export async function updateWarRoomTopic(
     const appUrl = getBaseUrl();
     const dashboardUrl = `${appUrl}/incidents/${incidentId}`;
     const displayStatus = newStatus || incident.status;
-    const statusIcon = displayStatus === 'ACKNOWLEDGED' ? '👀' : displayStatus === 'RESOLVED' ? '✅' : '🚨';
-    const assigneeText = incident.assignee ? ` | 👤 ${incident.assignee.name}` : incident.team ? ` | 👥 ${incident.team.name}` : '';
+    const statusIcon =
+      displayStatus === 'ACKNOWLEDGED' ? '👀' : displayStatus === 'RESOLVED' ? '✅' : '🚨';
+    const assigneeText = incident.assignee
+      ? ` | 👤 ${incident.assignee.name}`
+      : incident.team
+        ? ` | 👥 ${incident.team.name}`
+        : '';
     const topic = `${statusIcon} ${incident.title} | ${displayStatus} | ${incident.urgency}${assigneeText} | ${dashboardUrl}`;
 
     await slackApiCall('conversations.setTopic', botToken, {
@@ -595,21 +655,24 @@ export async function inviteUserToWarRoom(
     const normalizedEmail = user.email.trim().toLowerCase();
     const lookupResult = await findSlackUserByEmail(botToken, normalizedEmail);
 
-    if (!lookupResult.ok || !(lookupResult as any).user?.id) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!lookupResult.ok || !(lookupResult as any).user?.id) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const lookupErr = lookupResult.error || 'User not found in Slack workspace';
       const reason =
         lookupErr === 'user_not_found'
           ? `Email ${normalizedEmail} not found in Slack workspace`
           : lookupErr === 'missing_scope'
-          ? `Slack app is missing 'users:read.email' scope`
-          : lookupErr;
+            ? `Slack app is missing 'users:read.email' scope`
+            : lookupErr;
 
-      await prisma.incidentEvent.create({
-        data: {
-          incidentId,
-          message: `Slack War-Room: Could not auto-invite ${user.name} (${reason})`,
-        },
-      }).catch(() => {});
+      await prisma.incidentEvent
+        .create({
+          data: {
+            incidentId,
+            message: `Slack War-Room: Could not auto-invite ${user.name} (${reason})`,
+          },
+        })
+        .catch(() => {});
 
       return { success: false, error: reason };
     }
@@ -620,14 +683,17 @@ export async function inviteUserToWarRoom(
       users: slackUserId,
     });
 
-    if (!inviteResult.ok && (inviteResult as any).error !== 'already_in_channel') { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!inviteResult.ok && (inviteResult as any).error !== 'already_in_channel') {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const inviteErr = (inviteResult as any).error || 'Failed to invite user'; // eslint-disable-line @typescript-eslint/no-explicit-any
-      await prisma.incidentEvent.create({
-        data: {
-          incidentId,
-          message: `Slack War-Room: Could not invite ${user.name} to channel #${incident.slackChannelName} (${inviteErr})`,
-        },
-      }).catch(() => {});
+      await prisma.incidentEvent
+        .create({
+          data: {
+            incidentId,
+            message: `Slack War-Room: Could not invite ${user.name} to channel #${incident.slackChannelName} (${inviteErr})`,
+          },
+        })
+        .catch(() => {});
 
       return { success: false, error: inviteErr };
     }
@@ -766,7 +832,11 @@ export async function ensurePostmortemDraft(incidentId: string): Promise<string 
 
     const timelineEntries = [
       ...events.map(e => ({ time: e.createdAt, text: e.message, type: 'event' })),
-      ...notes.map(n => ({ time: n.createdAt, text: `[${n.user.name}]: ${n.content}`, type: 'note' })),
+      ...notes.map(n => ({
+        time: n.createdAt,
+        text: `[${n.user.name}]: ${n.content}`,
+        type: 'note',
+      })),
     ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
     const actionItemsFromNotes = notes
@@ -807,5 +877,3 @@ export async function ensurePostmortemDraft(incidentId: string): Promise<string 
     return null;
   }
 }
-
-
