@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateBridgeUrl, createIncidentWarRoom, postWarRoomUpdate, archiveWarRoomChannel, slackApiCall } from '@/lib/chatops/war-room';
+import {
+  generateBridgeUrl,
+  createIncidentWarRoom,
+  postWarRoomUpdate,
+  archiveWarRoomChannel,
+  slackApiCall,
+} from '@/lib/chatops/war-room';
 import prisma from '@/lib/prisma';
 import * as retryModule from '@/lib/retry';
 
@@ -68,7 +74,6 @@ describe('ChatOps War-Room Engine', () => {
       expect(url).toBe('https://meet.jit.si/opsknight-inc-12345678');
     });
 
-
     it('should return null for NONE provider', () => {
       const url = generateBridgeUrl('inc-12345678', 'NONE');
       expect(url).toBeNull();
@@ -83,7 +88,11 @@ describe('ChatOps War-Room Engine', () => {
     });
 
     it('should generate Google Meet URL with custom template or fallback', () => {
-      const customUrl = generateBridgeUrl('inc-9999', 'GOOGLE_MEET', 'meet.google.com/abc-defg-hij');
+      const customUrl = generateBridgeUrl(
+        'inc-9999',
+        'GOOGLE_MEET',
+        'meet.google.com/abc-defg-hij'
+      );
       expect(customUrl).toBe('https://meet.google.com/abc-defg-hij');
 
       const fallbackUrl = generateBridgeUrl('inc-12345678', 'GOOGLE_MEET');
@@ -152,6 +161,79 @@ describe('ChatOps War-Room Engine', () => {
       expect(result.error).toBe('Incident does not meet urgency/priority threshold');
     });
 
+    it('should create a war-room below threshold when forced', async () => {
+      // The incident page renders "Create War-Room" for every incident. Pressing
+      // it must not be refused by the thresholds that govern auto-creation.
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        id: 'inc-abcdef123456',
+        title: 'Minor Glitch',
+        urgency: 'LOW',
+        priority: 'P4',
+        status: 'OPEN',
+        slackChannelId: null,
+        serviceId: 'srv-1',
+        service: {
+          id: 'srv-1',
+          name: 'Payments API',
+          autoCreateWarRoom: false, // per-service auto-creation off
+          warRoomVideoBridge: 'JITSI',
+        },
+        assignee: null,
+      } as any);
+
+      vi.mocked(prisma.chatOpsConfig.findUnique).mockResolvedValue({
+        enabled: true,
+        channelPrefix: 'inc',
+        autoCreateOnUrgency: ['HIGH'],
+        autoCreateOnPriority: ['P1', 'P2'],
+        defaultVideoBridge: 'JITSI',
+      } as any);
+
+      vi.mocked(prisma.service.findUnique).mockResolvedValue({
+        id: 'srv-1',
+        policy: { steps: [] },
+      } as any);
+      vi.mocked(prisma.incident.update).mockResolvedValue({} as any);
+      vi.mocked(prisma.incidentEvent.create).mockResolvedValue({} as any);
+
+      vi.mocked(retryModule.retryFetch).mockReset();
+      vi.mocked(retryModule.retryFetch).mockImplementation((async (url: any) => {
+        if (String(url).includes('conversations.create')) {
+          return {
+            json: async () => ({
+              ok: true,
+              channel: { id: 'C555444', name: 'inc-123456-payments-api' },
+            }),
+          };
+        }
+        return { json: async () => ({ ok: true }) };
+      }) as any);
+
+      const result = await createIncidentWarRoom('inc-abcdef123456', { force: true });
+
+      expect(result.success).toBe(true);
+      expect(result.channelId).toBe('C555444');
+    });
+
+    it('should still refuse auto-creation below threshold when not forced', async () => {
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        id: 'inc-104',
+        urgency: 'LOW',
+        priority: 'P4',
+        slackChannelId: null,
+        service: { id: 'srv-1', name: 'Payments API', autoCreateWarRoom: true },
+      } as any);
+      vi.mocked(prisma.chatOpsConfig.findUnique).mockResolvedValue({
+        enabled: true,
+        autoCreateOnUrgency: ['HIGH'],
+        autoCreateOnPriority: ['P1', 'P2'],
+      } as any);
+
+      const result = await createIncidentWarRoom('inc-104', {});
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Incident does not meet urgency/priority threshold');
+    });
+
     it('should successfully create Slack channel and update incident', async () => {
       vi.mocked(prisma.incident.findUnique).mockResolvedValue({
         id: 'inc-abcdef123456',
@@ -185,7 +267,10 @@ describe('ChatOps War-Room Engine', () => {
       // Mock Slack API calls (conversations.create, setTopic)
       vi.spyOn(retryModule, 'retryFetch')
         .mockResolvedValueOnce({
-          json: async () => ({ ok: true, channel: { id: 'C999888', name: 'inc-123456-database-cluster' } }),
+          json: async () => ({
+            ok: true,
+            channel: { id: 'C999888', name: 'inc-123456-database-cluster' },
+          }),
         } as any)
         .mockResolvedValueOnce({
           json: async () => ({ ok: true }),
@@ -257,7 +342,10 @@ describe('ChatOps War-Room Engine', () => {
 
         if (href.includes('conversations.create')) {
           return {
-            json: async () => ({ ok: true, channel: { id: 'C999888', name: 'inc-123456-database-cluster' } }),
+            json: async () => ({
+              ok: true,
+              channel: { id: 'C999888', name: 'inc-123456-database-cluster' },
+            }),
           };
         }
         if (href.includes('users.lookupByEmail')) {
@@ -386,9 +474,7 @@ describe('ChatOps War-Room Engine', () => {
       // branch on result.ok, so throwing made rate limits crash some paths and
       // get silently swallowed on others.
       vi.mocked(retryModule.retryFetch).mockReset();
-      vi.mocked(retryModule.retryFetch).mockRejectedValue(
-        new Error('HTTP 429: Too Many Requests')
-      );
+      vi.mocked(retryModule.retryFetch).mockRejectedValue(new Error('HTTP 429: Too Many Requests'));
 
       const result = await slackApiCall('chat.postMessage', 'xoxb-test-token', {
         channel: 'C123',
