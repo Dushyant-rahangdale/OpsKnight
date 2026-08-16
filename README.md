@@ -13,7 +13,7 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](docs/v1.1/deployment/docker.md)
-[![Status](https://img.shields.io/badge/Status-v1.1.0-success?style=flat)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/Status-v1.2.0-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/tests.yml)
 [![Security](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml/badge.svg)](https://github.com/dushyant-rahangdale/opsknight/actions/workflows/security.yml)
@@ -193,8 +193,8 @@ Visit `http://localhost:3000` and start managing incidents.
 
 We support multiple deployment strategies to fit your infrastructure needs.
 
-| Method                                                                                                        | Best For                            | Guide                                          |
-| :------------------------------------------------------------------------------------------------------------ | :---------------------------------- | :--------------------------------------------- |
+| Method                                                                                                        | Best For                            | Guide                                            |
+| :------------------------------------------------------------------------------------------------------------ | :---------------------------------- | :----------------------------------------------- |
 | ![](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white) **Docker Compose**     | Local Development, small teams      | [Read Guide](docs/v1.1/deployment/docker.md)     |
 | ![](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white) **Helm Chart** | Production Kubernetes (Recommended) | [Read Guide](docs/v1.1/deployment/helm.md)       |
 | ![](https://img.shields.io/badge/-GitOps-black?style=flat&logo=git&logoColor=white) **Kustomize**             | GitOps (ArgoCD/Flux)                | [Read Guide](docs/v1.1/deployment/kubernetes.md) |

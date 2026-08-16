@@ -4,6 +4,7 @@ import {
   createIncidentWarRoom,
   postWarRoomUpdate,
   archiveWarRoomChannel,
+  inviteUserToWarRoom,
   slackApiCall,
 } from '@/lib/chatops/war-room';
 import prisma from '@/lib/prisma';
@@ -553,6 +554,42 @@ describe('ChatOps War-Room Engine', () => {
 
       const result = await archiveWarRoomChannel('inc-104', { force: true });
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('archived war-room guards', () => {
+    it('should not invite a user into an archived channel', async () => {
+      // Reassigning an incident after its channel was archived must not drag
+      // people into a dead channel.
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        slackChannelId: 'C123',
+        slackChannelName: 'inc-104-payments',
+        serviceId: 'srv-1',
+        warRoomArchivedAt: new Date('2026-08-16T10:00:00Z'),
+      } as any);
+
+      const result = await inviteUserToWarRoom('inc-104', 'usr-1');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('War-room channel is archived');
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should treat a second archive as a no-op', async () => {
+      // Resolve can reach archiving from the server action, bulk resolve and the
+      // Slack button; without this the farewell message posts more than once.
+      vi.mocked(prisma.incident.findUnique).mockResolvedValue({
+        slackChannelId: 'C123',
+        slackChannelName: 'inc-104-payments',
+        serviceId: 'srv-1',
+        warRoomArchivedAt: new Date('2026-08-16T10:00:00Z'),
+      } as any);
+      vi.mocked(retryModule.retryFetch).mockReset();
+
+      const result = await archiveWarRoomChannel('inc-104');
+
+      expect(result.success).toBe(true);
+      expect(retryModule.retryFetch).not.toHaveBeenCalled();
+      expect(prisma.incidentEvent.create).not.toHaveBeenCalled();
     });
   });
 

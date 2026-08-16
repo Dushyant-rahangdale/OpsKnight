@@ -513,11 +513,23 @@ export async function archiveWarRoomChannel(
   try {
     const incident = await prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { slackChannelId: true, slackChannelName: true, serviceId: true },
+      select: {
+        slackChannelId: true,
+        slackChannelName: true,
+        serviceId: true,
+        warRoomArchivedAt: true,
+      },
     });
 
     if (!incident?.slackChannelId) {
       return { success: false, error: 'No war-room channel' };
+    }
+
+    // Several paths archive on resolve (server action, bulk resolve, Slack
+    // button). Without this, a resolve that hits two of them posts the farewell
+    // message twice.
+    if (incident.warRoomArchivedAt) {
+      return { success: true };
     }
 
     if (!options.force) {
@@ -644,11 +656,22 @@ export async function inviteUserToWarRoom(
   try {
     const incident = await prisma.incident.findUnique({
       where: { id: incidentId },
-      select: { slackChannelId: true, slackChannelName: true, serviceId: true },
+      select: {
+        slackChannelId: true,
+        slackChannelName: true,
+        serviceId: true,
+        warRoomArchivedAt: true,
+      },
     });
 
     if (!incident?.slackChannelId) {
       return { success: false, error: 'No active war-room channel' };
+    }
+
+    // Reassigning an incident whose channel was archived must not drag people
+    // into a dead channel — Slack rejects it, and it would be noise if it did not
+    if (incident.warRoomArchivedAt) {
+      return { success: false, error: 'War-room channel is archived' };
     }
 
     const user = await prisma.user.findUnique({
