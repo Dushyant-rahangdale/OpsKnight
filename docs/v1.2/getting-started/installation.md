@@ -85,7 +85,9 @@ For contributors and developers running the app directly.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20 (the version the production image is built on; `engines` pins
+  `>=20 <21`). Older runtimes resolve `Intl` hour cycles differently, which
+  affects on-call schedule calculations.
 - PostgreSQL 14+
 - npm or yarn
 
