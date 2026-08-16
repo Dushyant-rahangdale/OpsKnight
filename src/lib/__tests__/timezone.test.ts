@@ -27,4 +27,32 @@ describe('timezone helpers', () => {
     expect(formatDateKeyInTimeZone(start, timeZone)).toBe(dateKey);
     expect(formatDateKeyInTimeZone(nextStart, timeZone)).toBe('2024-03-11');
   });
+
+  // Regression: getTimeZoneOffsetMs used `hour12: false`, which resolves to the
+  // h24 hour cycle on Node 20's ICU and reports midnight as hour "24". That
+  // rolled Date.UTC into the next day and produced a 24h offset error, so
+  // start-of-day in a zero-offset zone landed a full day early — on Node 20
+  // only. Node 22 defaults to h23 and was unaffected, so the two runtimes
+  // silently disagreed about who was on call.
+  it('resolves start of day in zero-offset zones without a day shift', () => {
+    for (const timeZone of ['UTC', 'Europe/London', 'Africa/Abidjan']) {
+      const start = startOfDayFromDateKey('2026-08-16', timeZone);
+      expect(formatDateKeyInTimeZone(start, timeZone)).toBe('2026-08-16');
+    }
+  });
+
+  it('keeps start of day at midnight across a range of zones and dates', () => {
+    const zones = ['UTC', 'Asia/Kolkata', 'America/New_York', 'Australia/Sydney', 'Europe/London'];
+    const dateKeys = ['2026-01-01', '2026-03-29', '2026-08-16', '2026-11-01', '2026-12-31'];
+
+    for (const timeZone of zones) {
+      for (const dateKey of dateKeys) {
+        const start = startOfDayFromDateKey(dateKey, timeZone);
+        expect(formatDateKeyInTimeZone(start, timeZone)).toBe(dateKey);
+
+        const nextStart = startOfNextDayFromDateKey(dateKey, timeZone);
+        expect(formatDateKeyInTimeZone(nextStart, timeZone)).toBe(addDaysToDateKey(dateKey, 1));
+      }
+    }
+  });
 });
