@@ -24,6 +24,7 @@ export async function cleanupUserTokens(params?: {
     prisma.userToken.deleteMany({
       where: {
         expiresAt: { lt: now },
+        usedAt: null,
       },
     }),
     prisma.userToken.deleteMany({
