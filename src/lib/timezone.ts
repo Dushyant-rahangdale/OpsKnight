@@ -289,7 +289,12 @@ function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false,
+      // hourCycle h23 keeps midnight as hour 00. `hour12: false` alone is not
+      // enough: on Node 20's ICU, en-US resolves to the h24 cycle and formats
+      // midnight as hour "24", which rolls Date.UTC below into the next day and
+      // yields a 24h offset error. Node 22 defaults to h23, so this diverged by
+      // runtime — see the %24 guard for the same reason.
+      hourCycle: 'h23',
     });
     const parts = formatter.formatToParts(date);
     const partMap: Record<string, string> = {};
@@ -302,7 +307,8 @@ function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
       Number(partMap.year),
       Number(partMap.month) - 1,
       Number(partMap.day),
-      Number(partMap.hour),
+      // Defensive: any ICU build that still reports "24" for midnight
+      Number(partMap.hour) % 24,
       Number(partMap.minute),
       Number(partMap.second)
     );
