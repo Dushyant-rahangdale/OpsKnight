@@ -34,7 +34,14 @@ describe('SlackIntegrationPage', () => {
   });
 
   it('renders setup wizard trigger when OAuth is not configured', () => {
-    render(<SlackIntegrationPage integration={null} isOAuthConfigured={false} isAdmin={true} />);
+    render(
+      <SlackIntegrationPage
+        integration={null}
+        isOAuthConfigured={false}
+        isSigningSecretConfigured={false}
+        isAdmin={true}
+      />
+    );
 
     expect(screen.getByText('Connect Your Slack Workspace')).toBeInTheDocument();
     expect(
@@ -57,6 +64,7 @@ describe('SlackIntegrationPage', () => {
       <SlackIntegrationPage
         integration={integrationFixture}
         isOAuthConfigured={true}
+        isSigningSecretConfigured={true}
         isAdmin={true}
       />
     );

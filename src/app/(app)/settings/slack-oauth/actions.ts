@@ -24,14 +24,16 @@ export async function saveSlackOAuthConfig(
   const enabledValue = formData.get('enabled');
   const enabled = enabledValue === 'on' || enabledValue === 'true';
 
-  if (!clientId) {
-    return { error: 'Client ID is required' };
-  }
-
-  // Get existing config to preserve secret if not provided
+  // Get existing config to preserve values that were not resubmitted
   const existing = await prisma.slackOAuthConfig.findFirst({
     orderBy: { updatedAt: 'desc' },
   });
+
+  // Allows updating just the signing secret without re-entering app credentials
+  const effectiveClientId = clientId || existing?.clientId;
+  if (!effectiveClientId) {
+    return { error: 'Client ID is required' };
+  }
 
   // If updating and secret is not provided (or is placeholder), keep existing
   let encryptedSecret = existing?.clientSecret;
@@ -56,7 +58,7 @@ export async function saveSlackOAuthConfig(
     where: { id: existing?.id || 'default' },
     create: {
       id: 'default',
-      clientId,
+      clientId: effectiveClientId,
       clientSecret: encryptedSecret!,
       signingSecret: encryptedSigningSecret,
       redirectUri: redirectUri || null,
@@ -64,10 +66,10 @@ export async function saveSlackOAuthConfig(
       updatedBy: actorId,
     },
     update: {
-      clientId,
+      clientId: effectiveClientId,
       ...(encryptedSecret ? { clientSecret: encryptedSecret } : {}),
       signingSecret: encryptedSigningSecret,
-      redirectUri: redirectUri || null,
+      redirectUri: redirectUri || existing?.redirectUri || null,
       enabled,
       updatedBy: actorId,
     },
@@ -80,7 +82,7 @@ export async function saveSlackOAuthConfig(
     actorId,
     details: {
       enabled,
-      clientId: clientId.substring(0, 10) + '...',
+      clientId: effectiveClientId.substring(0, 10) + '...',
       configType: 'slack-oauth',
       signingSecretConfigured: Boolean(encryptedSigningSecret),
     },

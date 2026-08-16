@@ -40,6 +40,7 @@ import {
   type ChannelFilter,
 } from '@/components/settings/slack';
 import GuidedSlackSetup from '@/components/settings/GuidedSlackSetup';
+import SlackSigningSecretCard from '@/components/settings/SlackSigningSecretCard';
 import { Badge } from '@/components/ui/shadcn/badge';
 import {
   AlertDialog,
@@ -70,12 +71,14 @@ interface SlackIntegration {
 interface SlackIntegrationPageProps {
   integration: SlackIntegration | null;
   isOAuthConfigured: boolean;
+  isSigningSecretConfigured: boolean;
   isAdmin: boolean;
 }
 
 export default function SlackIntegrationPage({
   integration,
   isOAuthConfigured,
+  isSigningSecretConfigured,
   isAdmin,
 }: SlackIntegrationPageProps) {
   const router = useRouter();
@@ -110,8 +113,19 @@ export default function SlackIntegrationPage({
     variant: 'default',
   });
 
-  const requiredScopes = ['chat:write', 'channels:read', 'channels:join'];
-  const optionalScopes = ['groups:read'];
+  // Mirrors the scopes requested in /api/slack/oauth. Required = the war-room
+  // flow breaks without them; optional = private-channel support only.
+  const requiredScopes = [
+    'chat:write',
+    'channels:read',
+    'channels:join',
+    'channels:manage',
+    'channels:history',
+    'reactions:read',
+    'users:read',
+    'users:read.email',
+  ];
+  const optionalScopes = ['groups:read', 'groups:write', 'groups:history', 'im:read', 'mpim:read'];
   const scopeSet = useMemo(() => new Set(integration?.scopes ?? []), [integration]);
   const missingRequiredScopes = requiredScopes.filter(scope => !scopeSet.has(scope));
 
@@ -508,6 +522,12 @@ export default function SlackIntegrationPage({
       >
         {/* Guided Setup Wizard (Admin Only) */}
         {!isOAuthConfigured && isAdmin && <GuidedSlackSetup />}
+
+        {/* Signing secret — the guided setup is hidden once Slack is connected,
+            so an existing install needs somewhere to supply it */}
+        {isOAuthConfigured && isAdmin && (
+          <SlackSigningSecretCard isConfigured={isSigningSecretConfigured} />
+        )}
 
         {/* Configuration Actions */}
         {isOAuthConfigured && isAdmin && (
