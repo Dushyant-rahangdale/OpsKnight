@@ -41,6 +41,9 @@ import {
 } from '@/components/settings/slack';
 import GuidedSlackSetup from '@/components/settings/GuidedSlackSetup';
 import SlackSigningSecretCard from '@/components/settings/SlackSigningSecretCard';
+import SlackManifestCard from '@/components/settings/SlackManifestCard';
+import { getBaseUrl } from '@/lib/env-validation';
+import { SLACK_REQUIRED_BOT_SCOPES, SLACK_OPTIONAL_BOT_SCOPES } from '@/lib/slack/app-manifest';
 import { Badge } from '@/components/ui/shadcn/badge';
 import {
   AlertDialog,
@@ -113,19 +116,10 @@ export default function SlackIntegrationPage({
     variant: 'default',
   });
 
-  // Mirrors the scopes requested in /api/slack/oauth. Required = the war-room
-  // flow breaks without them; optional = private-channel support only.
-  const requiredScopes = [
-    'chat:write',
-    'channels:read',
-    'channels:join',
-    'channels:manage',
-    'channels:history',
-    'reactions:read',
-    'users:read',
-    'users:read.email',
-  ];
-  const optionalScopes = ['groups:read', 'groups:write', 'groups:history', 'im:read', 'mpim:read'];
+  // Shared with the OAuth request and the generated app manifest, so the
+  // checklist cannot claim a healthy install while the code asks for more.
+  const requiredScopes = [...SLACK_REQUIRED_BOT_SCOPES];
+  const optionalScopes = [...SLACK_OPTIONAL_BOT_SCOPES];
   const scopeSet = useMemo(() => new Set(integration?.scopes ?? []), [integration]);
   const missingRequiredScopes = requiredScopes.filter(scope => !scopeSet.has(scope));
 
@@ -529,6 +523,14 @@ export default function SlackIntegrationPage({
           <SlackSigningSecretCard isConfigured={isSigningSecretConfigured} />
         )}
 
+        {/* Manifest stays available after setup: scopes and event subscriptions
+            change as features land, and this is how an existing app catches up */}
+        {isOAuthConfigured && isAdmin && (
+          <div className="mb-4 rounded-lg border bg-background p-4">
+            <SlackManifestCard baseUrl={getBaseUrl()} />
+          </div>
+        )}
+
         {/* Configuration Actions */}
         {isOAuthConfigured && isAdmin && (
           <div className="flex justify-end mb-4">
@@ -626,8 +628,12 @@ export default function SlackIntegrationPage({
                   <AlertTitle>Missing Slack scopes</AlertTitle>
                   <AlertDescription className="space-y-2">
                     <p>
-                      Add these scopes in Slack and reconnect the app:{' '}
+                      Not granted to this workspace:{' '}
                       <strong>{missingRequiredScopes.join(', ')}</strong>
+                    </p>
+                    <p className="text-xs">
+                      Reconnecting alone will not add them — Slack only grants scopes the app itself
+                      declares. Apply the App Manifest below first, then reinstall.
                     </p>
                     {isAdmin && (
                       <Button size="sm" asChild>
