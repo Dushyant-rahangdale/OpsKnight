@@ -10,6 +10,7 @@ import prisma from '@/lib/prisma';
 import { decrypt } from '@/lib/encryption';
 import { getAppUrl } from '@/lib/app-url';
 import crypto from 'crypto';
+import { SLACK_BOT_SCOPES } from '@/lib/slack/app-manifest';
 
 const isLocalhostUrl = (value: string) =>
   value.includes('localhost') || value.includes('127.0.0.1');
@@ -95,22 +96,9 @@ export async function GET(request: NextRequest) {
     // For now, we'll pass it in the callback URL
     const _callbackUrl = `${SLACK_REDIRECT_URI}?state=${state}${serviceId ? `&serviceId=${serviceId}` : ''}`;
 
-    // Slack OAuth scopes needed for alerts and ChatOps war-rooms
-    const scopes = [
-      'chat:write',
-      'channels:read',
-      'channels:join',
-      'channels:manage',
-      'channels:history', // Read pinned message text for emoji reaction timeline sync
-      'groups:read',
-      'groups:write',
-      'groups:history', // Same, for private war-room channels
-      'im:read',
-      'mpim:read',
-      'reactions:read', // Receive reaction_added events (:pushpin: -> incident timeline)
-      'users:read',
-      'users:read.email',
-    ].join(',');
+    // Single source of truth, shared with the app manifest and the
+    // Settings scope checklist so the three cannot drift apart.
+    const scopes = SLACK_BOT_SCOPES.join(',');
 
     const authUrl =
       `https://slack.com/oauth/v2/authorize?` +

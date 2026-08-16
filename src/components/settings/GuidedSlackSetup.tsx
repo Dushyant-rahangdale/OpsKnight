@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/shadcn/badge';
 import { Alert, AlertDescription } from '@/components/ui/shadcn/alert';
 import { Slack, ExternalLink, Copy, CheckCircle2, ArrowRight, ArrowLeft, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import SlackManifestCard from '@/components/settings/SlackManifestCard';
 
 type SetupStep = 1 | 2 | 3;
 
@@ -133,6 +134,10 @@ export default function GuidedSlackSetup() {
         {/* Step 1: Create Slack App */}
         {step === 1 && (
           <div className="space-y-6">
+            <div className="mb-6 rounded-lg border bg-background p-4">
+              <SlackManifestCard baseUrl={getBaseUrl()} />
+            </div>
+
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-medium">

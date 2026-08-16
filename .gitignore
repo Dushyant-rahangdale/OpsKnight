@@ -83,3 +83,6 @@ ci_*.txt
 # Playwright
 playwright-report/
 test-results/
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo
