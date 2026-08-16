@@ -57,7 +57,11 @@ async function resolveOpsKnightUser(
       const data = await response.json();
       if (data.ok && data.user) {
         slackEmail = data.user.profile?.email?.trim();
-        slackRealName = (data.user.profile?.real_name || data.user.real_name || data.user.name)?.trim();
+        slackRealName = (
+          data.user.profile?.real_name ||
+          data.user.real_name ||
+          data.user.name
+        )?.trim();
       }
     }
 
@@ -113,10 +117,12 @@ async function resolveOpsKnightUser(
 export async function handleSlashCommand(payload: SlashCommandPayload): Promise<SlackResponse> {
   const { text, channel_id, user_id } = payload;
 
-  // Parse subcommand and args
-  const parts = text.trim().split(/\s+/);
-  const subcommand = (parts[0] || 'help').toLowerCase();
-  const args = parts.slice(1).join(' ');
+  // Parse subcommand and preserve raw argument formatting (including newlines and tabs)
+  const trimmed = text.trim();
+  const firstSpaceIndex = trimmed.search(/\s/);
+  const subcommand =
+    (firstSpaceIndex === -1 ? trimmed : trimmed.slice(0, firstSpaceIndex)).toLowerCase() || 'help';
+  const args = firstSpaceIndex === -1 ? '' : trimmed.slice(firstSpaceIndex).trim();
 
   // Find incident linked to this channel
   const incident = await prisma.incident.findFirst({
@@ -373,30 +379,41 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
           };
         }
 
-        const lines = await Promise.all(policy.steps.map(async (step, i) => {
-          const targets: string[] = [];
-          if (step.targetUser) targets.push(`👤 ${step.targetUser.name}`);
-          if (step.targetTeam) {
-            const members = step.targetTeam.members.map(m => m.user.name).join(', ');
-            targets.push(`👥 ${step.targetTeam.name} (${members})`);
-          }
-          if (step.targetSchedule) {
-            // Try to resolve current on-call from schedule
-            try {
-              const { resolveEscalationTarget } = await import('@/lib/escalation');
-              const userIds = await resolveEscalationTarget('SCHEDULE', step.targetSchedule.id, new Date());
-              if (userIds.length > 0) {
-                const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { name: true } });
-                targets.push(`📅 ${step.targetSchedule.name} (On-call: ${users.map(u => u.name).join(', ')})`);
-              } else {
-                targets.push(`📅 ${step.targetSchedule.name} (No one on-call)`);
-              }
-            } catch {
-              targets.push(`📅 ${step.targetSchedule.name}`);
+        const lines = await Promise.all(
+          policy.steps.map(async (step, i) => {
+            const targets: string[] = [];
+            if (step.targetUser) targets.push(`👤 ${step.targetUser.name}`);
+            if (step.targetTeam) {
+              const members = step.targetTeam.members.map(m => m.user.name).join(', ');
+              targets.push(`👥 ${step.targetTeam.name} (${members})`);
             }
-          }
-          return `*Step ${i + 1}* (${step.delayMinutes}min delay): ${targets.join(', ') || 'Schedule-based'}`;
-        }));
+            if (step.targetSchedule) {
+              // Try to resolve current on-call from schedule
+              try {
+                const { resolveEscalationTarget } = await import('@/lib/escalation');
+                const userIds = await resolveEscalationTarget(
+                  'SCHEDULE',
+                  step.targetSchedule.id,
+                  new Date()
+                );
+                if (userIds.length > 0) {
+                  const users = await prisma.user.findMany({
+                    where: { id: { in: userIds } },
+                    select: { name: true },
+                  });
+                  targets.push(
+                    `📅 ${step.targetSchedule.name} (On-call: ${users.map(u => u.name).join(', ')})`
+                  );
+                } else {
+                  targets.push(`📅 ${step.targetSchedule.name} (No one on-call)`);
+                }
+              } catch {
+                targets.push(`📅 ${step.targetSchedule.name}`);
+              }
+            }
+            return `*Step ${i + 1}* (${step.delayMinutes}min delay): ${targets.join(', ') || 'Schedule-based'}`;
+          })
+        );
 
         return {
           response_type: 'ephemeral',
@@ -464,7 +481,11 @@ export async function handleSlashCommand(payload: SlashCommandPayload): Promise<
 
         const timelineEntries = [
           ...events.map(e => ({ time: e.createdAt, text: e.message, type: 'event' })),
-          ...notes.map(n => ({ time: n.createdAt, text: `[${n.user.name}]: ${n.content}`, type: 'note' })),
+          ...notes.map(n => ({
+            time: n.createdAt,
+            text: `[${n.user.name}]: ${n.content}`,
+            type: 'note',
+          })),
         ].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
         const actionItemsFromNotes = notes

@@ -119,7 +119,6 @@ function splitBlockByRestrictions(
   endHour?: number
 ): Array<{ start: Date; end: Date }> {
   const result: Array<{ start: Date; end: Date }> = [];
-  const ONE_HOUR = 3600000;
 
   let cursor = new Date(start);
   let segStart: Date | null = null;
@@ -148,6 +147,11 @@ function splitBlockByRestrictions(
       allowed = false;
     }
 
+    // Advance to next hour boundary or end
+    const nextHourMs = 3600000 - (cursor.getTime() % 3600000);
+    const stepMs = Math.min(Math.max(nextHourMs, 60000), 3600000);
+    const nextCursor = new Date(Math.min(cursor.getTime() + stepMs, end.getTime()));
+
     if (allowed) {
       if (!segStart) segStart = new Date(cursor);
     } else {
@@ -157,7 +161,10 @@ function splitBlockByRestrictions(
       }
     }
 
-    cursor = new Date(cursor.getTime() + ONE_HOUR);
+    if (nextCursor.getTime() <= cursor.getTime()) {
+      break;
+    }
+    cursor = nextCursor;
   }
 
   // Close any open segment
@@ -426,7 +433,11 @@ export function getFinalScheduleBlocks(
 
   const events: TimelineEvent[] = [];
   for (const block of sorted) {
-    const priority = layerPriority.get(block.layerId) ?? 0;
+    // Overrides always take top priority over all scheduled layers
+    const priority =
+      block.source === 'override'
+        ? Number.MAX_SAFE_INTEGER
+        : (layerPriority.get(block.layerId) ?? 0);
     events.push({ time: block.start, type: 'start', block, priority });
     events.push({ time: block.end, type: 'end', block, priority });
   }

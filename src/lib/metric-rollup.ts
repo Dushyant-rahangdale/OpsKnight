@@ -827,8 +827,8 @@ export async function queryRollupMetrics(
     afterHoursCount += rollup.afterHoursCount;
   }
 
-  const avgMtta = mttaCount > 0 ? Number(mttaSum / BigInt(mttaCount)) / 60000 : null; // Convert to minutes
-  const avgMttr = mttrCount > 0 ? Number(mttrSum / BigInt(mttrCount)) / 60000 : null;
+  const avgMtta = mttaCount > 0 ? Number(mttaSum) / mttaCount / 60000 : null; // Convert to minutes
+  const avgMttr = mttrCount > 0 ? Number(mttrSum) / mttrCount / 60000 : null;
 
   const totalAckEvaluated = ackSlaMet + ackSlaBreached;
   const ackCompliance = totalAckEvaluated > 0 ? (ackSlaMet / totalAckEvaluated) * 100 : null;
