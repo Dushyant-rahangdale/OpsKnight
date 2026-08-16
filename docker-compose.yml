@@ -61,25 +61,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
     networks:
       - opsknight-network
     command: >
       sh -c "./docker-entrypoint.sh"
-
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: opsknight_watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_LABEL_ENABLE=true
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=60
-    networks:
-      - opsknight-network
 
 volumes:
   opsknight_postgres_data:
