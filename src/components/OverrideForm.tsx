@@ -25,6 +25,7 @@ type OverrideFormProps = {
     scheduleId: string,
     formData: FormData
   ) => Promise<{ error?: string } | undefined>;
+  scheduleTimeZone: string;
 };
 
 export default function OverrideForm({
@@ -32,6 +33,7 @@ export default function OverrideForm({
   users,
   canManageSchedules,
   createOverride,
+  scheduleTimeZone,
 }: OverrideFormProps) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -44,14 +46,21 @@ export default function OverrideForm({
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
 
-  // Helper for datetime-local format: YYYY-MM-DDTHH:mm
-  const toLocalISOString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  // Format date for datetime-local input in the schedule's timezone
+  const toScheduleISOString = (date: Date) => {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: scheduleTimeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      hourCycle: 'h23',
+    });
+    const parts = formatter.formatToParts(date);
+    const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
+    return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
   };
 
   const handleQuickDuration = (hours: number) => {
@@ -64,8 +73,8 @@ export default function OverrideForm({
 
     const end = addHours(now, hours);
 
-    setStartTime(toLocalISOString(now));
-    setEndTime(toLocalISOString(end));
+    setStartTime(toScheduleISOString(now));
+    setEndTime(toScheduleISOString(end));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -259,6 +268,11 @@ export default function OverrideForm({
               className="w-full h-11 text-sm rounded-lg border-2 border-slate-200 bg-white px-3 hover:border-slate-300 focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
             />
           </div>
+
+          {/* Timezone indicator */}
+          <p className="text-xs text-slate-500 -mt-1">
+            Times are in schedule timezone: <span className="font-medium">{scheduleTimeZone}</span>
+          </p>
 
           {/* Preview */}
           {startTime && endTime && selectedUserId && (

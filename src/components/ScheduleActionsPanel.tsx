@@ -24,6 +24,7 @@ type ScheduleActionsPanelProps = {
     formData: FormData
   ) => Promise<{ error?: string } | undefined>;
   defaultStartDate: string;
+  scheduleTimeZone: string;
 };
 
 export default function ScheduleActionsPanel({
@@ -33,6 +34,7 @@ export default function ScheduleActionsPanel({
   createLayer,
   createOverride,
   defaultStartDate,
+  scheduleTimeZone,
 }: ScheduleActionsPanelProps) {
   if (!canManageSchedules) return null;
 
@@ -62,6 +64,7 @@ export default function ScheduleActionsPanel({
           users={users}
           canManageSchedules={canManageSchedules}
           createOverride={createOverride}
+          scheduleTimeZone={scheduleTimeZone}
         />
       </CardContent>
     </Card>

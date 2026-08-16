@@ -214,7 +214,13 @@ export default async function SystemLogsPage({
                         {log.level}
                       </Badge>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {timestamp.toLocaleTimeString()}
+                        {timestamp.toLocaleTimeString('en-US', {
+                          timeZone: 'UTC',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })}
                       </span>
                       {log.component && (
                         <Badge variant="outline" size="xs" className="uppercase">

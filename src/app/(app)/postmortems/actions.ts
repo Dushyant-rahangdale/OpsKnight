@@ -359,7 +359,7 @@ export async function deletePostmortem(incidentId: string) {
 /**
  * Generate a draft postmortem using heuristics (Template Engine)
  */
-export async function generatePostmortemDraft(incidentId: string) {
+export async function generatePostmortemDraft(incidentId: string, userTimeZone?: string) {
   try {
     await assertResponderOrAbove();
   } catch (error) {
@@ -382,6 +382,7 @@ export async function generatePostmortemDraft(incidentId: string) {
 
   // 1. Calculate Duration & Impact
   const start = new Date(incident.createdAt);
+  const tz = userTimeZone || 'UTC';
   const end = incident.resolvedAt ? new Date(incident.resolvedAt) : new Date();
   const durationMs = end.getTime() - start.getTime();
   const durationMinutes = Math.floor(durationMs / 60000);
@@ -395,18 +396,25 @@ export async function generatePostmortemDraft(incidentId: string) {
   };
 
   // 2. Generate Summary
-  const date = start.toLocaleDateString('en-US', {
+  const date = new Intl.DateTimeFormat('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-  });
-  const startTime = start.toLocaleTimeString('en-US', {
+    timeZone: tz,
+  }).format(start);
+  const startTime = new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     timeZoneName: 'short',
-  });
+    timeZone: tz,
+  }).format(start);
   const endTime = incident.resolvedAt
-    ? end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })
+    ? new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+        timeZone: tz,
+      }).format(end)
     : 'ongoing';
 
   const summary = `On ${date}, the ${incident.service.name} service experienced an incident${incident.urgency === 'HIGH' ? ' (High Urgency)' : ''}. The incident began at ${startTime} and was resolved at ${endTime}. The total duration of impact was ${durationString}.`;
@@ -476,10 +484,7 @@ export async function bulkDeletePostmortems(ids: string[]) {
 
   await prisma.postmortem.deleteMany({
     where: {
-      OR: [
-        { id: { in: ids } },
-        { incidentId: { in: ids } },
-      ],
+      OR: [{ id: { in: ids } }, { incidentId: { in: ids } }],
     },
   });
 

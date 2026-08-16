@@ -410,7 +410,15 @@ export default async function PerformancePage() {
           <strong>Data Source:</strong> {dataSource}
         </div>
         <div>
-          <strong>Last Updated:</strong> {new Date().toLocaleString()}
+          <strong>Last Updated:</strong>{' '}
+          {new Date().toLocaleString('en-US', {
+            timeZone: 'UTC',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })}
         </div>
       </div>
     </main>
