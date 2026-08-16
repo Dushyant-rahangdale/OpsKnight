@@ -41,10 +41,15 @@ function verifySlackSignature(
       .update(sigBaseString)
       .digest('hex');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(computedSignature),
-    Buffer.from(signature)
-  );
+  // timingSafeEqual throws on length mismatch — treat a malformed signature as invalid
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(computedSignature),
+      Buffer.from(signature)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -101,28 +106,72 @@ export async function POST(request: NextRequest) {
         let authorName = 'Slack User';
         let reactorEmail: string | undefined;
 
+        // Slack API error from history/replies, retained so a failed lookup is explained
+        // rather than silently degrading to placeholder note text
+        let lookupError: string | undefined;
+
         try {
-          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&oldest=${messageTs}&inclusive=true&limit=1`;
+          // Pass inclusive=true and limit=10 to reliably locate messageTs in Slack channel history
+          const historyUrl = `https://slack.com/api/conversations.history?channel=${channelId}&latest=${messageTs}&inclusive=true&limit=10`;
           const historyRes = await retryFetch(historyUrl, {
             headers: { Authorization: `Bearer ${botToken}` },
           });
           const historyData = await historyRes.json();
 
-          if (historyData.ok && historyData.messages?.[0]?.text) {
-            messageText = historyData.messages[0].text;
+          if (!historyData.ok) {
+            lookupError = historyData.error || 'unknown_error';
+          }
+
+          const foundMsg = historyData.ok
+            ? historyData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || historyData.messages?.[0]
+            : null;
+
+          if (foundMsg?.text) {
+            messageText = foundMsg.text;
           } else {
             // Fallback to conversations.replies for thread replies
-            const repliesUrl = `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${messageTs}&limit=1`;
+            const repliesUrl = `https://slack.com/api/conversations.replies?channel=${channelId}&ts=${messageTs}&limit=5`;
             const repliesRes = await retryFetch(repliesUrl, {
               headers: { Authorization: `Bearer ${botToken}` },
             });
             const repliesData = await repliesRes.json();
-            if (repliesData.ok && repliesData.messages?.[0]?.text) {
-              messageText = repliesData.messages[0].text;
+            if (!repliesData.ok) {
+              lookupError = lookupError || repliesData.error || 'unknown_error';
+            }
+            const foundReply = repliesData.ok
+              ? repliesData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || repliesData.messages?.[0]
+              : null;
+            if (foundReply?.text) {
+              messageText = foundReply.text;
             }
           }
         } catch (err) {
+          lookupError = err instanceof Error ? err.message : String(err);
           logger.warn('[Slack Events] Failed to fetch message text', { error: err });
+        }
+
+        // Guaranteed fallback so note is never skipped
+        if (!messageText) {
+          if (lookupError) {
+            logger.warn('[Slack Events] Could not read pinned message text', {
+              incidentId: incident.id,
+              channelId,
+              messageTs,
+              error: lookupError,
+              hint:
+                lookupError === 'missing_scope'
+                  ? "Slack app is missing the 'channels:history' (or 'groups:history' for private channels) scope. Re-authorize Slack in Settings > Slack."
+                  : undefined,
+            });
+          }
+
+          messageText =
+            (event as { text?: string }).text ||
+            (lookupError === 'missing_scope'
+              ? "(message text unavailable — Slack app is missing the 'channels:history' scope; re-authorize Slack in Settings > Slack)"
+              : lookupError
+                ? `(message text unavailable — Slack API error: ${lookupError})`
+                : 'Pinned message from Slack war-room channel');
         }
 
         // Fetch reactor user info from Slack

@@ -101,10 +101,13 @@ export async function GET(request: NextRequest) {
       'channels:read',
       'channels:join',
       'channels:manage',
+      'channels:history', // Read pinned message text for emoji reaction timeline sync
       'groups:read',
       'groups:write',
+      'groups:history', // Same, for private war-room channels
       'im:read',
       'mpim:read',
+      'reactions:read', // Receive reaction_added events (:pushpin: -> incident timeline)
       'users:read',
       'users:read.email',
     ].join(',');
