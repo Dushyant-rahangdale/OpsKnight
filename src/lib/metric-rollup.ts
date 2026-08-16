@@ -91,11 +91,11 @@ export async function generateDailyRollup(
     );
   }
 
-  // Set date boundaries (start of day to end of day in UTC)
+  // Set date boundaries (start of day to start of next day in UTC)
   const dayStart = new Date(date);
   dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(date);
-  dayEnd.setUTCHours(23, 59, 59, 999);
+  const nextDayStart = new Date(dayStart);
+  nextDayStart.setUTCDate(nextDayStart.getUTCDate() + 1);
 
   // Idempotency check: Skip if rollup already exists (unless force regeneration)
   const existingRollup = await prisma.incidentMetricRollup.findFirst({
@@ -115,9 +115,9 @@ export async function generateDailyRollup(
     });
   }
 
-  // Build where clause
+  // Build where clause using exclusive upper bound to prevent microsecond drops
   const whereClause: any = {
-    createdAt: { gte: dayStart, lte: dayEnd },
+    createdAt: { gte: dayStart, lt: nextDayStart },
   };
   if (serviceId) whereClause.serviceId = serviceId;
   if (teamId) whereClause.teamId = teamId;
@@ -354,7 +354,7 @@ export async function generateDailyRollup(
               }),
               tx.alert.count({
                 where: {
-                  createdAt: { gte: dayStart, lte: dayEnd },
+                  createdAt: { gte: dayStart, lt: nextDayStart },
                   ...(serviceId ? { serviceId } : {}),
                 },
               }),
@@ -487,9 +487,7 @@ export async function generateDailyRollup(
             '[MetricRollup] Per-priority rollup write failed (likely pre-migration); skipping',
             {
               error:
-                perPriorityErr instanceof Error
-                  ? perPriorityErr.message
-                  : String(perPriorityErr),
+                perPriorityErr instanceof Error ? perPriorityErr.message : String(perPriorityErr),
               date: dayStart.toISOString(),
               rollupId,
             }

@@ -129,7 +129,7 @@ export async function claimPendingJobs(limit: number = 50, type?: JobType): Prom
       WITH cte AS (
         SELECT "id"
         FROM "BackgroundJob"
-        WHERE "status" = 'PENDING'
+        WHERE ("status" = 'PENDING' OR ("status" = 'PROCESSING' AND "startedAt" < NOW() - INTERVAL '10 minutes'))
           AND "scheduledAt" <= NOW()
           AND "attempts" < "maxAttempts"
           ${typeFilter}
@@ -318,9 +318,9 @@ export async function processJob(job: any): Promise<boolean> {
                   createdAt: updatedIncident.createdAt.toISOString(),
                   acknowledgedAt: updatedIncident.acknowledgedAt?.toISOString() || null,
                   resolvedAt: updatedIncident.resolvedAt?.toISOString() || null,
-              });
-            }
-          } catch (error) {
+                });
+              }
+            } catch (error) {
               logger.error('Auto-unsnooze notifications failed', {
                 incidentId: job.payload.incidentId,
                 error: error instanceof Error ? error.message : String(error),

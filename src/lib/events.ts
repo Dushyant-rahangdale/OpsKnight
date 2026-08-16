@@ -116,9 +116,8 @@ export async function processEvent(
       },
     });
 
-    // 3. For resolve/acknowledge, skip alert creation if no matching incident
-    // This prevents orphaned alerts in the database
-    if ((event_action === 'resolve' || event_action === 'acknowledge') && !existingIncident) {
+    // 3. For acknowledge, skip alert creation if no matching incident
+    if (event_action === 'acknowledge' && !existingIncident) {
       logger.warn(`event.${event_action}_no_match`, {
         dedupKey: dedup_key,
         serviceId,
@@ -131,7 +130,7 @@ export async function processEvent(
       };
     }
 
-    // 4. Log the raw alert (only create if we'll use it)
+    // 4. Log the raw alert
     const alert = await tx.alert.create({
       data: {
         dedupKey: dedup_key,
@@ -140,6 +139,20 @@ export async function processEvent(
         serviceId,
       },
     });
+
+    if (event_action === 'resolve' && !existingIncident) {
+      logger.info('event.resolve_buffered_for_out_of_order', {
+        dedupKey: dedup_key,
+        serviceId,
+        source: eventData.source,
+        alertId: alert.id,
+      });
+      return {
+        action: 'ignored',
+        reason: 'No matching incident to resolve (buffered for out-of-order trigger)',
+        dedupKey: dedup_key,
+      };
+    }
 
     if (event_action === 'trigger') {
       if (existingIncident) {
@@ -167,11 +180,66 @@ export async function processEvent(
         return { action: 'deduplicated', incident: existingIncident };
       }
 
+      // Check if an out-of-order resolve event arrived recently (< 5 minutes ago) for this dedupKey
+      const recentResolveAlert = await tx.alert.findFirst({
+        where: {
+          dedupKey: dedup_key,
+          serviceId,
+          status: 'RESOLVED',
+          incidentId: null,
+          createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
       // Create New Incident with proper severity → urgency mapping
       const urgency = mapSeverityToUrgency(eventData.severity);
 
       // Sanitize title to prevent XSS and truncate to reasonable length
       const sanitizedTitle = truncateString(sanitizeText(eventData.summary.trim()), 500);
+
+      // If a resolve event already arrived, create the incident in RESOLVED state immediately
+      if (recentResolveAlert) {
+        const rawDescription = eventData.custom_details
+          ? JSON.stringify(eventData.custom_details, null, 2)
+          : null;
+        const truncatedDescription = rawDescription
+          ? truncateString(rawDescription, MAX_DESCRIPTION_LENGTH)
+          : null;
+
+        const resolvedIncident = await tx.incident.create({
+          data: {
+            title: sanitizedTitle,
+            description: truncatedDescription,
+            status: 'RESOLVED',
+            resolvedAt: new Date(),
+            urgency,
+            dedupKey: dedup_key,
+            serviceId,
+            escalationStatus: 'COMPLETED',
+          },
+        });
+
+        await tx.alert.updateMany({
+          where: { id: { in: [alert.id, recentResolveAlert.id] } },
+          data: { incidentId: resolvedIncident.id },
+        });
+
+        await tx.incidentEvent.create({
+          data: {
+            incidentId: resolvedIncident.id,
+            message: `Incident created in resolved state: resolve event was received prior to trigger event from ${eventData.source}`,
+          },
+        });
+
+        logger.info('event.out_of_order_resolved', {
+          incidentId: resolvedIncident.id,
+          dedupKey: dedup_key,
+          source: eventData.source,
+        });
+
+        return { action: 'resolved', incident: resolvedIncident };
+      }
 
       // Truncate description to prevent DB insert failures on very long payloads
       const rawDescription = eventData.custom_details
