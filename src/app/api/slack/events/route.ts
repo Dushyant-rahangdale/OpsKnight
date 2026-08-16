@@ -1,7 +1,7 @@
 /**
  * Slack Event Subscriptions API
  * Listens for Slack events such as `reaction_added` (:pushpin:, :memo:)
- * and automatically captures pinned messages into the OpsKnight incident timeline.
+ * and automatically captures pinned messages as OpsKnight incident notes.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,16 +13,21 @@ import crypto from 'crypto';
 
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET;
 
-const PIN_EMOJIS = new Set(['pushpin', 'round_pushpin', 'memo', 'star', 'bookmark', 'pin', 'push_pin', 'note']);
+const PIN_EMOJIS = new Set([
+  'pushpin',
+  'round_pushpin',
+  'memo',
+  'star',
+  'bookmark',
+  'pin',
+  'push_pin',
+  'note',
+]);
 
 /**
  * Verify Slack request signature
  */
-function verifySlackSignature(
-  body: string,
-  signature: string,
-  timestamp: string
-): boolean {
+function verifySlackSignature(body: string, signature: string, timestamp: string): boolean {
   if (!SLACK_SIGNING_SECRET) {
     return true; // Allow in dev if no secret configured
   }
@@ -35,18 +40,11 @@ function verifySlackSignature(
 
   const sigBaseString = `v0:${timestamp}:${body}`;
   const computedSignature =
-    'v0=' +
-    crypto
-      .createHmac('sha256', SLACK_SIGNING_SECRET)
-      .update(sigBaseString)
-      .digest('hex');
+    'v0=' + crypto.createHmac('sha256', SLACK_SIGNING_SECRET).update(sigBaseString).digest('hex');
 
   // timingSafeEqual throws on length mismatch — treat a malformed signature as invalid
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(computedSignature),
-      Buffer.from(signature)
-    );
+    return crypto.timingSafeEqual(Buffer.from(computedSignature), Buffer.from(signature));
   } catch {
     return false;
   }
@@ -123,7 +121,9 @@ export async function POST(request: NextRequest) {
           }
 
           const foundMsg = historyData.ok
-            ? historyData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || historyData.messages?.[0]
+            ? historyData.messages?.find(
+                (m: { ts: string; text?: string }) => m.ts === messageTs
+              ) || historyData.messages?.[0]
             : null;
 
           if (foundMsg?.text) {
@@ -139,7 +139,9 @@ export async function POST(request: NextRequest) {
               lookupError = lookupError || repliesData.error || 'unknown_error';
             }
             const foundReply = repliesData.ok
-              ? repliesData.messages?.find((m: { ts: string; text?: string }) => m.ts === messageTs) || repliesData.messages?.[0]
+              ? repliesData.messages?.find(
+                  (m: { ts: string; text?: string }) => m.ts === messageTs
+                ) || repliesData.messages?.[0]
               : null;
             if (foundReply?.text) {
               messageText = foundReply.text;
@@ -207,23 +209,27 @@ export async function POST(request: NextRequest) {
           const fallbackUser = await prisma.user.findFirst({ select: { id: true } });
           const noteUserId = resolvedUser?.id || incident.assigneeId || fallbackUser?.id;
 
-          if (noteUserId) {
-            await prisma.incidentNote.create({
-              data: {
-                incidentId: incident.id,
-                userId: noteUserId,
-                content: `📌 [Slack Pin by ${authorName}]: ${messageText}`,
-              },
+          // The note is now the only record of a pin, so a missing author means
+          // the pin captured nothing — say so rather than reporting success.
+          if (!noteUserId) {
+            logger.warn('[Slack Events] No OpsKnight user available to attribute pinned note to', {
+              incidentId: incident.id,
+              authorName,
             });
+            return NextResponse.json({ ok: true });
           }
 
-          // Create timeline event
-          await prisma.incidentEvent.create({
+          await prisma.incidentNote.create({
             data: {
               incidentId: incident.id,
-              message: `Message pinned to timeline via 📌 emoji by @${authorName}`,
+              userId: noteUserId,
+              content: `📌 [Slack Pin by ${authorName}]: ${messageText}`,
             },
           });
+
+          // Deliberately no timeline event: a pin captures the message itself,
+          // which is what the note holds. Emitting an event as well duplicated
+          // every pin across both the notes list and the timeline.
 
           // Post confirmation thread reply in Slack
           await retryFetch('https://slack.com/api/chat.postMessage', {
@@ -235,11 +241,11 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
               channel: channelId,
               thread_ts: messageTs,
-              text: `📌 *Pinned to OpsKnight Incident Timeline!*`,
+              text: `📌 *Saved to OpsKnight incident notes.*`,
             }),
           }).catch(() => {});
 
-          logger.info('[Slack Events] Pinned message synced to timeline', {
+          logger.info('[Slack Events] Pinned message saved as incident note', {
             incidentId: incident.id,
             authorName,
           });
