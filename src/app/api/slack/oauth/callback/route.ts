@@ -142,9 +142,11 @@ export async function GET(request: NextRequest) {
 
     // Encrypt tokens before storing
     const encryptedBotToken = await encrypt(botToken);
-    const encryptedSigningSecret = tokenData.authed_user?.id
-      ? await encrypt(tokenData.authed_user.id)
-      : null;
+    // Slack does not return a signing secret from OAuth. This previously stored
+    // tokenData.authed_user.id — the installing user's Slack ID — under a field
+    // named signingSecret, which could never verify a request signature. The
+    // real secret is admin-entered on SlackOAuthConfig.
+    const encryptedSigningSecret = null;
 
     // Store or update integration
     const integrationData = {

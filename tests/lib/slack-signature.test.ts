@@ -13,7 +13,7 @@ import {
 vi.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
-    slackIntegration: { findFirst: vi.fn() },
+    slackOAuthConfig: { findFirst: vi.fn() },
   },
 }));
 
@@ -43,7 +43,7 @@ describe('Slack signature verification', () => {
     vi.clearAllMocks();
     resetSigningSecretCache();
     delete process.env.SLACK_SIGNING_SECRET;
-    vi.mocked(prisma.slackIntegration.findFirst).mockResolvedValue(null as any);
+    vi.mocked(prisma.slackOAuthConfig.findFirst).mockResolvedValue(null as any);
   });
 
   afterEach(() => {
@@ -59,13 +59,13 @@ describe('Slack signature verification', () => {
       process.env.SLACK_SIGNING_SECRET = SECRET;
 
       await expect(getSlackSigningSecret()).resolves.toBe(SECRET);
-      expect(prisma.slackIntegration.findFirst).not.toHaveBeenCalled();
+      expect(prisma.slackOAuthConfig.findFirst).not.toHaveBeenCalled();
     });
 
-    it('falls back to the encrypted secret on the Slack integration', async () => {
-      // OAuth-installed workspaces persist the secret here, so an env-only
-      // lookup found nothing and every request went unverified.
-      vi.mocked(prisma.slackIntegration.findFirst).mockResolvedValue({
+    it('falls back to the encrypted secret on the Slack OAuth config', async () => {
+      // Admin-entered in Settings > Slack. Slack never returns a signing secret
+      // from OAuth, so this is the only real source besides the env override.
+      vi.mocked(prisma.slackOAuthConfig.findFirst).mockResolvedValue({
         signingSecret: 'encrypted_blob',
       } as any);
       vi.mocked(decrypt).mockResolvedValue(SECRET);
@@ -75,7 +75,7 @@ describe('Slack signature verification', () => {
     });
 
     it('returns null when decryption fails rather than throwing', async () => {
-      vi.mocked(prisma.slackIntegration.findFirst).mockResolvedValue({
+      vi.mocked(prisma.slackOAuthConfig.findFirst).mockResolvedValue({
         signingSecret: 'corrupt',
       } as any);
       vi.mocked(decrypt).mockRejectedValue(new Error('bad key'));
@@ -105,7 +105,7 @@ describe('Slack signature verification', () => {
     });
 
     it('accepts a request signed with the secret from the database', async () => {
-      vi.mocked(prisma.slackIntegration.findFirst).mockResolvedValue({
+      vi.mocked(prisma.slackOAuthConfig.findFirst).mockResolvedValue({
         signingSecret: 'encrypted_blob',
       } as any);
       vi.mocked(decrypt).mockResolvedValue(SECRET);

@@ -1,10 +1,14 @@
 /**
  * Slack request signature verification.
  *
- * The signing secret is resolved from SLACK_SIGNING_SECRET first, then from the
- * encrypted `signingSecret` stored on the Slack integration record. The database
- * fallback matters: OAuth-installed workspaces persist the secret there, so an
- * env-only lookup silently found nothing and every request went unverified.
+ * The signing secret is resolved from the encrypted `signingSecret` on
+ * SlackOAuthConfig — entered once in Settings > Slack, alongside the client
+ * secret — with SLACK_SIGNING_SECRET as an optional env override.
+ *
+ * It deliberately does NOT come from SlackIntegration.signingSecret: the OAuth
+ * callback used to populate that column with `authed_user.id`, the Slack user ID
+ * of whoever installed the app. Slack never returns a signing secret from OAuth,
+ * so no install can supply one.
  *
  * Verification fails closed. When no secret can be resolved, requests are
  * rejected rather than trusted — an unverified `/api/slack/*` endpoint lets
@@ -45,17 +49,17 @@ export async function getSlackSigningSecret(): Promise<string | null> {
   }
 
   try {
-    const integration = await prisma.slackIntegration.findFirst({
-      where: { enabled: true, NOT: { signingSecret: null } },
+    const config = await prisma.slackOAuthConfig.findFirst({
+      where: { NOT: { signingSecret: null } },
       orderBy: { updatedAt: 'desc' },
       select: { signingSecret: true },
     });
 
-    if (!integration?.signingSecret) {
+    if (!config?.signingSecret) {
       return null;
     }
 
-    const decrypted = (await decrypt(integration.signingSecret)).trim();
+    const decrypted = (await decrypt(config.signingSecret)).trim();
     if (!decrypted) {
       return null;
     }
@@ -63,7 +67,7 @@ export async function getSlackSigningSecret(): Promise<string | null> {
     cachedSecret = { value: decrypted, expiresAt: Date.now() + SECRET_CACHE_TTL_MS };
     return decrypted;
   } catch (error) {
-    logger.error('[Slack] Failed to load signing secret from integration', {
+    logger.error('[Slack] Failed to load signing secret from Slack OAuth config', {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
@@ -143,8 +147,9 @@ export async function verifySlackSignature(
 
   if (!secret) {
     logger.error(
-      '[Slack] Rejecting request: no signing secret configured. Set SLACK_SIGNING_SECRET, ' +
-        'or store it on the Slack integration by reconnecting Slack in Settings > Slack.'
+      '[Slack] Rejecting request: no signing secret configured. Add it under ' +
+        'Settings > Integrations > Slack (Slack app > Basic Information > Signing Secret). ' +
+        'Reconnecting Slack does not supply it — OAuth never returns a signing secret.'
     );
     return { valid: false, reason: 'no_secret' };
   }

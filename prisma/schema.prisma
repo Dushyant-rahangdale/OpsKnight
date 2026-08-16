@@ -294,8 +294,8 @@ model Service {
   serviceNotifyOnSlaBreach    Boolean               @default(false)
   // ChatOps War-Room overrides
   autoCreateWarRoom           Boolean               @default(true) // Auto-create dedicated Slack channel for critical incidents
-  warRoomVideoBridge           String? // Override video bridge provider: JITSI, ZOOM, GOOGLE_MEET, NONE
-  warRoomCustomBridgeUrl       String? // Override custom bridge URL for this service
+  warRoomVideoBridge          String? // Override video bridge provider: JITSI, ZOOM, GOOGLE_MEET, NONE
+  warRoomCustomBridgeUrl      String? // Override custom bridge URL for this service
   slaDefinitions              SLADefinition[]
   createdAt                   DateTime              @default(now())
   updatedAt                   DateTime              @updatedAt
@@ -394,15 +394,16 @@ model WebhookIntegration {
 
 // Slack OAuth Configuration (Global - stored in database)
 model SlackOAuthConfig {
-  id           String   @id @default(cuid())
-  clientId     String // Slack App Client ID
-  clientSecret String // Encrypted Slack App Client Secret
-  redirectUri  String? // Custom redirect URI (optional)
-  enabled      Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  updatedBy    String // User ID who last updated the config
-  updater      User     @relation("SlackOAuthConfigUpdater", fields: [updatedBy], references: [id])
+  id            String   @id @default(cuid())
+  clientId      String // Slack App Client ID
+  clientSecret  String // Encrypted Slack App Client Secret
+  signingSecret String? // Encrypted Slack App Signing Secret (verifies inbound requests)
+  redirectUri   String? // Custom redirect URI (optional)
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  updatedBy     String // User ID who last updated the config
+  updater       User     @relation("SlackOAuthConfigUpdater", fields: [updatedBy], references: [id])
 
   @@unique([id]) // Only one config record
 }
@@ -1487,12 +1488,12 @@ model RateLimit {
 model ChatOpsConfig {
   id                      String   @id @default("default")
   enabled                 Boolean  @default(false)
-  autoCreateOnUrgency     String[] @default(["HIGH"])     // Urgency levels that trigger auto-creation
+  autoCreateOnUrgency     String[] @default(["HIGH"]) // Urgency levels that trigger auto-creation
   autoCreateOnPriority    String[] @default(["P1", "P2"]) // Priority levels that trigger auto-creation
-  channelPrefix           String   @default("inc")        // Channel name prefix (e.g. #inc-104-...)
-  archiveOnResolve        Boolean  @default(true)         // Auto-archive war-room channels on resolve
-  defaultVideoBridge      String   @default("JITSI")      // JITSI, ZOOM, GOOGLE_MEET, NONE
-  customBridgeUrlTemplate String?                         // Custom URL pattern with {incidentId} placeholder
+  channelPrefix           String   @default("inc") // Channel name prefix (e.g. #inc-104-...)
+  archiveOnResolve        Boolean  @default(true) // Auto-archive war-room channels on resolve
+  defaultVideoBridge      String   @default("JITSI") // JITSI, ZOOM, GOOGLE_MEET, NONE
+  customBridgeUrlTemplate String? // Custom URL pattern with {incidentId} placeholder
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 

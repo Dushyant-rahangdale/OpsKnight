@@ -19,6 +19,7 @@ export async function saveSlackOAuthConfig(
 
   const clientId = formData.get('clientId') as string;
   const clientSecret = formData.get('clientSecret') as string;
+  const signingSecret = formData.get('signingSecret') as string;
   const redirectUri = formData.get('redirectUri') as string;
   const enabledValue = formData.get('enabled');
   const enabled = enabledValue === 'on' || enabledValue === 'true';
@@ -40,6 +41,13 @@ export async function saveSlackOAuthConfig(
     return { error: 'Client Secret is required for new configuration' };
   }
 
+  // Slack never returns the signing secret from OAuth — it is an app-level
+  // credential entered once here, and preserved when the field is left masked.
+  let encryptedSigningSecret = existing?.signingSecret ?? null;
+  if (signingSecret && signingSecret !== '********' && signingSecret.trim() !== '') {
+    encryptedSigningSecret = await encrypt(signingSecret.trim());
+  }
+
   const user = await getCurrentUser();
   const actorId = user.id;
 
@@ -50,6 +58,7 @@ export async function saveSlackOAuthConfig(
       id: 'default',
       clientId,
       clientSecret: encryptedSecret!,
+      signingSecret: encryptedSigningSecret,
       redirectUri: redirectUri || null,
       enabled,
       updatedBy: actorId,
@@ -57,6 +66,7 @@ export async function saveSlackOAuthConfig(
     update: {
       clientId,
       ...(encryptedSecret ? { clientSecret: encryptedSecret } : {}),
+      signingSecret: encryptedSigningSecret,
       redirectUri: redirectUri || null,
       enabled,
       updatedBy: actorId,
@@ -68,7 +78,12 @@ export async function saveSlackOAuthConfig(
     entityType: 'USER',
     entityId: user.id,
     actorId,
-    details: { enabled, clientId: clientId.substring(0, 10) + '...', configType: 'slack-oauth' },
+    details: {
+      enabled,
+      clientId: clientId.substring(0, 10) + '...',
+      configType: 'slack-oauth',
+      signingSecretConfigured: Boolean(encryptedSigningSecret),
+    },
   });
 
   revalidatePath('/settings/integrations/slack');
