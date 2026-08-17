@@ -384,8 +384,8 @@ export async function generatePostmortemDraft(incidentId: string, userTimeZone?:
   const start = new Date(incident.createdAt);
   const tz = userTimeZone || 'UTC';
   const end = incident.resolvedAt ? new Date(incident.resolvedAt) : new Date();
-  const durationMs = end.getTime() - start.getTime();
-  const durationMinutes = Math.floor(durationMs / 60000);
+  const durationMs = Math.max(0, end.getTime() - start.getTime());
+  const durationMinutes = Math.max(0, Math.floor(durationMs / 60000));
   const durationHours = Math.floor(durationMinutes / 60);
   const durationString =
     durationHours > 0 ? `${durationHours}h ${durationMinutes % 60}m` : `${durationMinutes}m`;

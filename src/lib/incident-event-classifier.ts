@@ -65,6 +65,34 @@ export function incidentEventWhereFor(
       ],
     };
   }
+  if (kind === 'REOPENED') {
+    return {
+      OR: [
+        { type: spec.type },
+        {
+          AND: [
+            { type: null },
+            { message: { contains: spec.legacySubstring, mode: 'insensitive' } },
+            { NOT: { message: { contains: 'do not reopen', mode: 'insensitive' } } },
+          ],
+        },
+      ],
+    };
+  }
+  if (kind === 'AUTO_RESOLVED') {
+    return {
+      OR: [
+        { type: spec.type },
+        {
+          AND: [
+            { type: null },
+            { message: { contains: spec.legacySubstring, mode: 'insensitive' } },
+            { NOT: { message: { contains: 'not auto-resolved', mode: 'insensitive' } } },
+          ],
+        },
+      ],
+    };
+  }
   return {
     OR: [
       { type: spec.type },
@@ -106,6 +134,12 @@ export function incidentEventSqlPredicate(
 
   if (kind === 'ACKNOWLEDGED') {
     return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'} AND ${msgCol} NOT ILIKE '%unacknowledged%'))`;
+  }
+  if (kind === 'REOPENED') {
+    return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'} AND ${msgCol} NOT ILIKE '%do not reopen%'))`;
+  }
+  if (kind === 'AUTO_RESOLVED') {
+    return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'} AND ${msgCol} NOT ILIKE '%not auto-resolved%'))`;
   }
 
   return Prisma.sql`(${typeCol} = ${spec.type}::"IncidentEventType" OR (${typeCol} IS NULL AND ${msgCol} ILIKE ${'%' + spec.legacySubstring + '%'}))`;

@@ -56,6 +56,13 @@ vi.mock('@/lib/user-tokens', () => ({
   cleanupUserTokens: vi.fn().mockResolvedValue({ deleted: 0 }),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  cleanupExpiredRateLimits: vi.fn().mockResolvedValue(0),
+  checkRateLimit: vi
+    .fn()
+    .mockResolvedValue({ allowed: true, remaining: 10, resetAt: Date.now() + 60000, count: 1 }),
+}));
+
 vi.mock('@/lib/sla-breach-monitor', () => ({
   checkSLABreaches: vi.fn().mockResolvedValue({ activeIncidentCount: 0, warningCount: 0 }),
 }));
