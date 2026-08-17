@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-17
+
+### Added
+
+- **6 New Native Observability & APM Integrations**:
+  - **Zabbix** — native webhook media type support for Problem/Recovery/Update alerts with 6-level severity mapping and `EVENT.ID` recovery deduplication
+  - **PagerDuty Events API v2** — drop-in compatible emulation supporting `trigger`, `acknowledge`, and `resolve` actions with routing key resolution
+  - **GitLab CI/CD** — automated pipeline failure alerting and branch-level auto-resolution on successful rerun
+  - **Vercel Deployments** — production error triggering, deployment state tracking, and auto-resolution on successful deployment
+  - **Nagios Core & XI** — macro parsing with scheduled downtime (`DOWNTIMESTART`), flapping, and service state transitions
+  - **Icinga 2** — full host/service state transitions and acknowledgment handling
+- **Forensic Ingestion Security & Authentication**:
+  - Mandatory integration key verification and timing-safe HMAC checks (`crypto.timingSafeEqual`) across all 24 webhook routes
+  - Collision-proof 32-character SHA-256 deduplication hashing replacing legacy 100-character string slicing
+  - Outbound webhook timestamp binding (`X-OpsKnight-Timestamp` in HMAC) to eliminate replay attack vectors
+- **Core Resilience & Runtime Hardening**:
+  - Webhook circuit breaker with `halfOpenRequestInFlight` concurrency locking to eliminate thundering herd spikes during service recovery
+  - Rolling 5-minute deduplication window for notification queue processing
+  - Sequential notification fallback chain (`push -> sms -> whatsapp -> email`) with High/Critical multi-channel escalation
+  - Next.js navigation error propagation (`isRedirectError`, `isNotFoundError`) in server action wrappers
+  - Fallback RBAC permission safely assigns unauthenticated sessions to `VIEWER` with `authenticated: false`
+- **Official Organization Migration**:
+  - Migrated repository and container packages to `ghcr.io/opsknight-labs/opsknight` with public anonymous pull support
+
 ## [1.2.0] - 2026-08-16
 
 ### Added
