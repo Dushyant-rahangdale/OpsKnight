@@ -589,7 +589,7 @@ describe('🚀 Comprehensive 28-Integration & Settings Matrix Verification', () 
 
       expect(probEvent.event_action).toBe('trigger');
       expect(probEvent.payload.severity).toBe('critical');
-      expect(probEvent.dedup_key).toBe('zabbix-db-master-01-tr-505');
+      expect(probEvent.dedup_key).toBe('zabbix-db-master-01-zb-101');
 
       expect(resEvent.event_action).toBe('resolve');
       expect(resEvent.dedup_key).toBe(probEvent.dedup_key);

@@ -132,6 +132,7 @@ export function createIntegrationHandler<T>(
         'x-slack-request-timestamp': req.headers.get('x-slack-request-timestamp'),
         'x-slack-signature': req.headers.get('x-slack-signature'),
         'x-grafana-signature': req.headers.get('x-grafana-signature'),
+        'x-vercel-signature': req.headers.get('x-vercel-signature'),
         'x-signature': req.headers.get('x-signature'),
         'x-webhook-signature': req.headers.get('x-webhook-signature'),
       };

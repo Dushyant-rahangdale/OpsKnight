@@ -78,7 +78,7 @@ function getWebhookUrl(
     case 'ZABBIX':
       return `${baseUrl}/api/integrations/zabbix?integrationId=${integrationId}${keyParam}`;
     case 'PAGERDUTY':
-      return `${baseUrl}/api/integrations/pagerduty?integrationId=${integrationId}${keyParam}`;
+      return `${baseUrl}/api/integrations/pagerduty/v2/enqueue?integrationId=${integrationId}${keyParam}`;
     case 'GITLAB':
       return `${baseUrl}/api/integrations/gitlab?integrationId=${integrationId}${keyParam}`;
     case 'VERCEL':

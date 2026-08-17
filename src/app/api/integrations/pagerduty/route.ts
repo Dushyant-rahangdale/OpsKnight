@@ -27,9 +27,11 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       return new Response(
         JSON.stringify({
-          status: 'error',
-          message: 'Validation failed',
-          errors: validation.errors,
+          status: 'invalid event',
+          message: 'Event object is invalid',
+          errors: validation.errors.map(
+            (e: { path: string; message: string }) => `'${e.path}' ${e.message}`
+          ),
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -93,7 +95,7 @@ export async function POST(req: NextRequest) {
       JSON.stringify({
         status: 'success',
         message: 'Event processed',
-        dedup_key: result.incident?.id || event.dedup_key,
+        dedup_key: event.dedup_key,
       }),
       {
         status: 202,

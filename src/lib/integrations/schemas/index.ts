@@ -832,6 +832,10 @@ export const ZabbixPayloadSchema = z
     event_date: z.string().optional(),
     event_time: z.string().optional(),
     event_tags: z.union([z.string(), z.array(z.any()), z.record(z.any())]).optional(),
+    event_url: z.string().optional(),
+    eventUrl: z.string().optional(),
+    event_opdata: z.string().optional(),
+    eventOpdata: z.string().optional(),
     host_name: z.string().optional(),
     hostName: z.string().optional(),
     host_ip: z.string().optional(),
@@ -855,6 +859,8 @@ export const ZabbixPayloadSchema = z
     subject: z.string().optional(),
     severity: z.string().optional(),
     status: z.string().optional(),
+    ack_user: z.string().optional(),
+    ack_message: z.string().optional(),
   })
   .passthrough();
 
@@ -943,6 +949,9 @@ export const GitLabPayloadSchema = z
         action: z.string().optional(),
         url: z.string().optional(),
         severity: z.string().optional(),
+        iid: z.number().optional(),
+        source_branch: z.string().optional(),
+        target_branch: z.string().optional(),
       })
       .passthrough()
       .optional(),
@@ -955,6 +964,8 @@ export const GitLabPayloadSchema = z
     sha: z.string().optional(),
     before_sha: z.string().optional(),
     status: z.string().optional(),
+    deployment_status: z.string().optional(),
+    environment: z.string().optional(),
     stages: z.array(z.string()).optional(),
     commit: z
       .object({
