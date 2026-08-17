@@ -1,420 +1,234 @@
 ---
 order: 4
 title: Integrations
-description: Connect OpsKnight with 20+ monitoring tools, Slack, and custom webhooks
+description: Connect OpsKnight with 24+ native monitoring tools, daemons, CI/CD pipelines, and custom webhooks
 ---
 
-# Integrations
+# Integrations Catalog
 
-OpsKnight integrates with your entire monitoring and observability stack, routing alerts from any tool to the right people at the right time.
-
-<!-- placeholder:integrations-overview -->
-<!-- Add: Diagram showing various monitoring tools connecting to OpsKnight -->
+OpsKnight integrates natively with your entire monitoring, metrics, cloud infrastructure, CI/CD, and observability stack — normalizing payloads and routing alerts to the right on-call engineers in real time.
 
 ---
 
-## Why Integrations Matter
-
-Your infrastructure is monitored by many tools — APM, uptime monitoring, error tracking, CI/CD pipelines, and more. Without integration:
-
-- Alerts are scattered across multiple dashboards
-- There's no unified view of what's happening
-- On-call routing is inconsistent
-- Response times suffer
-
-OpsKnight integrations solve this by:
-
-- **Centralizing all alerts** in one place
-- **Normalizing formats** so every alert looks consistent
-- **Routing intelligently** based on service and urgency
-- **Deduplicating** to reduce noise
-
----
-
-## Integration Categories
+## ⚡ Integration Categories
 
 ### Alert Sources (Inbound)
 
-These tools send alerts TO OpsKnight:
+These tools send telemetry and incident alerts **TO** OpsKnight:
 
-| Category               | Tools                                                                      |
-| ---------------------- | -------------------------------------------------------------------------- |
-| **APM & Monitoring**   | Datadog, New Relic, Dynatrace, AppDynamics, Sentry, Honeycomb, Splunk      |
-| **Infrastructure**     | AWS CloudWatch, Azure Monitor, Google Cloud Monitoring                     |
-| **Metrics & Daemons**  | Prometheus/Alertmanager, Grafana, Zabbix, Nagios, Icinga 2                 |
-| **CI/CD Pipelines**    | GitHub Actions, Bitbucket Pipelines, GitLab CI/CD, Vercel                  |
-| **Uptime Monitoring**  | UptimeRobot, Pingdom, Better Uptime, Uptime Kuma                           |
-| **Log Analysis**       | Splunk On-Call, Elastic/Kibana                                             |
-| **Issue Tracking**     | [Jira Cloud](./issue-tracking/jira.md) (Bi-directional)                    |
-| **Custom & Emulation** | Generic Webhooks, [PagerDuty Events v2](./custom/pagerduty-emulation.md)   |
+| Category | Supported Tools |
+| :--- | :--- |
+| **APM & Tracing** | Datadog, New Relic, Dynatrace, AppDynamics, Honeycomb, Splunk Observability, Sentry |
+| **Cloud & Infrastructure** | AWS CloudWatch, Azure Monitor, Google Cloud Monitoring |
+| **Metrics & Server Daemons** | Prometheus / Alertmanager, Grafana, Zabbix, Nagios Core & XI, Icinga 2 |
+| **CI/CD & Deployments** | GitHub Actions, GitLab CI/CD, Bitbucket Pipelines, Vercel |
+| **Uptime & Health Checks** | UptimeRobot, Pingdom, Better Uptime, Uptime Kuma |
+| **Log Analytics & SIEM** | Elastic / Kibana, Splunk On-Call |
+| **Issue Tracking (Bi-directional)** | [Jira Cloud](./issue-tracking/jira) |
+| **Custom & Emulation** | Generic Webhooks, [PagerDuty Events v2 Emulation](./custom/pagerduty-emulation) |
 
 ### Notification Channels (Outbound)
 
-These tools receive notifications FROM OpsKnight:
+These channels dispatch urgent incident notifications **FROM** OpsKnight:
 
-| Channel      | Purpose                                                                    |
-| ------------ | -------------------------------------------------------------------------- |
-| **Slack**    | Team channels, interactive buttons, and per-incident war rooms             |
-| **Jira**     | [Bi-directional issue tracking & sync](./integrations/issue-tracking/jira) |
-| **Email**    | Direct inbox notifications                                                 |
-| **SMS**      | Urgent alerts via text message                                             |
-| **Push**     | Mobile app notifications                                                   |
-| **WhatsApp** | Messaging alerts                                                           |
-| **Webhooks** | Custom HTTP integrations                                                   |
-
----
-
-## Quick Start: Connect Your First Tool
-
-### Step 1: Choose Your Integration
-
-1. Go to **Settings** → **Integrations**
-2. Find your monitoring tool
-3. Click **Add Integration**
-
-### Step 2: Copy the Webhook URL
-
-OpsKnight generates a unique webhook URL for each integration:
-
-```
-https://your-opsknight.com/api/integrations/datadog?key=int_abc123
-```
-
-### Step 3: Configure Your Monitoring Tool
-
-Paste the webhook URL into your monitoring tool's notification settings.
-
-### Step 4: Send a Test Alert
-
-Trigger a test alert to verify the integration is working.
+| Channel | Capabilities |
+| :--- | :--- |
+| **Slack** | Rich cards, 1-click Acknowledge/Resolve, [Incident War Rooms & ChatOps](./communication/slack-chatops) |
+| **Jira Cloud** | [Automatic issue creation, service project routing & note sync](./issue-tracking/jira) |
+| **Email** | HTML notification digests with deep-links |
+| **SMS** | High-priority Twilio SMS alerts |
+| **Push Notifications** | Mobile PWA background push alerts |
+| **WhatsApp** | Real-time messaging alerts |
+| **Outbound Webhooks** | Generic HTTP POST webhooks with HMAC-SHA256 signatures |
 
 ---
 
-## Supported Integrations
+## 🔌 Supported Inbound Integrations
 
-### APM & Application Monitoring
+### 1. APM & Application Monitoring
 
-#### [Datadog](./integrations/apm-monitoring/datadog)
-
+#### [Datadog](./apm-monitoring/datadog)
 Full-stack monitoring with APM, infrastructure metrics, and logs.
+- **Endpoint**: `/api/integrations/datadog`
+- **Payloads**: Monitors, Synthetics, APM alerts
 
-```
-Endpoint: /api/integrations/datadog
-Supports: Monitors, Synthetics, APM alerts
-```
+#### [New Relic](./apm-monitoring/new-relic)
+Application performance monitoring and infrastructure alerts.
+- **Endpoint**: `/api/integrations/newrelic`
+- **Payloads**: Alert policies, NRQL violations, synthetics
 
-#### [New Relic](./integrations/apm-monitoring/new-relic)
+#### [Dynatrace](./apm-monitoring/dynatrace)
+AI-powered full-stack observability and problem detection.
+- **Endpoint**: `/api/integrations/dynatrace`
+- **Payloads**: Problems, anomaly detection, root cause analysis
 
-Application performance monitoring and infrastructure.
+#### [AppDynamics](./apm-monitoring/appdynamics)
+Application performance management and business transactions.
+- **Endpoint**: `/api/integrations/appdynamics`
+- **Payloads**: Health rules, policy violations
 
-```
-Endpoint: /api/integrations/newrelic
-Supports: Alert policies, incidents, synthetics
-```
+#### [Grafana](./apm-monitoring/grafana)
+Grafana Unified Alerting and legacy dashboard alerts.
+- **Endpoint**: `/api/integrations/grafana`
+- **Payloads**: Unified alerting webhooks, legacy alerts
 
-#### [Dynatrace](./integrations/apm-monitoring/dynatrace)
+#### [Honeycomb](./apm-monitoring/honeycomb)
+Observability and distributed tracing triggers.
+- **Endpoint**: `/api/integrations/honeycomb`
+- **Payloads**: Triggers, query results
 
-AI-powered full-stack observability.
+#### [Sentry](./apm-monitoring/sentry)
+Real-time error tracking and performance monitoring.
+- **Endpoint**: `/api/integrations/sentry`
+- **Payloads**: Issue alerts, metric alerts, webhook events
 
-```
-Endpoint: /api/integrations/dynatrace
-Supports: Problems, anomaly detection
-```
-
-#### [AppDynamics](./integrations/apm-monitoring/appdynamics)
-
-Business-aware application performance management.
-
-```
-Endpoint: /api/integrations/appdynamics
-Supports: Health rules, policy violations
-```
-
-#### [Grafana](./integrations/apm-monitoring/grafana)
-
-Visualization and alerting platform.
-
-```
-Endpoint: /api/integrations/grafana
-Supports: Alert notifications
-```
-
-#### [Honeycomb](./integrations/apm-monitoring/honeycomb)
-
-Observability for distributed systems.
-
-```
-Endpoint: /api/integrations/honeycomb
-Supports: Triggers
-```
-
-#### [Sentry](./integrations/apm-monitoring/sentry)
-
-Error tracking and performance monitoring.
-
-```
-Endpoint: /api/integrations/sentry
-Supports: Issues, errors, performance alerts
-```
-
-#### [Splunk Observability](./integrations/apm-monitoring/splunk-observability)
-
-Splunk's observability platform.
-
-```
-Endpoint: /api/integrations/splunk-observability
-Supports: Detectors, alerts
-```
-
-#### [Elastic / Kibana](./integrations/logs-events/elastic-kibana)
-
-Elasticsearch and Kibana alerting.
-
-```
-Endpoint: /api/integrations/elastic
-Supports: Watcher alerts, Kibana alerting
-```
+#### [Splunk Observability](./apm-monitoring/splunk-observability)
+Splunk APM and infrastructure detector alerts.
+- **Endpoint**: `/api/integrations/splunk-observability`
+- **Payloads**: Detectors, signalflow alerts
 
 ---
 
-### Infrastructure & Cloud
+### 2. Cloud & Infrastructure
 
-#### [AWS CloudWatch](./integrations/cloud/aws-cloudwatch)
+#### [AWS CloudWatch](./cloud/aws-cloudwatch)
+Native AWS alarm notifications via Amazon SNS.
+- **Endpoint**: `/api/integrations/cloudwatch`
+- **Payloads**: CloudWatch Alarms (`ALARM`, `OK`, `INSUFFICIENT_DATA`), SNS subscriptions
 
-Native AWS monitoring and alerting.
+#### [Azure Monitor](./cloud/azure-monitor)
+Microsoft Azure Monitor alerts and Common Alert Schema.
+- **Endpoint**: `/api/integrations/azure-monitor`
+- **Payloads**: Metric alerts, log search alerts, activity log alerts
 
-```
-Endpoint: /api/integrations/cloudwatch
-Supports: CloudWatch Alarms via SNS
-```
-
-#### [Azure Monitor](./integrations/cloud/azure-monitor)
-
-Microsoft Azure monitoring service.
-
-```
-Endpoint: /api/integrations/azure-monitor
-Supports: Alerts, action groups
-```
-
-#### [Google Cloud Monitoring](./integrations/cloud/google-cloud-monitoring)
-
-GCP native monitoring (formerly Stackdriver).
-
-```
-Endpoint: /api/integrations/gcp-monitoring
-Supports: Alerting policies
-```
+#### [Google Cloud Monitoring](./cloud/google-cloud-monitoring)
+Google Cloud Monitoring incident webhooks (formerly Stackdriver).
+- **Endpoint**: `/api/integrations/gcp-monitoring`
+- **Payloads**: Alerting policies, condition triggers
 
 ---
 
-### Metrics & Alerting
+### 3. Metrics, Alerting & Server Daemons
 
-#### [Prometheus/Alertmanager](./integrations/metrics-alerting/prometheus)
+#### [Prometheus / Alertmanager](./metrics-alerting/prometheus)
+Grouped metric alerts and resolution notifications.
+- **Endpoint**: `/api/integrations/prometheus`
+- **Payloads**: Prometheus Alertmanager grouped alerts
 
-Open-source metrics and alerting.
+#### [Zabbix](./metrics-alerting/zabbix) *(New in v1.3)*
+Enterprise server, network, and VM monitoring.
+- **Endpoint**: `/api/integrations/zabbix`
+- **Payloads**: Trigger events, problem state updates, recoveries (`Disaster`, `High`, `Average`, `Warning`, `Information`)
 
-```
-Endpoint: /api/integrations/prometheus
-Supports: Alertmanager webhooks
-```
+#### [Nagios Core & XI](./metrics-alerting/nagios) *(New in v1.3)*
+Host and service state alerting with macro variable parsing.
+- **Endpoint**: `/api/integrations/nagios`
+- **Payloads**: Host alerts (`DOWN`, `UP`), Service alerts (`CRITICAL`, `WARNING`, `OK`)
 
----
-
-### Uptime Monitoring
-
-#### [UptimeRobot](./integrations/uptime/uptimerobot)
-
-Website and API uptime monitoring.
-
-```
-Endpoint: /api/integrations/uptimerobot
-Supports: Monitor alerts (down/up)
-```
-
-#### [Pingdom](./integrations/uptime/pingdom)
-
-Website uptime and performance monitoring.
-
-```
-Endpoint: /api/integrations/pingdom
-Supports: Uptime checks, transaction checks
-```
-
-#### [Better Uptime](./integrations/uptime/better-uptime)
-
-Modern uptime monitoring with status pages.
-
-```
-Endpoint: /api/integrations/betteruptime
-Supports: Monitor incidents
-```
-
-#### [Uptime Kuma](./integrations/uptime/uptime-kuma)
-
-Self-hosted uptime monitoring.
-
-```
-Endpoint: /api/integrations/uptimekuma
-Supports: Monitor notifications
-```
+#### [Icinga 2](./metrics-alerting/icinga) *(New in v1.3)*
+Modern daemon and distributed check results.
+- **Endpoint**: `/api/integrations/icinga`
+- **Payloads**: Service check results, host notifications, downtime transitions
 
 ---
 
-### Log & Event Analysis
+### 4. CI/CD & DevOps
 
-#### [Splunk On-Call](./integrations/logs-events/splunk-oncall)
+#### [GitHub Actions](./ci-cd/github)
+Workflow run failures, security alerts, and deployment events.
+- **Endpoint**: `/api/integrations/github`
+- **Payloads**: `workflow_run.completed` (`failure`), repository vulnerability alerts
 
-Incident management from Splunk.
+#### [GitLab CI/CD](./ci-cd/gitlab) *(New in v1.3)*
+Pipeline failure tracking with commit and branch resolution.
+- **Endpoint**: `/api/integrations/gitlab`
+- **Payloads**: Pipeline Hook (`failed`, `success`), Job Hook
 
-```
-Endpoint: /api/integrations/splunk-oncall
-Supports: Alerts, incidents
-```
+#### [Bitbucket Pipelines](./ci-cd/bitbucket)
+Bitbucket build statuses and pull request pipelines.
+- **Endpoint**: `/api/integrations/bitbucket`
+- **Payloads**: `repo:commit_status_updated` (`FAILED`, `SUCCESSFUL`)
 
----
-
-### CI/CD & DevOps
-
-#### [GitHub](./integrations/ci-cd/github)
-
-GitHub Actions and repository events.
-
-```
-Endpoint: /api/integrations/github
-Supports: Workflow failures, security alerts
-```
-
-#### [Bitbucket](./integrations/ci-cd/bitbucket)
-
-Bitbucket Pipelines and repository events.
-
-```
-Endpoint: /api/integrations/bitbucket
-Supports: Pipeline failures
-```
+#### [Vercel Deployments](./ci-cd/vercel) *(New in v1.3)*
+Frontend build failures and deployment error monitoring.
+- **Endpoint**: `/api/integrations/vercel`
+- **Payloads**: `deployment.error`, `deployment.canceled`
 
 ---
 
-### Issue Tracking & Project Management
+### 5. Uptime & Synthetic Monitoring
 
-#### [Jira Cloud](./integrations/issue-tracking/jira)
+#### [UptimeRobot](./uptime/uptimerobot)
+Website and API uptime checks.
+- **Endpoint**: `/api/integrations/uptimerobot`
+- **Payloads**: Monitor alert webhooks (down/up)
 
-Bi-directional integration with Jira Cloud for incident tracking, service project routing, real-time comment synchronization, and postmortem action items.
+#### [Pingdom](./uptime/pingdom)
+Global synthetic uptime checks and transaction monitoring.
+- **Endpoint**: `/api/integrations/pingdom`
+- **Payloads**: Uptime check state transitions
 
-- Automatic Jira issue creation on incident start
-- Service-level project routing (`SCRUM`, `INFRA`, `API`)
-- Real-time comment sync from OpsKnight notes to Jira tickets
-- Idempotent timing-safe HMAC webhooks (`issue_updated`, `issue_deleted`)
-- Smart issue key and full URL link parser (`SCRUM-42` or browse URL)
+#### [Better Uptime](./uptime/better-uptime)
+Synthetic monitoring and heartbeats.
+- **Endpoint**: `/api/integrations/betteruptime`
+- **Payloads**: Incident webhook notifications
 
-[Full Jira Cloud Setup & Architecture Guide →](./integrations/issue-tracking/jira)
-
----
-
-### Communication
-
-#### [Slack](./integrations/communication/slack)
-
-Team communication with interactive incident management.
-
-- Rich message formatting with incident details
-- Interactive buttons: Acknowledge, Resolve, View
-- Thread updates for incident timeline
-- Channel-based routing
-
-[Full Setup Guide →](./integrations/communication/slack-oauth-setup)
-
-**New in v1.2** — [ChatOps & Incident War Rooms →](./integrations/communication/slack-chatops): a dedicated Slack channel per incident, on-call responders auto-invited, `/incident` slash commands, 1-click Acknowledge/Assign/Resolve, and 📌 emoji pin sync.
+#### [Uptime Kuma](./uptime/uptime-kuma)
+Self-hosted monitoring and container health checks.
+- **Endpoint**: `/api/integrations/uptimekuma`
+- **Payloads**: Notification webhooks (down/up)
 
 ---
 
-### Custom Integrations
+### 6. Log Analytics & SIEM
 
-#### [Generic Webhooks](./integrations/custom/webhooks)
+#### [Elastic / Kibana](./logs-events/elastic-kibana)
+Elasticsearch cluster and Kibana rule alerting.
+- **Endpoint**: `/api/integrations/elastic`
+- **Payloads**: Kibana Alerting webhooks, Watcher alerts
 
-Connect any tool that can send HTTP webhooks.
-
-```
-Endpoint: /api/integrations/webhook
-Supports: Any JSON payload
-```
-
-#### Events API
-
-Programmatically create and manage incidents.
-
-```
-Endpoint: /api/events
-Supports: trigger, acknowledge, resolve actions
-```
-
-[Events API Reference →](./api/events)
+#### [Splunk On-Call](./logs-events/splunk-oncall)
+Log search alerts and security incident forwarding.
+- **Endpoint**: `/api/integrations/splunk-oncall`
+- **Payloads**: Alert notifications, incident events
 
 ---
 
-## How Integrations Work
+### 7. Issue Tracking & Project Management
 
-### The Alert Flow
+#### [Jira Cloud](./issue-tracking/jira)
+Bi-directional Jira integration for real-time ticket creation and comments.
+- **Endpoint**: `/api/integrations/jira`
+- **Capabilities**: Auto-create Jira issues, route by service, sync comments, manage postmortem action items
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        MONITORING TOOLS                              │
-│   Datadog • Prometheus • CloudWatch • Sentry • GitHub • Custom       │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               │ Webhook POST
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      OPSKNIGHT INTEGRATION                           │
-│   1. Receive webhook payload                                         │
-│   2. Verify signature (if configured)                                │
-│   3. Parse and normalize event                                       │
-│   4. Map to service via routing key                                  │
-│   5. Deduplicate using dedup_key                                     │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        INCIDENT CREATED                              │
-│   - Title, description, urgency extracted                            │
-│   - Service assigned                                                 │
-│   - Escalation policy triggered                                      │
-│   - On-call person notified                                          │
-└─────────────────────────────────────────────────────────────────────┘
-```
+---
 
-### Payload Normalization
+### 8. Custom Integrations & Emulation
 
-Each integration has a custom parser that normalizes tool-specific formats:
+#### [PagerDuty Emulation (Events API v2)](./custom/pagerduty-emulation) *(New in v1.3)*
+Drop-in replacement for PagerDuty Events API v2.
+- **Endpoint**: `/api/integrations/pagerduty` (and `/api/events/v2`)
+- **Capabilities**: Seamlessly connect any tool with built-in PagerDuty support with 0 code modifications
 
-**Datadog Alert**:
+#### [Generic Webhooks](./custom/webhooks)
+Connect custom scripts, internal cron jobs, or proprietary systems.
+- **Endpoint**: `/api/integrations/webhook`
+- **Capabilities**: Custom JSON mapping, HMAC-SHA256 signature verification
 
-```json
-{
-  "title": "[Triggered] CPU High on web-01",
-  "alert_type": "error",
-  "tags": ["env:production", "team:platform"]
-}
+---
+
+## 🛠️ How Normalization & Deduplication Work
+
+```mermaid
+flowchart LR
+    Ingress[Inbound Webhook] --> Verify[HMAC / Secret Verification]
+    Verify --> Parse[Normalized Event Parser]
+    Parse --> Dedup[SHA-256 Fingerprinting Engine]
+    Dedup --> Route[Service & Escalation Routing]
+    Route --> Dispatch[On-Call Alerting]
 ```
 
-**Normalized to OpsKnight**:
-
-```json
-{
-  "title": "CPU High on web-01",
-  "description": "CPU usage exceeded threshold",
-  "urgency": "HIGH",
-  "source": "datadog",
-  "dedup_key": "datadog-alert-12345"
-}
-```
-
-### Deduplication
-
-The dedup key prevents duplicate incidents from the same root cause:
-
-1. **Same dedup key** → Updates existing incident
-2. **New dedup key** → Creates new incident
-
-This is crucial during alert storms when the same issue triggers multiple alerts.
+1. **Verification**: Inbound requests are validated via HMAC signatures (`X-Hub-Signature-256`, `X-Grafana-Signature`, etc.) or token headers.
+2. **Normalization**: Diverse payload schemas are transformed into OpsKnight's unified incident format (`title`, `description`, `urgency`, `service`, `dedup_key`).
+3. **Deduplication**: SHA-256 hashes prevent alert storms from opening duplicate tickets for ongoing root-cause events.
+4. **Escalation Routing**: Active on-call responders receive notifications across Slack, Push, SMS, and Email according to their team schedule.
