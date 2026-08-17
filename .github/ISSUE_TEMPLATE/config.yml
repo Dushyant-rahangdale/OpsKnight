@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 GitHub Discussions
-    url: https://github.com/dushyant-rahangdale/opsknight/discussions
+    url: https://github.com/opsknight-labs/opsknight/discussions
     about: Ask questions, share ideas, and engage with the community.
 
   - name: 👾 Discord Community
@@ -9,5 +9,5 @@ contact_links:
     about: Chat with the team and other users in real-time.
 
   - name: 🔐 Security Vulnerability
-    url: https://github.com/dushyant-rahangdale/opsknight/security/policy
+    url: https://github.com/opsknight-labs/opsknight/security/policy
     about: Report a security vulnerability strictly confidentially.

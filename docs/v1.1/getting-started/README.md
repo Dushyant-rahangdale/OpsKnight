@@ -69,7 +69,7 @@ Want to get started immediately? Here's the fastest path:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
+git clone https://github.com/opsknight-labs/opsknight.git
 cd opsknight
 
 # 2. Copy and configure environment
@@ -192,6 +192,6 @@ Ready to continue? Here's your path:
 
 ## Need Help?
 
-- Check the [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues) for known problems
+- Check the [GitHub Issues](https://github.com/opsknight-labs/opsknight/issues) for known problems
 - Join the community Discord for real-time help
 - Review the [Architecture](./architecture) section for deeper understanding

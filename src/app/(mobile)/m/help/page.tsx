@@ -25,7 +25,7 @@ export default function MobileHelpPage() {
       bg: 'bg-emerald-500/10',
     },
     {
-      href: 'https://github.com/Dushyant-rahangdale/OpsKnight',
+      href: 'https://github.com/opsknight-labs/OpsKnight',
       title: 'GitHub',
       subtitle: 'Code & Community',
       icon: Github,

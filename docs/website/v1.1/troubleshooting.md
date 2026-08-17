@@ -475,8 +475,8 @@ If you see `CRITICAL: Encryption Key failed canary check`:
 
 If you're still stuck:
 
-1. **Search existing issues:** [GitHub Issues](https://github.com/dushyant-rahangdale/opsknight/issues)
-2. **Check discussions:** [GitHub Discussions](https://github.com/dushyant-rahangdale/opsknight/discussions)
+1. **Search existing issues:** [GitHub Issues](https://github.com/opsknight-labs/opsknight/issues)
+2. **Check discussions:** [GitHub Discussions](https://github.com/opsknight-labs/opsknight/discussions)
 3. **Open a new issue** with:
    - OpsKnight version
    - Node.js version

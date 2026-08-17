@@ -38,7 +38,7 @@ Please review our [Security Policy](SECURITY.md) for instructions on how to repo
    ```
 3. Add upstream remote:
    ```bash
-   git remote add upstream https://github.com/dushyant-rahangdale/opsknight.git
+   git remote add upstream https://github.com/opsknight-labs/opsknight.git
    ```
 
 ## Development Setup
@@ -161,7 +161,7 @@ npm run test:coverage
 
 ## Questions?
 
-- Open a [GitHub Issue](https://github.com/dushyant-rahangdale/opsknight/issues)
+- Open a [GitHub Issue](https://github.com/opsknight-labs/opsknight/issues)
 - Check existing issues and discussions
 
 ---

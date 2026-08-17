@@ -124,7 +124,7 @@ Fastest way to get started:
 
 ```bash
 # Clone repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
+git clone https://github.com/opsknight-labs/opsknight.git
 cd opsknight
 
 # Configure environment
@@ -147,7 +147,7 @@ Using raw manifests:
 
 ```bash
 # Clone repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
+git clone https://github.com/opsknight-labs/opsknight.git
 cd opsknight/k8s
 
 # Create namespace

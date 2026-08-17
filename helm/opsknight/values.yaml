@@ -6,7 +6,7 @@ replicaCount: 2
 
 # -- Image configuration
 image:
-  repository: ghcr.io/dushyant-rahangdale/opsknight
+  repository: ghcr.io/opsknight-labs/opsknight
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion
   tag: ''
