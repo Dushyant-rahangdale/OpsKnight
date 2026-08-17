@@ -56,6 +56,12 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
         : {}),
       events: {
         create: {
+          type:
+            status === 'ACKNOWLEDGED'
+              ? 'ACKNOWLEDGED'
+              : status === 'RESOLVED'
+                ? 'MANUAL_RESOLVED'
+                : 'STATUS_CHANGE',
           message:
             status === 'SNOOZED'
               ? 'Incident snoozed (escalation paused)'
@@ -317,6 +323,7 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
           : {}),
         events: {
           create: {
+            type: 'MANUAL_RESOLVED',
             message: trimmedResolution
               ? `Resolved: ${trimmedResolution}`
               : 'Resolved (escalation stopped)',
@@ -337,6 +344,7 @@ export async function resolveIncidentWithNote(id: string, resolution: string) {
       await tx.incidentEvent.create({
         data: {
           incidentId: id,
+          type: 'COMMENT',
           message: `Resolution note added by ${user.name}`,
         },
       });
@@ -435,6 +443,7 @@ export async function updateIncidentUrgency(id: string, urgency: string) {
       urgency: parsedUrgency,
       events: {
         create: {
+          type: 'STATUS_CHANGE',
           message: `Urgency updated to ${parsedUrgency}`,
         },
       },
@@ -473,6 +482,7 @@ export async function updateIncidentPriority(id: string, priority: string | null
       priority,
       events: {
         create: {
+          type: 'STATUS_CHANGE',
           message: priority ? `Priority updated to ${priority}` : 'Priority cleared (Unassigned)',
         },
       },
@@ -527,7 +537,7 @@ export async function createIncident(formData: FormData) {
   const teamId = formData.get('teamId') as string | null;
   const visibility = (formData.get('visibility') as 'PUBLIC' | 'PRIVATE') || 'PUBLIC';
 
-  const incident = await prisma.$transaction(async tx => {
+  const incident = await runSerializableTransaction(async tx => {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       throw new Error('User session not found. Please sign in again.');
@@ -566,6 +576,7 @@ export async function createIncident(formData: FormData) {
         await tx.incidentEvent.create({
           data: {
             incidentId: existingOpenIncident.id,
+            type: 'COMMENT',
             message: `Manual report merged from user.`,
           },
         });
@@ -599,6 +610,7 @@ export async function createIncident(formData: FormData) {
             currentEscalationStep: 0,
             events: {
               create: {
+                type: 'REOPENED',
                 message: `Incident re-opened due to manual report within 30m window.\nSummary: ${title}`,
               },
             },
@@ -631,6 +643,7 @@ export async function createIncident(formData: FormData) {
         teamId: !assigneeId && teamId && teamId.length ? teamId : null,
         events: {
           create: {
+            type: 'LEGACY_OTHER',
             message: assigneeId
               ? `Incident created with ${urgency} urgency and assigned to ${assigneeName || 'user'}`
               : teamId
@@ -798,7 +811,7 @@ export async function createIncident(formData: FormData) {
         await prisma.incidentEvent.create({
           data: {
             incidentId: incident.id,
-            type: 'COMMENT',
+            type: 'LEGACY_OTHER',
             message: `Jira issue ${issue.key} auto-created`,
           },
         });
@@ -855,6 +868,7 @@ export async function addNote(incidentId: string, content: string) {
     await tx.incidentEvent.create({
       data: {
         incidentId,
+        type: 'COMMENT',
         message: `Note added by ${user.name}`,
       },
     });
@@ -905,6 +919,7 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       await tx.incidentEvent.create({
         data: {
           incidentId,
+          type: 'ASSIGNMENT',
           message: 'Incident unassigned',
         },
       });
@@ -946,6 +961,7 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       await tx.incidentEvent.create({
         data: {
           incidentId,
+          type: 'ASSIGNMENT',
           message: `Incident assigned to team: ${teamRecord.name}`,
         },
       });
@@ -1040,6 +1056,7 @@ export async function reassignIncident(incidentId: string, assigneeId: string, t
       await tx.incidentEvent.create({
         data: {
           incidentId,
+          type: 'ASSIGNMENT',
           message: `Incident manually reassigned to ${assigneeRecord.name}`,
         },
       });
@@ -1103,6 +1120,7 @@ export async function addWatcher(incidentId: string, userId: string, role: strin
     await tx.incidentEvent.create({
       data: {
         incidentId,
+        type: 'LEGACY_OTHER',
         message: `Watcher added (${role || 'FOLLOWER'})`,
       },
     });
@@ -1125,6 +1143,7 @@ export async function removeWatcher(incidentId: string, watcherId: string) {
     await tx.incidentEvent.create({
       data: {
         incidentId,
+        type: 'LEGACY_OTHER',
         message: 'Watcher removed',
       },
     });
@@ -1146,6 +1165,7 @@ export async function updateIncidentVisibility(id: string, visibility: 'PUBLIC' 
       visibility,
       events: {
         create: {
+          type: 'STATUS_CHANGE',
           message: `Visibility updated to ${visibility}`,
         },
       },

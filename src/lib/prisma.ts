@@ -20,7 +20,7 @@ const prismaClientSingleton = () => {
   let datasourceUrl = process.env.DATABASE_URL;
   if (datasourceUrl && !datasourceUrl.includes('connection_limit=')) {
     const separator = datasourceUrl.includes('?') ? '&' : '?';
-    datasourceUrl = `${datasourceUrl}${separator}connection_limit=${poolSize}`;
+    datasourceUrl = `${datasourceUrl}${separator}connection_limit=${poolSize}&pool_timeout=10&statement_cache_size=100`;
   }
 
   return new PrismaClient({

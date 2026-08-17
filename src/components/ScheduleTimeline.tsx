@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/shadcn/badge';
 import { DirectUserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/shadcn/button';
@@ -92,6 +92,11 @@ export default function ScheduleTimeline({
   timeZone,
   layerPriorities,
 }: ScheduleTimelineProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);
   const todayKey = useMemo(() => formatDateKeyInTimeZone(new Date(), timeZone), [timeZone]);
   const [startDateKey, setStartDateKey] = useState<string>(todayKey);
@@ -187,6 +192,8 @@ export default function ScheduleTimeline({
   };
 
   const totalHours = daysToShow * 24;
+
+  if (!isMounted) return null;
 
   return (
     <Card className="overflow-hidden border-slate-200/80 shadow-sm">

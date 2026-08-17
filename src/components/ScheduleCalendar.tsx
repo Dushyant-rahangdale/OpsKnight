@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   addDaysToDateKey,
   formatDateKeyInTimeZone,
@@ -97,6 +97,11 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[], timeZone: string
 }
 
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [cursor, setCursor] = useState(() => new Date());
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
@@ -153,6 +158,8 @@ export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarP
   const handleToday = () => {
     setCursor(startOfDayInTimeZone(new Date(), timeZone));
   };
+
+  if (!isMounted) return null;
 
   return (
     <Card className="shadow-sm">

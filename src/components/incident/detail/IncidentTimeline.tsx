@@ -45,6 +45,7 @@ export default function IncidentTimeline({
     message: string;
     createdAt: Date;
     type: 'CREATED' | 'ACKNOWLEDGED' | 'RESOLVED' | 'EVENT';
+    sortPriority: number;
   }> = [];
 
   // Add incident creation
@@ -54,6 +55,7 @@ export default function IncidentTimeline({
       message: 'Incident triggered and created',
       createdAt: incidentCreatedAt,
       type: 'CREATED',
+      sortPriority: 0,
     });
   }
 
@@ -64,6 +66,7 @@ export default function IncidentTimeline({
       message: 'Incident acknowledged by responder',
       createdAt: incidentAcknowledgedAt,
       type: 'ACKNOWLEDGED',
+      sortPriority: 1,
     });
   }
 
@@ -74,6 +77,7 @@ export default function IncidentTimeline({
       message: 'Incident marked as resolved',
       createdAt: incidentResolvedAt,
       type: 'RESOLVED',
+      sortPriority: 2,
     });
   }
 
@@ -82,6 +86,7 @@ export default function IncidentTimeline({
     timelineEvents.push({
       ...event,
       type: 'EVENT',
+      sortPriority: 3,
     });
   });
 
@@ -89,6 +94,9 @@ export default function IncidentTimeline({
   timelineEvents.sort((a, b) => {
     const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     if (diff !== 0) return diff;
+    if (a.sortPriority !== b.sortPriority) {
+      return a.sortPriority - b.sortPriority;
+    }
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 

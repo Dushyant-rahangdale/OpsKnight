@@ -325,26 +325,26 @@ async function calculateDbAggregateMetrics(
           FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL AND COALESCE("resolvedAt", "updatedAt") >= "createdAt") as avg_mttr_ms,
         COUNT(*) FILTER (
           WHERE "acknowledgedAt" IS NOT NULL
-          AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) <= ${defaultAckMs}
+          AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) <= ${Prisma.raw(ackTargetCase)}
         ) as ack_sla_met,
         COUNT(*) FILTER (
           WHERE ("acknowledgedAt" IS NOT NULL
-            AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) > ${defaultAckMs})
+            AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) > ${Prisma.raw(ackTargetCase)})
           OR ("acknowledgedAt" IS NULL
             AND "status" != 'RESOLVED'
-            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${defaultAckMs})
+            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${Prisma.raw(ackTargetCase)})
         ) as ack_sla_breached,
         COUNT(*) FILTER (
           WHERE "status" = 'RESOLVED'
           AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
-          AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) <= ${defaultResolveMs}
+          AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) <= ${Prisma.raw(resolveTargetCase)}
         ) as resolve_sla_met,
         COUNT(*) FILTER (
           WHERE ("status" = 'RESOLVED'
             AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
-            AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) > ${defaultResolveMs})
+            AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) > ${Prisma.raw(resolveTargetCase)})
           OR ("status" != 'RESOLVED'
-            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${defaultResolveMs})
+            AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${Prisma.raw(resolveTargetCase)})
         ) as resolve_sla_breached,
         COUNT(*) FILTER (WHERE "urgency" = 'HIGH') as high_urgency_count,
         COUNT(*) FILTER (WHERE "urgency" = 'MEDIUM') as medium_urgency_count,

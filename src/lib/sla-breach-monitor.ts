@@ -165,7 +165,7 @@ export async function checkSLABreaches(
             incidentId: incident.id,
             message: { startsWith: '⏰ SLA ACK Warning' },
             createdAt: {
-              gte: new Date(now.getTime() - ackWarningThreshold),
+              gte: new Date(now.getTime() - ackWarningThreshold - 30000),
             },
           },
         });
@@ -215,7 +215,7 @@ export async function checkSLABreaches(
           incidentId: incident.id,
           message: { startsWith: '⚠️ SLA RESOLVE Warning' },
           createdAt: {
-            gte: new Date(now.getTime() - resolveWarningThreshold),
+            gte: new Date(now.getTime() - resolveWarningThreshold - 30000),
           },
         },
       });

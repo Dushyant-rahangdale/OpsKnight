@@ -81,9 +81,9 @@ export async function GET(req: NextRequest) {
     const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>${statusPage.name} - Status Updates</title>
+        <title>${escapeXml(statusPage.name)} - Status Updates</title>
         <link>${baseUrl}/status</link>
-        <description>${description}</description>
+        <description>${escapeXml(description)}</description>
         <language>en</language>
         <atom:link href="${baseUrl}/api/status/rss" rel="self" type="application/rss+xml" />
         ${incidents

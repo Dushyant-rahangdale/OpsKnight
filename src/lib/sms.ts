@@ -105,22 +105,20 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
 
         // Format phone number to E.164 if needed
         let toNumber = options.to.trim();
-        if (!toNumber.startsWith('+')) {
-          // Try to format - remove non-digits and add +
+        if (toNumber.startsWith('00')) {
+          toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
+        } else if (!toNumber.startsWith('+')) {
           const digits = toNumber.replace(/\D/g, '');
-          if (digits.length >= 10) {
-            // Assume US number if no country code
+          if (digits.length === 10) {
             toNumber = `+1${digits}`;
-            logger.warn('Phone number missing country code, assuming US', { to: toNumber });
+            logger.warn('Phone number missing country code, assuming US 10-digit', {
+              to: toNumber,
+            });
           } else {
-            return {
-              success: false,
-              error: `Invalid phone number format: ${options.to}. Must be in E.164 format (e.g., +1234567890)`,
-            };
+            toNumber = `+${digits}`;
           }
         } else {
-          // Clean up the number (remove spaces, dashes, etc.)
-          toNumber = toNumber.replace(/[\s\-\(\)]/g, '');
+          toNumber = `+${toNumber.replace(/\D/g, '')}`;
         }
 
         logger.info('Sending SMS via Twilio', {
@@ -207,19 +205,20 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
 
         // Format phone number to E.164 if needed
         let toNumber = options.to.trim();
-        if (!toNumber.startsWith('+')) {
+        if (toNumber.startsWith('00')) {
+          toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
+        } else if (!toNumber.startsWith('+')) {
           const digits = toNumber.replace(/\D/g, '');
-          if (digits.length >= 10) {
+          if (digits.length === 10) {
             toNumber = `+1${digits}`;
-            logger.warn('Phone number missing country code, assuming US', { to: toNumber });
+            logger.warn('Phone number missing country code, assuming US 10-digit', {
+              to: toNumber,
+            });
           } else {
-            return {
-              success: false,
-              error: `Invalid phone number format: ${options.to}. Must be in E.164 format (e.g., +1234567890)`,
-            };
+            toNumber = `+${digits}`;
           }
         } else {
-          toNumber = toNumber.replace(/[\s\-\(\)]/g, '');
+          toNumber = `+${toNumber.replace(/\D/g, '')}`;
         }
 
         // Load AWS SNS dynamically (optional dependency)

@@ -52,6 +52,7 @@ function getDayHourInTimeZone(date: Date, timeZone: string): { day: number; hour
     weekday: 'short',
     hour: 'numeric',
     hour12: false,
+    hourCycle: 'h23',
   }).formatToParts(date);
 
   const weekday = parts.find(p => p.type === 'weekday')?.value ?? 'Sun';
@@ -496,7 +497,12 @@ export function getFinalScheduleBlocks(
   const merged: OnCallBlock[] = [];
   for (const block of result) {
     const last = merged[merged.length - 1];
-    if (last && last.userId === block.userId && last.end.getTime() === block.start.getTime()) {
+    if (
+      last &&
+      last.userId === block.userId &&
+      last.end.getTime() === block.start.getTime() &&
+      last.layerId === block.layerId
+    ) {
       last.end = block.end;
     } else {
       merged.push({ ...block });
