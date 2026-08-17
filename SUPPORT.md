@@ -4,7 +4,7 @@ We want you to have the best experience with OpsKnight. If you encounter issues 
 
 ## ❓ Community Support
 
-- **GitHub Discussions**: For general questions, ideas, and architecture discussions. [Join the Discussion](https://github.com/dushyant-rahangdale/opsknight/discussions)
+- **GitHub Discussions**: For general questions, ideas, and architecture discussions. [Join the Discussion](https://github.com/opsknight-labs/opsknight/discussions)
 - **GitHub Issues**: For reporting reproducible bugs. Please use our [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md).
 - **Slack Community**: Join our developer Slack for real-time chat. [Join Slack](https://join.slack.com/t/opsknight/signup)
 

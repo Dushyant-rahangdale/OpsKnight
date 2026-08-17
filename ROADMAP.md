@@ -17,7 +17,7 @@ We have stabilized the core feature set and ensured rock-solid reliability for t
 
 Once the core is stable, we will expand our alerting capabilities to make OpsKnight more "feature-rich".
 
-- [ ] **Conference Bridge**: Auto-create Jitsi/Zoom rooms for incidents ([#10](https://github.com/dushyant-rahangdale/opsknight/issues/10)).
+- [ ] **Conference Bridge**: Auto-create Jitsi/Zoom rooms for incidents ([#10](https://github.com/opsknight-labs/opsknight/issues/10)).
 - [ ] **Two-Way Slack**: Interactive Slack messages (Ack/Resolve directly from Slack).
 
 ## 🔌 Phase 3: Ecosystem & Intelligence
@@ -25,13 +25,13 @@ Once the core is stable, we will expand our alerting capabilities to make OpsKni
 Long-term goals to make OpsKnight the smartest tool in your stack.
 
 - [ ] **SLA Engine**:
-  - [ ] Implement Business Hours logic (The Weekend Trap) ([#64](https://github.com/dushyant-rahangdale/opsknight/issues/64))
-  - [ ] Manual SLA overrides per incident ([#65](https://github.com/dushyant-rahangdale/opsknight/issues/65))
-- [ ] **Advanced Status Pages**: Support for multiple public/private status pages ([#12](https://github.com/dushyant-rahangdale/opsknight/issues/12)).
-- [ ] **Custom Workflows**: Configurable incident state transitions ([#11](https://github.com/dushyant-rahangdale/opsknight/issues/11)).
+  - [ ] Implement Business Hours logic (The Weekend Trap) ([#64](https://github.com/opsknight-labs/opsknight/issues/64))
+  - [ ] Manual SLA overrides per incident ([#65](https://github.com/opsknight-labs/opsknight/issues/65))
+- [ ] **Advanced Status Pages**: Support for multiple public/private status pages ([#12](https://github.com/opsknight-labs/opsknight/issues/12)).
+- [ ] **Custom Workflows**: Configurable incident state transitions ([#11](https://github.com/opsknight-labs/opsknight/issues/11)).
 - [ ] **Advanced Integrations**: Jira, ServiceNow, GitLab, Azure Monitor.
 - [ ] **Incident Intelligence**: AI-driven alert correlation and automated post-mortems.
 
 ---
 
-Have a suggestion? [Open a Feature Request](https://github.com/dushyant-rahangdale/opsknight/issues/new?template=feature_request.yml)
+Have a suggestion? [Open a Feature Request](https://github.com/opsknight-labs/opsknight/issues/new?template=feature_request.yml)

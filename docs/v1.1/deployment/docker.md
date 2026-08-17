@@ -16,7 +16,7 @@ Deploy OpsKnight with Docker Compose. This is the fastest way to run the platfor
 
 ```bash
 # Clone repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
+git clone https://github.com/opsknight-labs/opsknight.git
 cd opsknight
 
 # Configure

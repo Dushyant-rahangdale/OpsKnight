@@ -24,7 +24,7 @@ jobs:
       - name: Checkout website repo
         uses: actions/checkout@v7
         with:
-          repository: Dushyant-rahangdale/OpsKnight-website
+          repository: opsknight-labs/OpsKnight-website
           token: ${{ secrets.OPSKNIGHT_WEBSITE_PAT }}
           path: opsknight-website
 

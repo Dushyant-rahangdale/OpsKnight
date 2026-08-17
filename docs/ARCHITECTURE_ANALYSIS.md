@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0.0  
 **Target Release Baseline:** v1.1.0  
-**Repository:** [github.com/Dushyant-rahangdale/OpsKnight](https://github.com/Dushyant-rahangdale/OpsKnight)  
+**Repository:** [github.com/opsknight-labs/OpsKnight](https://github.com/opsknight-labs/OpsKnight)  
 **Author:** OpsKnight Engineering Team  
 **Date:** August 2026
 
@@ -41,6 +41,7 @@ OpsKnight is a modern, open-source incident management, on-call scheduling, and 
 ```
 
 ### Key Architectural Strengths:
+
 1. **Unified Application Architecture**: Single type-safe Next.js TypeScript codebase unifying UI, API routing, server actions, and background SLA/escalation workers.
 2. **Self-Hosted Ownership**: Zero per-seat SaaS costs, complete data privacy, and full cloud control.
 3. **Multi-Channel Notification Fanout**: Parallel dispatching across Slack, SMS (Twilio), Email (SMTP/Resend), WhatsApp, and Web Push.
@@ -68,14 +69,16 @@ OpsKnight is a modern, open-source incident management, on-call scheduling, and 
 ### 💬 Area 1: ChatOps & Incident War-Room Automation (P1)
 
 #### Current State:
+
 Incidents send outbound notifications to pre-configured Slack webhooks, and incident notes can be manually pushed to Jira.
 
 #### Improvement Blueprint:
-* **Automated Dedicated Slack/Teams Channels**:
+
+- **Automated Dedicated Slack/Teams Channels**:
   When a `SEV-1` or `CRITICAL` incident is declared, OpsKnight automatically provisions a dedicated channel (e.g. `#inc-104-payments-api-down`) via Slack API bot token, invites assigned on-call responders, and pins the incident dashboard link.
-* **Instant Video Conference Bridge**:
+- **Instant Video Conference Bridge**:
   Generate an on-demand Google Meet, Zoom, or Jitsi conference URL attached to the incident command card.
-* **Interactive Slash Commands**:
+- **Interactive Slash Commands**:
   Responders can triage directly in chat:
   ```bash
   /incident ack
@@ -83,7 +86,7 @@ Incidents send outbound notifications to pre-configured Slack webhooks, and inci
   /incident note "Restarting payment worker pods"
   /incident resolve
   ```
-* **Bi-Directional Chat Note Sync**:
+- **Bi-Directional Chat Note Sync**:
   Slack messages in the incident channel with a specific emoji (e.g., 📝 or 📌) automatically sync into OpsKnight's timeline.
 
 ---
@@ -91,15 +94,17 @@ Incidents send outbound notifications to pre-configured Slack webhooks, and inci
 ### 📞 Area 2: Automated Voice Phone Paging & Escalation Loops (P1)
 
 #### Current State:
+
 Outbound alerting uses Push, SMS, and Email.
 
 #### Improvement Blueprint:
-* **Interactive Voice Phone Calls (IVR)**:
+
+- **Interactive Voice Phone Calls (IVR)**:
   Integration with Twilio Voice / AWS Polly text-to-speech to call on-call engineers for critical incidents with interactive keypress acknowledgment:
-  > *"OpsKnight Alert: Critical incident on Payments API. Press 1 to acknowledge, Press 2 to escalate to secondary."*
-* **Configurable Escalation Nagging Loops**:
+  > _"OpsKnight Alert: Critical incident on Payments API. Press 1 to acknowledge, Press 2 to escalate to secondary."_
+- **Configurable Escalation Nagging Loops**:
   Support repeat notification loops (e.g., re-notify responder every 3 minutes up to 5 times until explicitly acknowledged).
-* **Responder Out-of-Office Calendar Integration**:
+- **Responder Out-of-Office Calendar Integration**:
   Sync with Google Calendar / Microsoft Outlook to automatically swap on-call shifts when a scheduled responder is on vacation.
 
 ---
@@ -107,11 +112,14 @@ Outbound alerting uses Push, SMS, and Email.
 ### ⚙️ Area 3: Infrastructure as Code (IaC) & Developer CLI (P2)
 
 #### Current State:
+
 Services, escalation policies, schedules, and Jira mappings are managed via Web UI or raw REST APIs.
 
 #### Improvement Blueprint:
-* **Official Terraform Provider (`terraform-provider-opsknight`)**:
+
+- **Official Terraform Provider (`terraform-provider-opsknight`)**:
   Enable DevOps and Platform teams to manage incident management infrastructure as code:
+
   ```hcl
   resource "opsknight_service" "checkout_service" {
     name                 = "Checkout Service"
@@ -135,25 +143,28 @@ Services, escalation policies, schedules, and Jira mappings are managed via Web 
     }
   }
   ```
-* **OpsKnight Developer CLI (`brew install opsknight`)**:
+
+- **OpsKnight Developer CLI (`brew install opsknight`)**:
   Lightweight CLI for SREs:
-  * `opsknight who` — Show currently active on-call responders across all services.
-  * `opsknight incident list --status open` — Query active incidents.
-  * `opsknight incident create -s critical -t "High Error Rate"` — Trigger alerts from CI/CD scripts.
+  - `opsknight who` — Show currently active on-call responders across all services.
+  - `opsknight incident list --status open` — Query active incidents.
+  - `opsknight incident create -s critical -t "High Error Rate"` — Trigger alerts from CI/CD scripts.
 
 ---
 
 ### 🧠 Area 4: AIOps, Alert Clustering & AI Postmortem Drafting (P2)
 
 #### Current State:
+
 Alerts are ingested individually from Datadog, Prometheus, CloudWatch, Sentry, etc.
 
 #### Improvement Blueprint:
-* **Alert Storm Deduplication & Clustering**:
+
+- **Alert Storm Deduplication & Clustering**:
   When a root failure (e.g. Postgres DB lock) triggers thousands of alerts across 30 microservices, an embedding-based similarity engine collapses the storm into a single parent incident with linked child alerts.
-* **AI Postmortem Draft Generator**:
+- **AI Postmortem Draft Generator**:
   Automatically synthesizes the incident event log, Slack notes, MTTA/MTTR metrics, and Jira tickets into a complete, structured postmortem document draft with root cause hypotheses and preventive action recommendations.
-* **Stakeholder Status Summarizer**:
+- **Stakeholder Status Summarizer**:
   1-click generation of non-technical executive updates for leadership and customer communication.
 
 ---
@@ -161,14 +172,16 @@ Alerts are ingested individually from Datadog, Prometheus, CloudWatch, Sentry, e
 ### 🏢 Area 5: Enterprise Governance, SSO & SIEM Audit Streaming (P3)
 
 #### Current State:
+
 OIDC authentication and internal database audit logging.
 
 #### Improvement Blueprint:
-* **SAML 2.0 & SCIM User Provisioning**:
+
+- **SAML 2.0 & SCIM User Provisioning**:
   Native Okta, Azure AD (Entra ID), OneLogin, and Google Workspace SAML 2.0 authentication with SCIM automatic user provisioning and group sync.
-* **Real-Time SIEM Audit Streaming**:
+- **Real-Time SIEM Audit Streaming**:
   Stream audit logs (logins, secret changes, escalation overrides, incident actions) in real-time to enterprise SIEM platforms (Splunk, Datadog, AWS S3, or Elastic).
-* **Granular RBAC Roles**:
+- **Granular RBAC Roles**:
   Introduce `Incident Commander`, `Responder`, `Service Owner`, and `Stakeholder/Executive Observer` (read-only visibility).
 
 ---
@@ -176,26 +189,28 @@ OIDC authentication and internal database audit logging.
 ### 🌐 Area 6: Public Status Page Automation & Custom Domains (P3)
 
 #### Current State:
+
 Public status pages with custom branding and subscriber email/webhook updates.
 
 #### Improvement Blueprint:
-* **Automated Custom Domain SSL**:
+
+- **Automated Custom Domain SSL**:
   Automated Let's Encrypt SSL certificate provisioning for custom vanity domains (e.g., `status.mycompany.com`).
-* **Interactive 90-Day Uptime Bars**:
+- **Interactive 90-Day Uptime Bars**:
   Visual component-level uptime history bars showing daily uptime percentages and historical maintenance windows.
-* **Scheduled Maintenance Mode**:
+- **Scheduled Maintenance Mode**:
   Ability to schedule planned maintenance windows in advance that automatically silence alert escalations during the maintenance period.
 
 ---
 
 ## 🗺️ 3. Strategic Release Roadmap Matrix
 
-| Milestone | Target | Key Deliverables | Strategic Value |
-|:---------:|:------:|------------------|-----------------|
-| **v1.2.0** | Q4 2026 | • Slack/Teams War-Room Channel Auto-Creation<br>• Automated Twilio Voice Paging (IVR Press-1-to-Ack)<br>• Escalation Repeat Loops & Out-of-Office Calendars | **Real-Time Response Velocity** |
-| **v1.3.0** | Q1 2027 | • Official Terraform Provider (`terraform-provider-opsknight`)<br>• Developer CLI Tool (`opsknight`)<br>• Custom Domain Automated SSL for Status Pages | **DevOps & Platform Automation** |
-| **v1.4.0** | Q2 2027 | • Smart Alert Storm Clustering & Deduplication<br>• 1-Click AI Postmortem Draft Generator<br>• 90-Day Component Degradation Uptime Matrix | **AIOps & Operational Intelligence** |
-| **v1.5.0** | Q3 2027 | • Enterprise SAML 2.0 & SCIM Provisioning<br>• Real-Time SIEM Audit Streaming (Splunk / S3)<br>• Custom Organizational RBAC Roles | **Enterprise Compliance & Scale** |
+| Milestone  | Target  | Key Deliverables                                                                                                                                            | Strategic Value                      |
+| :--------: | :-----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| **v1.2.0** | Q4 2026 | • Slack/Teams War-Room Channel Auto-Creation<br>• Automated Twilio Voice Paging (IVR Press-1-to-Ack)<br>• Escalation Repeat Loops & Out-of-Office Calendars | **Real-Time Response Velocity**      |
+| **v1.3.0** | Q1 2027 | • Official Terraform Provider (`terraform-provider-opsknight`)<br>• Developer CLI Tool (`opsknight`)<br>• Custom Domain Automated SSL for Status Pages      | **DevOps & Platform Automation**     |
+| **v1.4.0** | Q2 2027 | • Smart Alert Storm Clustering & Deduplication<br>• 1-Click AI Postmortem Draft Generator<br>• 90-Day Component Degradation Uptime Matrix                   | **AIOps & Operational Intelligence** |
+| **v1.5.0** | Q3 2027 | • Enterprise SAML 2.0 & SCIM Provisioning<br>• Real-Time SIEM Audit Streaming (Splunk / S3)<br>• Custom Organizational RBAC Roles                           | **Enterprise Compliance & Scale**    |
 
 ---
 

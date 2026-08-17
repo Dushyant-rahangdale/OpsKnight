@@ -148,7 +148,7 @@ Get OpsKnight running in under 5 minutes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/dushyant-rahangdale/opsknight.git
+git clone https://github.com/opsknight-labs/opsknight.git
 cd opsknight
 
 # Configure environment
@@ -217,9 +217,9 @@ OpsKnight is built on modern, battle-tested technologies:
 ## Getting Help
 
 - **Documentation** — You're here! Browse the sections above.
-- **GitHub Issues** — [Report bugs or request features](https://github.com/dushyant-rahangdale/opsknight/issues)
+- **GitHub Issues** — [Report bugs or request features](https://github.com/opsknight-labs/opsknight/issues)
 - **Community Discord** — Join discussions with other users
-- **Contributing** — [Contribution guidelines](https://github.com/dushyant-rahangdale/opsknight/blob/main/CONTRIBUTING.md)
+- **Contributing** — [Contribution guidelines](https://github.com/opsknight-labs/opsknight/blob/main/CONTRIBUTING.md)
 
 ---
 
