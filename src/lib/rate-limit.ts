@@ -36,13 +36,6 @@ export async function checkRateLimit(
     const count = result.count;
     const remaining = Math.max(0, limit - count);
 
-    // Probability-based cleanup (1% chance to clean old records)
-    if (Math.random() < 0.01) {
-      cleanupExpiredRateLimits().catch(err => {
-        logger.error('Failed to cleanup rate limits', { error: err });
-      });
-    }
-
     return {
       allowed: count <= limit,
       remaining,
@@ -61,12 +54,21 @@ export async function checkRateLimit(
   }
 }
 
-async function cleanupExpiredRateLimits() {
-  await prisma.rateLimit.deleteMany({
-    where: {
-      expiresAt: { lt: new Date() },
-    },
-  });
+/**
+ * Cleanup expired rate limit records (called by background cron maintenance)
+ */
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  try {
+    const result = await prisma.rateLimit.deleteMany({
+      where: {
+        expiresAt: { lt: new Date() },
+      },
+    });
+    return result.count;
+  } catch (error) {
+    logger.error('Failed to cleanup rate limits', { error });
+    return 0;
+  }
 }
 
 // Stub for interface compatibility if needed, though we moved to async

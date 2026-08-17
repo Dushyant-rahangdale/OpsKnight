@@ -4,6 +4,7 @@ import { logger } from './logger';
 import { retryFailedNotifications } from './notification-retry';
 import { processAutoUnsnooze } from '@/app/(app)/incidents/snooze-actions';
 import { cleanupUserTokens } from '@/lib/user-tokens';
+import { cleanupExpiredRateLimits } from '@/lib/rate-limit';
 import { checkSLABreaches } from './sla-breach-monitor';
 import crypto from 'crypto';
 
@@ -286,7 +287,8 @@ async function runOnce() {
 
     // Group 3: Maintenance tasks (low priority, run last)
     const tokenCleanup = await cleanupUserTokens();
-    logger.info('[Cron] Maintenance tasks processed', { tokenCleanup });
+    const rateLimitCleanup = await cleanupExpiredRateLimits();
+    logger.info('[Cron] Maintenance tasks processed', { tokenCleanup, rateLimitCleanup });
 
     // Daily rollup generation (once per day at/after 1 AM UTC).
     //
