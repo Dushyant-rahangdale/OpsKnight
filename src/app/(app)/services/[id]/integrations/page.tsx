@@ -75,6 +75,14 @@ function getWebhookUrl(
       return `${baseUrl}/api/integrations/nagios?integrationId=${integrationId}${keyParam}`;
     case 'ICINGA':
       return `${baseUrl}/api/integrations/icinga?integrationId=${integrationId}${keyParam}`;
+    case 'ZABBIX':
+      return `${baseUrl}/api/integrations/zabbix?integrationId=${integrationId}${keyParam}`;
+    case 'PAGERDUTY':
+      return `${baseUrl}/api/integrations/pagerduty?integrationId=${integrationId}${keyParam}`;
+    case 'GITLAB':
+      return `${baseUrl}/api/integrations/gitlab?integrationId=${integrationId}${keyParam}`;
+    case 'VERCEL':
+      return `${baseUrl}/api/integrations/vercel?integrationId=${integrationId}${keyParam}`;
     case 'WEBHOOK':
       return `${baseUrl}/api/integrations/webhook?integrationId=${integrationId}${keyParam}`;
     case 'EVENTS_API_V2':
