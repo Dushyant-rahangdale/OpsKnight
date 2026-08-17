@@ -20,7 +20,13 @@ function resolveAction(
     return 'resolve';
   }
 
-  if (notif.includes('ACK') || notif.includes('ACKNOWLEDGEMENT')) {
+  if (
+    notif.includes('ACK') ||
+    notif.includes('ACKNOWLEDGEMENT') ||
+    notif.includes('DOWNTIME') ||
+    notif.includes('FLAPPING') ||
+    notif.includes('CUSTOM')
+  ) {
     return 'acknowledge';
   }
 

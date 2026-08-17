@@ -20,7 +20,13 @@ function resolveAction(
     return 'resolve';
   }
 
-  if (notif.includes('ACK') || notif.includes('ACKNOWLEDGEMENT')) {
+  if (
+    notif.includes('ACK') ||
+    notif.includes('ACKNOWLEDGEMENT') ||
+    notif.includes('DOWNTIME') ||
+    notif.includes('FLAPPING') ||
+    notif.includes('CUSTOM')
+  ) {
     return 'acknowledge';
   }
 
@@ -117,8 +123,22 @@ export function transformNagiosToEvent(data: NagiosPayload): {
         service: serviceDesc,
         serviceState,
         output,
-        author: firstString(data.author, data.serviceackauthor, data.SERVICEACKAUTHOR),
-        comment: firstString(data.comment, data.serviceackcomment, data.SERVICEACKCOMMENT),
+        author: firstString(
+          data.author,
+          data.AUTHOR,
+          data.serviceackauthor,
+          data.SERVICEACKAUTHOR,
+          data.hostackauthor,
+          data.HOSTACKAUTHOR
+        ),
+        comment: firstString(
+          data.comment,
+          data.COMMENT,
+          data.serviceackcomment,
+          data.SERVICEACKCOMMENT,
+          data.hostackcomment,
+          data.HOSTACKCOMMENT
+        ),
         raw: data,
       },
     },

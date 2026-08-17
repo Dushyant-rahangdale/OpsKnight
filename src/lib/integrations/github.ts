@@ -13,6 +13,7 @@ export type GitHubEvent = {
   workflow_run?: {
     id: number;
     name: string;
+    head_branch?: string;
     status: 'queued' | 'in_progress' | 'completed' | 'requested';
     conclusion?: 'success' | 'failure' | 'cancelled' | 'timed_out';
     html_url: string;
@@ -67,11 +68,17 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
       workflow.status === 'in_progress' ||
       workflow.status === 'requested';
 
-    // Don't create events for pending/in-progress workflows
+    const repoName = payload.repository?.full_name || 'unknown';
+    const branchPart = workflow.head_branch ? `-${workflow.head_branch}` : '';
+    const workflowDedupKey = `github-${repoName}-${workflow.name || workflow.id}${branchPart}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, '-');
+
+    // Handle pending states as acknowledge
     if (isPending && !isFailure) {
       return {
         event_action: 'acknowledge',
-        dedup_key: `github-${workflow.id}`,
+        dedup_key: workflowDedupKey,
         payload: {
           summary: `Workflow in progress: ${workflow.name}`,
           source: `GitHub${payload.repository ? ` - ${payload.repository.full_name}` : ''}`,
@@ -93,7 +100,7 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
 
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: `github-${workflow.id}`,
+      dedup_key: workflowDedupKey,
       payload: {
         summary: `Workflow failed: ${workflow.name}`,
         source: `GitHub${payload.repository ? ` - ${payload.repository.full_name}` : ''}`,
@@ -123,11 +130,16 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
     const isResolved = check.status === 'completed' && check.conclusion === 'success';
     const isPending = check.status === 'queued' || check.status === 'in_progress';
 
+    const repoName = payload.repository?.full_name || 'unknown';
+    const checkDedupKey = `github-check-${repoName}-${check.name || check.id}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, '-');
+
     // Handle pending state as acknowledge
     if (isPending && !isFailure) {
       return {
         event_action: 'acknowledge',
-        dedup_key: `github-${check.id}`,
+        dedup_key: checkDedupKey,
         payload: {
           summary: `Check in progress: ${check.name}`,
           source: `GitHub${payload.repository ? ` - ${payload.repository.full_name}` : ''}`,
@@ -149,7 +161,7 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
 
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: `github-${check.id}`,
+      dedup_key: checkDedupKey,
       payload: {
         summary: `Check failed: ${check.name}`,
         source: `GitHub${payload.repository ? ` - ${payload.repository.full_name}` : ''}`,
@@ -225,11 +237,14 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
 
     // For GitLab, pending states are handled as acknowledge
     const isPending = !isResolved && !isFailure;
+    const project = payload.project?.path_with_namespace || 'unknown';
+    const ref = payload.ref ? `-${payload.ref}` : '';
+    const gitlabDedupKey = `gitlab-${project}${ref}`.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
+
     if (isPending) {
-      // Use ref or project path for stable dedup key (avoids Date.now() which defeats dedup)
       return {
         event_action: 'acknowledge',
-        dedup_key: `gitlab-${payload.ref || payload.project?.path_with_namespace || 'unknown'}`,
+        dedup_key: gitlabDedupKey,
         payload: {
           summary: `Build ${payload.build_status || payload.status}: ${payload.ref || 'unknown'}`,
           source: `GitLab${payload.project ? ` - ${payload.project.path_with_namespace}` : ''}`,
@@ -246,10 +261,9 @@ export function transformGitHubToEvent(payload: GitHubEvent): {
       };
     }
 
-    // Use ref or project path for stable dedup key (avoids Date.now() which defeats dedup)
     return {
       event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: `gitlab-${payload.ref || payload.project?.path_with_namespace || 'unknown'}`,
+      dedup_key: gitlabDedupKey,
       payload: {
         summary: `Build ${payload.build_status || payload.status}: ${payload.ref || 'unknown'}`,
         source: `GitLab${payload.project ? ` - ${payload.project.path_with_namespace}` : ''}`,

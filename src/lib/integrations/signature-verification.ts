@@ -11,11 +11,10 @@ import crypto from 'crypto';
  * Timing-safe string comparison to prevent timing attacks
  */
 function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
   const aBuf = Buffer.from(a);
   const bBuf = Buffer.from(b);
   if (aBuf.length !== bBuf.length) {
-    // Perform comparison anyway to prevent timing attack on length check
-    crypto.timingSafeEqual(aBuf, Buffer.alloc(aBuf.length));
     return false;
   }
   return crypto.timingSafeEqual(aBuf, bBuf);

@@ -18,6 +18,12 @@ export type BitbucketEvent = {
       result?: { name?: string };
     };
   };
+  commit_status?: {
+    name?: string;
+    state?: string;
+    description?: string;
+    url?: string;
+  };
   status?: string;
   [key: string]: unknown;
 };
@@ -50,10 +56,15 @@ export function transformBitbucketToEvent(data: BitbucketEvent): {
     'error'
   );
 
-  // Use pipeline/repo UUID or create stable key from repo name (avoids Date.now() which defeats dedup)
-  const dedupKey =
-    firstString(data.pipeline?.uuid, data.repository?.uuid) ||
-    `bitbucket-${(data.repository?.full_name || data.repository?.name || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
+  // Use stable repository + pipeline/commit status name for dedup key across runs
+  const repoName = (data.repository?.full_name || data.repository?.name || 'unknown')
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+    .slice(0, 100);
+  const statusName = data.commit_status?.name
+    ? `-${data.commit_status.name.replace(/\s+/g, '-').toLowerCase().slice(0, 50)}`
+    : '';
+  const dedupKey = `bitbucket-${repoName}${statusName}`;
 
   return {
     event_action: action,

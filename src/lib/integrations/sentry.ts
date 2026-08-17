@@ -52,12 +52,18 @@ export function transformSentryToEvent(payload: SentryEvent): {
   if (payload.issue) {
     const issue = payload.issue;
     const action = payload.action || 'created';
-
     let eventAction: 'trigger' | 'resolve' | 'acknowledge' = 'trigger';
     if (action === 'resolved' || issue.status === 'resolved') {
       eventAction = 'resolve';
-    } else if (action === 'ignored' || issue.status === 'ignored') {
+    } else if (
+      action === 'ignored' ||
+      issue.status === 'ignored' ||
+      action === 'assigned' ||
+      action === 'unassigned'
+    ) {
       eventAction = 'acknowledge';
+    } else if (action === 'created' || action === 'reopened' || action === 'triggered') {
+      eventAction = 'trigger';
     }
 
     const severityMap: Record<string, 'critical' | 'error' | 'warning' | 'info'> = {

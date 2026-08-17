@@ -56,15 +56,21 @@ export function transformAzureToEvent(data: AzureAlertData): {
   const isFired = monitorCondition === 'Fired' || monitorCondition === 'Activated';
   const dedupKey = `azure-${alertId}`;
 
-  // Map Azure severity to our severity
+  // Map Azure severity to our severity (case-insensitively)
+  const sevLower = (severity || '').toLowerCase();
   let mappedSeverity: 'critical' | 'error' | 'warning' | 'info' = 'info';
-  if (severity.includes('Sev0') || severity.includes('Critical')) {
+  if (sevLower.includes('sev0') || sevLower.includes('critical')) {
     mappedSeverity = 'critical';
-  } else if (severity.includes('Sev1') || severity.includes('Error')) {
+  } else if (sevLower.includes('sev1') || sevLower.includes('error')) {
     mappedSeverity = 'error';
-  } else if (severity.includes('Sev2') || severity.includes('Warning')) {
+  } else if (sevLower.includes('sev2') || sevLower.includes('warning')) {
     mappedSeverity = 'warning';
-  } else if (severity.includes('Sev3') || severity.includes('Sev4') || severity.includes('Info')) {
+  } else if (
+    sevLower.includes('sev3') ||
+    sevLower.includes('sev4') ||
+    sevLower.includes('info') ||
+    sevLower.includes('verbose')
+  ) {
     mappedSeverity = 'info';
   }
 
