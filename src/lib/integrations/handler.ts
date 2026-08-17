@@ -112,11 +112,16 @@ export function createIntegrationHandler<T>(
           serviceId: true,
           enabled: true,
           signatureSecret: true,
+          key: true,
         },
       });
 
       if (!integration) {
         throw IntegrationErrors.notFound(integrationId);
+      }
+
+      if (!isIntegrationAuthorized(req, integration.key)) {
+        throw IntegrationErrors.invalidPayload('Invalid integration key');
       }
 
       integrationType = integration.type;
