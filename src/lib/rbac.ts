@@ -152,6 +152,7 @@ export async function getUserPermissions() {
     return {
       id: user.id,
       role: user.role as Role,
+      authenticated: true,
       isAdmin: user.role === 'ADMIN',
       isAdminOrResponder: user.role === 'ADMIN' || user.role === 'RESPONDER',
       isResponderOrAbove: user.role === 'ADMIN' || user.role === 'RESPONDER',
@@ -159,7 +160,8 @@ export async function getUserPermissions() {
   } catch {
     return {
       id: '',
-      role: 'USER' as Role,
+      role: 'VIEWER' as Role,
+      authenticated: false,
       isAdmin: false,
       isAdminOrResponder: false,
       isResponderOrAbove: false,

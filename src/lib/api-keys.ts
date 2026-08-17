@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync } from 'crypto';
+import { randomBytes, scryptSync, createHash } from 'crypto';
 import { getNextAuthSecretSync } from './secret-manager';
 
 function getDefaultSecret(): string {
@@ -21,8 +21,9 @@ export function generateApiKey() {
  */
 export function hashTokenV1(token: string) {
   const secret = getDefaultSecret();
-  const derivedKey = scryptSync(token, secret, 32);
-  return derivedKey.toString('hex');
+  return createHash('sha256')
+    .update(token + secret)
+    .digest('hex');
 }
 
 /**

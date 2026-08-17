@@ -212,8 +212,47 @@ export default async function middleware(req: NextRequest) {
 
   // Telemetry removed - using standard logging instead
 
+  // ===== DOMAIN CONFIG (STATUS PAGE) =====
+  // Skip domain check for internal paths, static files, and most API routes to save performance
+  const skipDomainCheck =
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/setup') ||
+    pathname.startsWith('/status') ||
+    pathname.startsWith('/logs') ||
+    isPublicPath(pathname) ||
+    /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
+
+  if (!skipDomainCheck) {
+    const statusConfig = await fetchStatusDomainConfig();
+    if (statusConfig?.enabled) {
+      const hostname = normalizeHostname(req.headers.get('host'));
+      const allowedHosts = new Set<string>();
+      if (statusConfig.subdomain && statusConfig.appHost) {
+        const subdomainHost = buildSubdomainHost(statusConfig.subdomain, statusConfig.appHost);
+        if (subdomainHost) {
+          allowedHosts.add(subdomainHost);
+        }
+      }
+      if (statusConfig.customDomain) {
+        const customHost = parseHostname(statusConfig.customDomain);
+        if (customHost) {
+          allowedHosts.add(customHost);
+        }
+      }
+      if (hostname && allowedHosts.has(hostname)) {
+        const url = req.nextUrl.clone();
+        url.pathname = '/status';
+        const rewriteResponse = NextResponse.rewrite(url);
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          rewriteResponse.headers.set(key, value);
+        });
+        return rewriteResponse;
+      }
+    }
+  }
+
   // ===== MOBILE DEVICE REDIRECT =====
-  // Redirect mobile users to /m/* routes for optimized mobile experience
   const userAgent = req.headers.get('user-agent');
   const isMobile = isMobileUserAgent(userAgent);
   const preferDesktop = req.cookies.get('prefer-desktop')?.value === 'true';
@@ -232,6 +271,7 @@ export default async function middleware(req: NextRequest) {
     !pathname.startsWith('/reset-password') &&
     !pathname.startsWith('/status/verify') &&
     !pathname.startsWith('/status/unsubscribe') &&
+    !pathname.startsWith('/status') &&
     !pathname.startsWith('/_next') &&
     !pathname.startsWith('/favicon') &&
     !/\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
@@ -325,46 +365,6 @@ export default async function middleware(req: NextRequest) {
     return response;
   }
 
-  // ===== DOMAIN CONFIG (STATUS PAGE) =====
-  // Skip domain check for internal paths, static files, and most API routes to save performance
-  const skipDomainCheck =
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/setup') ||
-    pathname.startsWith('/status') ||
-    pathname.startsWith('/logs') ||
-    isPublicPath(pathname) ||
-    /\.(jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2|ttf|eot|webmanifest)$/i.test(pathname);
-
-  if (!skipDomainCheck) {
-    const statusConfig = await fetchStatusDomainConfig();
-    if (statusConfig?.enabled) {
-      const hostname = normalizeHostname(req.headers.get('host'));
-      const allowedHosts = new Set<string>();
-      if (statusConfig.subdomain && statusConfig.appHost) {
-        const subdomainHost = buildSubdomainHost(statusConfig.subdomain, statusConfig.appHost);
-        if (subdomainHost) {
-          allowedHosts.add(subdomainHost);
-        }
-      }
-      if (statusConfig.customDomain) {
-        const customHost = parseHostname(statusConfig.customDomain);
-        if (customHost) {
-          allowedHosts.add(customHost);
-        }
-      }
-      if (hostname && allowedHosts.has(hostname)) {
-        const url = req.nextUrl.clone();
-        url.pathname = '/status';
-        const rewriteResponse = NextResponse.rewrite(url);
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          rewriteResponse.headers.set(key, value);
-        });
-        return rewriteResponse;
-      }
-    }
-  }
-
   // Check authentication status
   const token = await getToken({
     req,
@@ -404,10 +404,6 @@ export default async function middleware(req: NextRequest) {
   // Handle unauthenticated users
   if (isPublicPath(pathname)) {
     // Allow access to public paths
-    return response;
-  }
-
-  if (pathname === '/') {
     return response;
   }
 
