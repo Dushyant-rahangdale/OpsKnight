@@ -13,7 +13,7 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
 [![Docker Package](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat&logo=docker&logoColor=white)](https://github.com/opsknight-labs/OpsKnight/pkgs/container/opsknight)
-[![Status](https://img.shields.io/badge/Status-v1.2.0-success?style=flat)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/Status-v1.3.0-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/opsknight-labs/OpsKnight/actions/workflows/tests.yml/badge.svg)](https://github.com/opsknight-labs/OpsKnight/actions/workflows/tests.yml)
 [![Security](https://github.com/opsknight-labs/OpsKnight/actions/workflows/security.yml/badge.svg)](https://github.com/opsknight-labs/OpsKnight/actions/workflows/security.yml)
@@ -24,18 +24,36 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 
 ---
 
+> ### 🆕 What's new in v1.2
+>
+> **Slack ChatOps Incident War Rooms** — every qualifying incident opens a dedicated
+> Slack channel with the on-call responders already in it, an incident command card
+> with 1-click **Acknowledge / Assign / Resolve**, `/incident` slash commands, and 📌
+> emoji pinning that captures messages straight onto the incident timeline.
+>
+> [Release notes](https://github.com/opsknight-labs/OpsKnight/releases/tag/v1.2.0) ·
+> [Setup guide](https://opsknight.com/docs/v1.2/integrations/communication/slack-chatops) ·
+> [Changelog](CHANGELOG.md)
+
+---
+
 ## 📑 Table of Contents
 
 - [Why OpsKnight?](#-why-opsknight)
+- [Demo](#-demo)
 - [Key Features](#-key-features)
 - [Mobile Command Center](#-mobile-command-center)
+- [Integrations](#-integrations)
 - [Built With](#-built-with)
 - [Quick Start](#-quick-start)
+- [Container Images](#-container-images)
 - [Deployment Options](#-deployment-options)
 - [Architecture](#-architecture)
 - [Documentation](#-documentation)
+- [Security](#-security)
 - [Roadmap](#-roadmap)
 - [Community & Support](#-community--support)
+- [Support the Project](#-support-the-project)
 
 ---
 
@@ -162,35 +180,81 @@ OpsKnight is built on a modern, type-safe stack designed for performance and dev
 
 ## 🚀 Quick Start
 
-Get OpsKnight up and running locally in under 60 seconds.
-
 ### Prerequisites
 
 - Docker & Docker Compose
 - Git
+- `openssl` (ships with macOS and most Linux distributions)
 
-### Option A: Run via Docker Hub / GHCR
-
-```bash
-# Pull the latest production release
-docker pull ghcr.io/opsknight-labs/opsknight:latest
-```
-
-### Option B: Clone & Run with Compose
+### Run the full stack
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/opsknight-labs/OpsKnight.git
 cd OpsKnight
 
-# 2. Setup Environment
+# 2. Create your environment file
 cp env.example .env
 
-# 3. Start the stack
+# 3. Generate the two secrets OpsKnight requires
+printf 'NEXTAUTH_SECRET=%s\n' "$(openssl rand -base64 32)" >> .env
+printf 'ENCRYPTION_KEY=%s\n'  "$(openssl rand -hex 32)"    >> .env
+
+# 4. Start OpsKnight and PostgreSQL
 docker compose up -d
 ```
 
-Visit `http://localhost:3000` and start managing incidents.
+Open **http://localhost:3000**. The database schema is created on first boot, so
+there is no migration step to run yourself.
+
+`ENCRYPTION_KEY` encrypts integration credentials at rest — **keep it safe and
+back it up.** Losing it means re-entering every integration secret.
+
+> **Before exposing this to a network**, change the default PostgreSQL password in
+> `.env` and set `NEXTAUTH_URL` / `NEXT_PUBLIC_APP_URL` to your real hostname.
+
+### Bring your own database
+
+To run the published image against your own PostgreSQL, rather than the bundled one:
+
+```bash
+docker run -d --name opsknight -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:password@your-db-host:5432/opsknight" \
+  -e NEXTAUTH_URL="https://opsknight.example.com" \
+  -e NEXT_PUBLIC_APP_URL="https://opsknight.example.com" \
+  -e NEXTAUTH_SECRET="$(openssl rand -base64 32)" \
+  -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+  ghcr.io/opsknight-labs/opsknight:latest
+```
+
+PostgreSQL 14+ is required. See the
+[deployment guides](docs/v1.2/deployment/README.md) for TLS, connection pooling
+and scaling.
+
+---
+
+## 🐳 Container Images
+
+Images are published to the GitHub Container Registry and are **public — no
+authentication needed to pull**.
+
+| Image                                  | Channel                        | Tags                                   |
+| :------------------------------------- | :----------------------------- | :------------------------------------- |
+| `ghcr.io/opsknight-labs/opsknight`      | Stable releases                | `1.3.0`, `1.3`, `1`, `latest`          |
+| `ghcr.io/opsknight-labs/opsknight-test` | Pre-release, built from `main` | `latest`, `sha-<commit>`               |
+
+```bash
+# Pin a release — recommended for production
+docker pull ghcr.io/opsknight-labs/opsknight:1.3.0
+
+# Or track the latest stable release
+docker pull ghcr.io/opsknight-labs/opsknight:latest
+```
+
+Pinning an exact version is strongly preferred in production: `latest` moves
+whenever a release ships, so a container restart can change versions underneath you.
+
+[Browse all published versions →](https://github.com/opsknight-labs/OpsKnight/pkgs/container/opsknight)
 
 ---
 
@@ -236,13 +300,31 @@ Everything you need to configure and extend OpsKnight.
 
 ---
 
+## 🔒 Security
+
+OpsKnight handles on-call rotations, integration credentials and incident data, so
+security is treated as a first-class concern:
+
+- Integration secrets are **encrypted at rest** with envelope encryption, keyed by `ENCRYPTION_KEY`
+- Inbound webhooks and Slack requests are **signature-verified and rejected when they cannot be verified** — there is no fail-open path
+- Every push is scanned by CodeQL, Trivy, TruffleHog, Checkov and OWASP ZAP in CI
+- RBAC governs incident, service and schedule access
+
+Found a vulnerability? Please **do not** open a public issue — see
+[SECURITY.md](SECURITY.md) for private disclosure.
+
+Hardening guidance: [Security documentation](docs/v1.2/security/README.md)
+
+---
+
 ## 🗺️ Roadmap
 
-We are proud to announce **Version 1.2.0 (August 2026)**! 🚀
+We are proud to announce **Version 1.3.0 (August 2026)**! 🚀
 
 - [x] Core Incident Management & On-Call Schedules
 - [x] **Slack ChatOps Incident War Rooms & Interactive Cards**
-- [x] **22+ Native APM/Monitoring Integrations (Zabbix, PagerDuty, GitLab, Vercel, Datadog, Prometheus, etc.)**
+- [x] **24+ Native APM/Monitoring Integrations (Zabbix, PagerDuty v2, GitLab, Vercel, Nagios, Icinga, Datadog, Prometheus, etc.)**
+- [x] **Forensic Webhook Ingestion Security & Mandatory Key Authentication**
 - [x] **Master Encryption Key Architecture (12-Factor Security)**
 - [x] **Tier-2 SLA Engine Hardening & Custom Business Hours**
 - [x] **Jira Cloud Bi-Directional Synchronization & Real-Time Note Sync**
