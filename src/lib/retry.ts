@@ -26,17 +26,26 @@ const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'retryableErrors' | 'onRetry'
   backoffMultiplier: 2,
 };
 
-const DEFAULT_RETRYABLE_ERRORS = (error: unknown): boolean => {
+const DEFAULT_RETRYABLE_ERRORS = (_error: unknown): boolean => {
+  // Retry by default unless a specific retryableErrors filter is provided
+  return true;
+};
+
+/**
+ * Filter for network and 5xx/429 status codes without matching unrelated digit 5 errors
+ */
+export const isRetryableApiError = (error: unknown): boolean => {
   if (error instanceof Error) {
-    // Network errors
-    if (error.message.includes('fetch') || error.message.includes('network')) {
+    if (
+      error.message.includes('fetch') ||
+      error.message.includes('network') ||
+      error.message.includes('ECONNRESET')
+    ) {
       return true;
     }
-    // Timeout errors
     if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
       return true;
     }
-    // HTTP 5xx or 429 status codes
     if (
       /\b5\d{2}\b/.test(error.message) ||
       error.message.includes('HTTP 5') ||
@@ -44,9 +53,9 @@ const DEFAULT_RETRYABLE_ERRORS = (error: unknown): boolean => {
     ) {
       return true;
     }
+    return false;
   }
-  // Retry on unknown errors by default
-  return true;
+  return false;
 };
 
 /**
@@ -159,7 +168,7 @@ export async function retryFetch(
 
     // Check if response status is retryable
     if (!response.ok && isRetryableHttpError(response.status)) {
-      const retryAfter = response.headers.get('Retry-After');
+      const retryAfter = response.headers?.get ? response.headers.get('Retry-After') : null;
       if (response.status === 429 && retryAfter) {
         let waitMs = 0;
         const seconds = parseInt(retryAfter, 10);
@@ -176,7 +185,7 @@ export async function retryFetch(
           await sleep(Math.min(waitMs, 60000));
         }
       }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText || 'Error'}`);
     }
 
     return response;

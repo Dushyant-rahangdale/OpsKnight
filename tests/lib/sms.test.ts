@@ -34,6 +34,15 @@ vi.mock('@/lib/env-validation', () => ({
   getBaseUrl: vi.fn().mockReturnValue('https://opsknight.example.com'),
 }));
 
+// Mock twilio
+vi.mock('twilio', () => ({
+  default: vi.fn().mockReturnValue({
+    messages: {
+      create: vi.fn().mockRejectedValue(new Error('Twilio error: 20003')),
+    },
+  }),
+}));
+
 import { getSMSConfig } from '@/lib/notification-providers';
 import prisma from '@/lib/prisma';
 
