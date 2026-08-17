@@ -2,7 +2,14 @@ import { createIntegrationHandler } from './handler';
 import { processEvent, EventPayload } from '@/lib/events';
 import { IntegrationSchemas } from './schemas';
 
-type SignatureProvider = 'github' | 'gitlab' | 'sentry' | 'slack' | 'grafana' | 'generic';
+type SignatureProvider =
+  | 'github'
+  | 'gitlab'
+  | 'sentry'
+  | 'slack'
+  | 'grafana'
+  | 'vercel'
+  | 'generic';
 
 export function createIntegrationRoute<T>(
   integrationType: keyof typeof IntegrationSchemas,

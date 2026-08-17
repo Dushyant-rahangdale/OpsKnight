@@ -812,6 +812,213 @@ export const IcingaPayloadSchema = z
 export type IcingaPayload = z.infer<typeof IcingaPayloadSchema>;
 
 // ============================================
+// Zabbix
+// ============================================
+
+export const ZabbixPayloadSchema = z
+  .object({
+    event_id: z.union([z.string(), z.number()]).optional(),
+    eventId: z.union([z.string(), z.number()]).optional(),
+    event_name: z.string().optional(),
+    eventName: z.string().optional(),
+    event_status: z.string().optional(),
+    eventStatus: z.string().optional(),
+    event_value: z.union([z.string(), z.number()]).optional(),
+    eventValue: z.union([z.string(), z.number()]).optional(),
+    event_severity: z.string().optional(),
+    eventSeverity: z.string().optional(),
+    event_source: z.union([z.string(), z.number()]).optional(),
+    event_object: z.union([z.string(), z.number()]).optional(),
+    event_date: z.string().optional(),
+    event_time: z.string().optional(),
+    event_tags: z.union([z.string(), z.array(z.any()), z.record(z.any())]).optional(),
+    host_name: z.string().optional(),
+    hostName: z.string().optional(),
+    host_ip: z.string().optional(),
+    hostIp: z.string().optional(),
+    item_name: z.string().optional(),
+    itemName: z.string().optional(),
+    item_key: z.string().optional(),
+    itemKey: z.string().optional(),
+    item_value: z.union([z.string(), z.number()]).optional(),
+    itemValue: z.union([z.string(), z.number()]).optional(),
+    trigger_id: z.union([z.string(), z.number()]).optional(),
+    triggerId: z.union([z.string(), z.number()]).optional(),
+    trigger_name: z.string().optional(),
+    triggerName: z.string().optional(),
+    trigger_description: z.string().optional(),
+    triggerDescription: z.string().optional(),
+    trigger_status: z.string().optional(),
+    trigger_value: z.union([z.string(), z.number()]).optional(),
+    action: z.string().optional(),
+    message: z.string().optional(),
+    subject: z.string().optional(),
+    severity: z.string().optional(),
+    status: z.string().optional(),
+  })
+  .passthrough();
+
+export type ZabbixPayload = z.infer<typeof ZabbixPayloadSchema>;
+
+// ============================================
+// PagerDuty Events API v2
+// ============================================
+
+export const PagerDutyEventSchema = z
+  .object({
+    routing_key: z.string().optional(),
+    routingKey: z.string().optional(),
+    event_action: z.enum(['trigger', 'acknowledge', 'resolve']).optional(),
+    eventAction: z.enum(['trigger', 'acknowledge', 'resolve']).optional(),
+    action: z.string().optional(),
+    dedup_key: z.string().optional(),
+    dedupKey: z.string().optional(),
+    client: z.string().optional(),
+    client_url: z.string().optional(),
+    payload: z
+      .object({
+        summary: z.string().optional(),
+        source: z.string().optional(),
+        severity: z.enum(['critical', 'error', 'warning', 'info']).optional(),
+        timestamp: z.string().optional(),
+        component: z.string().optional(),
+        group: z.string().optional(),
+        class: z.string().optional(),
+        custom_details: z.record(z.unknown()).optional(),
+      })
+      .optional(),
+    images: z
+      .array(
+        z.object({
+          src: z.string(),
+          href: z.string().optional(),
+          alt: z.string().optional(),
+        })
+      )
+      .optional(),
+    links: z
+      .array(
+        z.object({
+          href: z.string(),
+          text: z.string().optional(),
+        })
+      )
+      .optional(),
+  })
+  .passthrough();
+
+export type PagerDutyEvent = z.infer<typeof PagerDutyEventSchema>;
+
+// ============================================
+// GitLab Webhooks
+// ============================================
+
+export const GitLabPayloadSchema = z
+  .object({
+    object_kind: z.string().optional(),
+    event_type: z.string().optional(),
+    user: z
+      .object({
+        name: z.string().optional(),
+        username: z.string().optional(),
+        email: z.string().optional(),
+      })
+      .optional(),
+    project: z
+      .object({
+        id: z.number().optional(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        web_url: z.string().optional(),
+        path_with_namespace: z.string().optional(),
+      })
+      .optional(),
+    object_attributes: z
+      .object({
+        id: z.number().optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        state: z.string().optional(),
+        status: z.string().optional(),
+        action: z.string().optional(),
+        url: z.string().optional(),
+        severity: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+    build_status: z.string().optional(),
+    build_id: z.number().optional(),
+    build_name: z.string().optional(),
+    build_stage: z.string().optional(),
+    ref: z.string().optional(),
+    tag: z.boolean().optional(),
+    sha: z.string().optional(),
+    before_sha: z.string().optional(),
+    status: z.string().optional(),
+    stages: z.array(z.string()).optional(),
+    commit: z
+      .object({
+        id: z.string().optional(),
+        message: z.string().optional(),
+        title: z.string().optional(),
+        timestamp: z.string().optional(),
+        url: z.string().optional(),
+        author: z
+          .object({
+            name: z.string().optional(),
+            email: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .passthrough();
+
+export type GitLabPayload = z.infer<typeof GitLabPayloadSchema>;
+
+// ============================================
+// Vercel Webhooks
+// ============================================
+
+export const VercelPayloadSchema = z
+  .object({
+    id: z.string().optional(),
+    type: z.string().optional(),
+    createdAt: z.union([z.string(), z.number()]).optional(),
+    payload: z
+      .object({
+        deployment: z
+          .object({
+            id: z.string().optional(),
+            name: z.string().optional(),
+            url: z.string().optional(),
+            meta: z.record(z.unknown()).optional(),
+          })
+          .passthrough()
+          .optional(),
+        project: z
+          .object({
+            id: z.string().optional(),
+            name: z.string().optional(),
+          })
+          .passthrough()
+          .optional(),
+        target: z.string().optional(),
+        plan: z.string().optional(),
+        user: z.object({ id: z.string().optional(), username: z.string().optional() }).optional(),
+        team: z.object({ id: z.string().optional(), slug: z.string().optional() }).optional(),
+        error: z.object({ code: z.string().optional(), message: z.string().optional() }).optional(),
+        name: z.string().optional(),
+        domain: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+export type VercelPayload = z.infer<typeof VercelPayloadSchema>;
+
+// ============================================
 // Schema Validation Helper
 // ============================================
 
@@ -864,6 +1071,10 @@ export const IntegrationSchemas = {
   UPTIME_KUMA: UptimeKumaSchema,
   NAGIOS: NagiosPayloadSchema,
   ICINGA: IcingaPayloadSchema,
+  ZABBIX: ZabbixPayloadSchema,
+  PAGERDUTY: PagerDutyEventSchema,
+  GITLAB: GitLabPayloadSchema,
+  VERCEL: VercelPayloadSchema,
   WEBHOOK: GenericWebhookSchema,
 } as const;
 

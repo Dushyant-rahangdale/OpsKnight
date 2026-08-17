@@ -16,7 +16,7 @@ function resolveAction(
   const sState = (serviceState || '').toUpperCase();
   const hState = (hostState || '').toUpperCase();
 
-  if (notif.includes('RECOVERY') || sState === 'OK' || hState === 'UP') {
+  if (notif.includes('RECOVERY')) {
     return 'resolve';
   }
 
@@ -28,6 +28,10 @@ function resolveAction(
     notif.includes('CUSTOM')
   ) {
     return 'acknowledge';
+  }
+
+  if (sState === 'OK' || (hState === 'UP' && !serviceState)) {
+    return 'resolve';
   }
 
   return 'trigger';
