@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { ZodError } from 'zod';
 import prisma from '@/lib/prisma';
 import { processEvent } from '@/lib/events';
 import { transformPrometheusToEvent, PrometheusAlert } from '@/lib/integrations/prometheus';
@@ -70,6 +71,9 @@ export async function POST(req: NextRequest) {
       logger.error('api.integration.prometheus_error', {
         error: error instanceof Error ? error.message : String(error),
       });
+      if (error instanceof ZodError || (error instanceof Error && error.message.includes('JSON'))) {
+        return jsonError('Validation Error', 400);
+      }
       return jsonError('Internal Server Error', 500);
     }
   });

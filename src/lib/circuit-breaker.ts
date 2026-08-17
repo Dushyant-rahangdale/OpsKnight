@@ -38,6 +38,7 @@ interface CircuitBreakerState {
   successes: number;
   lastFailureTime: number;
   lastAttemptTime: number;
+  halfOpenRequestInFlight?: boolean;
 }
 
 const DEFAULT_CONFIG: Omit<CircuitBreakerConfig, 'name'> = {
@@ -62,6 +63,7 @@ export class CircuitBreaker {
       successes: 0,
       lastFailureTime: 0,
       lastAttemptTime: 0,
+      halfOpenRequestInFlight: false,
     };
   }
 
@@ -69,12 +71,12 @@ export class CircuitBreaker {
    * Execute a function with circuit breaker protection
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
-    // Check if circuit should transition from OPEN to HALF_OPEN
     if (this.state.state === 'OPEN') {
       const now = Date.now();
       if (now - this.state.lastFailureTime >= this.config.resetTimeout) {
         this.state.state = 'HALF_OPEN';
         this.state.successes = 0;
+        this.state.halfOpenRequestInFlight = false;
         logger.info(`[CircuitBreaker:${this.config.name}] Transitioning to HALF_OPEN`);
       } else {
         // Circuit is open, fail fast
@@ -83,6 +85,16 @@ export class CircuitBreaker {
           this.config.name
         );
       }
+    }
+
+    if (this.state.state === 'HALF_OPEN') {
+      if (this.state.halfOpenRequestInFlight) {
+        throw new CircuitBreakerError(
+          `Circuit breaker is HALF_OPEN (test in flight) for ${this.config.name}`,
+          this.config.name
+        );
+      }
+      this.state.halfOpenRequestInFlight = true;
     }
 
     this.state.lastAttemptTime = Date.now();
@@ -124,6 +136,7 @@ export class CircuitBreaker {
    */
   private onSuccess(): void {
     if (this.state.state === 'HALF_OPEN') {
+      this.state.halfOpenRequestInFlight = false;
       this.state.successes++;
       if (this.state.successes >= this.config.successThreshold) {
         this.state.state = 'CLOSED';
@@ -147,6 +160,7 @@ export class CircuitBreaker {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (this.state.state === 'HALF_OPEN') {
+      this.state.halfOpenRequestInFlight = false;
       // Any failure in HALF_OPEN immediately opens the circuit
       this.state.state = 'OPEN';
       logger.warn(`[CircuitBreaker:${this.config.name}] Circuit OPENED (failed in HALF_OPEN)`, {
@@ -196,6 +210,7 @@ export class CircuitBreaker {
       successes: 0,
       lastFailureTime: 0,
       lastAttemptTime: 0,
+      halfOpenRequestInFlight: false,
     };
     logger.info(`[CircuitBreaker:${this.config.name}] Circuit manually reset`);
   }

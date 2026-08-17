@@ -3,6 +3,8 @@
  * Transforms New Relic webhook events to standard event format
  */
 
+import { createHash } from 'crypto';
+
 export type NewRelicEvent = {
   account_id?: number;
   account_name?: string;
@@ -141,9 +143,11 @@ export function transformNewRelicToEvent(payload: NewRelicEvent): {
     const severity = severityMap[payload.alertSeverity?.toLowerCase() || 'warning'] || 'warning';
 
     // Use alertTitle for stable dedup key (avoids Date.now() which defeats dedup)
-    const dedupKey = payload.alertTitle
-      ? `newrelic-apm-${payload.alertTitle.replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`
-      : `newrelic-apm-${(payload.alertType || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
+    const rawKey = payload.alertTitle
+      ? `newrelic-apm-${payload.alertTitle}`
+      : `newrelic-apm-${payload.alertType || 'unknown'}`;
+
+    const dedupKey = createHash('sha256').update(rawKey).digest('hex').slice(0, 32);
 
     return {
       event_action: isResolved ? 'resolve' : 'trigger',

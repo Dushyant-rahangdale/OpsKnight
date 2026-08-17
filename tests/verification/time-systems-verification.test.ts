@@ -4,7 +4,6 @@ import {
   startOfNextDayInTimeZone,
   parseDateTimeInTimeZone,
   formatDateKeyInTimeZone,
-  formatDateForInput,
   getTimeZoneOffsetMs,
   isValidTimeZone,
 } from '@/lib/timezone';
@@ -319,6 +318,7 @@ describe('Comprehensive Time & Scheduling Verification Suite', () => {
       expect(result.success).toBe(false);
       // Non-retryable error fails immediately on first attempt!
       expect(result.attempts).toBe(1);
+      expect(attempts).toBe(1);
     });
   });
 });

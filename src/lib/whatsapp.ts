@@ -134,23 +134,25 @@ export async function sendIncidentWhatsApp(
       });
 
       return { success: true };
-    } catch (twilioError: any) {
+    } catch (twilioError: unknown) {
+      const err = twilioError as { message?: string; code?: string | number };
       logger.error('WhatsApp send error', {
         userId,
         incidentId,
-        error: twilioError.message,
-        code: twilioError.code,
+        error: err.message,
+        code: err.code,
       });
 
-      return { success: false, error: twilioError.message || 'WhatsApp send failed' };
+      return { success: false, error: err.message || 'WhatsApp send failed' };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error('WhatsApp notification error', {
       userId,
       incidentId,
-      error: error.message,
+      error: err.message,
     });
-    return { success: false, error: error.message };
+    return { success: false, error: err.message };
   }
 }
 
@@ -209,11 +211,12 @@ export async function sendWhatsApp(
     });
 
     return { success: true, messageSid: messageResult.sid };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error('WhatsApp send error', {
       to,
-      error: error.message,
+      error: err.message,
     });
-    return { success: false, error: error.message };
+    return { success: false, error: err.message };
   }
 }

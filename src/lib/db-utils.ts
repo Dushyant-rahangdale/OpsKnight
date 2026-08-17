@@ -43,11 +43,11 @@ export async function runSerializableTransaction<T>(
 ): Promise<T> {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      return (await prisma.$transaction(operation as any, {
+      return await prisma.$transaction(tx => operation(tx), {
         isolationLevel: 'Serializable',
         timeout: 10000,
         maxWait: 2000,
-      })) as T; // eslint-disable-line @typescript-eslint/no-explicit-any
+      });
     } catch (error) {
       if (attempt < maxAttempts - 1 && isRetryableTransactionError(error)) {
         // Exponential backoff with jitter to reduce contention
@@ -75,11 +75,11 @@ export async function runReadCommittedTransaction<T>(
 ): Promise<T> {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      return (await prisma.$transaction(operation as any, {
+      return await prisma.$transaction(tx => operation(tx), {
         isolationLevel: 'ReadCommitted',
         timeout: 10000,
         maxWait: 2000,
-      })) as T;
+      });
     } catch (error) {
       if (attempt < maxAttempts - 1 && isRetryableTransactionError(error)) {
         // Shorter delays for ReadCommitted since contention is lower

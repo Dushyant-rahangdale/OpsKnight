@@ -12,7 +12,8 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error';
  * @param action - The server action function to wrap
  * @returns A wrapped function that catches errors and returns user-friendly messages
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(action: T): T { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(action: T): T {
+  // eslint-disable-line @typescript-eslint/no-explicit-any
   return (async (...args: Parameters<T>) => {
     try {
       return await action(...args);
@@ -24,7 +25,7 @@ export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(ac
         'digest' in error &&
         (error as any).digest === 'NEXT_NOT_FOUND'
       )
-        throw error; // eslint-disable-line @typescript-eslint/no-explicit-any
+        throw error;
 
       // If it's already a state object with error, return it
       if (error && typeof error === 'object' && 'error' in error) {

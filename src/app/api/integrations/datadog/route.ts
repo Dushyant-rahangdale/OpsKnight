@@ -19,11 +19,13 @@ export const POST = createIntegrationHandler<DatadogEvent>(
   },
   async ({ payload, integration }) => {
     // Transform to standard event format
-    const event = transformDatadogToEvent(payload);
+    const events = transformDatadogToEvent(payload);
 
-    // Process the event
-    const result = await processEvent(event, integration.serviceId, integration.id);
+    // Process all events
+    const results = await Promise.all(
+      events.map(event => processEvent(event, integration.serviceId, integration.id))
+    );
 
-    return { action: result.action, incident: result.incident };
+    return { action: results[0]?.action || 'acknowledge', incident: results[0]?.incident };
   }
 );

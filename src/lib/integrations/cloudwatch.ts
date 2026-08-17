@@ -28,17 +28,18 @@ export function transformCloudWatchToEvent(message: CloudWatchAlarmMessage): {
     custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 } {
-  const isAlarm = message.NewStateValue === 'ALARM';
+  const isOk = message.NewStateValue === 'OK';
   const dedupKey = `cloudwatch-${message.Region}-${message.AlarmName}`;
 
   return {
-    event_action: isAlarm ? 'trigger' : 'resolve',
+    event_action: isOk ? 'resolve' : 'trigger',
     dedup_key: dedupKey,
     payload: {
       summary: message.AlarmName,
       source: `AWS CloudWatch (${message.Region})`,
       severity: (() => {
-        if (!isAlarm) return 'info';
+        if (isOk) return 'info';
+        if (message.NewStateValue === 'INSUFFICIENT_DATA') return 'warning';
         const desc = (message.AlarmDescription || '').toUpperCase();
         if (desc.includes('CRITICAL') || desc.includes('HIGH')) return 'critical';
         if (desc.includes('WARNING') || desc.includes('MEDIUM') || desc.includes('ERROR'))

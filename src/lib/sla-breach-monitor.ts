@@ -106,8 +106,7 @@ export async function checkSLABreaches(
     timestamp: now.toISOString(),
   });
 
-  for (const rawIncident of incidents) {
-    const incident = rawIncident as any;
+  for (const incident of incidents) {
     // Calculate total time spent in SNOOZED state to deduct from elapsedMs
     let snoozedMs = 0;
     try {

@@ -13,8 +13,9 @@ import 'server-only';
 import prisma from './prisma';
 import crypto from 'crypto';
 import { getBaseUrl } from './env-validation';
-import { retry, retryFetch, isRetryableHttpError } from './retry';
+import { retry, isRetryableHttpError } from './retry';
 import { logger } from './logger';
+import { CircuitBreakers } from './circuit-breaker';
 
 export type WebhookOptions = {
   url: string;
@@ -76,24 +77,32 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
 
     // Add signature if secret provided
     if (secret) {
-      const signature = generateSignature(payloadString, secret);
+      const timestamp = Date.now().toString();
+      const signedPayload = timestamp + '.' + payloadString;
+      const signature = generateSignature(signedPayload, secret);
       requestHeaders['X-OpsKnight-Signature'] = `sha256=${signature}`;
-      requestHeaders['X-OpsKnight-Timestamp'] = Date.now().toString();
+      requestHeaders['X-OpsKnight-Timestamp'] = timestamp;
     }
 
     // Use retry logic with per-attempt AbortController for reliable timeouts
     try {
+      let attempts = 0;
+      const firstAttempt = Date.now();
       const retryResult = await retry(
         async () => {
+          attempts++;
           const attemptController = new AbortController();
           const attemptTimeoutId = setTimeout(() => attemptController.abort(), timeout);
           try {
-            const res = await fetch(url, {
-              method,
-              headers: requestHeaders,
-              body: payloadString,
-              signal: attemptController.signal,
-            });
+            const cb = CircuitBreakers.webhook(url);
+            const res = await cb.execute(() =>
+              fetch(url, {
+                method,
+                headers: requestHeaders,
+                body: payloadString,
+                signal: attemptController.signal,
+              })
+            );
 
             if (!res.ok && isRetryableHttpError(res.status)) {
               throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -125,6 +134,15 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
       );
 
       if (!retryResult.success || !retryResult.data) {
+        logger.error('Webhook delivery failed permanently', {
+          webhookId: url,
+          url,
+          payload,
+          error: retryResult.error instanceof Error ? retryResult.error.message : 'Unknown error',
+          attempts,
+          firstAttempt,
+          lastAttempt: Date.now(),
+        });
         throw retryResult.error || new Error('Webhook request failed after retries');
       }
 
@@ -770,11 +788,24 @@ export async function sendIncidentWebhook(
       ? formatWebhookPayloadByType(webhookType, incident, eventType, baseUrl, channel)
       : generateIncidentWebhookPayload(incident, eventType);
 
-    return await sendWebhookWithRetry({
+    const result = await sendWebhookWithRetry({
       url: webhookUrl,
       payload,
       secret,
     });
+
+    if (!result.success) {
+      logger.warn('Incident webhook delivery failed', {
+        component: 'webhooks',
+        url: webhookUrl,
+        incidentId,
+        eventType,
+        statusCode: result.statusCode,
+        error: result.error,
+      });
+    }
+
+    return result;
   } catch (error: any) {
     logger.error('Send incident webhook error', {
       component: 'webhooks',
