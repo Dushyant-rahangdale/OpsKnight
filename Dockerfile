@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-LABEL org.opencontainers.image.source="https://github.com/opsknight-labs/OpsKnight"
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
@@ -141,3 +140,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Run entrypoint which does: migrate → start app
 ENTRYPOINT ["./docker-entrypoint.sh"]
+
+# Link image to repository
+LABEL org.opencontainers.image.source="https://github.com/opsknight-labs/OpsKnight"
