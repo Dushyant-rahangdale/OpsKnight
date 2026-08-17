@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+LABEL org.opencontainers.image.source="https://github.com/opsknight-labs/OpsKnight"
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
