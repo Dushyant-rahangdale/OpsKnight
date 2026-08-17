@@ -3,9 +3,8 @@ import { APP_VERSION } from '@/lib/version';
 import packageJson from '../../package.json';
 
 describe('Application Version Resolution', () => {
-  it('correctly resolves to the package.json version 1.3.0', () => {
+  it('correctly resolves to the package.json version', () => {
     expect(APP_VERSION).toBe(packageJson.version);
-    expect(APP_VERSION).toBe('1.3.0');
   });
 
   it('matches semantic versioning format', () => {
