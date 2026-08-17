@@ -54,9 +54,15 @@ export async function sendIncidentWhatsApp(
 
     // Format phone number for WhatsApp (must be E.164 format)
     let phoneNumber = user.phoneNumber.trim();
-    if (!phoneNumber.startsWith('+')) {
-      // Assume US number if no country code
-      phoneNumber = `+1${phoneNumber.replace(/\D/g, '')}`;
+    if (phoneNumber.startsWith('00')) {
+      phoneNumber = `+${phoneNumber.slice(2).replace(/\D/g, '')}`;
+    } else if (!phoneNumber.startsWith('+')) {
+      const digits = phoneNumber.replace(/\D/g, '');
+      if (digits.length === 10) {
+        phoneNumber = `+1${digits}`;
+      } else {
+        phoneNumber = `+${digits}`;
+      }
     } else {
       phoneNumber = `+${phoneNumber.replace(/\D/g, '')}`;
     }
@@ -129,7 +135,6 @@ export async function sendIncidentWhatsApp(
 
       return { success: true };
     } catch (twilioError: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       logger.error('WhatsApp send error', {
         userId,
         incidentId,
@@ -140,7 +145,6 @@ export async function sendIncidentWhatsApp(
       return { success: false, error: twilioError.message || 'WhatsApp send failed' };
     }
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('WhatsApp notification error', {
       userId,
       incidentId,
@@ -166,8 +170,15 @@ export async function sendWhatsApp(
 
     // Format phone numbers
     let toNumber = to.trim();
-    if (!toNumber.startsWith('+')) {
-      toNumber = `+1${toNumber.replace(/\D/g, '')}`;
+    if (toNumber.startsWith('00')) {
+      toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
+    } else if (!toNumber.startsWith('+')) {
+      const digits = toNumber.replace(/\D/g, '');
+      if (digits.length === 10) {
+        toNumber = `+1${digits}`;
+      } else {
+        toNumber = `+${digits}`;
+      }
     } else {
       toNumber = `+${toNumber.replace(/\D/g, '')}`;
     }
@@ -199,7 +210,6 @@ export async function sendWhatsApp(
 
     return { success: true, messageSid: messageResult.sid };
   } catch (error: any) {
-    // eslint-disable-line @typescript-eslint/no-explicit-any
     logger.error('WhatsApp send error', {
       to,
       error: error.message,

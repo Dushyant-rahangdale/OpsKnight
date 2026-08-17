@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
 
   // Create SSE stream
   const encoder = new TextEncoder();
+  let isCancelled = false;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
         let batchNumber = 0;
 
         while (true) {
-          if (req.signal.aborted) {
+          if (req.signal.aborted || isCancelled) {
             break;
           }
 
@@ -112,7 +113,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'desc' },
           });
 
-          if (batch.length === 0 || req.signal.aborted) break;
+          if (batch.length === 0 || req.signal.aborted || isCancelled) break;
 
           // Send batch
           const data = JSON.stringify({
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
 
-        if (!req.signal.aborted) {
+        if (!req.signal.aborted && !isCancelled) {
           // Send completion message
           controller.enqueue(
             encoder.encode(
@@ -140,7 +141,7 @@ export async function GET(req: NextRequest) {
         }
         controller.close();
       } catch (_error) {
-        if (!req.signal.aborted) {
+        if (!req.signal.aborted && !isCancelled) {
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ type: 'error', message: 'Failed to stream SLA data' })}\n\n`
@@ -152,6 +153,7 @@ export async function GET(req: NextRequest) {
     },
     cancel() {
       // Reader disconnected
+      isCancelled = true;
     },
   });
 

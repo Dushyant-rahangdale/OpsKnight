@@ -258,18 +258,18 @@ export async function GET(req: NextRequest) {
 
     // MTTA with visual indicator
     const mttaStatus =
-      mttaMs && mttaMs < 15 * 60 * 1000
+      mttaMs != null && mttaMs < 15 * 60 * 1000
         ? '[OK] Good'
-        : mttaMs && mttaMs < 30 * 60 * 1000
+        : mttaMs != null && mttaMs < 30 * 60 * 1000
           ? '[!] Review'
           : '[X] Needs Attention';
     csvRows.push(['MTTA (Mean Time to Acknowledge)', formatMinutes(mttaMs), mttaStatus]);
 
     // MTTR with visual indicator
     const mttrStatus =
-      mttrMs && mttrMs < 120 * 60 * 1000
+      mttrMs != null && mttrMs < 120 * 60 * 1000
         ? '[OK] Good'
-        : mttrMs && mttrMs < 240 * 60 * 1000
+        : mttrMs != null && mttrMs < 240 * 60 * 1000
           ? '[!] Review'
           : '[X] Needs Attention';
     csvRows.push(['MTTR (Mean Time to Resolve)', formatMinutes(mttrMs), mttrStatus]);

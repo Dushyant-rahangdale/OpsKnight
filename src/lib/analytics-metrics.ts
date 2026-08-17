@@ -24,7 +24,10 @@ export type ServiceSlaEntry = {
 export function calculatePercentile(values: number[], percentileValue: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.ceil((percentileValue / 100) * sorted.length) - 1);
+  const index = Math.max(
+    0,
+    Math.min(sorted.length - 1, Math.ceil((percentileValue / 100) * sorted.length) - 1)
+  );
   return sorted[index];
 }
 

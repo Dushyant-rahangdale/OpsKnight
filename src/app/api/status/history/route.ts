@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
       startDate,
       includeIncidents: true,
       incidentLimit: 100,
+      visibility: 'PUBLIC',
     });
 
     const { serializeRecentIncidents } = await import('@/lib/sla');
