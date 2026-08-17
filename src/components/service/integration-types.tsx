@@ -25,7 +25,11 @@ export type IntegrationType =
   | 'BETTER_UPTIME'
   | 'UPTIME_KUMA'
   | 'NAGIOS'
-  | 'ICINGA';
+  | 'ICINGA'
+  | 'ZABBIX'
+  | 'PAGERDUTY'
+  | 'GITLAB'
+  | 'VERCEL';
 
 type BrandIconProps = {
   title: string;
@@ -169,6 +173,26 @@ const BRAND_PATHS = {
     title: 'Icinga',
     color: '#00B0FF',
     path: 'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 3.2c4.86 0 8.8 3.94 8.8 8.8s-3.94 8.8-8.8 8.8-8.8-3.94-8.8-8.8 3.94-8.8 8.8-8.8zm0 3.6a5.2 5.2 0 1 0 0 10.4 5.2 5.2 0 0 0 0-10.4z',
+  },
+  zabbix: {
+    title: 'Zabbix',
+    color: '#D40000',
+    path: 'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.6 17.6H6.4v-2.133l6.133-6.934H6.4V6.4h11.2v2.133L11.467 15.467h6.133v2.133z',
+  },
+  pagerduty: {
+    title: 'PagerDuty',
+    color: '#06AC38',
+    path: 'M4.092 0C1.832 0 0 1.83 0 4.09v15.82C0 22.17 1.832 24 4.092 24h15.816C22.168 24 24 22.17 24 19.91V4.09C24 1.83 22.168 0 19.908 0H4.092zm3.896 4.908h5.36c3.15 0 5.252 1.95 5.252 4.908 0 2.96-2.102 4.91-5.252 4.91H9.98v4.366H7.988V4.908zm1.992 1.992v5.826h3.368c1.928 0 3.26-1.168 3.26-2.914 0-1.744-1.332-2.912-3.26-2.912H9.98z',
+  },
+  gitlab: {
+    title: 'GitLab',
+    color: '#FC6D26',
+    path: 'm23.6 9.59-1.2-3.7c-.16-.48-.67-.77-1.16-.62-.22.07-.4.21-.5.41l-2.02 5.92H5.28L3.26 5.68c-.1-.2-.28-.34-.5-.41-.49-.15-1 .14-1.16.62L.4 9.59c-.14.43-.02.9.31 1.21l11.04 8.78c.15.12.35.19.55.19s.4-.07.55-.19L23.29 10.8c.33-.31.45-.78.31-1.21z',
+  },
+  vercel: {
+    title: 'Vercel',
+    color: '#000000',
+    path: 'M24 22.525H0l12-21.05 12 21.05z',
   },
 } as const;
 
@@ -319,11 +343,43 @@ export const INTEGRATION_TYPES: Array<{
   },
   {
     value: 'GITHUB',
-    label: 'GitHub/GitLab',
-    description: 'Receive alerts from GitHub Actions and GitLab CI/CD pipelines',
+    label: 'GitHub Actions',
+    description: 'Receive alerts from GitHub Actions workflows and check runs',
     icon: <BrandIcon {...BRAND_PATHS.github} color="#ffffff" />,
     iconBg: BRAND_PATHS.github.color,
     category: 'CI/CD & Version Control',
+  },
+  {
+    value: 'GITLAB',
+    label: 'GitLab',
+    description: 'Receive pipeline, job, and incident alerts from GitLab webhooks',
+    icon: <BrandIcon {...BRAND_PATHS.gitlab} color="#ffffff" />,
+    iconBg: BRAND_PATHS.gitlab.color,
+    category: 'CI/CD & Version Control',
+  },
+  {
+    value: 'VERCEL',
+    label: 'Vercel',
+    description: 'Receive deployment error and domain alerts from Vercel',
+    icon: <BrandIcon {...BRAND_PATHS.vercel} color="#ffffff" />,
+    iconBg: BRAND_PATHS.vercel.color,
+    category: 'Cloud & Infrastructure',
+  },
+  {
+    value: 'ZABBIX',
+    label: 'Zabbix',
+    description: 'Receive host, trigger, and problem alerts from Zabbix',
+    icon: <BrandIcon {...BRAND_PATHS.zabbix} color="#ffffff" />,
+    iconBg: BRAND_PATHS.zabbix.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'PAGERDUTY',
+    label: 'PagerDuty Drop-in Emulation',
+    description: 'Drop-in endpoint for tools sending PagerDuty Events API v2 payloads',
+    icon: <BrandIcon {...BRAND_PATHS.pagerduty} color="#ffffff" />,
+    iconBg: BRAND_PATHS.pagerduty.color,
+    category: 'Incident Management',
   },
   {
     value: 'BITBUCKET',
