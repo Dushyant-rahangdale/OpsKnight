@@ -332,11 +332,12 @@ export async function processJob(job: any): Promise<boolean> {
             await scheduleEscalation(job.payload.incidentId, nextStep, 0);
             return true;
           } else {
-            // Not ready yet, reschedule
+            // Not ready yet, reschedule and reset attempts so premature polls don't exhaust retry budget
             await prisma.backgroundJob.update({
               where: { id: job.id },
               data: {
                 status: 'PENDING',
+                attempts: 0,
                 scheduledAt: incident.snoozedUntil,
                 startedAt: null,
               },

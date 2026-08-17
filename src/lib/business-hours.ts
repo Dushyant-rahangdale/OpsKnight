@@ -32,7 +32,8 @@ export function isIncidentAfterHours(
   date: Date,
   timeZone: string = DEFAULT_BUSINESS_HOURS_TIMEZONE,
   startHour: number = DEFAULT_BUSINESS_HOURS_START,
-  endHour: number = DEFAULT_BUSINESS_HOURS_END
+  endHour: number = DEFAULT_BUSINESS_HOURS_END,
+  businessDays?: number[]
 ): boolean {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone,
@@ -48,12 +49,25 @@ export function isIncidentAfterHours(
   // toward "in-hours" avoids inflating after-hours counts on bad data.
   const hour = hourStr !== undefined ? parseInt(hourStr, 10) : 12;
 
-  const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  const dayNum = dayMap[weekday] ?? 1;
+  const allowedDays = businessDays && businessDays.length > 0 ? businessDays : [1, 2, 3, 4, 5];
+  const isBusinessDay = allowedDays.includes(dayNum);
+
   const isBusinessHours =
     startHour <= endHour
       ? hour >= startHour && hour < endHour
       : hour >= startHour || hour < endHour;
-  return isWeekend || !isBusinessHours;
+
+  return !isBusinessDay || !isBusinessHours;
 }
 
 // (Note: incident-event classification helpers live in

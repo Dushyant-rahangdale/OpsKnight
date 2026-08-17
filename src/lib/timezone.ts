@@ -279,7 +279,7 @@ export function isValidTimeZone(timeZone: string): boolean {
  * Format date for input fields (datetime-local format)
  * Converts UTC date to local timezone for display in input
  */
-function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
+export function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
   try {
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
@@ -342,8 +342,13 @@ export function parseDateTimeInTimeZone(value: string, timeZone: string): Date |
   }
 
   const utcMillis = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
-  const offsetMs = getTimeZoneOffsetMs(new Date(utcMillis), timeZone);
-  return new Date(utcMillis - offsetMs);
+  const guessOffsetMs = getTimeZoneOffsetMs(new Date(utcMillis), timeZone);
+  let date = new Date(utcMillis - guessOffsetMs);
+  const actualOffsetMs = getTimeZoneOffsetMs(date, timeZone);
+  if (actualOffsetMs !== guessOffsetMs) {
+    date = new Date(utcMillis - actualOffsetMs);
+  }
+  return date;
 }
 
 function pad2(value: number): string {
