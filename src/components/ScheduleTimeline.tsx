@@ -21,7 +21,6 @@ import { getDefaultAvatar } from '@/lib/avatar';
 import { getFinalScheduleBlocks, type OnCallBlock } from '@/lib/oncall';
 import { ChevronLeft, ChevronRight, Calendar, Clock, Users, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { differenceInHours } from 'date-fns';
 import {
   addDaysToDateKey,
   formatDateKeyInTimeZone,
@@ -94,7 +93,7 @@ export default function ScheduleTimeline({
 }: ScheduleTimelineProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    setIsMounted(true);
+    setIsMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- intentional hydration safety
   }, []);
 
   const [daysToShow, setDaysToShow] = useState<7 | 14>(7);

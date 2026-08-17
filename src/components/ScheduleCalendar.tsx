@@ -99,7 +99,7 @@ function buildCalendar(baseDate: Date, shifts: CalendarShift[], timeZone: string
 export default function ScheduleCalendar({ shifts, timeZone }: ScheduleCalendarProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    setIsMounted(true);
+    setIsMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- intentional hydration safety
   }, []);
 
   const [cursor, setCursor] = useState(() => new Date());

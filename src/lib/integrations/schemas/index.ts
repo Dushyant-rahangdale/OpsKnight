@@ -113,7 +113,7 @@ export type AzureAlertData = z.infer<typeof AzureAlertSchema>;
 // Datadog
 // ============================================
 
-export const DatadogEventSchema = z.object({
+export const DatadogSingleEventSchema = z.object({
   event_type: z.string().optional(),
   title: z.string().optional(),
   text: z.string().optional(),
@@ -142,6 +142,12 @@ export const DatadogEventSchema = z.object({
     .optional(),
 });
 
+export const DatadogEventSchema = z.union([
+  DatadogSingleEventSchema,
+  z.array(DatadogSingleEventSchema),
+]);
+
+export type DatadogSingleEvent = z.infer<typeof DatadogSingleEventSchema>;
 export type DatadogEvent = z.infer<typeof DatadogEventSchema>;
 
 // ============================================

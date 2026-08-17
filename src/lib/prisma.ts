@@ -15,7 +15,7 @@ import { PrismaClient } from '@prisma/client';
 const prismaClientSingleton = () => {
   // Log configuration for debugging
   const poolSize = process.env.DATABASE_POOL_SIZE || '40';
-  const logLevel = process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn'];
+  const logLevel: Array<'error' | 'warn'> = ['error', 'warn'];
 
   let datasourceUrl = process.env.DATABASE_URL;
   if (datasourceUrl && !datasourceUrl.includes('connection_limit=')) {
@@ -24,7 +24,7 @@ const prismaClientSingleton = () => {
   }
 
   return new PrismaClient({
-    log: logLevel as any,
+    log: logLevel,
     // Datasource configuration can be overridden via env
     datasourceUrl,
   });

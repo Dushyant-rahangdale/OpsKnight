@@ -129,7 +129,9 @@ export async function retry<T>(
           options.onRetry(attempt, error);
         }
 
-        await sleep(delay);
+        if (!(error as any)?.retryAfterHandled) {
+          await sleep(delay);
+        }
       }
     }
   }
@@ -185,7 +187,11 @@ export async function retryFetch(
           await sleep(Math.min(waitMs, 60000));
         }
       }
-      throw new Error(`HTTP ${response.status}: ${response.statusText || 'Error'}`);
+      const err = new Error(`HTTP ${response.status}: ${response.statusText || 'Error'}`) as any;
+      if (response.status === 429 && retryAfter) {
+        err.retryAfterHandled = true;
+      }
+      throw err;
     }
 
     return response;

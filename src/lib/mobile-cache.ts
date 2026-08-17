@@ -17,9 +17,7 @@ const textDecoder = typeof window !== 'undefined' ? new TextDecoder() : null;
 const CACHE_KEY_PASSPHRASE = 'mobile-cache-key-v1';
 
 const base64Encode = (bytes: ArrayBuffer): string =>
-  typeof window === 'undefined'
-    ? ''
-    : window.btoa(String.fromCharCode(...new Uint8Array(bytes)));
+  typeof window === 'undefined' ? '' : window.btoa(String.fromCharCode(...new Uint8Array(bytes)));
 
 const base64Decode = (value: string): ArrayBuffer => {
   if (typeof window === 'undefined') return new ArrayBuffer(0);
@@ -36,16 +34,15 @@ const getCryptoKey = async (): Promise<CryptoKey | null> => {
     return null;
   }
   const rawKey = textEncoder.encode(CACHE_KEY_PASSPHRASE);
-  return window.crypto.subtle.importKey(
-    'raw',
-    rawKey,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt']
-  );
+  return window.crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, false, [
+    'encrypt',
+    'decrypt',
+  ]);
 };
 
-const encryptEnvelope = async <T>(envelope: CacheEnvelope<T>): Promise<EncryptedEnvelope | null> => {
+const encryptEnvelope = async <T>(
+  envelope: CacheEnvelope<T>
+): Promise<EncryptedEnvelope | null> => {
   if (typeof window === 'undefined' || !window.crypto?.subtle || !textEncoder) {
     return null;
   }
@@ -121,7 +118,35 @@ export const writeCache = async <T>(key: string, data: T): Promise<void> => {
       return;
     }
     window.localStorage.setItem(key, JSON.stringify(encrypted));
-  } catch {
-    // Ignore quota or crypto errors
+  } catch (error: any) {
+    if (error?.name === 'QuotaExceededError') {
+      try {
+        const keys = Object.keys(window.localStorage);
+        const entries: { key: string; savedAt: number }[] = [];
+        for (const k of keys) {
+          try {
+            const raw = window.localStorage.getItem(k);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed && typeof parsed === 'object' && 'savedAt' in parsed) {
+                entries.push({ key: k, savedAt: Date.parse(parsed.savedAt) });
+              }
+            }
+          } catch {}
+        }
+        entries.sort((a, b) => a.savedAt - b.savedAt);
+        const toDelete = Math.max(1, Math.ceil(entries.length * 0.25));
+        for (let i = 0; i < toDelete; i++) {
+          window.localStorage.removeItem(entries[i].key);
+        }
+        // Retry the write once
+        const encrypted = await encryptEnvelope(payload);
+        if (encrypted) {
+          window.localStorage.setItem(key, JSON.stringify(encrypted));
+        }
+      } catch (retryError) {
+        console.warn('Mobile cache is full and eviction failed');
+      }
+    }
   }
 };

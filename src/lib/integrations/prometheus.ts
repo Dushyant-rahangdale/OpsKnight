@@ -35,20 +35,7 @@ export function transformPrometheusToEvent(payload: PrometheusAlert): {
     custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 } {
-  if (!payload.alerts || payload.alerts.length === 0) {
-    // Return acknowledge for empty alerts array instead of throwing
-    // Use groupKey or receiver for stable dedup key
-    return {
-      event_action: 'acknowledge',
-      dedup_key: `prometheus-empty-${payload.groupKey || payload.receiver || 'unknown'}`,
-      payload: {
-        summary: 'Prometheus alert received: empty alerts array',
-        source: 'Prometheus Alertmanager',
-        severity: 'info',
-        custom_details: payload,
-      },
-    };
-  }
+  // Schema validation guarantees payload.alerts has at least 1 alert
 
   // Process the first alert (or combine multiple)
   const alert = payload.alerts[0];

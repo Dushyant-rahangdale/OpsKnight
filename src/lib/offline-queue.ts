@@ -112,7 +112,7 @@ export const removeQueuedRequest = async (id: string) => {
 
 const isRetryableStatus = (status: number) => {
   if (status >= 500) return true;
-  if (status === 408 || status === 429) return true;
+  if (status === 408 || status === 429 || status === 401) return true;
   return false;
 };
 

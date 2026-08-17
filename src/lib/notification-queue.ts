@@ -51,7 +51,7 @@ interface ChannelState {
 // For multi-instance, this should be replaced with Redis
 const queue: QueuedNotification[] = [];
 const channelStates = new Map<NotificationChannel, ChannelState>();
-const processedDedupeKeys = new Set<string>();
+const processedDedupeKeys = new Map<string, number>();
 let flushTimer: NodeJS.Timeout | null = null;
 let isProcessing = false;
 
@@ -102,9 +102,7 @@ function generateDedupeKey(
   userId: string,
   channel: NotificationChannel
 ): string {
-  // Dedupe within 5-minute windows
-  const timeWindow = Math.floor(Date.now() / (5 * 60 * 1000));
-  return `${incidentId}:${userId}:${channel}:${timeWindow}`;
+  return `${incidentId}:${userId}:${channel}`;
 }
 
 /**
@@ -131,7 +129,10 @@ export function queueNotification(
   const dedupeKey = generateDedupeKey(incidentId, userId, channel);
 
   // Check for duplicates
-  if (processedDedupeKeys.has(dedupeKey)) {
+  if (
+    processedDedupeKeys.has(dedupeKey) &&
+    Date.now() - processedDedupeKeys.get(dedupeKey)! < 5 * 60 * 1000
+  ) {
     logger.debug('[NotificationQueue] Duplicate notification skipped', {
       incidentId,
       userId,
@@ -183,7 +184,11 @@ export function queueBulkNotifications(
   for (const n of notifications) {
     const dedupeKey = generateDedupeKey(n.incidentId, n.userId, n.channel);
 
-    if (processedDedupeKeys.has(dedupeKey) || queue.some(q => q.dedupeKey === dedupeKey)) {
+    if (
+      (processedDedupeKeys.has(dedupeKey) &&
+        Date.now() - processedDedupeKeys.get(dedupeKey)! < 5 * 60 * 1000) ||
+      queue.some(q => q.dedupeKey === dedupeKey)
+    ) {
       duplicates++;
       continue;
     }
@@ -299,14 +304,13 @@ async function processChannelNotifications(
           const result = await sendNotification(n.incidentId, n.userId, n.channel, n.message);
 
           // Mark as processed for deduplication
-          processedDedupeKeys.add(n.dedupeKey);
+          processedDedupeKeys.set(n.dedupeKey, Date.now());
 
-          // Clean old dedupe keys periodically (keep last 5 minutes)
+          // Clean old dedupe keys periodically (keep last 10 minutes)
           if (processedDedupeKeys.size > 10000) {
-            const currentWindow = Math.floor(Date.now() / (5 * 60 * 1000));
-            for (const key of processedDedupeKeys) {
-              const keyWindow = parseInt(key.split(':')[3]);
-              if (keyWindow < currentWindow - 1) {
+            const now = Date.now();
+            for (const [key, timestamp] of processedDedupeKeys.entries()) {
+              if (now - timestamp > 10 * 60 * 1000) {
                 processedDedupeKeys.delete(key);
               }
             }

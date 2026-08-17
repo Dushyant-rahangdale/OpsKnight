@@ -3,7 +3,9 @@
  * Transforms Datadog webhooks to standard event format
  */
 
-export type DatadogEvent = {
+import { createHash } from 'crypto';
+
+export type DatadogSingleEvent = {
   event_type?: string;
   title?: string;
   text?: string;
@@ -30,7 +32,9 @@ export type DatadogEvent = {
   };
 };
 
-export function transformDatadogToEvent(data: DatadogEvent): {
+export type DatadogEvent = DatadogSingleEvent | DatadogSingleEvent[];
+
+export function transformDatadogToEvent(data: DatadogEvent): Array<{
   event_action: 'trigger' | 'resolve';
   dedup_key: string;
   payload: {
@@ -39,53 +43,61 @@ export function transformDatadogToEvent(data: DatadogEvent): {
     severity: 'critical' | 'error' | 'warning' | 'info';
     custom_details: Record<string, unknown>;
   };
-} {
-  const title = data.title || data.alert?.title || data.monitor?.name || 'Datadog Alert';
-  const text = data.text || data.alert?.message || data.monitor?.message || '';
-  const alertType = data.alert_type || data.alert?.severity || 'warning';
-  const status = data.alert?.status || data.monitor?.status || 'triggered';
+}> {
+  const events = Array.isArray(data) ? data : [data];
 
-  const isResolved = status === 'resolved' || status === 'ok' || alertType === 'success';
-  // Build stable dedup key - avoid Date.now() which defeats deduplication
-  // Priority: aggregation_key > alert.id > monitor.id > title-based hash
-  const dedupKey =
-    data.aggregation_key ||
-    (data.alert?.id
-      ? `datadog-alert-${data.alert.id}`
-      : data.monitor?.id
-        ? `datadog-monitor-${data.monitor.id}`
-        : `datadog-${(title || 'unknown').replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`);
+  return events.map(eventData => {
+    const title =
+      eventData.title || eventData.alert?.title || eventData.monitor?.name || 'Datadog Alert';
+    const text = eventData.text || eventData.alert?.message || eventData.monitor?.message || '';
+    const alertType = eventData.alert_type || eventData.alert?.severity || 'warning';
+    const status = eventData.alert?.status || eventData.monitor?.status || 'triggered';
 
-  // Map Datadog alert type to our severity
-  let mappedSeverity: 'critical' | 'error' | 'warning' | 'info' = 'warning';
-  if (alertType === 'error') {
-    mappedSeverity = 'critical';
-  } else if (alertType === 'warning') {
-    mappedSeverity = 'warning';
-  } else {
-    mappedSeverity = 'info';
-  }
+    const isResolved = status === 'resolved' || status === 'ok' || alertType === 'success';
+    // Build stable dedup key - avoid Date.now() which defeats deduplication
+    // Priority: aggregation_key > alert.id > monitor.id > title-based hash
+    const titleKey = (title || 'unknown').replace(/\s+/g, '-').toLowerCase();
+    const titleHash = createHash('sha256').update(titleKey).digest('hex').slice(0, 32);
 
-  return {
-    event_action: isResolved ? 'resolve' : 'trigger',
-    dedup_key: dedupKey,
-    payload: {
-      summary: title,
-      source: 'Datadog',
-      severity: mappedSeverity,
-      custom_details: {
-        title,
-        text,
-        alertType,
-        status,
-        dateHappened: data.date_happened,
-        tags: data.tags,
-        host: data.host,
-        sourceType: data.source_type_name,
-        alert: data.alert,
-        monitor: data.monitor,
-        eventType: data.event_type,
+    const dedupKey =
+      eventData.aggregation_key ||
+      (eventData.alert?.id
+        ? `datadog-alert-${eventData.alert.id}`
+        : eventData.monitor?.id
+          ? `datadog-monitor-${eventData.monitor.id}`
+          : `datadog-${titleHash}`);
+
+    // Map Datadog alert type to our severity
+    let mappedSeverity: 'critical' | 'error' | 'warning' | 'info' = 'info';
+    if (alertType === 'critical') {
+      mappedSeverity = 'critical';
+    } else if (alertType === 'error') {
+      mappedSeverity = 'error';
+    } else if (alertType === 'warning') {
+      mappedSeverity = 'warning';
+    }
+
+    return {
+      event_action: isResolved ? 'resolve' : 'trigger',
+      dedup_key: dedupKey,
+      payload: {
+        summary: title,
+        source: 'Datadog',
+        severity: mappedSeverity,
+        custom_details: {
+          title,
+          text,
+          alertType,
+          status,
+          dateHappened: eventData.date_happened,
+          tags: eventData.tags,
+          host: eventData.host,
+          sourceType: eventData.source_type_name,
+          alert: eventData.alert,
+          monitor: eventData.monitor,
+          eventType: eventData.event_type,
+        },
       },
-    },
-  };
+    };
+  });
 }

@@ -5,6 +5,8 @@
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
+import { retry } from './retry';
+import { CircuitBreakers } from './circuit-breaker';
 
 export interface WebhookPayload {
   event: string;
@@ -32,17 +34,56 @@ async function deliverWebhook(
     const payloadString = JSON.stringify(payload);
     const signature = crypto.createHmac('sha256', secret).update(payloadString).digest('hex');
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Webhook-Signature': `sha256=${signature}`,
-        'X-Webhook-Event': payload.event,
-        'User-Agent': 'OpsKnight-StatusPage/1.0',
+    const cb = CircuitBreakers.webhook(url);
+
+    const retryResult = await retry(
+      async () => {
+        const response = await cb.execute(() =>
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Webhook-Signature': `sha256=${signature}`,
+              'X-Webhook-Event': payload.event,
+              'User-Agent': 'OpsKnight-StatusPage/1.0',
+            },
+            body: payloadString,
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          })
+        );
+
+        if (!response.ok && (response.status >= 500 || response.status === 429)) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return response;
       },
-      body: payloadString,
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        retryableErrors: error => {
+          if (error instanceof Error) {
+            if (error.name === 'AbortError' || error.message.includes('timeout')) return true;
+            if (error.message.includes('fetch') || error.message.includes('network')) return true;
+            if (error.message.includes('HTTP 5') || error.message.includes('HTTP 429')) return true;
+          }
+          return false;
+        },
+      }
+    );
+
+    if (!retryResult.success || !retryResult.data) {
+      logger.warn('api.status_page.webhook.delivery_failed', {
+        url,
+        error:
+          retryResult.error instanceof Error
+            ? retryResult.error.message
+            : String(retryResult.error),
+      });
+      return false;
+    }
+
+    const response = retryResult.data;
 
     if (response.ok) {
       await prisma.statusPageWebhook.updateMany({
@@ -52,7 +93,7 @@ async function deliverWebhook(
       return true;
     }
 
-    logger.warn('api.status_page.webhook.delivery_failed', {
+    logger.warn('api.status_page.webhook.delivery_failed_status', {
       url,
       status: response.status,
       statusText: response.statusText,
