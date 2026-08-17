@@ -54,15 +54,19 @@ export async function POST(req: NextRequest) {
         return jsonError('Invalid Prometheus Alertmanager payload', 400);
       }
 
-      const event = transformPrometheusToEvent(body as PrometheusAlert);
-      const result = await processEvent(event, integration.serviceId, integration.id);
+      const events = transformPrometheusToEvent(body as PrometheusAlert);
+
+      const results = [];
+      for (const event of events) {
+        results.push(await processEvent(event, integration.serviceId, integration.id));
+      }
 
       logger.info('api.integration.prometheus_success', {
         integrationId,
-        action: result.action,
+        eventsProcessed: events.length,
         latencyMs: Date.now() - startTime,
       });
-      return jsonOk({ status: 'success', result }, 202);
+      return jsonOk({ status: 'success', results }, 202);
     } catch (error: unknown) {
       logger.error('api.integration.prometheus_error', {
         error: error instanceof Error ? error.message : String(error),

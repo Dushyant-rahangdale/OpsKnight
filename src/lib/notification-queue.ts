@@ -39,6 +39,7 @@ interface QueuedNotification {
   priority: number; // 1 = high, 2 = medium, 3 = low
   createdAt: number;
   dedupeKey: string;
+  retryCount?: number;
 }
 
 interface ChannelState {
@@ -288,8 +289,20 @@ async function processChannelNotifications(
         toProcess.push(n);
         incrementRateLimit(channel);
       } else {
-        // Re-queue rate-limited notifications with lower priority
-        queue.push({ ...n, priority: Math.min(n.priority + 1, 3) });
+        // Re-queue rate-limited notifications with backoff
+        const retryCount = (n.retryCount || 0) + 1;
+        if (retryCount <= 5) {
+          const delayMs = Math.pow(2, retryCount) * 1000;
+          setTimeout(() => {
+            queue.push({ ...n, priority: Math.min(n.priority + 1, 3), retryCount });
+          }, delayMs);
+        } else {
+          logger.error('[NotificationQueue] Notification permanently dropped due to rate limits', {
+            incidentId: n.incidentId,
+            userId: n.userId,
+            channel: n.channel,
+          });
+        }
       }
     }
 
@@ -300,11 +313,9 @@ async function processChannelNotifications(
 
     const results = await Promise.allSettled(
       toProcess.map(async n => {
+        processedDedupeKeys.set(n.dedupeKey, Date.now());
         try {
           const result = await sendNotification(n.incidentId, n.userId, n.channel, n.message);
-
-          // Mark as processed for deduplication
-          processedDedupeKeys.set(n.dedupeKey, Date.now());
 
           // Clean old dedupe keys periodically (keep last 10 minutes)
           if (processedDedupeKeys.size > 10000) {
@@ -316,15 +327,9 @@ async function processChannelNotifications(
             }
           }
 
-          return result;
+          return { notification: n, result };
         } catch (error) {
-          logger.error('[NotificationQueue] Send failed', {
-            incidentId: n.incidentId,
-            userId: n.userId,
-            channel: n.channel,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          throw error;
+          throw { notification: n, error };
         }
       })
     );
@@ -334,6 +339,24 @@ async function processChannelNotifications(
     // Log batch results
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        const { notification, error } = result.reason;
+        const retryCount = (notification.retryCount || 0) + 1;
+
+        if (retryCount <= 3) {
+          queue.push({ ...notification, retryCount });
+        } else {
+          logger.error('[NotificationQueue] Notification permanently dropped after 3 retries', {
+            incidentId: notification.incidentId,
+            userId: notification.userId,
+            channel: notification.channel,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
 
     if (failed > 0) {
       logger.warn('[NotificationQueue] Batch completed with failures', {
