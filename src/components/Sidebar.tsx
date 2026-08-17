@@ -475,13 +475,15 @@ export default function Sidebar(
               >
                 <HelpCircle className="h-4 w-4" />
               </Link>
-              <Link
-                href="/shortcuts"
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('toggleKeyboardShortcuts'))}
                 className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
-                title="Keyboard Shortcuts"
+                title="Keyboard Shortcuts (?)"
+                aria-label="Keyboard Shortcuts"
               >
                 <Keyboard className="h-4 w-4" />
-              </Link>
+              </button>
               <Link
                 href="/settings"
                 className="flex items-center justify-center h-8 rounded-md hover:bg-white/5 text-white/40 hover:text-white transition-colors"
