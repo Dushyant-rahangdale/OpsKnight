@@ -37,6 +37,7 @@ describe('Vercel Webhooks Integration', () => {
     const event = transformVercelToEvent(payload as any);
     expect(event.event_action).toBe('trigger');
     expect(event.payload.severity).toBe('critical');
+    // Production deployments use a general dedup key so subsequent deploys resolve it
     expect(event.dedup_key).toBe('vercel-frontend-app-production');
     expect(event.payload.summary).toContain('Deployment failed');
   });
@@ -56,6 +57,41 @@ describe('Vercel Webhooks Integration', () => {
     const event = transformVercelToEvent(payload as any);
     expect(event.event_action).toBe('resolve');
     expect(event.dedup_key).toBe('vercel-frontend-app-production');
+  });
+
+  it('should parse deployment.error on preview with deployment ID in dedup key', () => {
+    const payload = {
+      id: 'evt_12347',
+      type: 'deployment.error',
+      payload: {
+        deployment: {
+          id: 'dpl_preview999',
+          name: 'frontend-app',
+        },
+        target: 'preview',
+      },
+    };
+
+    const event = transformVercelToEvent(payload as any);
+    expect(event.event_action).toBe('trigger');
+    expect(event.payload.severity).toBe('error'); // preview is error, not critical
+    // Preview uses deployment ID so different PRs don't clobber each other
+    expect(event.dedup_key).toBe('vercel-frontend-app-preview-dpl_preview999');
+  });
+
+  it('should parse deployment.created as acknowledge (informational)', () => {
+    const payload = {
+      id: 'evt_12348',
+      type: 'deployment.created',
+      payload: {
+        project: { name: 'frontend-app' },
+        target: 'production',
+      },
+    };
+
+    const event = transformVercelToEvent(payload as any);
+    expect(event.event_action).toBe('acknowledge');
+    expect(event.payload.severity).toBe('info');
   });
 
   it('should verify Vercel HMAC-SHA1 signatures in x-vercel-signature', () => {

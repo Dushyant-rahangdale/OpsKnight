@@ -10,6 +10,7 @@ function resolveZabbixSeverity(
 
   const sevStr = String(rawSeverity).trim().toLowerCase();
 
+  // Zabbix severity levels: 0=Not classified, 1=Information, 2=Warning, 3=Average, 4=High, 5=Disaster
   if (sevStr === '5' || sevStr.includes('disaster') || sevStr.includes('critical')) {
     return 'critical';
   }
@@ -95,15 +96,18 @@ export function transformZabbixToEvent(data: ZabbixPayload): {
     data.hostIp,
     'unknown-host'
   );
-  const triggerOrEventId = firstString(
-    data.trigger_id,
-    data.triggerId,
+
+  // Prioritize event_id over trigger_id — Zabbix triggers can generate multiple
+  // independent problem events, and recovery events reference the original EVENT.ID
+  const eventOrTriggerId = firstString(
     data.event_id,
-    data.eventId
+    data.eventId,
+    data.trigger_id,
+    data.triggerId
   );
 
-  const dedupKey = triggerOrEventId
-    ? `zabbix-${host}-${triggerOrEventId}`
+  const dedupKey = eventOrTriggerId
+    ? `zabbix-${host}-${eventOrTriggerId}`
     : `zabbix-${host}-${summary.replace(/\s+/g, '-').toLowerCase().slice(0, 100)}`;
 
   return {
@@ -124,6 +128,10 @@ export function transformZabbixToEvent(data: ZabbixPayload): {
         eventDate: data.event_date,
         eventTime: data.event_time,
         eventTags: data.event_tags,
+        eventUrl: data.event_url || data.eventUrl,
+        eventOpdata: data.event_opdata || data.eventOpdata,
+        ackUser: data.ack_user,
+        ackMessage: data.ack_message,
         raw: data,
       },
     },

@@ -33,7 +33,8 @@ describe('GitLab Webhooks Integration', () => {
     const event = transformGitLabToEvent(payload as any);
     expect(event.event_action).toBe('trigger');
     expect(event.payload.severity).toBe('error');
-    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-main');
+    // Ensure pipeline ID is in the dedup key to avoid collissions with other pipelines on the same branch
+    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-pipeline-991');
     expect(event.payload.custom_details.sha).toBe('abc1234');
   });
 
@@ -44,7 +45,6 @@ describe('GitLab Webhooks Integration', () => {
         id: 42,
         name: 'payment-service',
         path_with_namespace: 'fintech/payment-service',
-        web_url: 'https://gitlab.com/fintech/payment-service',
       },
       object_attributes: {
         id: 992,
@@ -57,7 +57,87 @@ describe('GitLab Webhooks Integration', () => {
 
     const event = transformGitLabToEvent(payload as any);
     expect(event.event_action).toBe('resolve');
-    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-main');
+    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-pipeline-992');
+  });
+
+  it('should parse a merge request open event as acknowledge', () => {
+    const payload = {
+      object_kind: 'merge_request',
+      project: {
+        name: 'payment-service',
+        path_with_namespace: 'fintech/payment-service',
+      },
+      object_attributes: {
+        id: 55,
+        iid: 12,
+        title: 'Add new payment gateway',
+        action: 'open',
+        source_branch: 'feature-123',
+        target_branch: 'main',
+      },
+    };
+
+    const validation = validatePayload(GitLabPayloadSchema, payload);
+    expect(validation.success).toBe(true);
+
+    const event = transformGitLabToEvent(payload as any);
+    expect(event.event_action).toBe('acknowledge');
+    expect(event.payload.severity).toBe('info');
+    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-mr-12');
+  });
+
+  it('should parse a merge request merge event as resolve', () => {
+    const payload = {
+      object_kind: 'merge_request',
+      project: {
+        name: 'payment-service',
+        path_with_namespace: 'fintech/payment-service',
+      },
+      object_attributes: {
+        iid: 12,
+        title: 'Add new payment gateway',
+        action: 'merge',
+      },
+    };
+
+    const event = transformGitLabToEvent(payload as any);
+    expect(event.event_action).toBe('resolve');
+    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-mr-12');
+  });
+
+  it('should parse a deployment failure event as trigger', () => {
+    const payload = {
+      object_kind: 'deployment',
+      project: {
+        name: 'payment-service',
+        path_with_namespace: 'fintech/payment-service',
+      },
+      environment: 'production',
+      status: 'failed',
+    };
+
+    const validation = validatePayload(GitLabPayloadSchema, payload);
+    expect(validation.success).toBe(true);
+
+    const event = transformGitLabToEvent(payload as any);
+    expect(event.event_action).toBe('trigger');
+    expect(event.payload.severity).toBe('error');
+    expect(event.dedup_key).toBe('gitlab-fintech-payment-service-deploy-production');
+  });
+
+  it('should parse unknown events as acknowledge to avoid incident noise', () => {
+    const payload = {
+      object_kind: 'push',
+      project: {
+        name: 'payment-service',
+        path_with_namespace: 'fintech/payment-service',
+      },
+      ref: 'refs/heads/main',
+    };
+
+    const event = transformGitLabToEvent(payload as any);
+    expect(event.event_action).toBe('acknowledge');
+    expect(event.payload.severity).toBe('info');
   });
 
   it('should verify X-Gitlab-Token correctly', () => {

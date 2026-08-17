@@ -2,73 +2,86 @@ import { describe, it, expect } from 'vitest';
 import { transformZabbixToEvent } from '@/lib/integrations/zabbix';
 import { ZabbixPayloadSchema, validatePayload } from '@/lib/integrations/schemas';
 
-describe('Zabbix Integration', () => {
-  it('should validate and parse a Zabbix problem notification', () => {
+describe('Zabbix Webhooks Integration', () => {
+  it('should parse a problem event as trigger with high severity', () => {
     const payload = {
-      event_id: '100456',
-      event_name: 'Zabbix agent on prod-app-01 is unreachable',
+      event_id: 1001,
+      trigger_id: 500,
+      event_name: 'CPU load is too high on db-server-01',
       event_status: 'PROBLEM',
       event_value: '1',
       event_severity: 'High',
-      host_name: 'prod-app-01',
-      host_ip: '10.0.1.55',
-      item_name: 'Agent ping',
-      trigger_id: '22334',
+      host_name: 'db-server-01',
+      host_ip: '10.0.0.5',
+      item_name: 'Processor load (1 min average)',
+      item_value: '5.2',
+      event_url: 'https://zabbix.internal/tr_events.php?triggerid=500&eventid=1001',
+      event_opdata: 'Current load: 5.2',
     };
 
     const validation = validatePayload(ZabbixPayloadSchema, payload);
     expect(validation.success).toBe(true);
 
-    const event = transformZabbixToEvent(payload);
+    const event = transformZabbixToEvent(payload as any);
     expect(event.event_action).toBe('trigger');
-    expect(event.payload.severity).toBe('error');
-    expect(event.payload.summary).toBe('Zabbix agent on prod-app-01 is unreachable');
-    expect(event.dedup_key).toBe('zabbix-prod-app-01-22334');
-    expect(event.payload.custom_details.hostIp).toBe('10.0.1.55');
+    expect(event.payload.severity).toBe('error'); // High maps to error
+    // Dedup key should prioritize event_id (1001) over trigger_id (500)
+    expect(event.dedup_key).toBe('zabbix-db-server-01-1001');
+    expect(event.payload.custom_details.hostIp).toBe('10.0.0.5');
+    expect(event.payload.custom_details.eventUrl).toBe(
+      'https://zabbix.internal/tr_events.php?triggerid=500&eventid=1001'
+    );
+    expect(event.payload.custom_details.eventOpdata).toBe('Current load: 5.2');
   });
 
-  it('should handle Disaster severity as critical', () => {
+  it('should parse a recovery event as resolve', () => {
     const payload = {
-      event_id: '100457',
-      event_name: 'Disk space on /var/lib/data is critical (>99%)',
-      event_status: 'PROBLEM',
-      event_severity: 'Disaster',
-      host_name: 'prod-db-primary',
-      trigger_id: '99887',
-    };
-
-    const event = transformZabbixToEvent(payload);
-    expect(event.event_action).toBe('trigger');
-    expect(event.payload.severity).toBe('critical');
-    expect(event.dedup_key).toBe('zabbix-prod-db-primary-99887');
-  });
-
-  it('should resolve incident when status is RESOLVED or OK', () => {
-    const payload = {
-      event_id: '100458',
-      event_name: 'Zabbix agent on prod-app-01 is unreachable',
-      event_status: 'RESOLVED',
+      event_id: 1001, // Note: Zabbix recovery sends the original problem's event_id
+      event_name: 'CPU load is too high on db-server-01',
+      event_status: 'OK',
       event_value: '0',
-      host_name: 'prod-app-01',
-      trigger_id: '22334',
+      event_severity: 'High',
+      host_name: 'db-server-01',
     };
 
-    const event = transformZabbixToEvent(payload);
+    const event = transformZabbixToEvent(payload as any);
     expect(event.event_action).toBe('resolve');
-    expect(event.dedup_key).toBe('zabbix-prod-app-01-22334');
+    expect(event.dedup_key).toBe('zabbix-db-server-01-1001');
   });
 
-  it('should acknowledge incident when action is ACKNOWLEDGE or UPDATE', () => {
+  it('should parse an acknowledgment event as acknowledge', () => {
     const payload = {
-      event_id: '100459',
-      event_name: 'High CPU utilization on prod-redis-01',
+      event_id: 1001,
+      event_name: 'CPU load is too high on db-server-01',
       action: 'ACKNOWLEDGE',
-      host_name: 'prod-redis-01',
-      trigger_id: '55443',
+      ack_user: 'Admin',
+      ack_message: 'Looking into this now',
+      host_name: 'db-server-01',
     };
 
-    const event = transformZabbixToEvent(payload);
+    const event = transformZabbixToEvent(payload as any);
     expect(event.event_action).toBe('acknowledge');
-    expect(event.dedup_key).toBe('zabbix-prod-redis-01-55443');
+    expect(event.dedup_key).toBe('zabbix-db-server-01-1001');
+    expect(event.payload.custom_details.ackUser).toBe('Admin');
+    expect(event.payload.custom_details.ackMessage).toBe('Looking into this now');
+  });
+
+  it('should map all Zabbix severities correctly', () => {
+    // 0 = Not classified (info)
+    expect(transformZabbixToEvent({ event_severity: '0' } as any).payload.severity).toBe('info');
+    // 1 = Information (info)
+    expect(transformZabbixToEvent({ event_severity: '1' } as any).payload.severity).toBe('info');
+    // 2 = Warning (warning)
+    expect(transformZabbixToEvent({ event_severity: '2' } as any).payload.severity).toBe('warning');
+    // 3 = Average (warning)
+    expect(transformZabbixToEvent({ event_severity: '3' } as any).payload.severity).toBe('warning');
+    // 4 = High (error)
+    expect(transformZabbixToEvent({ event_severity: '4' } as any).payload.severity).toBe('error');
+    // 5 = Disaster (critical)
+    expect(transformZabbixToEvent({ event_severity: '5' } as any).payload.severity).toBe(
+      'critical'
+    );
+    // Missing severity should default to warning
+    expect(transformZabbixToEvent({} as any).payload.severity).toBe('warning');
   });
 });
