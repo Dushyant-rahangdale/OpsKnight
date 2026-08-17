@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { processEvent } from '@/lib/events';
-import { transformGrafanaToEvent, GrafanaAlert } from '@/lib/integrations/grafana';
+import { transformGrafanaToEvents, GrafanaAlert } from '@/lib/integrations/grafana';
 
 import { verifyGrafanaSignature } from '@/lib/integrations/signature-verification';
 import { jsonError, jsonOk } from '@/lib/api-response';
@@ -69,15 +69,22 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const event = transformGrafanaToEvent(body as GrafanaAlert);
-      const result = await processEvent(event, integration.serviceId, integration.id);
+      const events = transformGrafanaToEvents(body as GrafanaAlert);
+      const results = [];
+      for (const event of events) {
+        const result = await processEvent(event, integration.serviceId, integration.id);
+        results.push(result);
+      }
+
+      const primaryResult = results[0] || { action: 'ignored' };
 
       logger.info('api.integration.grafana_success', {
         integrationId,
-        action: result.action,
+        action: primaryResult.action,
+        count: results.length,
         latencyMs: Date.now() - startTime,
       });
-      return jsonOk({ status: 'success', result }, 202);
+      return jsonOk({ status: 'success', result: primaryResult, results }, 202);
     } catch (error: unknown) {
       logger.error('api.integration.grafana_error', {
         error: error instanceof Error ? error.message : String(error),

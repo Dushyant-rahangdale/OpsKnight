@@ -35,8 +35,9 @@ export type StandardEvent = z.infer<typeof StandardEventSchema>;
 export const CloudWatchAlarmSchema = z.object({
   AlarmName: z.string(),
   AlarmDescription: z.string().optional(),
+  AWSAccountId: z.string().optional(),
   NewStateValue: z.enum(['OK', 'ALARM', 'INSUFFICIENT_DATA']),
-  NewStateReason: z.string(),
+  NewStateReason: z.string().optional(),
   StateChangeTime: z.string(),
   Region: z.string(),
   Trigger: z
@@ -167,6 +168,7 @@ export const GitHubEventSchema = z.object({
     .object({
       id: z.number(),
       name: z.string(),
+      head_branch: z.string().optional(),
       status: z.enum(['queued', 'in_progress', 'completed', 'requested']),
       conclusion: z.enum(['success', 'failure', 'cancelled', 'timed_out']).nullable().optional(),
       html_url: z.string(),
@@ -295,10 +297,10 @@ export const NewRelicEventSchema = z.object({
     .object({
       id: z.string(),
       title: z.string(),
-      state: z.enum(['open', 'acknowledged', 'resolved']),
-      severity: z.enum(['critical', 'warning', 'info']),
-      created_at: z.string(),
-      updated_at: z.string(),
+      state: z.string().optional(),
+      severity: z.string().optional(),
+      created_at: z.string().optional(),
+      updated_at: z.string().optional(),
       condition_name: z.string().optional(),
       condition_id: z.number().optional(),
       policy_name: z.string().optional(),
@@ -312,7 +314,7 @@ export const NewRelicEventSchema = z.object({
       alert_condition_name: z.string(),
       severity: z.string(),
       timestamp: z.number(),
-      state: z.enum(['open', 'closed']),
+      state: z.string().optional(),
       message: z.string().optional(),
     })
     .optional(),
@@ -757,11 +759,17 @@ export const NagiosPayloadSchema = z
     notificationnumber: z.union([z.string(), z.number()]).optional(),
     NOTIFICATIONNUMBER: z.union([z.string(), z.number()]).optional(),
     author: z.string().optional(),
+    AUTHOR: z.string().optional(),
     comment: z.string().optional(),
+    COMMENT: z.string().optional(),
     serviceackauthor: z.string().optional(),
     SERVICEACKAUTHOR: z.string().optional(),
     serviceackcomment: z.string().optional(),
     SERVICEACKCOMMENT: z.string().optional(),
+    hostackauthor: z.string().optional(),
+    HOSTACKAUTHOR: z.string().optional(),
+    hostackcomment: z.string().optional(),
+    HOSTACKCOMMENT: z.string().optional(),
   })
   .passthrough();
 

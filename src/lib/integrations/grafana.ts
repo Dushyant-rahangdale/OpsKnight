@@ -35,7 +35,7 @@ export type GrafanaAlert = {
   commonAnnotations?: Record<string, string>;
 };
 
-export function transformGrafanaToEvent(payload: GrafanaAlert): {
+export type GrafanaStandardEvent = {
   event_action: 'trigger' | 'resolve' | 'acknowledge';
   dedup_key: string;
   payload: {
@@ -44,7 +44,11 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
     severity: 'critical' | 'error' | 'warning' | 'info';
     custom_details: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
-} {
+};
+
+export function transformGrafanaToEvent(
+  payload: GrafanaAlert
+): GrafanaStandardEvent | GrafanaStandardEvent[] {
   // Handle new Grafana alert format
   if (payload.state !== undefined || payload.ruleName) {
     const isResolved = payload.state === 'ok';
@@ -80,66 +84,73 @@ export function transformGrafanaToEvent(payload: GrafanaAlert): {
     };
   }
 
-  // Handle Prometheus Alertmanager format (Grafana can send this)
+  // Handle Prometheus Alertmanager format (Grafana Unified Alerting can send this)
   if (payload.alerts && Array.isArray(payload.alerts)) {
-    const alert = payload.alerts[0];
-    if (!alert) {
-      // Return acknowledge for empty alerts array instead of throwing
-      // Use receiver or groupKey for stable dedup key (avoids Date.now() which defeats dedup)
-      return {
-        event_action: 'acknowledge' as const,
-        dedup_key: `grafana-empty-${payload.receiver || payload.groupKey || 'unknown'}`,
-        payload: {
-          summary: 'Grafana alert received: empty alerts array',
-          source: 'Grafana',
-          severity: 'info' as const,
-          custom_details: payload,
+    if (payload.alerts.length === 0) {
+      return [
+        {
+          event_action: 'acknowledge' as const,
+          dedup_key: `grafana-empty-${payload.receiver || payload.groupKey || 'unknown'}`,
+          payload: {
+            summary: 'Grafana alert received: empty alerts array',
+            source: 'Grafana',
+            severity: 'info' as const,
+            custom_details: payload,
+          },
         },
-      };
+      ];
     }
 
-    const isResolved = alert.status === 'resolved' || alert.endsAt;
-    const summary =
-      alert.annotations?.summary ||
-      alert.annotations?.description ||
-      alert.labels?.alertname ||
-      'Grafana Alert';
+    return payload.alerts.map(alert => {
+      const isResolved = alert.status === 'resolved' || alert.endsAt;
+      const summary =
+        alert.annotations?.summary ||
+        alert.annotations?.description ||
+        alert.labels?.alertname ||
+        'Grafana Alert';
 
-    // Use alertname + instance for stable dedup key (avoids Date.now() which defeats dedup)
-    const alertName = alert.labels?.alertname || 'alert';
-    const instance = alert.labels?.instance || 'default';
-    const dedupKey = `grafana-${alertName}-${instance}`.slice(0, 512);
+      const alertName = alert.labels?.alertname || 'alert';
+      const instance = alert.labels?.instance || 'default';
+      const dedupKey = `grafana-${alertName}-${instance}`.slice(0, 512);
 
-    return {
-      event_action: isResolved ? 'resolve' : 'trigger',
-      dedup_key: dedupKey,
-      payload: {
-        summary,
-        source: 'Grafana',
-        severity: 'critical',
-        custom_details: {
-          status: payload.status,
-          labels: alert.labels,
-          annotations: alert.annotations,
-          startsAt: alert.startsAt,
-          endsAt: alert.endsAt,
-          groupLabels: payload.groupLabels,
-          commonLabels: payload.commonLabels,
-          commonAnnotations: payload.commonAnnotations,
+      return {
+        event_action: isResolved ? ('resolve' as const) : ('trigger' as const),
+        dedup_key: dedupKey,
+        payload: {
+          summary,
+          source: 'Grafana',
+          severity: 'critical' as const,
+          custom_details: {
+            status: payload.status,
+            labels: alert.labels,
+            annotations: alert.annotations,
+            startsAt: alert.startsAt,
+            endsAt: alert.endsAt,
+            groupLabels: payload.groupLabels,
+            commonLabels: payload.commonLabels,
+            commonAnnotations: payload.commonAnnotations,
+          },
         },
-      },
-    };
+      };
+    });
   }
-  // Fallback for unsupported payload formats - return acknowledge instead of throwing
-  // Use title or ruleName for stable dedup key (avoids Date.now() which defeats dedup)
-  return {
-    event_action: 'acknowledge' as const,
-    dedup_key: `grafana-unknown-${payload.title || payload.ruleName || 'fallback'}`,
-    payload: {
-      summary: 'Grafana event received: unknown format',
-      source: 'Grafana',
-      severity: 'info' as const,
-      custom_details: payload,
+
+  // Fallback for unsupported payload formats
+  return [
+    {
+      event_action: 'acknowledge' as const,
+      dedup_key: `grafana-unknown-${payload.title || payload.ruleName || 'fallback'}`,
+      payload: {
+        summary: 'Grafana event received: unknown format',
+        source: 'Grafana',
+        severity: 'info' as const,
+        custom_details: payload,
+      },
     },
-  };
+  ];
+}
+
+export function transformGrafanaToEvents(payload: GrafanaAlert) {
+  const result = transformGrafanaToEvent(payload);
+  return Array.isArray(result) ? result : [result];
 }

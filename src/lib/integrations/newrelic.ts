@@ -1,9 +1,5 @@
-/**
- * New Relic Integration Handler
- * Transforms New Relic webhook events to standard event format
- */
-
 import { createHash } from 'crypto';
+import { normalizeEventAction, normalizeSeverity } from './normalization';
 
 export type NewRelicEvent = {
   account_id?: number;
@@ -12,10 +8,10 @@ export type NewRelicEvent = {
   incident?: {
     id: string;
     title: string;
-    state: 'open' | 'acknowledged' | 'resolved';
-    severity: 'critical' | 'warning' | 'info';
-    created_at: string;
-    updated_at: string;
+    state?: string;
+    severity?: string;
+    created_at?: string;
+    updated_at?: string;
     condition_name?: string;
     condition_id?: number;
     policy_name?: string;
@@ -28,7 +24,7 @@ export type NewRelicEvent = {
     alert_condition_name: string;
     severity: string;
     timestamp: number;
-    state: 'open' | 'closed';
+    state: string;
     message?: string;
   };
   // APM format
@@ -52,22 +48,8 @@ export function transformNewRelicToEvent(payload: NewRelicEvent): {
   // Handle new incident format
   if (payload.incident) {
     const incident = payload.incident;
-    const isResolved = incident.state === 'resolved';
-    const isAcknowledged = incident.state === 'acknowledged';
-
-    let eventAction: 'trigger' | 'resolve' | 'acknowledge' = 'trigger';
-    if (isResolved) {
-      eventAction = 'resolve';
-    } else if (isAcknowledged) {
-      eventAction = 'acknowledge';
-    }
-
-    const severityMap: Record<string, 'critical' | 'error' | 'warning' | 'info'> = {
-      critical: 'critical',
-      warning: 'warning',
-      info: 'info',
-    };
-    const severity = severityMap[incident.severity] || 'warning';
+    const eventAction = normalizeEventAction(incident.state || payload.event_type, 'trigger');
+    const severity = normalizeSeverity(incident.severity, 'warning');
 
     return {
       event_action: eventAction,
