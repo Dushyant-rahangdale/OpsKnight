@@ -46,7 +46,7 @@ export interface HandlerOptions<T> {
   schema?: z.ZodSchema<T>;
 
   /** Provider for signature verification */
-  signatureProvider?: 'github' | 'gitlab' | 'sentry' | 'slack' | 'grafana' | 'generic';
+  signatureProvider?: 'github' | 'gitlab' | 'sentry' | 'slack' | 'grafana' | 'vercel' | 'generic';
 
   /** Skip rate limiting for this integration */
   skipRateLimit?: boolean;

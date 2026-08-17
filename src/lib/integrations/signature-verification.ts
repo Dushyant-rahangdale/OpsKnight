@@ -192,6 +192,17 @@ export function verifyAzureSecret(providedSecret: string, expectedSecret: string
 }
 
 /**
+ * Vercel - Uses HMAC-SHA1 in x-vercel-signature header
+ */
+export function verifyVercelSignature(
+  payload: string | Buffer,
+  signature: string,
+  secret: string
+): boolean {
+  return verifyHmacSignature(payload, signature, secret, 'sha1');
+}
+
+/**
  * Prometheus Alertmanager - Uses basic auth or API key
  */
 export function verifyPrometheusAuth(providedAuth: string, expectedAuth: string): boolean {
@@ -212,7 +223,7 @@ export type SignatureVerificationResult = {
  * Unified signature verification for any provider
  */
 export function verifyWebhookSignature(
-  provider: 'github' | 'gitlab' | 'sentry' | 'slack' | 'grafana' | 'generic',
+  provider: 'github' | 'gitlab' | 'sentry' | 'slack' | 'grafana' | 'vercel' | 'generic',
   payload: string | Buffer,
   headers: Record<string, string | null>,
   secret: string
@@ -254,6 +265,12 @@ export function verifyWebhookSignature(
       const sig = headers['x-grafana-signature'];
       if (!sig) return { valid: false, error: 'MISSING_SIGNATURE' };
       return { valid: verifyGrafanaSignature(payload, sig, secret) };
+    }
+
+    case 'vercel': {
+      const sig = headers['x-vercel-signature'];
+      if (!sig) return { valid: false, error: 'MISSING_SIGNATURE' };
+      return { valid: verifyVercelSignature(payload, sig, secret) };
     }
 
     case 'generic':
