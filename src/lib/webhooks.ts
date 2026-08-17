@@ -13,7 +13,7 @@ import 'server-only';
 import prisma from './prisma';
 import crypto from 'crypto';
 import { getBaseUrl } from './env-validation';
-import { retryFetch, isRetryableHttpError } from './retry';
+import { retry, retryFetch, isRetryableHttpError } from './retry';
 import { logger } from './logger';
 
 export type WebhookOptions = {
@@ -81,25 +81,33 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
       requestHeaders['X-OpsKnight-Timestamp'] = Date.now().toString();
     }
 
-    // Use retry logic for improved reliability
-    // Create AbortController for timeout compatibility
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
+    // Use retry logic with per-attempt AbortController for reliable timeouts
     try {
-      const response = await retryFetch(
-        url,
-        {
-          method,
-          headers: requestHeaders,
-          body: payloadString,
-          signal: controller.signal,
+      const retryResult = await retry(
+        async () => {
+          const attemptController = new AbortController();
+          const attemptTimeoutId = setTimeout(() => attemptController.abort(), timeout);
+          try {
+            const res = await fetch(url, {
+              method,
+              headers: requestHeaders,
+              body: payloadString,
+              signal: attemptController.signal,
+            });
+
+            if (!res.ok && isRetryableHttpError(res.status)) {
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+
+            return res;
+          } finally {
+            clearTimeout(attemptTimeoutId);
+          }
         },
         {
           maxAttempts: 3,
           initialDelayMs: 1000,
           retryableErrors: error => {
-            // Only retry on network errors, timeouts, or 5xx server errors
             if (error instanceof Error) {
               if (error.name === 'AbortError' || error.message.includes('timeout')) {
                 return true;
@@ -107,7 +115,7 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
               if (error.message.includes('fetch') || error.message.includes('network')) {
                 return true;
               }
-              if (error.message.includes('5')) {
+              if (error.message.includes('HTTP 5') || error.message.includes('HTTP 429')) {
                 return true;
               }
             }
@@ -116,7 +124,11 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
         }
       );
 
-      clearTimeout(timeoutId);
+      if (!retryResult.success || !retryResult.data) {
+        throw retryResult.error || new Error('Webhook request failed after retries');
+      }
+
+      const response = retryResult.data;
       const responseText = await response.text();
 
       // Check for non-retryable client errors (4xx)
@@ -130,7 +142,6 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
       }
 
       if (!response.ok) {
-        // This shouldn't happen after retries, but handle gracefully
         return {
           success: false,
           error: `Webhook returned ${response.status} after retries: ${responseText}`,
@@ -150,8 +161,6 @@ export async function sendWebhook(options: WebhookOptions): Promise<WebhookResul
       }
 
       throw fetchError;
-    } finally {
-      clearTimeout(timeoutId);
     }
   } catch (error: any) {
     logger.error('Webhook send error', { component: 'webhooks', error, url: options.url });

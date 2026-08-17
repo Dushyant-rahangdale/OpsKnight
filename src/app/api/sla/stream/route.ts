@@ -84,6 +84,10 @@ export async function GET(req: NextRequest) {
         let batchNumber = 0;
 
         while (true) {
+          if (req.signal.aborted) {
+            break;
+          }
+
           const batch = await prisma.incident.findMany({
             where,
             select: {
@@ -108,7 +112,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'desc' },
           });
 
-          if (batch.length === 0) break;
+          if (batch.length === 0 || req.signal.aborted) break;
 
           // Send batch
           const data = JSON.stringify({
@@ -126,21 +130,28 @@ export async function GET(req: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
 
-        // Send completion message
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ type: 'complete', totalBatches: batchNumber })}\n\n`
-          )
-        );
+        if (!req.signal.aborted) {
+          // Send completion message
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'complete', totalBatches: batchNumber })}\n\n`
+            )
+          );
+        }
         controller.close();
       } catch (_error) {
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ type: 'error', message: 'Failed to stream SLA data' })}\n\n`
-          )
-        );
+        if (!req.signal.aborted) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'error', message: 'Failed to stream SLA data' })}\n\n`
+            )
+          );
+        }
         controller.close();
       }
+    },
+    cancel() {
+      // Reader disconnected
     },
   });
 

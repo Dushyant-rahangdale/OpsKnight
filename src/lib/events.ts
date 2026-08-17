@@ -163,10 +163,11 @@ export async function processEvent(
         });
 
         // Log an event instead of note (no userId needed)
+        const safeSummary = truncateString(sanitizeText(eventData.summary.trim()), 500);
         await tx.incidentEvent.create({
           data: {
             incidentId: existingIncident.id,
-            message: `Re-triggered by event from ${eventData.source}. Summary: ${eventData.summary}`,
+            message: `Re-triggered by event from ${eventData.source}. Summary: ${safeSummary}`,
           },
         });
 
