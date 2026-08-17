@@ -136,11 +136,38 @@ export async function sendUserNotification(
     };
   }
 
-  // Send via each enabled channel
+  const incident = await prisma.incident.findUnique({
+    where: { id: incidentId },
+    select: { urgency: true },
+  });
+  const isHighUrgency = incident?.urgency === 'HIGH';
+
+  let primarySuccess = false;
+
   for (const channel of channels) {
+    if (primarySuccess) {
+      if (isHighUrgency && channel === 'EMAIL') {
+        // Continue to send email for high urgency incidents
+      } else {
+        continue;
+      }
+    }
+
     const result = await sendNotification(incidentId, userId, channel, message);
     if (result.success) {
       channelsUsed.push(channel);
+      logger.info(`[UserNotification] Successfully delivered via ${channel}`, {
+        incidentId,
+        userId,
+      });
+
+      if (channel !== 'EMAIL') {
+        primarySuccess = true;
+      }
+
+      if (!isHighUrgency && primarySuccess) {
+        break;
+      }
     } else {
       errors.push(`${channel}: ${result.error || 'Failed'}`);
     }
@@ -296,18 +323,40 @@ export async function sendIncidentNotifications(
           };
         }
 
-        // Send via all enabled channels
-        const channelResults = await Promise.all(
-          channels.map(channel =>
-            sendNotification(incidentId, userId, channel, message).then(result => ({
-              channel,
-              result,
-            }))
-          )
-        );
+        const isHighUrgency = incidentRecord.urgency === 'HIGH';
+        let primarySuccess = false;
+        const successful = [];
+        const failed = [];
 
-        const successful = channelResults.filter(r => r.result.success);
-        const failed = channelResults.filter(r => !r.result.success);
+        for (const channel of channels) {
+          if (primarySuccess) {
+            if (isHighUrgency && channel === 'EMAIL') {
+              // Continue to send email
+            } else {
+              continue;
+            }
+          }
+
+          const result = await sendNotification(incidentId, userId, channel, message);
+
+          if (result.success) {
+            successful.push({ channel, result });
+            logger.info(`[IncidentNotification] Successfully delivered via ${channel}`, {
+              incidentId,
+              userId,
+            });
+
+            if (channel !== 'EMAIL') {
+              primarySuccess = true;
+            }
+
+            if (!isHighUrgency && primarySuccess) {
+              break;
+            }
+          } else {
+            failed.push({ channel, result });
+          }
+        }
 
         return {
           userId,
