@@ -70,15 +70,17 @@ function buildIncidentFilterSql(filters: SLAMetricsFilter, tableAlias: string = 
   }
 
   if (filters.urgency) {
-    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"urgency"`)} = ${filters.urgency}`);
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"urgency"`)}::text = ${filters.urgency}`);
   }
 
   if (filters.status) {
-    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"status"`)} = ${filters.status}`);
+    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"status"`)}::text = ${filters.status}`);
   }
 
   if (filters.visibility && filters.visibility !== 'ALL') {
-    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"visibility"`)} = ${filters.visibility}`);
+    fragments.push(
+      Prisma.sql`AND ${Prisma.raw(`${prefix}"visibility"`)}::text = ${filters.visibility}`
+    );
   }
 
   if (filters.assigneeId) {
@@ -273,11 +275,13 @@ async function calculateDbAggregateMetrics(
 
   const urgencyFilter = (whereClause as { urgency?: string }).urgency;
   const urgencyFilterSql = urgencyFilter
-    ? Prisma.sql`AND "urgency" = ${urgencyFilter}`
+    ? Prisma.sql`AND "urgency"::text = ${urgencyFilter}`
     : Prisma.empty;
 
   const statusFilter = (whereClause as { status?: string }).status;
-  const statusFilterSql = statusFilter ? Prisma.sql`AND "status" = ${statusFilter}` : Prisma.empty;
+  const statusFilterSql = statusFilter
+    ? Prisma.sql`AND "status"::text = ${statusFilter}`
+    : Prisma.empty;
 
   // Build aliased filter conditions for JOIN queries (using i. prefix for incident table)
   const serviceFilterSqlAliased = serviceIdFilter
@@ -287,11 +291,11 @@ async function calculateDbAggregateMetrics(
     : Prisma.empty;
 
   const urgencyFilterSqlAliased = urgencyFilter
-    ? Prisma.sql`AND i."urgency" = ${urgencyFilter}`
+    ? Prisma.sql`AND i."urgency"::text = ${urgencyFilter}`
     : Prisma.empty;
 
   const statusFilterSqlAliased = statusFilter
-    ? Prisma.sql`AND i."status" = ${statusFilter}`
+    ? Prisma.sql`AND i."status"::text = ${statusFilter}`
     : Prisma.empty;
 
   // Calculate business hours for after-hours detection
