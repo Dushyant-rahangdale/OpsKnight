@@ -26,7 +26,7 @@ const resources = [
     bg: 'bg-emerald-500/10',
   },
   {
-    href: 'https://github.com/Dushyant-rahangdale/OpsKnight',
+    href: 'https://github.com/opsknight-labs/OpsKnight',
     title: 'GitHub Community',
     description: 'Star the project, report issues, or contribute code.',
     icon: Github,

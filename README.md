@@ -175,7 +175,7 @@ Get OpsKnight up and running locally in under 60 seconds.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Dushyant-rahangdale/OpsKnight.git
+git clone https://github.com/opsknight-labs/OpsKnight.git
 cd OpsKnight
 
 # 2. Setup Environment
@@ -254,10 +254,10 @@ Join the OpsKnight community to get help, suggest features, or contribute.
   <a href="mailto:help@opsknight.com">
     <img src="https://img.shields.io/badge/Email-help%40opsknight.com-blue?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
   </a>
-  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/discussions">
+  <a href="https://github.com/opsknight-labs/OpsKnight/discussions">
     <img src="https://img.shields.io/badge/GitHub-Discussions-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions" />
   </a>
-  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/issues">
+  <a href="https://github.com/opsknight-labs/OpsKnight/issues">
     <img src="https://img.shields.io/badge/Issues-Report%20Bug-d73a49?style=for-the-badge&logo=github&logoColor=white" alt="Report Bug" />
   </a>
   <a href="CONTRIBUTING.md">
@@ -281,13 +281,13 @@ Built with ❤️ by [Dushyant Rahangdale](https://github.com/dushyant-rahangdal
 <br>
 
 <p align="center">
-  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/stargazers">
-    <img src="https://img.shields.io/github/stars/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=10b981&logoColor=white" alt="GitHub Stars" />
+  <a href="https://github.com/opsknight-labs/OpsKnight/stargazers">
+    <img src="https://img.shields.io/github/stars/opsknight-labs/OpsKnight?style=for-the-badge&logo=github&color=10b981&logoColor=white" alt="GitHub Stars" />
   </a>
-  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/network/members">
-    <img src="https://img.shields.io/github/forks/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=06b6d4&logoColor=white" alt="GitHub Forks" />
+  <a href="https://github.com/opsknight-labs/OpsKnight/network/members">
+    <img src="https://img.shields.io/github/forks/opsknight-labs/OpsKnight?style=for-the-badge&logo=github&color=06b6d4&logoColor=white" alt="GitHub Forks" />
   </a>
-  <a href="https://github.com/Dushyant-rahangdale/OpsKnight/issues">
-    <img src="https://img.shields.io/github/issues/Dushyant-rahangdale/OpsKnight?style=for-the-badge&logo=github&color=8b5cf6&logoColor=white" alt="GitHub Issues" />
+  <a href="https://github.com/opsknight-labs/OpsKnight/issues">
+    <img src="https://img.shields.io/github/issues/opsknight-labs/OpsKnight?style=for-the-badge&logo=github&color=8b5cf6&logoColor=white" alt="GitHub Issues" />
   </a>
 </p>
