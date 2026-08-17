@@ -36,8 +36,12 @@ const DEFAULT_RETRYABLE_ERRORS = (error: unknown): boolean => {
     if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
       return true;
     }
-    // HTTP 5xx errors (should be checked from response, but catch here for safety)
-    if (error.message.includes('5')) {
+    // HTTP 5xx or 429 status codes
+    if (
+      /\b5\d{2}\b/.test(error.message) ||
+      error.message.includes('HTTP 5') ||
+      error.message.includes('429')
+    ) {
       return true;
     }
   }
