@@ -130,19 +130,22 @@ export async function triggerStatusPageWebhooks(
       data,
     };
 
-    // Deliver to all webhooks in parallel (don't await - fire and forget)
-    const deliveries = webhooks.map(webhook =>
-      deliverWebhook(webhook.url, webhook.secret, payload).catch(err => {
-        logger.error('api.status_page.webhook.delivery_exception', {
-          webhookId: webhook.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        return false;
-      })
-    );
-
-    // Wait for all deliveries (but don't block on failures)
-    await Promise.allSettled(deliveries);
+    // Deliver to webhooks in concurrency-controlled batches
+    const BATCH_SIZE = 25;
+    for (let i = 0; i < webhooks.length; i += BATCH_SIZE) {
+      const batch = webhooks.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map(webhook =>
+          deliverWebhook(webhook.url, webhook.secret, payload).catch(err => {
+            logger.error('api.status_page.webhook.delivery_exception', {
+              webhookId: webhook.id,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return false;
+          })
+        )
+      );
+    }
 
     logger.info('api.status_page.webhooks.triggered', {
       statusPageId,

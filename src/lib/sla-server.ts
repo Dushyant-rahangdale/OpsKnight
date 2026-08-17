@@ -325,12 +325,11 @@ async function calculateDbAggregateMetrics(
           FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL AND COALESCE("resolvedAt", "updatedAt") >= "createdAt") as avg_mttr_ms,
         COUNT(*) FILTER (
           WHERE "acknowledgedAt" IS NOT NULL
-          AND "acknowledgedAt" >= "createdAt"
-          AND EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000 <= ${defaultAckMs}
+          AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) <= ${defaultAckMs}
         ) as ack_sla_met,
         COUNT(*) FILTER (
           WHERE ("acknowledgedAt" IS NOT NULL
-            AND EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000 > ${defaultAckMs})
+            AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) > ${defaultAckMs})
           OR ("acknowledgedAt" IS NULL
             AND "status" != 'RESOLVED'
             AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${defaultAckMs})
@@ -338,13 +337,12 @@ async function calculateDbAggregateMetrics(
         COUNT(*) FILTER (
           WHERE "status" = 'RESOLVED'
           AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
-          AND COALESCE("resolvedAt", "updatedAt") >= "createdAt"
-          AND EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000 <= ${defaultResolveMs}
+          AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) <= ${defaultResolveMs}
         ) as resolve_sla_met,
         COUNT(*) FILTER (
           WHERE ("status" = 'RESOLVED'
             AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL
-            AND EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000 > ${defaultResolveMs})
+            AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) > ${defaultResolveMs})
           OR ("status" != 'RESOLVED'
             AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${defaultResolveMs})
         ) as resolve_sla_breached,
@@ -383,16 +381,16 @@ async function calculateDbAggregateMetrics(
     >`
       SELECT
         PERCENTILE_CONT(0.5) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000
+          ORDER BY GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
         ) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as mtta_p50_ms,
         PERCENTILE_CONT(0.95) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000
+          ORDER BY GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000)
         ) FILTER (WHERE "acknowledgedAt" IS NOT NULL) as mtta_p95_ms,
         PERCENTILE_CONT(0.5) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000
+          ORDER BY GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
         ) FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as mttr_p50_ms,
         PERCENTILE_CONT(0.95) WITHIN GROUP (
-          ORDER BY EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000
+          ORDER BY GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000)
         ) FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL) as mttr_p95_ms
       FROM "Incident"
       WHERE "createdAt" >= ${start}

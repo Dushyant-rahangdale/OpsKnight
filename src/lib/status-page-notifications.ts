@@ -121,29 +121,36 @@ export async function notifyStatusPageSubscribers(
         `Sending notifications to ${page.subscriptions.length} subscribers for page ${page.name}`
       );
 
-      const results = await Promise.allSettled(
-        page.subscriptions.map(sub =>
-          sendEmail(
-            {
-              to: sub.email,
-              subject,
-              html: html.replace(
-                '{{unsubscribe_url}}',
-                `${appBaseUrl}/status/unsubscribe/${sub.token}`
-              ),
-            },
-            {
-              source: `status-page-${page.id}`,
-              ...emailConfig,
-            }
-          )
-        )
-      );
+      const BATCH_SIZE = 25;
+      let sent = 0;
+      let failed = 0;
 
-      const sent = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-      const failed = results.filter(
-        r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)
-      ).length;
+      for (let i = 0; i < page.subscriptions.length; i += BATCH_SIZE) {
+        const batch = page.subscriptions.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(sub =>
+            sendEmail(
+              {
+                to: sub.email,
+                subject,
+                html: html.replaceAll(
+                  '{{unsubscribe_url}}',
+                  `${appBaseUrl}/status/unsubscribe/${sub.token}`
+                ),
+              },
+              {
+                source: `status-page-${page.id}`,
+                ...emailConfig,
+              }
+            )
+          )
+        );
+
+        sent += results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        failed += results.filter(
+          r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)
+        ).length;
+      }
 
       logger.info(`Status page notifications sent: ${sent} success, ${failed} failed`);
     }
