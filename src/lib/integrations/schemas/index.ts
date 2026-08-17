@@ -723,6 +723,87 @@ export const GenericWebhookSchema = z
 export type GenericWebhookPayload = z.infer<typeof GenericWebhookSchema>;
 
 // ============================================
+// Nagios (Core & XI)
+// ============================================
+
+export const NagiosPayloadSchema = z
+  .object({
+    notificationtype: z.string().optional(),
+    NOTIFICATIONTYPE: z.string().optional(),
+    hostname: z.string().optional(),
+    HOSTNAME: z.string().optional(),
+    hostalias: z.string().optional(),
+    HOSTALIAS: z.string().optional(),
+    hostaddress: z.string().optional(),
+    HOSTADDRESS: z.string().optional(),
+    hoststate: z.string().optional(),
+    HOSTSTATE: z.string().optional(),
+    hostoutput: z.string().optional(),
+    HOSTOUTPUT: z.string().optional(),
+    servicedesc: z.string().optional(),
+    SERVICEDESC: z.string().optional(),
+    service: z.string().optional(),
+    SERVICE: z.string().optional(),
+    servicestate: z.string().optional(),
+    SERVICESTATE: z.string().optional(),
+    serviceoutput: z.string().optional(),
+    SERVICEOUTPUT: z.string().optional(),
+    longserviceoutput: z.string().optional(),
+    LONGSERVICEOUTPUT: z.string().optional(),
+    longhostoutput: z.string().optional(),
+    LONGHOSTOUTPUT: z.string().optional(),
+    checkcommand: z.string().optional(),
+    CHECKCOMMAND: z.string().optional(),
+    notificationnumber: z.union([z.string(), z.number()]).optional(),
+    NOTIFICATIONNUMBER: z.union([z.string(), z.number()]).optional(),
+    author: z.string().optional(),
+    comment: z.string().optional(),
+    serviceackauthor: z.string().optional(),
+    SERVICEACKAUTHOR: z.string().optional(),
+    serviceackcomment: z.string().optional(),
+    SERVICEACKCOMMENT: z.string().optional(),
+  })
+  .passthrough();
+
+export type NagiosPayload = z.infer<typeof NagiosPayloadSchema>;
+
+// ============================================
+// Icinga (Icinga 2)
+// ============================================
+
+export const IcingaPayloadSchema = z
+  .object({
+    notification_type: z.string().optional(),
+    notificationType: z.string().optional(),
+    type: z.string().optional(),
+    host_name: z.string().optional(),
+    hostName: z.string().optional(),
+    host: z.string().optional(),
+    host_display_name: z.string().optional(),
+    host_state: z.string().optional(),
+    hostState: z.string().optional(),
+    host_output: z.string().optional(),
+    hostOutput: z.string().optional(),
+    service_name: z.string().optional(),
+    serviceName: z.string().optional(),
+    service: z.string().optional(),
+    service_display_name: z.string().optional(),
+    service_state: z.string().optional(),
+    serviceState: z.string().optional(),
+    service_output: z.string().optional(),
+    serviceOutput: z.string().optional(),
+    output: z.string().optional(),
+    check_command: z.string().optional(),
+    checkCommand: z.string().optional(),
+    author: z.string().optional(),
+    comment: z.string().optional(),
+    timestamp: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough();
+
+export type IcingaPayload = z.infer<typeof IcingaPayloadSchema>;
+
+// ============================================
 // Schema Validation Helper
 // ============================================
 
@@ -773,6 +854,8 @@ export const IntegrationSchemas = {
   PINGDOM: PingdomSchema,
   BETTER_UPTIME: BetterUptimeSchema,
   UPTIME_KUMA: UptimeKumaSchema,
+  NAGIOS: NagiosPayloadSchema,
+  ICINGA: IcingaPayloadSchema,
   WEBHOOK: GenericWebhookSchema,
 } as const;
 

@@ -23,7 +23,9 @@ export type IntegrationType =
   | 'UPTIMEROBOT'
   | 'PINGDOM'
   | 'BETTER_UPTIME'
-  | 'UPTIME_KUMA';
+  | 'UPTIME_KUMA'
+  | 'NAGIOS'
+  | 'ICINGA';
 
 type BrandIconProps = {
   title: string;
@@ -158,6 +160,16 @@ const BRAND_PATHS = {
     color: '#5CDD8B',
     path: 'M11.759.955c-4.071 0-7.93 2.265-10.06 5.774l-.16.263-.116.284c-1.81 4.44-2.188 9.118.621 12.459 2.67 3.174 6.221 3.328 9.477 3.308 3.256-.02 6.323-.482 8.995-2.032C22.75 19.714 24 16.917 24 14.53c0-2.388-.724-4.698-1.882-7.343l-.112-.257-.148-.238C19.683 3.2 15.83.955 11.758.955Zm0 3.868c2.919 0 5.19 1.305 6.816 3.914 2.076 4.747 2.076 7.724 0 8.929-3.116 1.808-11.234 2.359-13.57-.42-1.558-1.853-1.558-4.69 0-8.51 1.584-2.608 3.835-3.913 6.754-3.913z',
   },
+  nagios: {
+    title: 'Nagios',
+    color: '#00B140',
+    path: 'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6-9.6-4.298-9.6-9.6 4.298-9.6 9.6-9.6zm-1.6 4.4v10.4l7.2-5.2-7.2-5.2z',
+  },
+  icinga: {
+    title: 'Icinga',
+    color: '#00B0FF',
+    path: 'M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 3.2c4.86 0 8.8 3.94 8.8 8.8s-3.94 8.8-8.8 8.8-8.8-3.94-8.8-8.8 3.94-8.8 8.8-8.8zm0 3.6a5.2 5.2 0 1 0 0 10.4 5.2 5.2 0 0 0 0-10.4z',
+  },
 } as const;
 
 export type IntegrationCategory =
@@ -287,6 +299,22 @@ export const INTEGRATION_TYPES: Array<{
     description: 'Receive error events from Sentry issue tracking',
     icon: <BrandIcon {...BRAND_PATHS.sentry} color="#ffffff" />,
     iconBg: BRAND_PATHS.sentry.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'NAGIOS',
+    label: 'Nagios',
+    description: 'Receive host and service alerts from Nagios Core & Nagios XI',
+    icon: <BrandIcon {...BRAND_PATHS.nagios} color="#ffffff" />,
+    iconBg: BRAND_PATHS.nagios.color,
+    category: 'Monitoring & APM',
+  },
+  {
+    value: 'ICINGA',
+    label: 'Icinga 2',
+    description: 'Receive host and service notifications from Icinga 2',
+    icon: <BrandIcon {...BRAND_PATHS.icinga} color="#ffffff" />,
+    iconBg: BRAND_PATHS.icinga.color,
     category: 'Monitoring & APM',
   },
   {

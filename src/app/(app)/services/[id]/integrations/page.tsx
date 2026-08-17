@@ -71,6 +71,10 @@ function getWebhookUrl(
       return `${baseUrl}/api/integrations/better-uptime?integrationId=${integrationId}${keyParam}`;
     case 'UPTIME_KUMA':
       return `${baseUrl}/api/integrations/uptime-kuma?integrationId=${integrationId}${keyParam}`;
+    case 'NAGIOS':
+      return `${baseUrl}/api/integrations/nagios?integrationId=${integrationId}${keyParam}`;
+    case 'ICINGA':
+      return `${baseUrl}/api/integrations/icinga?integrationId=${integrationId}${keyParam}`;
     case 'WEBHOOK':
       return `${baseUrl}/api/integrations/webhook?integrationId=${integrationId}${keyParam}`;
     case 'EVENTS_API_V2':
