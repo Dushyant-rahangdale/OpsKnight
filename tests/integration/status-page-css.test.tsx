@@ -34,6 +34,14 @@ vi.mock('@/components/status-page/StatusPageAnnouncements', () => ({
   default: () => <div data-testid="status-page-announcements">Announcements</div>,
 }));
 
+vi.mock('@/lib/sla-server', () => ({
+  calculateSLAMetrics: vi.fn().mockResolvedValue({
+    totalIncidents: 0,
+    serviceMetrics: [],
+    dynamicStatus: 'OPERATIONAL',
+  }),
+}));
+
 describe('PublicStatusPage Custom CSS', () => {
   beforeEach(() => {
     vi.clearAllMocks();
