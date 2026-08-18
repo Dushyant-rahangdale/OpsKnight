@@ -13,7 +13,7 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 [![Docs](https://img.shields.io/badge/Docs-Read-2563eb?style=flat&logo=book&logoColor=white)](https://opsknight.com/docs)
 [![License](https://img.shields.io/badge/License-Apache_2.0-111827?style=flat)](LICENSE)
 [![Docker Package](https://img.shields.io/badge/Docker-ghcr.io-2496ED?style=flat&logo=docker&logoColor=white)](https://github.com/opsknight-labs/OpsKnight/pkgs/container/opsknight)
-[![Status](https://img.shields.io/badge/Status-v1.3.0-success?style=flat)](ROADMAP.md)
+[![Status](https://img.shields.io/badge/Status-v1.3.1-success?style=flat)](ROADMAP.md)
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat&logo=github&logoColor=white)](https://github.com/sponsors/dushyant-rahangdale)
 [![Tests](https://github.com/opsknight-labs/OpsKnight/actions/workflows/tests.yml/badge.svg)](https://github.com/opsknight-labs/OpsKnight/actions/workflows/tests.yml)
 [![Security](https://github.com/opsknight-labs/OpsKnight/actions/workflows/security.yml/badge.svg)](https://github.com/opsknight-labs/OpsKnight/actions/workflows/security.yml)
@@ -34,7 +34,7 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 > timing-safe HMAC checks across all 24 webhook routes, so unverified alerts are
 > rejected rather than trusted.
 >
-> [Release notes](https://github.com/opsknight-labs/OpsKnight/releases/tag/v1.3.0) ·
+> [Release notes](https://github.com/opsknight-labs/OpsKnight/releases/tag/v1.3.1) ·
 > [Integrations](https://opsknight.com/docs/v1.3/integrations) ·
 > [Changelog](CHANGELOG.md)
 >
@@ -246,12 +246,12 @@ authentication needed to pull**.
 
 | Image                                   | Channel                        | Tags                          |
 | :-------------------------------------- | :----------------------------- | :---------------------------- |
-| `ghcr.io/opsknight-labs/opsknight`      | Stable releases                | `1.3.0`, `1.3`, `1`, `latest` |
+| `ghcr.io/opsknight-labs/opsknight`      | Stable releases                | `1.3.1`, `1.3`, `1`, `latest` |
 | `ghcr.io/opsknight-labs/opsknight-test` | Pre-release, built from `main` | `latest`, `sha-<commit>`      |
 
 ```bash
 # Pin a release — recommended for production
-docker pull ghcr.io/opsknight-labs/opsknight:1.3.0
+docker pull ghcr.io/opsknight-labs/opsknight:1.3.1
 
 # Or track the latest stable release
 docker pull ghcr.io/opsknight-labs/opsknight:latest
@@ -325,7 +325,7 @@ Hardening guidance: [Security documentation](docs/v1.3/security/README.md)
 
 ## 🗺️ Roadmap
 
-We are proud to announce **Version 1.3.0 (August 2026)**! 🚀
+We are proud to announce **Version 1.3.1 (August 2026)**! 🚀
 
 - [x] Core Incident Management & On-Call Schedules
 - [x] **Slack ChatOps Incident War Rooms & Interactive Cards**
