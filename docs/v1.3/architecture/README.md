@@ -1,6 +1,6 @@
 ---
 order: 8
-title: Architecture
+title: Internals
 description: System design, high-availability architecture, deduplication, and circuit breakers.
 ---
 

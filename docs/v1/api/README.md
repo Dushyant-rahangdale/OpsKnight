@@ -35,8 +35,6 @@ All API requests require authentication. OpsKnight supports API key authenticati
 4. Select scopes (permissions)
 5. Copy the key — it's only shown once!
 
-<!-- placeholder:api-key-creation -->
-<!-- Add: Screenshot of API key creation modal -->
 
 ### Using Your API Key
 

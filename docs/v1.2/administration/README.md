@@ -8,8 +8,6 @@ description: Configure notifications, authentication, data retention, and system
 
 This section covers the administrative configuration of OpsKnight, including notification providers, authentication, data retention, custom fields, and audit logging. These settings are typically configured once during setup and reviewed periodically.
 
-<!-- placeholder:admin-overview -->
-<!-- Add: Screenshot of the Settings page showing admin sections -->
 
 ---
 

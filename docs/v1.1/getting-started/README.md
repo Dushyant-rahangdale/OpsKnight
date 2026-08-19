@@ -8,8 +8,6 @@ description: Everything you need to install, configure, and start using OpsKnigh
 
 This section will take you from zero to a fully operational incident management system. By the end, you'll have OpsKnight running, your first service configured, and understand how to create and manage incidents.
 
-<!-- placeholder:getting-started-overview -->
-<!-- Add: Screenshot showing the OpsKnight login page or initial dashboard -->
 
 ---
 
@@ -74,7 +72,7 @@ cd opsknight
 
 # 2. Copy and configure environment
 cp env.example .env
-# Edit .env: Set NEXTAUTH_SECRET (generate with: openssl rand -base64 32)
+# Set NEXTAUTH_SECRET (openssl rand -base64 32) and ENCRYPTION_KEY (openssl rand -hex 32)
 
 # 3. Start all services
 docker compose up -d

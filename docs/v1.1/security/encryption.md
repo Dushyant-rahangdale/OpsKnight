@@ -8,8 +8,6 @@ description: How OpsKnight encrypts sensitive credentials and how to configure t
 
 OpsKnight encrypts sensitive secrets — SSO client secrets, Slack tokens, VAPID keys, SMTP passwords, and API keys — at rest using AES-256-CBC **Envelope Encryption**.
 
-<!-- placeholder:encryption-overview -->
-<!-- Add: Diagram showing ENCRYPTION_KEY → DEK → secret flow -->
 
 ---
 

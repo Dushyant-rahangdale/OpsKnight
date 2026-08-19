@@ -44,8 +44,6 @@ A Progressive Web App provides the best of both worlds:
 3. Scroll down and tap **Add to Home Screen**
 4. Tap **Add**
 
-<!-- placeholder:ios-install -->
-<!-- Add: Screenshot showing iOS Safari "Add to Home Screen" option -->
 
 ### On Android (Chrome)
 
@@ -54,8 +52,6 @@ A Progressive Web App provides the best of both worlds:
 3. Tap **Add to Home Screen** or **Install App**
 4. Tap **Install**
 
-<!-- placeholder:android-install -->
-<!-- Add: Screenshot showing Android Chrome install prompt -->
 
 ### On Desktop (Chrome/Edge)
 
@@ -120,8 +116,6 @@ While the app is open, the notification list updates in real time and falls back
 3. Verify in **Profile** → **Devices** that your device appears
 4. Ask your admin to enable **Push** in Settings → Notification Providers
 
-<!-- placeholder:push-permission -->
-<!-- Add: Screenshot of push notification permission dialog -->
 
 ### Notification Types
 

@@ -1,3 +1,9 @@
+---
+order: 8
+title: Internals
+description: How this version is put together — for operators who already run the product.
+---
+
 # System Architecture
 
 OpsKnight is designed as a **monolithic Next.js application** for simplicity and performance, backed by robust infrastructure for reliability.

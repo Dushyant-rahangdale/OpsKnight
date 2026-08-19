@@ -8,8 +8,6 @@ description: Connect OpsKnight with 20+ monitoring tools, Slack, and custom webh
 
 OpsKnight integrates with your entire monitoring and observability stack, routing alerts from any tool to the right people at the right time.
 
-<!-- placeholder:integrations-overview -->
-<!-- Add: Diagram showing various monitoring tools connecting to OpsKnight -->
 
 ---
 

@@ -1,12 +1,12 @@
 ---
 order: 4
 title: Integrations
-description: Connect OpsKnight with 24+ native monitoring tools, daemons, CI/CD pipelines, and custom webhooks
+description: Inbound alert sources and outbound paging for this version.
 ---
 
-# Integrations Catalog
+# Integrations
 
-OpsKnight integrates natively with your entire monitoring, metrics, cloud infrastructure, CI/CD, and observability stack — normalizing payloads and routing alerts to the right on-call engineers in real time.
+Tools send alerts **into** OpsKnight. OpsKnight pages people **out** on email, SMS, push, Slack, WhatsApp, or webhooks. There is no voice channel. Slack war rooms are documented from v1.2. PagerDuty Events API v2 ingest is in this version.
 
 ---
 
@@ -36,7 +36,7 @@ These channels dispatch urgent incident notifications **FROM** OpsKnight:
 | **Slack** | Rich cards, 1-click Acknowledge/Resolve, [Incident War Rooms & ChatOps](./communication/slack-chatops) |
 | **Jira Cloud** | [Automatic issue creation, service project routing & note sync](./issue-tracking/jira) |
 | **Email** | HTML notification digests with deep-links |
-| **SMS** | High-priority Twilio SMS alerts |
+| **SMS** | Twilio or AWS SNS |
 | **Push Notifications** | Mobile PWA background push alerts |
 | **WhatsApp** | Real-time messaging alerts |
 | **Outbound Webhooks** | Generic HTTP POST webhooks with HMAC-SHA256 signatures |
