@@ -41,8 +41,14 @@ export default async function PerformancePage() {
     const durations = logs.map(l => l.durationMs).sort((a, b) => a - b);
     const avgDuration =
       durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
-    const p50Duration = durations[Math.floor(durations.length * 0.5)] || null;
-    const p95Duration = durations[Math.floor(durations.length * 0.95)] || null;
+    const p50Duration =
+      durations.length > 0
+        ? durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.5))]
+        : null;
+    const p95Duration =
+      durations.length > 0
+        ? durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.95))]
+        : null;
     const slowQueryCount = durations.filter(d => d > 10000).length;
     const avgIncidentCount =
       logs.length > 0 ? logs.reduce((sum, l) => sum + l.incidentCount, 0) / logs.length : null;

@@ -316,14 +316,22 @@ async function runOnce() {
         const policy = await getRetentionPolicy();
 
         // Window of days that should have a rollup: yesterday back to
-        // `metricsRetentionDays` ago.
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        yesterday.setUTCHours(0, 0, 0, 0);
+        // `metricsRetentionDays` ago (computed in pure UTC).
+        const yesterday = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0, 0)
+        );
 
-        const oldestNeeded = new Date(yesterday);
-        oldestNeeded.setDate(oldestNeeded.getDate() - (policy.metricsRetentionDays - 1));
-        oldestNeeded.setUTCHours(0, 0, 0, 0);
+        const oldestNeeded = new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() - policy.metricsRetentionDays,
+            0,
+            0,
+            0,
+            0
+          )
+        );
 
         // Existing global rollups (serviceId/teamId both null) cover
         // every per-service/per-team rollup written on the same day,
@@ -349,7 +357,7 @@ async function runOnce() {
           if (!existingKeys.has(key)) {
             missingDays.push(new Date(cursor));
           }
-          cursor.setDate(cursor.getDate() - 1);
+          cursor.setUTCDate(cursor.getUTCDate() - 1);
         }
 
         // Bound cost per tick so the distributed lock isn't held for

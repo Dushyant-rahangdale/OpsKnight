@@ -121,9 +121,12 @@ function splitBlockByRestrictions(
   while (cursor < end) {
     const { day, hour } = getDayHourInTimeZone(cursor, timeZone);
     let allowed = true;
+    // For overnight shifts (startHour > endHour), hours between 00:00 and endHour belong to the shift that started the previous day.
+    const isOvernight = startHour != null && endHour != null && startHour > endHour;
+    const effectiveDay = isOvernight && hour < endHour ? (day + 6) % 7 : day;
 
     // Check day restriction
-    if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(day)) {
+    if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(effectiveDay)) {
       allowed = false;
     }
 

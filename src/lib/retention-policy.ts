@@ -257,7 +257,8 @@ export async function getIncidentRetentionStartDate(): Promise<Date> {
 export async function getRealTimeWindowStart(): Promise<Date> {
   const policy = await getRetentionPolicy();
   const date = new Date();
-  date.setDate(date.getDate() - policy.realTimeWindowDays);
+  date.setUTCDate(date.getUTCDate() - policy.realTimeWindowDays);
+  date.setUTCHours(0, 0, 0, 0);
   return date;
 }
 
