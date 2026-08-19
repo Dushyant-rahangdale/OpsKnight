@@ -214,6 +214,8 @@ export default async function Dashboard({
       // Return safe default object matching return type
       return {
         totalIncidents: 0,
+        activeIncidents: 0,
+        activeCount: 0,
         openCount: 0,
         acknowledgedCount: 0,
         resolvedCount: 0,
@@ -268,14 +270,19 @@ export default async function Dashboard({
   // Map SLA Server metrics to Dashboard variables
   const activeShifts = slaMetrics.currentShifts;
   const metricsTotalCount = slaMetrics.totalIncidents;
-  const metricsOpenCount = slaMetrics.openCount;
+  const metricsOpenCount = slaMetrics.statusMix.find(s => s.status === 'OPEN')?.count ?? 0;
   const metricsResolvedCount = slaMetrics.statusMix.find(s => s.status === 'RESOLVED')?.count ?? 0;
   const unassignedCount = slaMetrics.unassignedActive;
 
-  const allOpenIncidentsCount = slaMetrics.openCount;
+  const allActiveIncidentsCount =
+    slaMetrics.activeIncidents ??
+    slaMetrics.activeCount ??
+    slaMetrics.openCount + slaMetrics.acknowledgedCount;
+  const allOpenIncidentsCount = allActiveIncidentsCount;
   const allAcknowledgedCount = slaMetrics.acknowledgedCount;
   const currentCriticalActive = slaMetrics.criticalCount;
-  const currentPeriodAcknowledged = allAcknowledgedCount;
+  const currentPeriodAcknowledged =
+    slaMetrics.statusMix.find(s => s.status === 'ACKNOWLEDGED')?.count ?? 0;
   const mttaMinutes = slaMetrics.mttd;
 
   // Calculate system status
@@ -357,6 +364,8 @@ export default async function Dashboard({
       criticalCount: serviceMetric.criticalCount ?? 0,
     }));
 
+  const topServiceByVolume = slaMetrics.serviceMetrics?.[0];
+
   const teamLoad = slaMetrics.assigneeLoad
     .slice()
     .sort((a, b) => b.count - a.count)
@@ -423,11 +432,11 @@ export default async function Dashboard({
         {/* Smart Insights Banner - Auto-generated alerts */}
         <SmartInsightsBanner
           totalIncidents={totalInRange}
-          openIncidents={metricsOpenCount}
+          openIncidents={allActiveIncidentsCount}
           criticalIncidents={currentCriticalActive}
           unassignedIncidents={unassignedCount}
-          topServiceName={servicesAtRisk[0]?.name}
-          topServiceCount={servicesAtRisk[0]?.activeCount}
+          topServiceName={topServiceByVolume?.name}
+          topServiceCount={topServiceByVolume?.count}
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
