@@ -68,13 +68,19 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 async function ServiceMetricsSummary({ serviceId }: { serviceId: string }) {
-  const { calculateSLAMetrics } = await import('@/lib/sla-server');
+  const { calculateSLAMetrics, calculateMultiServiceUptime } = await import('@/lib/sla-server');
   const slaWindowDays = 30;
-  const slaMetrics = await calculateSLAMetrics({
-    serviceId,
-    windowDays: slaWindowDays,
-    includeActiveIncidents: true,
-  });
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - slaWindowDays * 24 * 60 * 60 * 1000);
+
+  const [slaMetrics, uptimeByService] = await Promise.all([
+    calculateSLAMetrics({
+      serviceId,
+      windowDays: slaWindowDays,
+      includeActiveIncidents: true,
+    }),
+    calculateMultiServiceUptime([serviceId], thirtyDaysAgo, now),
+  ]);
 
   const activeIncidentsCount = slaMetrics.activeIncidents;
   const windowTotalIncidents = slaMetrics.totalIncidents;
@@ -87,12 +93,7 @@ async function ServiceMetricsSummary({ serviceId }: { serviceId: string }) {
   const incidentsPerMonth =
     effectiveDurationDays > 0 ? (windowTotalIncidents / effectiveDurationDays) * 30 : 0;
 
-  const mtbfMs = slaMetrics.mtbfMs;
-  const mttrMs = (slaMetrics.mttr || 0) * 60 * 1000;
-  const hasEverHadIncidents = windowTotalIncidents > 0 || activeIncidentsCount > 0;
-
-  const availability =
-    mtbfMs && mtbfMs > 0 ? (mtbfMs / (mtbfMs + mttrMs)) * 100 : !hasEverHadIncidents ? 100 : 0;
+  const availability = Math.max(0, Math.min(100, uptimeByService[serviceId] ?? 100));
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mt-6">
