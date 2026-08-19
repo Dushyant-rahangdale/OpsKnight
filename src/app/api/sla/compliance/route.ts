@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { getAuthOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { calculateSLAMetrics } from '@/lib/sla-server';
+import { calculateSLAMetrics, calculateMultiServiceUptime } from '@/lib/sla-server';
 import { logger } from '@/lib/logger';
 
 /**
@@ -104,12 +104,18 @@ export async function GET(request: NextRequest) {
           switch (def.metricType) {
             case 'UPTIME':
             case 'AVAILABILITY':
-              // Calculate uptime from resolved incidents
-              const totalMinutes = windowDays * 24 * 60;
-              const downtimeMinutes =
-                metrics.mttr !== null ? metrics.totalIncidents * metrics.mttr : 0;
-              currentValue =
-                totalMinutes > 0 ? ((totalMinutes - downtimeMinutes) / totalMinutes) * 100 : 100;
+              if (def.serviceId) {
+                const now = new Date();
+                const startDate = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
+                const uptimeMap = await calculateMultiServiceUptime(
+                  [def.serviceId],
+                  startDate,
+                  now
+                );
+                currentValue = uptimeMap[def.serviceId] ?? 100;
+              } else {
+                currentValue = 100;
+              }
               currentValue = Math.max(0, Math.min(100, currentValue));
               breached = currentValue < def.target;
               break;
