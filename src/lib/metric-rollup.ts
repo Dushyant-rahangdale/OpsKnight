@@ -146,6 +146,7 @@ export async function generateDailyRollup(
             createdAt: true,
             acknowledgedAt: true,
             resolvedAt: true,
+            updatedAt: true,
             serviceId: true,
             service: {
               select: {
@@ -294,8 +295,10 @@ export async function generateDailyRollup(
           }
 
           // MTTR calculation
-          if (incident.status === 'RESOLVED' && incident.resolvedAt) {
-            const mttr = incident.resolvedAt.getTime() - incident.createdAt.getTime();
+          const resolvedTime =
+            incident.resolvedAt ?? (incident.status === 'RESOLVED' ? incident.updatedAt : null);
+          if (incident.status === 'RESOLVED' && resolvedTime) {
+            const mttr = resolvedTime.getTime() - incident.createdAt.getTime();
             if (mttr >= 0) {
               mttrSum += BigInt(mttr);
               mttrCount++;
@@ -621,11 +624,21 @@ export async function getRollupCoverage(): Promise<{
   const { getRetentionPolicy } = await import('./retention-policy');
   const policy = await getRetentionPolicy();
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setUTCHours(0, 0, 0, 0);
-  const oldestNeeded = new Date(yesterday);
-  oldestNeeded.setDate(oldestNeeded.getDate() - (policy.metricsRetentionDays - 1));
+  const now = new Date();
+  const yesterday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0, 0)
+  );
+  const oldestNeeded = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - policy.metricsRetentionDays,
+      0,
+      0,
+      0,
+      0
+    )
+  );
 
   const [oldestRow, newestRow, globalCount, totalCount, globalDays] = await Promise.all([
     prisma.incidentMetricRollup.findFirst({

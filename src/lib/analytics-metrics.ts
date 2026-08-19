@@ -22,25 +22,47 @@ export type ServiceSlaEntry = {
 };
 
 export function calculatePercentile(values: number[], percentileValue: number): number | null {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.max(
-    0,
-    Math.min(sorted.length - 1, Math.ceil((percentileValue / 100) * sorted.length) - 1)
-  );
-  return sorted[index];
+  if (!values || values.length === 0 || !Number.isFinite(percentileValue)) return null;
+  const valid = values
+    .filter(v => typeof v === 'number' && Number.isFinite(v))
+    .sort((a, b) => a - b);
+  if (valid.length === 0) return null;
+
+  const clampedP = Math.max(0, Math.min(100, percentileValue));
+  const rank = (clampedP / 100) * (valid.length - 1);
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  if (lower === upper) return valid[lower];
+  const weight = rank - lower;
+  return valid[lower] * (1 - weight) + valid[upper] * weight;
 }
 
-export function calculateMtbfMs(dates: Date[]): number | null {
-  if (dates.length < 2) return null;
-  const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
-  let sum = 0;
-  let count = 0;
-  for (let i = 1; i < sorted.length; i += 1) {
-    sum += sorted[i].getTime() - sorted[i - 1].getTime();
-    count += 1;
-  }
-  return count > 0 ? sum / count : null;
+export function calculateMtbfMs(
+  dates: Date[],
+  windowStart?: Date,
+  windowEnd?: Date
+): number | null {
+  const validTimes = dates
+    .map(d => (d instanceof Date ? d.getTime() : new Date(d).getTime()))
+    .filter(t => Number.isFinite(t));
+
+  const startTime = windowStart
+    ? windowStart.getTime()
+    : validTimes.length > 0
+      ? Math.min(...validTimes)
+      : null;
+  const endTime = windowEnd
+    ? windowEnd.getTime()
+    : validTimes.length > 0
+      ? Math.max(...validTimes)
+      : null;
+
+  if (startTime === null || endTime === null || endTime <= startTime) return null;
+  const totalOperatingTimeMs = endTime - startTime;
+  const failureCount = validTimes.length;
+
+  if (failureCount === 0) return totalOperatingTimeMs;
+  return totalOperatingTimeMs / failureCount;
 }
 
 export function smoothSeries(values: number[], windowSize: number): number[] {

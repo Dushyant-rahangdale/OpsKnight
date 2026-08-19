@@ -9,20 +9,27 @@ import {
 } from '@/lib/analytics-metrics';
 
 describe('analytics-metrics utilities', () => {
-  it('calculates percentiles for sorted values', () => {
+  it('calculates percentiles for sorted values with interpolation and NaN filtering', () => {
     const values = [10, 20, 30, 40, 50];
     expect(calculatePercentile(values, 50)).toBe(30);
-    expect(calculatePercentile(values, 95)).toBe(50);
+    expect(calculatePercentile(values, 0)).toBe(10);
+    expect(calculatePercentile(values, 100)).toBe(50);
+    expect(calculatePercentile([10, NaN, 20, 30], 50)).toBe(20);
+    expect(calculatePercentile([], 50)).toBeNull();
   });
 
-  it('calculates MTBF from incident timestamps', () => {
+  it('calculates MTBF from incident timestamps and window bounds', () => {
     const dates = [
       new Date('2025-01-01T00:00:00Z'),
       new Date('2025-01-01T01:00:00Z'),
       new Date('2025-01-01T03:00:00Z'),
     ];
     const mtbf = calculateMtbfMs(dates);
-    expect(mtbf).toBe(5400000);
+    expect(mtbf).toBe(3600000);
+
+    const windowStart = new Date('2025-01-01T00:00:00Z');
+    const windowEnd = new Date('2025-01-02T00:00:00Z'); // 24h
+    expect(calculateMtbfMs(dates, windowStart, windowEnd)).toBe(86400000 / 3);
   });
 
   it('builds status age averages', () => {

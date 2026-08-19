@@ -99,6 +99,7 @@ import {
   DEFAULT_BUSINESS_HOURS_TIMEZONE,
   DEFAULT_BUSINESS_HOURS_START,
   DEFAULT_BUSINESS_HOURS_END,
+  isIncidentAfterHours,
 } from './business-hours';
 
 export {
@@ -1940,8 +1941,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
 
   const afterHoursCount = dbAggMetrics
     ? dbAggMetrics.afterHoursCount
-    : recentIncidents.filter(i => isAfterHoursInTimeZone(i.createdAt, tenantBusinessHoursTz))
-        .length;
+    : recentIncidents.filter(i => isIncidentAfterHours(i.createdAt, tenantBusinessHoursTz)).length;
   const afterHoursRate = currentStats.count ? (afterHoursCount / currentStats.count) * 100 : 0;
 
   // Coverage day counter.
@@ -2409,16 +2409,8 @@ export async function generateDailySnapshot(definitionId: string, date: Date): P
   }
 
   const total = incidents.length;
-  let score = 0;
-  if (totalAckEvaluated > 0 || totalResolveEvaluated > 0) {
-    const ackScore = totalAckEvaluated > 0 ? (metAck / totalAckEvaluated) * 100 : 100;
-    const resolveScore =
-      totalResolveEvaluated > 0 ? (metResolve / totalResolveEvaluated) * 100 : 100;
-    score = (ackScore + resolveScore) / 2;
-  } else if (total === 0) {
-    // No incidents - this is good (100% compliance by default when no work to measure)
-    score = 100;
-  }
+  const totalEvaluated = totalAckEvaluated + totalResolveEvaluated;
+  const score = totalEvaluated > 0 ? ((metAck + metResolve) / totalEvaluated) * 100 : 100;
 
   await prisma.sLASnapshot.upsert({
     where: {
@@ -2897,7 +2889,7 @@ export async function calculateSLAMetricsFromRollups(
   const reopenRate =
     !priorityFilter && totalIncidents > 0 ? (reopenCount / totalIncidents) * 100 : 0;
   const autoResolveRate =
-    !priorityFilter && totalIncidents > 0 ? (autoResolveCount / totalIncidents) * 100 : 0;
+    !priorityFilter && resolvedIncidents > 0 ? (autoResolveCount / resolvedIncidents) * 100 : 0;
 
   // Acknowledged / resolved rate from rollup snapshot counts. This is an
   // upper-bound approximation: rollups store status-at-end-of-day, which

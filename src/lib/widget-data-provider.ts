@@ -285,10 +285,10 @@ export async function getWidgetData(
     .map(oc => ({
       userId: oc.id,
       userName: oc.name || 'Unknown',
-      activeIncidents: oc.incidentCount ?? 0,
+      activeIncidents: 0,
       criticalIncidents: 0,
       isOnCall: true,
-      isOverloaded: (oc.incidentCount ?? 0) > OVERLOAD_THRESHOLD,
+      isOverloaded: false,
     }));
 
   const combinedWorkload = [...teamWorkload, ...additionalOnCallUsers]
