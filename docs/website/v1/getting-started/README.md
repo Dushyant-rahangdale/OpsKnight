@@ -8,18 +8,15 @@ description: Everything you need to install, configure, and start using OpsKnigh
 
 This section will take you from zero to a fully operational incident management system. By the end, you'll have OpsKnight running, your first service configured, and understand how to create and manage incidents.
 
-<!-- placeholder:getting-started-overview -->
-<!-- Add: Screenshot showing the OpsKnight login page or initial dashboard -->
-
 ---
 
 ## What You'll Learn
 
-| Guide                                            | What You'll Accomplish                                    |
-| ------------------------------------------------ | --------------------------------------------------------- |
-| [Installation](./getting-started/installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
-| [Configuration](./getting-started/configuration) | Understand environment variables and system settings      |
-| [First Steps](./getting-started/first-steps)     | Create your first service, incident, and on-call schedule |
+| Guide                            | What You'll Accomplish                                    |
+| -------------------------------- | --------------------------------------------------------- |
+| [Installation](./installation)   | Get OpsKnight running with Docker, Kubernetes, or locally |
+| [Configuration](./configuration) | Understand environment variables and system settings      |
+| [First Steps](./first-steps)     | Create your first service, incident, and on-call schedule |
 
 ---
 
@@ -74,7 +71,7 @@ cd opsknight
 
 # 2. Copy and configure environment
 cp env.example .env
-# Edit .env: Set NEXTAUTH_SECRET (generate with: openssl rand -base64 32)
+# Set NEXTAUTH_SECRET (openssl rand -base64 32) and ENCRYPTION_KEY (openssl rand -hex 32)
 
 # 3. Start all services
 docker compose up -d
@@ -99,7 +96,7 @@ Once OpsKnight is running, you'll want to:
 4. **Configure Notifications** — Set up Email, SMS, Slack, or Push notifications
 5. **Connect Integrations** — Route alerts from Datadog, Prometheus, or other tools
 
-The [First Steps Guide](./getting-started/first-steps) walks you through all of these in detail.
+The [First Steps Guide](./first-steps) walks you through all of these in detail.
 
 ---
 
@@ -119,7 +116,7 @@ NEXTAUTH_SECRET=your-32-character-secret-key-here
 APP_URL=http://localhost:3000
 ```
 
-See the [Configuration Guide](./getting-started/configuration) for the complete reference.
+See the [Configuration Guide](./configuration) for the complete reference.
 
 ---
 
@@ -184,9 +181,9 @@ docker compose up -d
 
 Ready to continue? Here's your path:
 
-1. **[Installation Guide](./getting-started/installation)** — Detailed installation for all deployment methods
-2. **[Configuration Reference](./getting-started/configuration)** — Complete environment variable documentation
-3. **[First Steps](./getting-started/first-steps)** — Create your first service and incident
+1. **[Installation Guide](./installation)** — Detailed installation for all deployment methods
+2. **[Configuration Reference](./configuration)** — Complete environment variable documentation
+3. **[First Steps](./first-steps)** — Create your first service and incident
 
 ---
 

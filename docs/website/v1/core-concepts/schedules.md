@@ -76,8 +76,6 @@ An override is a temporary change to the normal rotation, used for:
    - **Timezone**: `America/New_York` (or your team's timezone)
 3. Click **Create**
 
-<!-- placeholder:create-schedule -->
-
 ![Create schedule](/schedule-create.png)
 
 ### Step 3: Add a Layer
@@ -212,8 +210,6 @@ Overrides let you make temporary changes without modifying the base rotation.
    - **Start/End Time**: When the override is active
    - **User**: Who will be on-call instead
    - **Replaces** (optional): Whose shift is being covered
-
-<!-- placeholder:create-override -->
 
 ![Create override](/schedule-override.png)
 

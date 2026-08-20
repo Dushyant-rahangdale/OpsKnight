@@ -8,9 +8,6 @@ description: Document incidents, identify root causes, and track improvements wi
 
 Postmortems (also called Post-Incident Reviews or PIRs) document what happened during an incident, why it happened, and what you'll do to prevent recurrence. OpsKnight provides a structured workflow for creating, reviewing, and tracking postmortems.
 
-<!-- placeholder:postmortem-overview -->
-<!-- Add: Screenshot of a postmortem detail page -->
-
 ---
 
 ## Why Postmortems Matter
@@ -107,9 +104,6 @@ DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
    - Timeline events
    - Affected services
    - Participants
-
-<!-- placeholder:create-postmortem-button -->
-<!-- Add: Screenshot showing the Create Postmortem button on an incident -->
 
 ### From Scratch
 
@@ -279,9 +273,6 @@ View action item status across postmortems:
    - Priority
    - Due date range
 3. Export for tracking meetings
-
-<!-- placeholder:action-items-dashboard -->
-<!-- Add: Screenshot of action items dashboard -->
 
 ### Overdue Items
 

@@ -8,7 +8,6 @@ description: Configure notifications, authentication, data retention, and system
 
 This section covers the administrative configuration of OpsKnight, including notification providers, authentication, data retention, custom fields, and audit logging. These settings are typically configured once during setup and reviewed periodically.
 
-
 ---
 
 ## Who Should Read This
@@ -22,13 +21,13 @@ This section covers the administrative configuration of OpsKnight, including not
 
 ## Administration Topics
 
-| Topic                                             | Description                                 | Why It Matters                 |
-| ------------------------------------------------- | ------------------------------------------- | ------------------------------ |
-| [Notifications](./administration/notifications)   | Configure Email, SMS, Push, WhatsApp, Slack | Ensure alerts reach responders |
-| [Authentication](./administration/authentication) | Local auth, SSO/OIDC, user management       | Secure access control          |
-| [Custom Fields](./administration/custom-fields)   | Add metadata fields to incidents            | Track additional information   |
-| [Data Retention](./administration/data-retention) | Configure cleanup policies                  | Manage storage and compliance  |
-| [Audit Logs](./administration/audit-logs)         | Track security-relevant events              | Compliance and troubleshooting |
+| Topic                              | Description                                 | Why It Matters                 |
+| ---------------------------------- | ------------------------------------------- | ------------------------------ |
+| [Notifications](./notifications)   | Configure Email, SMS, Push, WhatsApp, Slack | Ensure alerts reach responders |
+| [Authentication](./authentication) | Local auth, SSO/OIDC, user management       | Secure access control          |
+| [Custom Fields](./custom-fields)   | Add metadata fields to incidents            | Track additional information   |
+| [Data Retention](./data-retention) | Configure cleanup policies                  | Manage storage and compliance  |
+| [Audit Logs](./audit-logs)         | Track security-relevant events              | Compliance and troubleshooting |
 
 ---
 
@@ -42,10 +41,10 @@ Without notifications, OpsKnight can't alert responders. Set up at least one cha
 
 | Priority                | Channel | Setup Guide                                                               |
 | ----------------------- | ------- | ------------------------------------------------------------------------- |
-| **Essential**           | Email   | [SMTP/SendGrid/Resend setup](./administration/notifications#email)        |
+| **Essential**           | Email   | [SMTP/SendGrid/Resend setup](./notifications#email)                       |
 | **Recommended**         | Slack   | [Slack OAuth integration](./integrations/communication/slack-oauth-setup) |
-| **For Critical Alerts** | SMS     | [Twilio/AWS SNS setup](./administration/notifications#sms)                |
-| **For Mobile**          | Push    | [FCM/OneSignal setup](./administration/notifications#push)                |
+| **For Critical Alerts** | SMS     | [Twilio/AWS SNS setup](./notifications#sms)                               |
+| **For Mobile**          | Push    | [FCM/OneSignal setup](./notifications#push)                               |
 
 ### 2. Set Up Authentication
 

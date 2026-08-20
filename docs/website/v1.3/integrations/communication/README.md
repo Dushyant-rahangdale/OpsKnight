@@ -12,7 +12,7 @@ Send incident updates to the tools where your team already collaborates.
 
 <!-- integrations-list:start -->
 
-- [Slack](./communication/slack) — Send interactive incident notifications to Slack with acknowledge and resolve actions
-- [Slack OAuth Setup](./communication/slack-oauth-setup) — OAuth setup steps for the Slack integration
-- [Slack ChatOps & War Rooms](./communication/slack-chatops) — Per-incident channels, slash commands, 1-click actions and 📌 pin sync
+- [Slack](./slack) — Send interactive incident notifications to Slack with acknowledge and resolve actions
+- [Slack OAuth Setup](./slack-oauth-setup) — OAuth setup steps for the Slack integration
+- [Slack ChatOps & War Rooms](./slack-chatops) — Per-incident channels, slash commands, 1-click actions and 📌 pin sync
 <!-- integrations-list:end -->

@@ -1,4 +1,9 @@
 #!/bin/sh
+# Source of truth: docs/v1, docs/v1.1, docs/v1.2, docs/v1.3
+# Copies those trees to the website repo content/docs/<version>
+# and public/docs/<version>/assets. See .github/workflows/docs-sync.yml.
+# Not copied: docs/website (duplicate of the version trees),
+# docs/core-concepts, docs/images, ARCHITECTURE_ANALYSIS.md.
 
 set -e
 

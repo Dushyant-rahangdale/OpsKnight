@@ -8,7 +8,7 @@ description: Use OpsKnight on mobile devices via the Progressive Web App (PWA)
 
 OpsKnight provides a full-featured mobile experience through a Progressive Web App (PWA). Handle incidents, check schedules, and respond to alerts from anywhere.
 
-Start here: **[Mobile Setup](./mobile/setup)** — install the PWA and enable push notifications.
+Start here: **[Mobile Setup](./setup)** — install the PWA and enable push notifications.
 
 ![OpsKnight mobile dashboard](../assets/mobile.png)
 
@@ -44,14 +44,12 @@ A Progressive Web App provides the best of both worlds:
 3. Scroll down and tap **Add to Home Screen**
 4. Tap **Add**
 
-
 ### On Android (Chrome)
 
 1. Open OpsKnight in Chrome
 2. Tap the **three-dot menu**
 3. Tap **Add to Home Screen** or **Install App**
 4. Tap **Install**
-
 
 ### On Desktop (Chrome/Edge)
 
@@ -115,7 +113,6 @@ While the app is open, the notification list updates in real time and falls back
 2. When prompted, tap **Allow** for notifications
 3. Verify in **Profile** → **Devices** that your device appears
 4. Ask your admin to enable **Push** in Settings → Notification Providers
-
 
 ### Notification Types
 

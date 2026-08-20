@@ -8,9 +8,6 @@ description: Comprehensive guide to configuring and managing your public status 
 
 The Status Page is your public-facing communication hub for service health, incidents, and maintenance. It keeps customers and stakeholders informed with real-time updates, reducing support inquiries during incidents.
 
-<!-- placeholder:status-page-overview -->
-<!-- Add: Screenshot of a live status page showing services and incidents -->
-
 ---
 
 ## Why You Need a Status Page
@@ -474,7 +471,7 @@ Host your status page on a custom domain (e.g., `status.yourcompany.com`).
 1. Set **Custom Domain** in status page settings
 2. Configure DNS:
    - **CNAME**: Point `status.yourcompany.com` to your OpsKnight instance
-3. Configure SSL certificate for the custom domain
+3. Terminate TLS yourself (load balancer or reverse proxy). OpsKnight does not auto-issue certificates for custom domains.
 
 ### Subdomain Option
 

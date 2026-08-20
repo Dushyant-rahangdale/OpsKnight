@@ -12,14 +12,14 @@ The OpsKnight API lets you programmatically manage incidents, integrate monitori
 
 ## API Endpoints Overview
 
-| Endpoint                         | Description                             | Common Use Cases              |
-| -------------------------------- | --------------------------------------- | ----------------------------- |
-| [Events API](./api/events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
-| [Incidents API](./api/incidents) | List, create, update incidents          | Custom dashboards, automation |
-| Services API                     | Manage services                         | Service catalog automation    |
-| Schedules API                    | Query on-call schedules                 | Who's on-call integrations    |
-| Users API                        | Manage users                            | User provisioning             |
-| Teams API                        | Manage teams                            | Team automation               |
+| Endpoint                     | Description                             | Common Use Cases              |
+| ---------------------------- | --------------------------------------- | ----------------------------- |
+| [Events API](./events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
+| [Incidents API](./incidents) | List, create, update incidents          | Custom dashboards, automation |
+| Services API                 | Manage services                         | Service catalog automation    |
+| Schedules API                | Query on-call schedules                 | Who's on-call integrations    |
+| Users API                    | Manage users                            | User provisioning             |
+| Teams API                    | Manage teams                            | Team automation               |
 
 ---
 
@@ -34,7 +34,6 @@ All API requests require authentication. OpsKnight supports API key authenticati
 3. Enter a name (e.g., "Datadog Integration")
 4. Select scopes (permissions)
 5. Copy the key — it's only shown once!
-
 
 ### Using Your API Key
 
@@ -362,7 +361,7 @@ curl -X GET "https://opsknight.yourco.com/api/schedules/sch_abc123/on-call" \
 
 ### Official Tools
 
-- **CLI Tool**: [CLI Documentation](./api/cli)
+- **CLI Tool**: [CLI Documentation](./cli)
 
 ### Community Tools
 
@@ -435,7 +434,7 @@ Verify by computing HMAC of the raw request body using your webhook secret.
 
 ## Need Help?
 
-- Check the [CLI Tool](./api/cli) for command-line access
-- See [Events API](./api/events) for alert integration
-- See [Incidents API](./api/incidents) for incident management
+- Check the [CLI Tool](./cli) for command-line access
+- See [Events API](./events) for alert integration
+- See [Incidents API](./incidents) for incident management
 - Report issues on [GitHub](https://github.com/opsknight-labs/opsknight/issues)

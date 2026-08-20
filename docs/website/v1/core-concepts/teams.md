@@ -8,9 +8,6 @@ description: Organize users, assign service ownership, and route incidents effec
 
 Teams are the organizational unit for grouping users by responsibility. They provide ownership boundaries for services, enable efficient incident routing, and help manage permissions at scale.
 
-<!-- placeholder:teams-overview -->
-<!-- Add: Screenshot of the Teams page showing team cards -->
-
 ---
 
 ## Why Teams Matter
@@ -66,9 +63,6 @@ Each team member has one of three roles determining their permissions:
    - **Name**: Unique name (e.g., "Backend Services")
    - **Description**: What the team is responsible for
 4. Click **Create**
-
-<!-- placeholder:team-create-form -->
-<!-- Add: Screenshot of team creation form -->
 
 ### Initial Setup
 

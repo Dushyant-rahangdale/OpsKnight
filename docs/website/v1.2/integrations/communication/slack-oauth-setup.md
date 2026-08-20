@@ -30,16 +30,42 @@ The Slack integration supports two methods:
    https://yourdomain.com/api/slack/oauth/callback
    http://localhost:3000/api/slack/oauth/callback  (for development)
    ```
-3. Under **Scopes** → **Bot Token Scopes**, add:
+3. Under **Scopes** → **Bot Token Scopes**, add every scope below.
+
+   **Required** — incident features break without these:
    - `chat:write` - Send messages
    - `channels:read` - List channels
-   - `groups:read` - List private channels
-   - `im:read` - List DMs
-   - `mpim:read` - List group DMs
+   - `channels:join` - Join channels the bot was not invited to
+   - `channels:manage` - Create, retitle and archive war-room channels
+   - `channels:history` - Read a pinned message so it can be saved as a note
+   - `reactions:read` - Receive 📌 reactions
    - `users:read` - Read user information
+   - `users:read.email` - Match Slack users to OpsKnight accounts, so
+     responders are auto-invited to war rooms
+
+   **Optional** — private channel and DM coverage:
+   - `groups:read`, `groups:write`, `groups:history` - Private channels
+   - `im:read`, `mpim:read` - Direct and group messages
 
 4. Under **Scopes** → **User Token Scopes** (optional):
    - No user scopes needed for basic functionality
+
+> **Faster alternative.** Settings → Integrations → Slack shows a generated
+> **App Manifest** for your deployment. Creating the app from that manifest
+> configures every scope, Event Subscriptions, interactivity and the
+> `/incident` command in one step, with nothing to tick by hand.
+
+### 2b. Enable Event Subscriptions
+
+Required for 📌 emoji pin sync. This is a **separate setting from
+Interactivity** — buttons can work perfectly while events do nothing.
+
+1. Go to **Event Subscriptions** and turn it on
+2. Set the Request URL to `https://yourdomain.com/api/slack/events`
+3. Under **Subscribe to bot events**, add `reaction_added`
+
+Slack verifies that URL with a signed challenge, so configure the Signing
+Secret (step 5) **before** saving it, or verification is rejected.
 
 ### 3. Install App to Workspace
 
@@ -54,32 +80,45 @@ The Slack integration supports two methods:
 2. Under **App Credentials**, find **Signing Secret**
 3. Click **Show** and copy the secret
 
-### 5. Configure Environment Variables
+### 5. Enter Credentials in OpsKnight
 
-Add to your `.env` file:
+Slack credentials are entered in the app, not in environment variables, and are
+stored encrypted. Go to **Settings → Integrations → Slack** and provide:
+
+| Field              | Where to find it in Slack           |
+| ------------------ | ----------------------------------- |
+| **Client ID**      | Basic Information → App Credentials |
+| **Client Secret**  | Basic Information → App Credentials |
+| **Signing Secret** | Basic Information → App Credentials |
+
+> **The Signing Secret is required, not optional.** OpsKnight verifies that every
+> inbound request genuinely came from Slack and **rejects those it cannot verify**.
+> Without it, slash commands, interactive buttons and events all fail with `401`
+> and the logs show `Rejected unverified request`.
+>
+> Slack does **not** return this value during OAuth — it is an app-level
+> credential, so reconnecting will not fill it in. It must be copied manually.
+
+`SLACK_SIGNING_SECRET` is still honoured as an environment override, which is
+convenient for local development, but is not needed in a normal deployment.
+
+Legacy fallbacks, only for installs not using OAuth:
 
 ```env
-# Slack OAuth Configuration
-SLACK_CLIENT_ID=your_client_id_here
-SLACK_CLIENT_SECRET=your_client_secret_here
-SLACK_REDIRECT_URI=https://yourdomain.com/api/slack/oauth/callback
-
-# Optional: Encryption key for token storage (generate with: openssl rand -hex 32)
-ENCRYPTION_KEY=your_32_byte_hex_key_here
-
-# Optional: Legacy webhook URL (fallback if OAuth not configured)
+# Optional: legacy webhook URL (fallback if OAuth is not configured)
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 
-# Optional: Legacy bot token (fallback if OAuth not configured)
+# Optional: legacy bot token (fallback if OAuth is not configured)
 SLACK_BOT_TOKEN=xoxb-your-bot-token-here
-
-# Optional: Signing secret for interactive components
-SLACK_SIGNING_SECRET=your_signing_secret_here
 ```
 
 ### 6. Generate Encryption Key
 
-For production, generate a secure encryption key:
+`ENCRYPTION_KEY` is **required in production** — it encrypts the stored bot token
+and signing secret. A development fallback is used automatically when it is unset
+outside production.
+
+Generate one with:
 
 ```bash
 openssl rand -hex 32
