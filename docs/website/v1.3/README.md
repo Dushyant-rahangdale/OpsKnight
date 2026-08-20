@@ -71,7 +71,7 @@ Connect your entire observability, APM, and CI/CD ecosystem.
 - **CI/CD Pipelines**: [GitLab CI/CD](./integrations/ci-cd/gitlab.md) · [Vercel](./integrations/ci-cd/vercel.md) · [GitHub Actions](./integrations/ci-cd/github.md) · [Bitbucket](./integrations/ci-cd/bitbucket.md)
 - **APM & Tracing**: [Datadog](./integrations/apm-monitoring/datadog.md) · [New Relic](./integrations/apm-monitoring/new-relic.md) · [Dynatrace](./integrations/apm-monitoring/dynatrace.md) · [AppDynamics](./integrations/apm-monitoring/appdynamics.md) · [Sentry](./integrations/apm-monitoring/sentry.md) · [Honeycomb](./integrations/apm-monitoring/honeycomb.md)
 - **Cloud Infrastructure**: [AWS CloudWatch](./integrations/cloud/aws-cloudwatch.md) · [Azure Monitor](./integrations/cloud/azure-monitor.md) · [Google Cloud](./integrations/cloud/google-cloud-monitoring.md)
-- **Drop-in Emulation**: [PagerDuty Events API v2](./integrations/custom/pagerduty-emulation.md)
+- **Events API v2 ingest**: [PagerDuty Events API v2](./integrations/custom/pagerduty-emulation.md)
 - **Issue Tracking**: [Jira Cloud Bi-Directional](./integrations/issue-tracking/jira.md)
 
 ### 🛡️ [Security & Compliance](./security/README.md)
