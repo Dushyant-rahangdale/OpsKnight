@@ -345,7 +345,7 @@ kubectl logs -l app=postgres
 
 ## Related Topics
 
-- [Getting Started](./getting-started) — Initial setup
-- [Configuration](./getting-started/configuration) — Environment reference
-- [Architecture](./architecture) — System design
-- [Security](./security) — Security configuration
+- [Getting Started](../getting-started) — Initial setup
+- [Configuration](../getting-started/configuration) — Environment reference
+- [Architecture](../architecture) — System design
+- [Security](../security) — Security configuration

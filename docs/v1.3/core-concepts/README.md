@@ -147,7 +147,7 @@ If you're new to OpsKnight, we recommend reading the concepts in this order:
 
 - [Incident Lifecycle](./incidents#incident-lifecycle) — Understand statuses and actions
 - [Bulk Actions](./incidents#bulk-actions) — Manage alert storms efficiently
-- [Mobile Access](./mobile) — Respond from anywhere
+- [Mobile Access](../mobile) — Respond from anywhere
 
 ### For On-Call Managers
 
@@ -158,7 +158,7 @@ If you're new to OpsKnight, we recommend reading the concepts in this order:
 ### For Operations Teams
 
 - [SLA Configuration](./analytics#sla-tracking) — Set response time targets
-- [Custom Fields](./administration/custom-fields) — Track additional metadata
+- [Custom Fields](../administration/custom-fields) — Track additional metadata
 - [Integrations](./integrations) — Connect your monitoring stack
 
 ### For Leadership

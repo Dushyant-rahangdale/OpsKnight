@@ -255,6 +255,6 @@ The UI adapts to different screen sizes:
 
 ## Related Topics
 
-- [PWA Deployment](./deployment/mobile-pwa) — Technical PWA setup
-- [Push Notifications](./administration/notifications#push) — Push configuration
-- [Schedules](./core-concepts/schedules) — On-call management
+- [PWA Deployment](../deployment/mobile-pwa) — Technical PWA setup
+- [Push Notifications](../administration/notifications#push) — Push configuration
+- [Schedules](../core-concepts/schedules) — On-call management

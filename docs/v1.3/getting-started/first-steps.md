@@ -6,8 +6,9 @@ description: Create your first service, escalation policy, on-call schedule, and
 
 # First Steps
 
-This guide walks you through setting up OpsKnight from scratch. By the end, you'll have a complete incident management workflow configured and tested.
+The [Getting Started](./) page is the **15-minute path** (Compose → one service → one test incident). This page is the fuller first-week setup: extra users, a named team, optional Slack, and an Events API check.
 
+This guide walks you through setting up OpsKnight from scratch. By the end, you'll have a complete incident management workflow configured and tested.
 
 ---
 
@@ -36,7 +37,6 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 2. Enter your **Email** (e.g., jane@example.com)
 3. Click **Create Admin Account**
 
-
 **Important**: A secure password will be generated for you and displayed **only once**. Copy it immediately and store it safely — you won't be able to see it again.
 
 ### After Setup:
@@ -44,7 +44,6 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 1. You'll be redirected to the login page
 2. Log in with your email and the generated password
 3. Once logged in, you can change your password in **Profile** settings
-
 
 > **Note**: The `/setup` page is only accessible when no users exist in the system. After the first admin is created, this page becomes unavailable.
 
@@ -68,7 +67,6 @@ Before setting up schedules, you need team members to put on-call.
    - **Responder** — Can handle incidents and be on-call
    - **Admin** — Full system access
 4. Click **Send Invitation**
-
 
 The user receives an email with a link to set their password and activate their account.
 
@@ -101,7 +99,6 @@ Teams organize users and can be targeted by escalation policies.
    - **Admin** — Can add/remove members
    - **Member** — Standard team member
 
-
 **Why Teams Matter**:
 
 - Escalation policies can notify entire teams
@@ -127,7 +124,6 @@ Services represent the systems you monitor — APIs, databases, applications, or
    - **Team**: Select `Platform Engineering`
 3. Leave **Escalation Policy** empty for now (we'll create one next)
 4. Click **Create**
-
 
 **Why Services Matter**:
 
@@ -181,7 +177,6 @@ Escalation policies define who gets notified when an incident occurs and how not
 3. Enable **Repeat** to loop back to Step 1 if no one acknowledges
 4. Click **Create**
 
-
 ### How Escalation Works
 
 ```
@@ -228,7 +223,6 @@ Layers allow multiple rotation patterns (e.g., weekday vs. weekend coverage).
 1. Click **Add User**
 2. Select team members in rotation order
 3. Drag to reorder if needed
-
 
 **Schedule Concepts**:
 
@@ -299,7 +293,6 @@ Let's verify everything works by creating a manual incident.
    - **Urgency**: `High`
 4. Click **Create**
 
-
 ### What Should Happen
 
 1. **Incident Created** — Appears in the incident list with status `OPEN`
@@ -312,7 +305,6 @@ Let's verify everything works by creating a manual incident.
 2. Check that notifications were sent (look for delivery status)
 3. Click **Acknowledge** to stop escalation
 4. Click **Resolve** to close the incident
-
 
 ---
 

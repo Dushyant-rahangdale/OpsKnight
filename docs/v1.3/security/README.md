@@ -18,11 +18,11 @@ This section covers identity management, cryptographic data protection, webhook 
 
 ## Key Concepts
 
-- **Authentication** is handled by NextAuth.js with OIDC support. See [Authentication](./administration/authentication) for the full guide.
+- **Authentication** is handled by NextAuth.js with OIDC support. See [Authentication](../administration/authentication) for the full guide.
 - **Encryption at rest** uses AES-256-CBC envelope encryption. The master key is supplied via the `ENCRYPTION_KEY` environment variable.
 - **Signature Verification** ensures incoming webhooks from Datadog, GitHub, Sentry, Grafana, and generic webhooks originate from authenticated senders and protects against tampering or replay attacks.
 
 ## Related Administration Topics
 
-- [Authentication](./administration/authentication) — Local auth, SSO, sessions, and security settings
-- [Audit Logs](./administration/audit-logs) — Security event tracking and compliance
+- [Authentication](../administration/authentication) — Local auth, SSO, sessions, and security settings
+- [Audit Logs](../administration/audit-logs) — Security event tracking and compliance

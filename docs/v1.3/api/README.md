@@ -1,25 +1,25 @@
 ---
 order: 5
 title: API Reference
-description: Complete REST API documentation for developers integrating with OpsKnight
+description: Events, incidents, rate limits, and CLI — only what has a published guide
 ---
 
 # API Reference
 
-The OpsKnight API lets you programmatically manage incidents, integrate monitoring tools, query schedules, and automate your incident management workflows.
+Published partner docs for this version are the pages in this folder. The install also exposes other `/api/*` routes used by the UI; those are **not** documented here until they have a stable, copy-paste contract.
 
 ---
 
-## API Endpoints Overview
+## Published guides
 
-| Endpoint                     | Description                             | Common Use Cases              |
-| ---------------------------- | --------------------------------------- | ----------------------------- |
-| [Events API](./events)       | Trigger, acknowledge, resolve incidents | Monitoring integrations       |
-| [Incidents API](./incidents) | List, create, update incidents          | Custom dashboards, automation |
-| Services API                 | Manage services                         | Service catalog automation    |
-| Schedules API                | Query on-call schedules                 | Who's on-call integrations    |
-| Users API                    | Manage users                            | User provisioning             |
-| Teams API                    | Manage teams                            | Team automation               |
+| Guide                            | What it covers                                      |
+| -------------------------------- | --------------------------------------------------- |
+| [Events API](./events)           | Trigger, acknowledge, resolve from monitoring tools |
+| [Incidents API](./incidents)     | List and manage incidents with an API key           |
+| [Rate limiting](./rate-limiting) | Limits, headers, 429 behavior                       |
+| [CLI](./cli)                     | Command-line access                                 |
+
+Services, schedules, users, and teams are managed in the **UI**. REST handlers for some of those resources exist on the instance; do not treat an undocumented path as a supported public API.
 
 ---
 
@@ -184,13 +184,7 @@ JSON format for POST/PATCH requests:
 
 ## Rate Limits
 
-API requests are rate limited to ensure fair usage:
-
-| Endpoint Type   | Limit        | Window     |
-| --------------- | ------------ | ---------- |
-| Events API      | 100 requests | per minute |
-| Read endpoints  | 300 requests | per minute |
-| Write endpoints | 100 requests | per minute |
+Limits live on the instance and differ by route class. Use [Rate limiting](./rate-limiting) as the source for numbers and headers — do not copy a second table from this page.
 
 ### Rate Limit Headers
 
@@ -348,26 +342,11 @@ curl -X POST https://opsknight.yourco.com/api/events \
   }'
 ```
 
-### Get Current On-Call
-
-```bash
-curl -X GET "https://opsknight.yourco.com/api/schedules/sch_abc123/on-call" \
-  -H "Authorization: Bearer sk_live_abc123"
-```
-
 ---
 
-## SDKs and Libraries
+## Official CLI
 
-### Official Tools
-
-- **CLI Tool**: [CLI Documentation](./cli)
-
-### Community Tools
-
-- Python SDK (community)
-- Node.js SDK (community)
-- Go SDK (community)
+- [CLI](./cli)
 
 ---
 
@@ -420,21 +399,11 @@ Verify by computing HMAC of the raw request body using your webhook secret.
 
 ---
 
-## API Changelog
+## What this version actually ships
 
-### v1 (Current)
+- Events ingest (including PagerDuty Events API v2 as an **ingest adapter**, not a full PD clone)
+- Incidents REST for automation that has an API key
+- Rate limits described in [Rate limiting](./rate-limiting)
+- CLI in [CLI](./cli)
 
-- Initial stable API release
-- Full incident management
-- Events API (PagerDuty-compatible)
-- Schedules and on-call queries
-- User and team management
-
----
-
-## Need Help?
-
-- Check the [CLI Tool](./cli) for command-line access
-- See [Events API](./events) for alert integration
-- See [Incidents API](./incidents) for incident management
-- Report issues on [GitHub](https://github.com/opsknight-labs/opsknight/issues)
+Issues: [GitHub](https://github.com/opsknight-labs/OpsKnight/issues)
