@@ -1,12 +1,12 @@
 ---
 order: 4
 title: Integrations
-description: Connect OpsKnight with 24+ native monitoring tools, daemons, CI/CD pipelines, and custom webhooks
+description: Inbound alert sources and outbound paging for this version.
 ---
 
-# Integrations Catalog
+# Integrations
 
-OpsKnight integrates natively with your entire monitoring, metrics, cloud infrastructure, CI/CD, and observability stack — normalizing payloads and routing alerts to the right on-call engineers in real time.
+Tools send alerts **into** OpsKnight. OpsKnight pages people **out** on email, SMS, push, Slack, WhatsApp, or webhooks. There is no voice channel. Slack war rooms are documented from v1.2. PagerDuty Events API v2 ingest is in this version.
 
 ---
 
@@ -25,7 +25,7 @@ These tools send telemetry and incident alerts **TO** OpsKnight:
 | **Uptime & Health Checks** | UptimeRobot, Pingdom, Better Uptime, Uptime Kuma |
 | **Log Analytics & SIEM** | Elastic / Kibana, Splunk On-Call |
 | **Issue Tracking (Bi-directional)** | [Jira Cloud](./issue-tracking/jira) |
-| **Custom & Emulation** | Generic Webhooks, [PagerDuty Events v2 Emulation](./custom/pagerduty-emulation) |
+| **Custom ingest** | Generic Webhooks, [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) |
 
 ### Notification Channels (Outbound)
 
@@ -36,7 +36,7 @@ These channels dispatch urgent incident notifications **FROM** OpsKnight:
 | **Slack** | Rich cards, 1-click Acknowledge/Resolve, [Incident War Rooms & ChatOps](./communication/slack-chatops) |
 | **Jira Cloud** | [Automatic issue creation, service project routing & note sync](./issue-tracking/jira) |
 | **Email** | HTML notification digests with deep-links |
-| **SMS** | High-priority Twilio SMS alerts |
+| **SMS** | Twilio or AWS SNS |
 | **Push Notifications** | Mobile PWA background push alerts |
 | **WhatsApp** | Real-time messaging alerts |
 | **Outbound Webhooks** | Generic HTTP POST webhooks with HMAC-SHA256 signatures |
@@ -203,12 +203,12 @@ Bi-directional Jira integration for real-time ticket creation and comments.
 
 ---
 
-### 8. Custom Integrations & Emulation
+### 8. Custom ingest
 
-#### [PagerDuty Emulation (Events API v2)](./custom/pagerduty-emulation) *(New in v1.3)*
-Drop-in replacement for PagerDuty Events API v2.
+#### [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) *(v1.3)*
+Accept Events API v2 payloads on your OpsKnight host. Change the destination URL and test. Not a PagerDuty product.
 - **Endpoint**: `/api/integrations/pagerduty` (and `/api/events/v2`)
-- **Capabilities**: Seamlessly connect any tool with built-in PagerDuty support with 0 code modifications
+- **Capabilities**: `trigger`, `acknowledge`, `resolve` with routing key resolution
 
 #### [Generic Webhooks](./custom/webhooks)
 Connect custom scripts, internal cron jobs, or proprietary systems.

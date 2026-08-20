@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import StatusPageMetrics from '@/components/status-page/StatusPageMetrics';
@@ -7,6 +7,15 @@ describe('StatusPageMetrics', () => {
   const now = new Date('2026-08-19T12:00:00.000Z');
   const thirtyDaysAgo = new Date('2026-07-20T12:00:00.000Z');
   const ninetyDaysAgo = new Date('2026-05-21T12:00:00.000Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const services = [{ id: 'svc-1', name: 'OpsKnight API' }];
 

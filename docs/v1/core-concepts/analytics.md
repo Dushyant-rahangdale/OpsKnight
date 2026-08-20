@@ -8,8 +8,6 @@ description: Comprehensive incident analytics, performance metrics, and operatio
 
 Analytics provide deep visibility into incident patterns, team performance, and operational health. Use these insights to identify trends, optimize response processes, and demonstrate SLA compliance.
 
-<!-- placeholder:analytics-dashboard-overview -->
-<!-- Add: Screenshot of the main analytics dashboard -->
 
 ---
 
@@ -144,8 +142,6 @@ OpsKnight provides 15+ visualization types for incident data.
 | **MTTR Trend**           | Resolution time over time       |
 | **SLA Compliance Trend** | Compliance percentage over time |
 
-<!-- placeholder:time-series-chart -->
-<!-- Add: Screenshot of incident volume time-series chart -->
 
 ### Distribution Charts
 

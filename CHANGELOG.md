@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **6 New Native Observability & APM Integrations**:
   - **Zabbix** — native webhook media type support for Problem/Recovery/Update alerts with 6-level severity mapping and `EVENT.ID` recovery deduplication
-  - **PagerDuty Events API v2** — drop-in compatible emulation supporting `trigger`, `acknowledge`, and `resolve` actions with routing key resolution
+  - **PagerDuty Events API v2** — ingest adapter for `trigger`, `acknowledge`, and `resolve` with routing key resolution. Not a PagerDuty product.
   - **GitLab CI/CD** — automated pipeline failure alerting and branch-level auto-resolution on successful rerun
   - **Vercel Deployments** — production error triggering, deployment state tracking, and auto-resolution on successful deployment
   - **Nagios Core & XI** — macro parsing with scheduled downtime (`DOWNTIMESTART`), flapping, and service state transitions

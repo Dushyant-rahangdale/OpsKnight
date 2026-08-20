@@ -1,14 +1,14 @@
 ---
-title: PagerDuty Events API v2 Emulation
-description: Drop-in compatible PagerDuty Events API v2 endpoint for seamless tool migration.
+title: PagerDuty Events API v2 ingest
+description: Ingest adapter for Events API v2 payloads. Change the destination URL. Not a PagerDuty product.
 version: v1.3
 ---
 
-# PagerDuty Events API v2 Emulation
+# PagerDuty Events API v2 ingest
 
-OpsKnight provides native, drop-in compatibility with the standard **PagerDuty Events API v2**.
+OpsKnight can accept the **PagerDuty Events API v2** JSON shape (`trigger`, `acknowledge`, `resolve`) on its own host. That is an ingest adapter: keep the payload, point the URL at OpsKnight. It is not a PagerDuty product, not affiliated with PagerDuty, and not a guarantee that every third-party “PagerDuty integration” will work without testing.
 
-This allows you to point existing monitoring agents, Terraform providers, Prometheus AlertManager configs, or custom scripts originally designed for PagerDuty directly to OpsKnight without changing your payload schemas.
+You can often keep existing Alertmanager, Terraform, or script payloads. Confirm against the routes and fields below.
 
 ---
 
@@ -16,7 +16,7 @@ This allows you to point existing monitoring agents, Terraform providers, Promet
 
 OpsKnight accepts PagerDuty v2 events on two routes:
 
-- **Canonical Emulation URL**:
+- **Canonical ingest URL**:
   `POST https://your-opsknight.com/api/integrations/pagerduty/v2/enqueue`
 - **Short URL**:
   `POST https://your-opsknight.com/api/integrations/pagerduty`

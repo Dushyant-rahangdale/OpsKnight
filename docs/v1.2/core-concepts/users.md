@@ -113,8 +113,6 @@ The recommended way to add users:
 
 4. Click **Send Invitation**
 
-<!-- placeholder:invite-user-form -->
-<!-- Add: Screenshot of the invite user modal -->
 
 ### Invitation Process
 

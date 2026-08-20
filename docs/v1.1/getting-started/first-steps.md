@@ -8,8 +8,6 @@ description: Create your first service, escalation policy, on-call schedule, and
 
 This guide walks you through setting up OpsKnight from scratch. By the end, you'll have a complete incident management workflow configured and tested.
 
-<!-- placeholder:first-steps-overview -->
-<!-- Add: Screenshot showing the OpsKnight dashboard after initial setup -->
 
 ---
 
@@ -38,8 +36,6 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 2. Enter your **Email** (e.g., jane@example.com)
 3. Click **Create Admin Account**
 
-<!-- placeholder:setup-page -->
-<!-- Add: Screenshot of the /setup page with name and email fields -->
 
 **Important**: A secure password will be generated for you and displayed **only once**. Copy it immediately and store it safely — you won't be able to see it again.
 
@@ -49,8 +45,6 @@ When you first access OpsKnight, you'll be automatically redirected to the setup
 2. Log in with your email and the generated password
 3. Once logged in, you can change your password in **Profile** settings
 
-<!-- placeholder:login-screen -->
-<!-- Add: Screenshot of the OpsKnight login page -->
 
 > **Note**: The `/setup` page is only accessible when no users exist in the system. After the first admin is created, this page becomes unavailable.
 
@@ -75,8 +69,6 @@ Before setting up schedules, you need team members to put on-call.
    - **Admin** — Full system access
 4. Click **Send Invitation**
 
-<!-- placeholder:invite-user-modal -->
-<!-- Add: Screenshot of the user invitation modal -->
 
 The user receives an email with a link to set their password and activate their account.
 
@@ -109,8 +101,6 @@ Teams organize users and can be targeted by escalation policies.
    - **Admin** — Can add/remove members
    - **Member** — Standard team member
 
-<!-- placeholder:team-creation -->
-<!-- Add: Screenshot of team creation form with members list -->
 
 **Why Teams Matter**:
 
@@ -138,8 +128,6 @@ Services represent the systems you monitor — APIs, databases, applications, or
 3. Leave **Escalation Policy** empty for now (we'll create one next)
 4. Click **Create**
 
-<!-- placeholder:service-creation -->
-<!-- Add: Screenshot of the service creation form -->
 
 **Why Services Matter**:
 
@@ -193,8 +181,6 @@ Escalation policies define who gets notified when an incident occurs and how not
 3. Enable **Repeat** to loop back to Step 1 if no one acknowledges
 4. Click **Create**
 
-<!-- placeholder:escalation-policy -->
-<!-- Add: Screenshot showing the escalation policy builder with multiple steps -->
 
 ### How Escalation Works
 
@@ -243,8 +229,6 @@ Layers allow multiple rotation patterns (e.g., weekday vs. weekend coverage).
 2. Select team members in rotation order
 3. Drag to reorder if needed
 
-<!-- placeholder:schedule-calendar -->
-<!-- Add: Screenshot of the schedule calendar view showing rotation timeline -->
 
 **Schedule Concepts**:
 
@@ -315,8 +299,6 @@ Let's verify everything works by creating a manual incident.
    - **Urgency**: `High`
 4. Click **Create**
 
-<!-- placeholder:create-incident -->
-<!-- Add: Screenshot of the incident creation form -->
 
 ### What Should Happen
 
@@ -331,8 +313,6 @@ Let's verify everything works by creating a manual incident.
 3. Click **Acknowledge** to stop escalation
 4. Click **Resolve** to close the incident
 
-<!-- placeholder:incident-detail -->
-<!-- Add: Screenshot of incident detail page showing timeline and actions -->
 
 ---
 

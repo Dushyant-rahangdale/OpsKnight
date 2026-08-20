@@ -12,12 +12,12 @@ This section covers production deployment of OpsKnight. Choose the deployment me
 
 ## Deployment Options
 
-| Method                                | Best For                  | Complexity | HA Support |
-| ------------------------------------- | ------------------------- | ---------- | ---------- |
-| [Docker Compose](./deployment/docker) | Small teams, dev/staging  | Low        | No         |
-| [Kubernetes](./deployment/kubernetes) | Production, enterprise    | Medium     | Yes        |
-| [Helm](./deployment/helm)             | Templated K8s deployments | Medium     | Yes        |
-| [Mobile PWA](./deployment/mobile-pwa) | Mobile access             | N/A        | N/A        |
+| Method                     | Best For                  | Complexity | HA Support |
+| -------------------------- | ------------------------- | ---------- | ---------- |
+| [Docker Compose](./docker) | Small teams, dev/staging  | Low        | No         |
+| [Kubernetes](./kubernetes) | Production, enterprise    | Medium     | Yes        |
+| [Helm](./helm)             | Templated K8s deployments | Medium     | Yes        |
+| [Mobile PWA](./mobile-pwa) | Mobile access             | N/A        | N/A        |
 
 ---
 
@@ -137,7 +137,7 @@ docker compose up -d
 
 Access at `http://localhost:3000` — you'll be directed to `/setup` to create your admin account.
 
-[Full Docker Guide →](./deployment/docker)
+[Full Docker Guide →](./docker)
 
 ---
 
@@ -166,7 +166,7 @@ kubectl apply -f service.yaml
 kubectl apply -f ingress.yaml
 ```
 
-[Full Kubernetes Guide →](./deployment/kubernetes)
+[Full Kubernetes Guide →](./kubernetes)
 
 ---
 
@@ -188,7 +188,7 @@ helm install opsknight ./opsknight \
   --values values.yaml
 ```
 
-[Full Helm Guide →](./deployment/helm)
+[Full Helm Guide →](./helm)
 
 ---
 

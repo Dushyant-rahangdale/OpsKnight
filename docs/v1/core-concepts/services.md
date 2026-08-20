@@ -45,7 +45,6 @@ The top panel provides an immediate SITREP (Situation Report):
 | **Degraded**       | Services with non-critical active incidents |
 | **Critical**       | Services with HIGH urgency active incidents |
 
-<!-- Add: Screenshot of the Service Directory header with health metrics -->
 
 ---
 
@@ -123,8 +122,6 @@ Each service card displays:
 4. Configure optional fields as needed
 5. Click **Create**
 
-<!-- placeholder:create-service-form -->
-<!-- Add: Screenshot of the service creation form -->
 
 ### Service Naming Best Practices
 

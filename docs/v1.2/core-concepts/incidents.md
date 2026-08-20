@@ -136,8 +136,6 @@ Incidents move through a defined lifecycle with five possible statuses:
 
 Click any incident to open the full detail view with rich context and actions.
 
-<!-- placeholder:incident-detail-page -->
-<!-- Add: Screenshot of the incident detail page -->
 
 ### Header Section
 

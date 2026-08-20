@@ -8,8 +8,6 @@ description: Configure local authentication, SSO/OIDC, session management, and s
 
 Authentication controls how users prove their identity to access OpsKnight. This guide covers local authentication, SSO integration, session management, and security best practices.
 
-<!-- placeholder:authentication-overview -->
-<!-- Add: Screenshot of the Authentication settings page -->
 
 ---
 
@@ -52,8 +50,6 @@ When OpsKnight starts with no users, the first admin must be created via the `/s
 4. Click **Create Admin Account**
 5. **Save the generated password immediately** — it's shown only once
 
-<!-- placeholder:setup-page -->
-<!-- Add: Screenshot of the /setup page -->
 
 > **Security Note**: The `/setup` page is only accessible when no users exist. After the first admin is created, this page becomes unavailable.
 

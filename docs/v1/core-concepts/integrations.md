@@ -8,8 +8,6 @@ description: Complete guide to alert ingestion and notification integrations
 
 OpsKnight integrations connect your monitoring stack to incident management. This guide covers both **alert ingestion** (getting alerts into OpsKnight) and **notification channels** (sending alerts out to responders).
 
-<!-- placeholder:integrations-overview -->
-<!-- Add: Diagram showing alert sources → OpsKnight → notification channels -->
 
 ---
 
@@ -148,8 +146,6 @@ POST /api/events (with routing key)
 2. Select the service to receive alerts
 3. Click the **Integrations** tab
 
-<!-- placeholder:service-integrations-tab -->
-<!-- Add: Screenshot of service integrations page -->
 
 ### Step 2: Add Integration
 
@@ -165,8 +161,6 @@ After creation, you'll see:
 - **Webhook URL**: The endpoint to configure in your monitoring tool
 - **Integration Key**: Unique routing key for this integration
 
-<!-- placeholder:integration-details -->
-<!-- Add: Screenshot showing integration card with key and URL -->
 
 ### Step 4: Configure Your Monitoring Tool
 

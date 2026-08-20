@@ -13,5 +13,5 @@ alongside the rest of your engineering backlog.
 
 <!-- integrations-list:start -->
 
-- [Jira](./issue-tracking/jira) — Bi-directional Jira Cloud sync: auto-create issues from incidents and reflect status changes both ways
+- [Jira](./jira) — Bi-directional Jira Cloud sync: auto-create issues from incidents and reflect status changes both ways
 <!-- integrations-list:end -->

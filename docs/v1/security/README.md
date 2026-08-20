@@ -8,10 +8,10 @@ Identity, encryption, and secure operations for OpsKnight.
 
 ## In This Section
 
-| Guide                                   | Description                        |
-| --------------------------------------- | ---------------------------------- |
-| [OIDC SSO Setup](./security/oidc-setup) | Configure single sign-on providers |
-| [Encryption](./security/encryption)     | Secrets handling and key rotation  |
+| Guide                          | Description                        |
+| ------------------------------ | ---------------------------------- |
+| [OIDC SSO Setup](./oidc-setup) | Configure single sign-on providers |
+| [Encryption](./encryption)     | Secrets handling and key rotation  |
 
 ## Related Administration Topics
 

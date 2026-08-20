@@ -8,8 +8,6 @@ description: Track security events, configuration changes, and user activity for
 
 Audit logs provide a comprehensive record of security-relevant events across your OpsKnight organization. They're essential for compliance, security investigations, and understanding who did what and when.
 
-<!-- placeholder:audit-logs-overview -->
-<!-- Add: Screenshot of the Audit Logs page showing event timeline -->
 
 ---
 
