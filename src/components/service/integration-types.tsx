@@ -375,8 +375,8 @@ export const INTEGRATION_TYPES: Array<{
   },
   {
     value: 'PAGERDUTY',
-    label: 'PagerDuty Drop-in Emulation',
-    description: 'Drop-in endpoint for tools sending PagerDuty Events API v2 payloads',
+    label: 'PagerDuty Events API v2',
+    description: 'Ingest Events API v2 payloads. Change the destination URL. Not a PagerDuty product.',
     icon: <BrandIcon {...BRAND_PATHS.pagerduty} color="#ffffff" />,
     iconBg: BRAND_PATHS.pagerduty.color,
     category: 'Incident Management',

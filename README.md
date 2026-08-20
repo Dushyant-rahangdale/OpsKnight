@@ -26,8 +26,8 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 
 > ### 🆕 What's new in v1.3
 >
-> **Six new native integrations** — Zabbix, PagerDuty Events API v2 (drop-in
-> compatible), GitLab CI/CD, Vercel, Nagios Core & XI, and Icinga 2, each with
+> **Six new native integrations** — Zabbix, PagerDuty Events API v2 ingest
+> adapter, GitLab CI/CD, Vercel, Nagios Core & XI, and Icinga 2, each with
 > severity mapping and automatic resolution on recovery.
 >
 > **Hardened alert ingestion** — mandatory integration-key verification and
@@ -67,18 +67,18 @@ _Your entire incident lifecycle, on-call schedules, and status pages in one powe
 
 **Stop paying per-seat for reliability.**
 
-OpsKnight is the open-source alternative to PagerDuty and OpsGenie, designed for teams that want full control over their incident management stack without the massive SaaS bill. From the first alert to the final post-mortem, OpsKnight unifies your entire reliability workflow into a single, cohesive developer experience.
+OpsKnight is an open-source, self-hosted alternative to per-seat on-call SaaS (including PagerDuty and Opsgenie). It is not affiliated with those companies. Designed for teams that want incident data on their own machines.
 
-Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform Engineer at a large enterprise, OpsKnight gives you the tools to **detect, respond, and resolve** faster.
+Whether you are an SRE team at a startup or a platform team at a larger org, OpsKnight is the software that runs detect → page → talk → write it down — on your network.
 
-| Feature             |        OpsKnight 🛡️         |   Proprietary SaaS 💸    |
-| :------------------ | :-------------------------: | :----------------------: |
-| **Hosting**         | Self-Hosted / Private Cloud |    Public Cloud Only     |
-| **Cost**            |     Free (Open Source)      | $20-$100 / user / month  |
-| **Users**           |        **Unlimited**        |     Per-Seat Pricing     |
-| **Status Pages**    |  **Included (Unlimited)**   |        Extra Cost        |
-| **Custom Branding** |       ✅ Full Control       |        ❌ Limited        |
-| **Data Privacy**    |    ✅ 100% Owned by You     | ❌ Third-Party Processed |
+| Feature             | OpsKnight                         | Typical per-seat SaaS        |
+| :------------------ | :-------------------------------- | :--------------------------- |
+| **Hosting**         | Self-hosted                       | Vendor cloud                 |
+| **Software fee**    | $0 (Apache-2.0)                   | Per-user plans               |
+| **Users**           | No seat meter in the product      | Per-seat pricing             |
+| **Status pages**    | One page per install              | Often a separate SKU         |
+| **Voice paging**    | Not included                      | Often included               |
+| **Incident data**   | Your Postgres / VPC               | Vendor cloud                 |
 
 ---
 
@@ -120,7 +120,7 @@ Whether you are an SRE team at a startup maintaining 99.99% uptime or a Platform
     </td>
     <td>
       <h3>🔌 22+ Native Integrations</h3>
-      <p>Native parsers for Prometheus, Datadog, Sentry, CloudWatch, Grafana, Zabbix, PagerDuty, GitLab, Vercel, and Jira Cloud bi-directional sync.</p>
+      <p>Native parsers for Prometheus, Datadog, Sentry, CloudWatch, Grafana, Zabbix, GitLab, Vercel, Jira Cloud sync, and Events API v2 ingest.</p>
     </td>
   </tr>
 </table>
@@ -329,7 +329,7 @@ We are proud to announce **Version 1.3.1 (August 2026)**! 🚀
 
 - [x] Core Incident Management & On-Call Schedules
 - [x] **Slack ChatOps Incident War Rooms & Interactive Cards**
-- [x] **24+ Native APM/Monitoring Integrations (Zabbix, PagerDuty v2, GitLab, Vercel, Nagios, Icinga, Datadog, Prometheus, etc.)**
+- [x] **Native inbound parsers** (catalog size in docs; includes Events API v2 ingest, GitLab, Vercel, Nagios, Icinga, Datadog, Prometheus, etc.)
 - [x] **Forensic Webhook Ingestion Security & Mandatory Key Authentication**
 - [x] **Master Encryption Key Architecture (12-Factor Security)**
 - [x] **Tier-2 SLA Engine Hardening & Custom Business Hours**

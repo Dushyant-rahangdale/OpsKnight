@@ -25,7 +25,7 @@ These tools send telemetry and incident alerts **TO** OpsKnight:
 | **Uptime & Health Checks** | UptimeRobot, Pingdom, Better Uptime, Uptime Kuma |
 | **Log Analytics & SIEM** | Elastic / Kibana, Splunk On-Call |
 | **Issue Tracking (Bi-directional)** | [Jira Cloud](./issue-tracking/jira) |
-| **Custom & Emulation** | Generic Webhooks, [PagerDuty Events v2 Emulation](./custom/pagerduty-emulation) |
+| **Custom ingest** | Generic Webhooks, [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) |
 
 ### Notification Channels (Outbound)
 
@@ -203,12 +203,12 @@ Bi-directional Jira integration for real-time ticket creation and comments.
 
 ---
 
-### 8. Custom Integrations & Emulation
+### 8. Custom ingest
 
-#### [PagerDuty Emulation (Events API v2)](./custom/pagerduty-emulation) *(New in v1.3)*
-Drop-in replacement for PagerDuty Events API v2.
+#### [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) *(v1.3)*
+Accept Events API v2 payloads on your OpsKnight host. Change the destination URL and test. Not a PagerDuty product.
 - **Endpoint**: `/api/integrations/pagerduty` (and `/api/events/v2`)
-- **Capabilities**: Seamlessly connect any tool with built-in PagerDuty support with 0 code modifications
+- **Capabilities**: `trigger`, `acknowledge`, `resolve` with routing key resolution
 
 #### [Generic Webhooks](./custom/webhooks)
 Connect custom scripts, internal cron jobs, or proprietary systems.
