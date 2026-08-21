@@ -8,11 +8,11 @@ description: Fifteen minutes from Compose to a test page
 
 This is the **15-minute path**: Compose up, admin account, a service that can page you, one test incident. Use the other guides in this section when you need install variants or a fuller first-week setup.
 
-| Minutes | What you do                      | Done when                                  |
-| ------- | -------------------------------- | ------------------------------------------ |
-| 0–5     | Run Compose and create the admin | You can sign in at `http://localhost:3000` |
-| 5–12    | Service → policy → schedule      | The service lists you as on-call           |
-| 12–15   | Open a test incident             | It appears OPEN; you can acknowledge it    |
+| Minutes | What you do                        | Done when                                   |
+| ------- | ---------------------------------- | ------------------------------------------- |
+| 0–5     | Run Compose and create the admin   | You can sign in at `http://localhost:3000`  |
+| 5–12    | Team → schedule → policy → service | The service routes to your current schedule |
+| 12–15   | Open a test incident               | It appears OPEN; you can acknowledge it     |
 
 Notifications (email/SMS/Slack) are optional for this path. Without a provider, the incident still exists; nobody is paged off-box.
 
@@ -30,7 +30,7 @@ Set these in `.env` before you start:
 
 ```bash
 NEXTAUTH_URL=http://localhost:3000
-APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 ```

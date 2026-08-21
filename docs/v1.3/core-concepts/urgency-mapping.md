@@ -1,95 +1,144 @@
 ---
+title: Urgency and severity mapping
+description: Understand how provider severity becomes incident urgency and how urgency differs from priority and notification channels.
 order: 12
 ---
 
-# Urgency and Severity Mapping
+# Urgency and severity mapping
 
-OpsKnight normalizes alerts into a standard Severity and Urgency model so notifications are consistent across providers.
+Inbound integrations normalize provider-specific alert fields into the Events API's four severity values. Event processing then assigns one of three incident urgency values.
 
-## Severity (Event Level)
+## Canonical mapping
 
-| Severity | Meaning                               | Maps to Urgency |
-| -------- | ------------------------------------- | --------------- |
-| Critical | System down or unusable               | HIGH            |
-| Error    | Significant degradation               | MEDIUM          |
-| Warning  | Minor issue or approaching limits     | MEDIUM          |
-| Info     | Informational / recovery / normal ops | LOW             |
+| Event severity | Incident urgency | Intended meaning                              |
+| -------------- | ---------------- | --------------------------------------------- |
+| `critical`     | **High**         | Immediate, severe operational impact.         |
+| `error`        | **Medium**       | Significant fault requiring response.         |
+| `warning`      | **Medium**       | Degradation or risk requiring attention.      |
+| `info`         | **Low**          | Informational, recovery, or low-impact event. |
 
-> **Note**: Warning maps to MEDIUM (not LOW) to ensure important alerts are not missed. This aligns with industry best practices where warnings often indicate issues that need attention before they become critical.
+Unknown severity cannot pass the published Events API schema. Integration adapters commonly normalize an unrecognized provider value to `warning`, which then becomes Medium urgency; the exact fallback is adapter-specific.
 
-## Urgency (Notification Level)
+Urgency does not automatically choose SMS, push, Slack, or email. Delivery is determined by escalation-step data, user preferences, service notification selections, provider configuration, and recipient data. Some provider implementations format High urgency differently, but do not treat urgency alone as a channel-routing policy.
 
-| Urgency | Behavior                                                  |
-| ------- | --------------------------------------------------------- |
-| HIGH    | Pages on-call immediately (SMS, Push, Phone)              |
-| MEDIUM  | Standard notification (Slack, Email)                      |
-| LOW     | Logged for visibility, optional low-priority notification |
+## Urgency, priority, and service health
 
-## Provider Mappings
+- **Urgency** is High, Medium, or Low and is derived from event severity unless a responder changes it.
+- **Priority** is an optional P1–P5 business-impact classification set on the incident.
+- Service health treats active High-urgency incidents as critical in its calculated status.
+- Priority-specific SLA targets can take precedence over the service defaults when configured.
+
+Keep these classifications separate. For example, a noisy technical alert may be High urgency but need priority review, while a broad customer-impact issue may require a higher business priority than its source initially supplied.
+
+## Common provider mappings
+
+All resulting severity values pass through the canonical table above.
 
 ### AWS CloudWatch
 
-| State             | Severity | Urgency |
-| ----------------- | -------- | ------- |
-| ALARM             | Critical | HIGH    |
-| OK                | Info     | LOW     |
-| INSUFFICIENT_DATA | Warning  | LOW     |
+| CloudWatch input                                     | Normalized severity         |
+| ---------------------------------------------------- | --------------------------- |
+| `OK`                                                 | `info` and a resolve action |
+| `INSUFFICIENT_DATA`                                  | `warning`                   |
+| `ALARM` description contains `CRITICAL` or `HIGH`    | `critical`                  |
+| Description contains `WARNING`, `MEDIUM`, or `ERROR` | `error`                     |
+| Description contains `INFO` or `LOW`                 | `info`                      |
+| Other `ALARM`                                        | `critical`                  |
 
 ### Azure Monitor
 
-| Azure Severity | Severity | Urgency |
-| -------------- | -------- | ------- |
-| Sev0           | Critical | HIGH    |
-| Sev1           | Error    | MEDIUM  |
-| Sev2           | Warning  | LOW     |
-| Sev3+          | Info     | LOW     |
+| Azure input                          | Normalized severity |
+| ------------------------------------ | ------------------- |
+| `Sev0` or text containing `critical` | `critical`          |
+| `Sev1` or text containing `error`    | `error`             |
+| `Sev2` or text containing `warning`  | `warning`           |
+| `Sev3`, `Sev4`, `info`, or `verbose` | `info`              |
+
+`Fired` and `Activated` trigger; other monitor conditions resolve the matching incident.
 
 ### Datadog
 
-| Status  | Severity | Urgency |
-| ------- | -------- | ------- |
-| error   | Critical | HIGH    |
-| warning | Warning  | LOW     |
-| info    | Info     | LOW     |
+| Datadog alert type | Normalized severity |
+| ------------------ | ------------------- |
+| `critical`         | `critical`          |
+| `error`            | `error`             |
+| `warning`          | `warning`           |
+| Other              | `info`              |
 
-### Prometheus / Alertmanager
+`resolved`, `ok`, and `success` states resolve rather than trigger.
 
-| Label (`severity`) | Severity | Urgency |
-| ------------------ | -------- | ------- |
-| critical / page    | Critical | HIGH    |
-| error              | Error    | MEDIUM  |
-| warning            | Warning  | LOW     |
-| other              | Warning  | LOW     |
+### Prometheus Alertmanager
+
+| `severity` label         | Normalized severity |
+| ------------------------ | ------------------- |
+| `critical` or `page`     | `critical`          |
+| `error`                  | `error`             |
+| `warning`                | `warning`           |
+| Missing or another value | `warning`           |
+
+A resolved alert produces `info` and resolves its deduplication key.
 
 ### Sentry
 
-| Level   | Severity | Urgency |
-| ------- | -------- | ------- |
-| fatal   | Critical | HIGH    |
-| error   | Error    | MEDIUM  |
-| warning | Warning  | LOW     |
-| info    | Info     | LOW     |
+| Sentry level      | Normalized severity |
+| ----------------- | ------------------- |
+| `fatal`           | `critical`          |
+| `error`           | `error`             |
+| `warning`         | `warning`           |
+| `info` or `debug` | `info`              |
 
-### Uptime Tools
+Resolved events resolve; ignored, assigned, or unassigned actions acknowledge; created, reopened, or triggered actions trigger.
 
-| Status        | Severity | Urgency |
-| ------------- | -------- | ------- |
-| down / open   | Critical | HIGH    |
-| up / resolved | Info     | LOW     |
+### Uptime integrations
 
-## Custom Webhooks
+Pingdom down states, UptimeRobot outage alerts, and Uptime Kuma down states normalize to `critical`; their recovery/up states normalize to `info` and resolve. Consult the provider guide for the exact payload fields and stable deduplication key.
 
-You can set severity directly in your payload:
+## Generic Events API payload
+
+Supply one of the four lowercase severity values:
 
 ```json
 {
-  "summary": "Database High CPU",
-  "severity": "critical",
-  "source": "custom-script"
+  "event_action": "trigger",
+  "dedup_key": "database/high-cpu",
+  "payload": {
+    "summary": "Database CPU above 90%",
+    "source": "capacity-monitor",
+    "severity": "critical",
+    "custom_details": {
+      "region": "us-east-1"
+    }
+  }
 }
 ```
 
-## Notes
+Reuse the same `dedup_key` for acknowledge and resolve actions. See the [Events API](../api/events.md) for authentication, schema, limits, and responses.
 
-- Mapping logic lives in integration adapters and event processing.
-- Use consistent severity values for predictable escalation.
+## Validate a mapping
+
+1. Send a representative test payload through the service integration.
+2. Confirm action, service, title, source, urgency, and deduplication behavior.
+3. Acknowledge or resolve using the same provider identity/key.
+4. Confirm the existing incident changes state instead of creating a duplicate.
+5. Test the provider's unknown/default severity and recovery payload.
+
+## Troubleshooting
+
+### Warning becomes Medium, not Low
+
+This is intentional in v1.3. The central mapping treats both `error` and `warning` as Medium.
+
+### A resolved alert creates or leaves an open incident
+
+Compare the trigger and recovery deduplication keys and service integration keys. Resolution can only find an incident within the same service and matching key.
+
+### The wrong notification channel is used
+
+Inspect the policy step, user's preferences/contact data, service notification settings, and workspace provider. Severity-to-urgency mapping does not select a delivery channel by itself.
+
+## Related topics
+
+- [Events API](../api/events.md)
+- [Incident management](incidents.md)
+- [Escalation policies](escalation-policies.md)
+- [Integration directory](../integrations/README.md)
