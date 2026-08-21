@@ -1,853 +1,246 @@
 ---
 order: 2
 title: Incidents API
-description: Create, list, update, and manage incidents programmatically
+description: List, create, read, and update the incident fields published by OpsKnight v1.3.
 ---
 
 # Incidents API
 
-The Incidents API provides full control over incidents in OpsKnight. Use it to list, create, update, and manage incidents from your own tools and automation.
+The v1.3 Incidents API has four API-key operations:
 
----
+| Method and path             | Scope             | Purpose                                                        |
+| --------------------------- | ----------------- | -------------------------------------------------------------- |
+| `GET /api/incidents`        | `incidents:read`  | List newest incidents visible to the key owner.                |
+| `POST /api/incidents`       | `incidents:write` | Create one manual incident and start its routing side effects. |
+| `GET /api/incidents/{id}`   | `incidents:read`  | Read one visible incident.                                     |
+| `PATCH /api/incidents/{id}` | `incidents:write` | Change status, urgency, and/or assignee.                       |
 
-## Overview
+There are no published API-key operations for delete, merge, bulk update, notes, timeline, incident export, telemetry context, or custom fields. Some UI-session routes exist for UI workflows; they are not part of this API contract.
 
-The Incidents API supports:
-
-- Listing and filtering incidents
-- Creating manual incidents
-- Updating incident status, urgency, and assignee
-- Adding notes and timeline events
-- Merging related incidents
-- Retrieving incident history
-
----
-
-## Authentication
-
-All endpoints require authentication via API key:
+## Authentication and access
 
 ```http
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer ok_REDACTED
 ```
 
-### Required Scopes
+The key is tied to its creator:
 
-| Endpoint                | Scope              |
-| ----------------------- | ------------------ |
-| List/Get incidents      | `incidents:read`   |
-| Create/Update incidents | `incidents:write`  |
-| Delete incidents        | `incidents:delete` |
+- `ADMIN` and `RESPONDER` key owners can access incidents across the installation.
+- A `USER` key owner can access an incident when assigned directly or when the incident's service belongs to one of their teams.
+- Create access for a `USER` similarly requires the destination service to belong to one of their teams.
 
----
+A valid key with an inaccessible resource returns 403. Missing/invalid/revoked keys return 401.
 
-## List Incidents
-
-Retrieve a paginated list of incidents.
-
-### Endpoint
+## List incidents
 
 ```http
-GET /api/incidents
+GET /api/incidents?limit=50
 ```
 
-### Query Parameters
-
-| Parameter       | Type   | Default     | Description                                                         |
-| --------------- | ------ | ----------- | ------------------------------------------------------------------- |
-| `limit`         | number | 50          | Results per page (max 200)                                          |
-| `offset`        | number | 0           | Pagination offset                                                   |
-| `status`        | string | -           | Filter: `OPEN`, `ACKNOWLEDGED`, `RESOLVED`, `SNOOZED`, `SUPPRESSED` |
-| `urgency`       | string | -           | Filter: `HIGH`, `MEDIUM`, `LOW`                                     |
-| `serviceId`     | string | -           | Filter by service                                                   |
-| `teamId`        | string | -           | Filter by team                                                      |
-| `assigneeId`    | string | -           | Filter by assignee                                                  |
-| `createdAfter`  | string | -           | ISO 8601 datetime                                                   |
-| `createdBefore` | string | -           | ISO 8601 datetime                                                   |
-| `sort`          | string | `createdAt` | Sort field                                                          |
-| `order`         | string | `desc`      | `asc` or `desc`                                                     |
-
-### Example Request
+`limit` defaults to 50, invalid/non-positive values fall back to 50, and the maximum is 200. No other list filter, sort, cursor, `offset`, total count, or `hasMore` field is published in v1.3. Results are newest first.
 
 ```bash
-curl -X GET "https://your-opsknight.com/api/incidents?status=OPEN&urgency=HIGH&limit=25" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl --fail-with-body \
+  -H "Authorization: Bearer $OPSKNIGHT_API_KEY" \
+  "https://ops.example.com/api/incidents?limit=25"
 ```
 
-### Response
+Response:
 
 ```json
 {
   "incidents": [
     {
-      "id": "inc_abc123",
-      "title": "Database connection timeout",
-      "description": "Primary database is not responding",
+      "id": "clx...",
+      "title": "Database connection pool exhausted",
       "status": "OPEN",
       "urgency": "HIGH",
-      "service": {
-        "id": "svc_xyz789",
-        "name": "Payment API"
-      },
+      "service": { "id": "clx...", "name": "Checkout API" },
       "assignee": null,
-      "createdAt": "2024-01-15T10:30:00Z",
-      "acknowledgedAt": null,
-      "resolvedAt": null,
-      "dedupKey": "db-timeout-primary"
-    },
-    {
-      "id": "inc_def456",
-      "title": "High memory usage",
-      "description": "Memory usage above 95%",
-      "status": "ACKNOWLEDGED",
-      "urgency": "MEDIUM",
-      "service": {
-        "id": "svc_xyz789",
-        "name": "Payment API"
-      },
-      "assignee": {
-        "id": "usr_jane",
-        "name": "Jane Engineer",
-        "email": "jane@example.com"
-      },
-      "createdAt": "2024-01-15T09:15:00Z",
-      "acknowledgedAt": "2024-01-15T09:20:00Z",
-      "resolvedAt": null,
-      "dedupKey": "memory-high-app01"
+      "createdAt": "2026-08-21T10:30:00.000Z"
     }
-  ],
-  "total": 47,
-  "limit": 25,
-  "offset": 0,
-  "hasMore": true
+  ]
 }
 ```
 
-### Response Fields
+Incident objects include the incident's persisted scalar fields plus the selected service (`id`, `name`) and assignee (`id`, `name`, `email`). Consumers should ignore fields they do not use.
 
-| Field       | Type    | Description              |
-| ----------- | ------- | ------------------------ |
-| `incidents` | array   | List of incident objects |
-| `total`     | number  | Total matching incidents |
-| `limit`     | number  | Results per page         |
-| `offset`    | number  | Current offset           |
-| `hasMore`   | boolean | More results available   |
+The response can be privately cached for five seconds with a stale-while-revalidate window; do not assume a list read is an instantaneous coordination primitive.
 
----
-
-## Get Incident
-
-Retrieve a single incident by ID.
-
-### Endpoint
-
-```http
-GET /api/incidents/:id
-```
-
-### Example Request
+## Get one incident
 
 ```bash
-curl -X GET "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl --fail-with-body \
+  -H "Authorization: Bearer $OPSKNIGHT_API_KEY" \
+  "https://ops.example.com/api/incidents/INCIDENT_ID"
 ```
 
-### Response
+Response wrapper:
 
 ```json
 {
-  "id": "inc_abc123",
-  "title": "Database connection timeout",
-  "description": "Primary database is not responding to queries. Connection pool exhausted.",
-  "status": "OPEN",
-  "urgency": "HIGH",
-  "priority": "P1",
-  "service": {
-    "id": "svc_xyz789",
-    "name": "Payment API",
-    "team": {
-      "id": "team_platform",
-      "name": "Platform Engineering"
-    }
-  },
-  "assignee": null,
-  "assignedTeam": {
-    "id": "team_platform",
-    "name": "Platform Engineering"
-  },
-  "dedupKey": "db-timeout-primary",
-  "source": "prometheus",
-  "integration": {
-    "id": "int_abc",
-    "name": "Prometheus Alerts",
-    "type": "prometheus"
-  },
-  "createdAt": "2024-01-15T10:30:00Z",
-  "acknowledgedAt": null,
-  "resolvedAt": null,
-  "snoozedUntil": null,
-  "lastStatusChange": "2024-01-15T10:30:00Z",
-  "escalationPolicy": {
-    "id": "pol_payment",
-    "name": "Payment API Escalation"
-  },
-  "currentEscalationStep": 2,
-  "customDetails": {
-    "database": "postgres-primary",
-    "timeout_ms": 30000,
-    "affected_queries": 150
-  },
-  "timeline": [
-    {
-      "id": "evt_001",
-      "type": "created",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "actor": "system",
-      "details": "Incident triggered via Prometheus integration"
-    },
-    {
-      "id": "evt_002",
-      "type": "escalation",
-      "timestamp": "2024-01-15T10:35:00Z",
-      "actor": "system",
-      "details": "Escalated to step 2: Secondary On-Call"
-    }
-  ],
-  "notes": [],
-  "links": [
-    {
-      "href": "https://grafana.example.com/dashboard/db",
-      "text": "Database Dashboard"
-    }
-  ],
-  "relatedIncidents": []
+  "incident": {
+    "id": "INCIDENT_ID",
+    "title": "Database connection pool exhausted",
+    "description": "Primary pool has no available connections",
+    "status": "OPEN",
+    "urgency": "HIGH",
+    "priority": "P1",
+    "service": { "id": "SERVICE_ID", "name": "Checkout API" },
+    "assignee": null,
+    "createdAt": "2026-08-21T10:30:00.000Z",
+    "acknowledgedAt": null,
+    "resolvedAt": null
+  }
 }
 ```
 
----
+HTTP 404 means the incident ID does not exist. HTTP 403 means it exists but the key owner is not authorized to access it.
 
-## Create Incident
-
-Create a new incident manually.
-
-### Endpoint
+## Create an incident
 
 ```http
 POST /api/incidents
+Content-Type: application/json
 ```
 
-### Request Body
+| Field         | Required | Validation                                                                                   |
+| ------------- | :------: | -------------------------------------------------------------------------------------------- |
+| `title`       |   Yes    | Trimmed string, 1–500 characters.                                                            |
+| `description` |    No    | Trimmed string up to 10,000 characters or `null`.                                            |
+| `serviceId`   |   Yes    | Existing service ID accessible to the key owner.                                             |
+| `urgency`     |   Yes    | `LOW`, `MEDIUM`, or `HIGH`.                                                                  |
+| `priority`    |    No    | Trimmed string up to 20 characters or `null`; use the UI's `P1`–`P5` values for consistency. |
 
-```json
-{
-  "title": "Manual incident: Payment system down",
-  "description": "Customer reports payments are failing. Investigating.",
-  "serviceId": "svc_xyz789",
-  "urgency": "HIGH",
-  "priority": "P1",
-  "assigneeId": "usr_jane",
-  "customDetails": {
-    "reported_by": "Customer Support",
-    "ticket_id": "SUP-12345"
-  }
-}
-```
-
-### Request Fields
-
-| Field                   | Type    | Required | Description                              |
-| ----------------------- | ------- | :------: | ---------------------------------------- |
-| `title`                 | string  |   Yes    | Incident title (max 255 chars)           |
-| `description`           | string  |    No    | Detailed description                     |
-| `serviceId`             | string  |   Yes    | Service ID                               |
-| `urgency`               | string  |    No    | `HIGH`, `MEDIUM`, `LOW` (default: `LOW`) |
-| `priority`              | string  |    No    | `P1`, `P2`, `P3`, `P4`, `P5`             |
-| `assigneeId`            | string  |    No    | User ID to assign                        |
-| `assignedTeamId`        | string  |    No    | Team ID to assign                        |
-| `dedupKey`              | string  |    No    | Custom deduplication key                 |
-| `customDetails`         | object  |    No    | Arbitrary key-value pairs                |
-| `links`                 | array   |    No    | Related links                            |
-| `suppressNotifications` | boolean |    No    | Skip initial notifications               |
-
-### Example Request
+Other supplied fields such as assignee, team, deduplication key, suppression flag, custom details, or links are not part of this create contract and are not accepted as create behavior.
 
 ```bash
-curl -X POST "https://your-opsknight.com/api/incidents" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl --fail-with-body \
+  -X POST "https://ops.example.com/api/incidents" \
+  -H "Authorization: Bearer $OPSKNIGHT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Elevated API error rate",
-    "description": "Error rate jumped to 5% in the last 10 minutes",
-    "serviceId": "svc_xyz789",
-    "urgency": "MEDIUM",
-    "customDetails": {
-      "error_rate": 5.2,
-      "normal_rate": 0.5
-    }
+    "title": "Database connection pool exhausted",
+    "description": "Primary pool has no available connections",
+    "serviceId": "SERVICE_ID",
+    "urgency": "HIGH",
+    "priority": "P1"
   }'
 ```
 
-### Response
+The response is HTTP 201 with `{ "incident": ... }`.
 
-```json
-{
-  "id": "inc_new123",
-  "title": "Elevated API error rate",
-  "status": "OPEN",
-  "urgency": "MEDIUM",
-  "createdAt": "2024-01-15T11:00:00Z"
-}
-```
+Creation stores an `OPEN` incident, executes its escalation policy, triggers applicable service/user notifications, status-page webhooks/subscriber mail, and qualifying Slack ChatOps war-room creation. Several outbound actions are best-effort or asynchronous; HTTP 201 proves incident creation, not delivery by every downstream provider. Verify the incident timeline and provider/history views.
 
----
+This endpoint does not accept a deduplication key. For retriable alert lifecycles, use the [Events API](./events).
 
-## Update Incident
-
-Update an existing incident.
-
-### Endpoint
+## Update an incident
 
 ```http
-PATCH /api/incidents/:id
+PATCH /api/incidents/{id}
+Content-Type: application/json
 ```
 
-### Request Body
+At least one supported field is required:
 
-```json
-{
-  "status": "ACKNOWLEDGED",
-  "urgency": "HIGH",
-  "assigneeId": "usr_jane",
-  "description": "Updated description with more details"
-}
-```
+| Field        | Values                                                      | Behavior                                           |
+| ------------ | ----------------------------------------------------------- | -------------------------------------------------- |
+| `status`     | `OPEN`, `ACKNOWLEDGED`, `RESOLVED`, `SNOOZED`, `SUPPRESSED` | Changes lifecycle/escalation state and timestamps. |
+| `urgency`    | `LOW`, `MEDIUM`, `HIGH`                                     | Updates urgency and records an event when changed. |
+| `assigneeId` | User ID                                                     | Assigns the incident and records an event.         |
 
-### Updatable Fields
+Title, description, priority, teams, snooze duration, resolution note, and custom details are not accepted by this API-key PATCH operation.
 
-| Field            | Type   | Description                                   |
-| ---------------- | ------ | --------------------------------------------- |
-| `status`         | string | `OPEN`, `ACKNOWLEDGED`, `RESOLVED`, `SNOOZED` |
-| `urgency`        | string | `HIGH`, `MEDIUM`, `LOW`                       |
-| `priority`       | string | `P1` through `P5`                             |
-| `assigneeId`     | string | User ID or `null` to unassign                 |
-| `assignedTeamId` | string | Team ID or `null` to unassign                 |
-| `title`          | string | Update title                                  |
-| `description`    | string | Update description                            |
-| `customDetails`  | object | Merge with existing custom details            |
-| `snoozeDuration` | number | Minutes to snooze (when status=SNOOZED)       |
-
-### Status Transitions
-
-| From         | Valid To                                    |
-| ------------ | ------------------------------------------- |
-| OPEN         | ACKNOWLEDGED, RESOLVED, SNOOZED, SUPPRESSED |
-| ACKNOWLEDGED | OPEN, RESOLVED, SNOOZED                     |
-| SNOOZED      | OPEN, ACKNOWLEDGED, RESOLVED                |
-| RESOLVED     | OPEN (reopen)                               |
-
-### Example: Acknowledge
+### Acknowledge
 
 ```bash
-curl -X PATCH "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl --fail-with-body \
+  -X PATCH "https://ops.example.com/api/incidents/INCIDENT_ID" \
+  -H "Authorization: Bearer $OPSKNIGHT_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "status": "ACKNOWLEDGED"
-  }'
+  -d '{"status":"ACKNOWLEDGED"}'
 ```
 
-### Example: Resolve with Note
+Acknowledging sets `acknowledgedAt` if it was not already set and completes escalation.
+
+### Resolve
 
 ```bash
-curl -X PATCH "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl --fail-with-body \
+  -X PATCH "https://ops.example.com/api/incidents/INCIDENT_ID" \
+  -H "Authorization: Bearer $OPSKNIGHT_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "status": "RESOLVED",
-    "resolutionNote": "Restarted connection pool, issue resolved"
-  }'
+  -d '{"status":"RESOLVED"}'
 ```
 
-### Example: Snooze
+Resolving sets `resolvedAt` if absent and completes escalation.
 
-```bash
-curl -X PATCH "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "SNOOZED",
-    "snoozeDuration": 30
-  }'
-```
-
-### Example: Reassign
-
-```bash
-curl -X PATCH "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "assigneeId": "usr_bob"
-  }'
-```
-
-### Response
+### Snooze or suppress
 
 ```json
-{
-  "id": "inc_abc123",
-  "status": "ACKNOWLEDGED",
-  "urgency": "HIGH",
-  "assignee": {
-    "id": "usr_jane",
-    "name": "Jane Engineer"
-  },
-  "updatedAt": "2024-01-15T10:45:00Z"
-}
+{ "status": "SNOOZED" }
 ```
 
----
-
-## Add Note
-
-Add a note/comment to an incident.
-
-### Endpoint
-
-```http
-POST /api/incidents/:id/notes
-```
-
-### Request Body
+or:
 
 ```json
-{
-  "content": "Investigating database logs. Found connection pool exhaustion."
-}
+{ "status": "SUPPRESSED" }
 ```
 
-### Request Fields
+Both pause escalation and clear the next escalation time. This API operation does not accept a snooze duration, so use the UI when a timed snooze is required.
 
-| Field        | Type    | Required | Description                              |
-| ------------ | ------- | :------: | ---------------------------------------- |
-| `content`    | string  |   Yes    | Note content (max 10000 chars)           |
-| `isInternal` | boolean |    No    | Internal note (not shown on status page) |
-
-### Example Request
-
-```bash
-curl -X POST "https://your-opsknight.com/api/incidents/inc_abc123/notes" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Root cause identified: Connection pool limit too low for current traffic."
-  }'
-```
-
-### Response
+### Reopen
 
 ```json
-{
-  "id": "note_xyz",
-  "content": "Root cause identified: Connection pool limit too low for current traffic.",
-  "author": {
-    "id": "usr_jane",
-    "name": "Jane Engineer"
-  },
-  "createdAt": "2024-01-15T11:00:00Z",
-  "isInternal": false
-}
+{ "status": "OPEN" }
 ```
 
----
+Reopening from acknowledged, resolved, snoozed, or suppressed resumes escalation. From resolved, it clears resolution/acknowledgement timing and restarts from escalation step zero; from acknowledged it schedules using the current step delay; from snoozed/suppressed it becomes eligible immediately.
 
-## Get Timeline
-
-Retrieve the complete timeline of an incident.
-
-### Endpoint
-
-```http
-GET /api/incidents/:id/timeline
-```
-
-### Example Request
-
-```bash
-curl -X GET "https://your-opsknight.com/api/incidents/inc_abc123/timeline" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-### Response
+### Assign
 
 ```json
-{
-  "timeline": [
-    {
-      "id": "evt_001",
-      "type": "created",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "actor": {
-        "type": "system",
-        "name": "Prometheus Integration"
-      },
-      "details": {
-        "message": "Incident triggered",
-        "source": "prometheus"
-      }
-    },
-    {
-      "id": "evt_002",
-      "type": "notification_sent",
-      "timestamp": "2024-01-15T10:30:05Z",
-      "actor": {
-        "type": "system"
-      },
-      "details": {
-        "channel": "slack",
-        "recipient": "#incidents",
-        "status": "delivered"
-      }
-    },
-    {
-      "id": "evt_003",
-      "type": "escalation",
-      "timestamp": "2024-01-15T10:35:00Z",
-      "actor": {
-        "type": "system"
-      },
-      "details": {
-        "from_step": 1,
-        "to_step": 2,
-        "reason": "No acknowledgment within 5 minutes"
-      }
-    },
-    {
-      "id": "evt_004",
-      "type": "acknowledged",
-      "timestamp": "2024-01-15T10:37:00Z",
-      "actor": {
-        "type": "user",
-        "id": "usr_jane",
-        "name": "Jane Engineer"
-      },
-      "details": {
-        "via": "slack"
-      }
-    },
-    {
-      "id": "evt_005",
-      "type": "note_added",
-      "timestamp": "2024-01-15T10:45:00Z",
-      "actor": {
-        "type": "user",
-        "id": "usr_jane",
-        "name": "Jane Engineer"
-      },
-      "details": {
-        "note_id": "note_xyz"
-      }
-    }
-  ]
-}
+{ "assigneeId": "USER_ID" }
 ```
 
-### Timeline Event Types
+The schema accepts `null`, but the current v1.3 PATCH implementation treats null as “field omitted”; API-key clients cannot reliably unassign with this operation. Use the UI to unassign.
 
-| Type                     | Description                       |
-| ------------------------ | --------------------------------- |
-| `created`                | Incident created                  |
-| `acknowledged`           | Incident acknowledged             |
-| `resolved`               | Incident resolved                 |
-| `snoozed`                | Incident snoozed                  |
-| `unsnoozed`              | Snooze expired                    |
-| `suppressed`             | Incident suppressed               |
-| `escalation`             | Escalated to next step            |
-| `notification_sent`      | Notification dispatched           |
-| `notification_delivered` | Notification confirmed delivered  |
-| `notification_failed`    | Notification delivery failed      |
-| `assigned`               | Assignee changed                  |
-| `reassigned`             | Reassigned to different user/team |
-| `urgency_changed`        | Urgency level changed             |
-| `note_added`             | Note added                        |
-| `merged`                 | Merged with another incident      |
-| `linked`                 | Linked to related incident        |
+The response is HTTP 200 with `{ "incident": ... }`. Status changes can send service notifications and status-page subscriber/webhook updates. As with create, success does not prove downstream delivery.
 
----
+## Rate limiting
 
-## Merge Incidents
-
-Merge multiple related incidents into one.
-
-### Endpoint
-
-```http
-POST /api/incidents/:id/merge
-```
-
-### Request Body
+Each API key and operation class (`get`, `post`, or `patch`) is limited to 60 requests per 60 seconds. A rejected request returns HTTP 429 and `Retry-After` in seconds. List and detail reads share the same `get` bucket.
 
 ```json
-{
-  "sourceIncidentIds": ["inc_def456", "inc_ghi789"]
-}
+{ "error": "Rate limit exceeded." }
 ```
 
-### Behavior
+See [Rate limiting](./rate-limiting) for storage and client guidance.
 
-- Source incidents are marked as merged
-- Their timeline events are copied to target
-- Notifications reference the merged incident
-- Source incidents become read-only
+## Error handling
 
-### Example Request
+| Status | Meaning                                                                     |
+| -----: | --------------------------------------------------------------------------- |
+|    400 | Invalid JSON/body, unsupported value, or no supported patch field.          |
+|    401 | Missing, invalid, or revoked key; or key owner no longer exists.            |
+|    403 | Required scope missing or the key owner cannot access the incident/service. |
+|    404 | Incident or service not found.                                              |
+|    429 | Operation bucket exhausted; honor `Retry-After`.                            |
+|    500 | Unexpected server/database failure; investigate before retrying a create.   |
 
-```bash
-curl -X POST "https://your-opsknight.com/api/incidents/inc_abc123/merge" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "sourceIncidentIds": ["inc_def456", "inc_ghi789"]
-  }'
-```
+## Production checklist
 
-### Response
+- [ ] A dedicated least-privilege user owns the key.
+- [ ] The key has only `incidents:read` and/or `incidents:write` as required.
+- [ ] Create automation uses the Events API when deduplication/retry safety is needed.
+- [ ] Clients accept route-specific response wrappers and ignore unused fields.
+- [ ] 429 handling is bounded and honors `Retry-After`.
+- [ ] A non-production incident validates routing and downstream side effects.
+- [ ] Token rotation and revocation are tested.
 
-```json
-{
-  "id": "inc_abc123",
-  "mergedIncidents": ["inc_def456", "inc_ghi789"],
-  "mergedAt": "2024-01-15T11:00:00Z"
-}
-```
+## Related topics
 
----
-
-## Bulk Update
-
-Update multiple incidents at once.
-
-### Endpoint
-
-```http
-POST /api/incidents/bulk
-```
-
-### Request Body
-
-```json
-{
-  "incidentIds": ["inc_abc123", "inc_def456", "inc_ghi789"],
-  "updates": {
-    "status": "ACKNOWLEDGED"
-  }
-}
-```
-
-### Supported Bulk Updates
-
-| Field            | Description    |
-| ---------------- | -------------- |
-| `status`         | Change status  |
-| `assigneeId`     | Assign to user |
-| `assignedTeamId` | Assign to team |
-| `urgency`        | Change urgency |
-
-### Example: Bulk Acknowledge
-
-```bash
-curl -X POST "https://your-opsknight.com/api/incidents/bulk" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "incidentIds": ["inc_abc123", "inc_def456"],
-    "updates": {
-      "status": "ACKNOWLEDGED"
-    }
-  }'
-```
-
-### Response
-
-```json
-{
-  "updated": 2,
-  "failed": 0,
-  "results": [
-    { "id": "inc_abc123", "status": "success" },
-    { "id": "inc_def456", "status": "success" }
-  ]
-}
-```
-
----
-
-## Delete Incident
-
-Delete an incident (admin only).
-
-### Endpoint
-
-```http
-DELETE /api/incidents/:id
-```
-
-### Example Request
-
-```bash
-curl -X DELETE "https://your-opsknight.com/api/incidents/inc_abc123" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-### Response
-
-```json
-{
-  "deleted": true,
-  "id": "inc_abc123"
-}
-```
-
-> **Warning**: Deletion is permanent. Consider resolving incidents instead of deleting them.
-
----
-
-## Incident Object Reference
-
-### Full Incident Object
-
-```json
-{
-  "id": "inc_abc123",
-  "title": "string",
-  "description": "string",
-  "status": "OPEN | ACKNOWLEDGED | RESOLVED | SNOOZED | SUPPRESSED",
-  "urgency": "HIGH | MEDIUM | LOW",
-  "priority": "P1 | P2 | P3 | P4 | P5",
-  "service": {
-    "id": "string",
-    "name": "string",
-    "team": { "id": "string", "name": "string" }
-  },
-  "assignee": {
-    "id": "string",
-    "name": "string",
-    "email": "string"
-  },
-  "assignedTeam": {
-    "id": "string",
-    "name": "string"
-  },
-  "dedupKey": "string",
-  "source": "string",
-  "integration": {
-    "id": "string",
-    "name": "string",
-    "type": "string"
-  },
-  "escalationPolicy": {
-    "id": "string",
-    "name": "string"
-  },
-  "currentEscalationStep": "number",
-  "createdAt": "ISO 8601 datetime",
-  "acknowledgedAt": "ISO 8601 datetime | null",
-  "resolvedAt": "ISO 8601 datetime | null",
-  "snoozedUntil": "ISO 8601 datetime | null",
-  "lastStatusChange": "ISO 8601 datetime",
-  "customDetails": { "key": "value" },
-  "timeline": ["TimelineEvent"],
-  "notes": ["Note"],
-  "links": [{ "href": "string", "text": "string" }],
-  "relatedIncidents": ["string"]
-}
-```
-
----
-
-## Error Responses
-
-### Common Errors
-
-| HTTP Status | Code               | Description                |
-| ----------- | ------------------ | -------------------------- |
-| 400         | `INVALID_REQUEST`  | Malformed request body     |
-| 400         | `INVALID_STATUS`   | Invalid status transition  |
-| 401         | `UNAUTHORIZED`     | Missing or invalid API key |
-| 403         | `FORBIDDEN`        | Insufficient permissions   |
-| 404         | `NOT_FOUND`        | Incident not found         |
-| 409         | `CONFLICT`         | Concurrent modification    |
-| 422         | `VALIDATION_ERROR` | Field validation failed    |
-| 429         | `RATE_LIMITED`     | Too many requests          |
-| 500         | `INTERNAL_ERROR`   | Server error               |
-
-### Error Response Format
-
-```json
-{
-  "status": "error",
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Title is required",
-    "details": {
-      "field": "title",
-      "reason": "required"
-    }
-  }
-}
-```
-
----
-
-## Rate Limits
-
-| Endpoint                 | Limit      |
-| ------------------------ | ---------- |
-| GET /api/incidents       | 100/minute |
-| GET /api/incidents/:id   | 200/minute |
-| POST /api/incidents      | 50/minute  |
-| PATCH /api/incidents/:id | 100/minute |
-| POST /api/incidents/bulk | 10/minute  |
-
----
-
-## Best Practices
-
-### When to Use Incidents API vs Events API
-
-| Use Case                         | API           |
-| -------------------------------- | ------------- |
-| Automated alerts from monitoring | Events API    |
-| Manual incident creation         | Incidents API |
-| Custom workflow automation       | Incidents API |
-| Programmatic status updates      | Incidents API |
-| Auto-resolve from monitoring     | Events API    |
-
-### Pagination
-
-For large result sets:
-
-- Use `limit` and `offset` for pagination
-- Process results in batches
-- Use filters to reduce result sets
-
-### Efficient Queries
-
-- Filter by status to get only active incidents
-- Filter by date range for historical queries
-- Use specific service/team filters when possible
-
-### Handling Updates
-
-- Check incident exists before updating
-- Handle 404s gracefully
-- Use optimistic locking headers if available
-
----
-
-## Related Topics
-
-- [Events API](./events) — Alert-driven incident creation
-- [Incidents](../core-concepts/incidents) — Incident lifecycle
-- [Services](../core-concepts/services) — Service configuration
-- [Escalation Policies](../core-concepts/escalation-policies) — Notification routing
+- [API Reference](./README)
+- [Events API](./events)
+- [Rate limiting](./rate-limiting)
+- [Incident response](../core-concepts/incidents)
