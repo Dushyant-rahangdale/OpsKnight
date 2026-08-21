@@ -28,11 +28,11 @@ lsof -i :3000
 
 ### Login loop or immediate session expiry
 
-`NEXTAUTH_URL` and `APP_URL` must match the URL in the browser, including scheme and port (`http://localhost:3000` locally). After changing them, recreate the app container.
+`NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` should match the URL in the browser, including scheme and port (`http://localhost:3000` locally). After changing them, recreate the app container.
 
 ### Database connection refused
 
-`DATABASE_URL` inside Compose should use the **service hostname** (`postgres`), not `localhost`. `localhost` is the app container, not Postgres.
+`DATABASE_URL` inside the repository Compose network uses the **service hostname** `opsknight-db`, not `localhost`. `localhost` is the app container, not Postgres.
 
 Reset the volume only if you can throw the database away:
 
@@ -106,29 +106,20 @@ This guide also covers from-source installs, auth, notifications, and ingest web
    # This creates .next/standalone with optimized bundle
    ```
 
-### Optional dependencies fail to install
+### Notification-provider package is missing in a custom build
 
 **Symptoms:**
 
-- Warnings about `twilio`, `resend`, or `@aws-sdk/client-sns`
-- These are **optional** and won't prevent OpsKnight from running
+- A provider test reports that Twilio, Resend, SendGrid, or the AWS SNS client is not installed.
+- You built a custom image or used a dependency-pruning workflow.
 
-**Solution:**
-Install only the providers you need:
+The published Dockerfile installs the provider packages declared by OpsKnight. First compare your image build with the repository Dockerfile and lockfile. For a from-source installation, restore the locked dependency set:
 
 ```bash
-# For Twilio SMS/WhatsApp
-npm install twilio
-
-# For Resend email
-npm install resend
-
-# For AWS SNS
-npm install @aws-sdk/client-sns
-
-# For SendGrid email
-npm install @sendgrid/mail
+npm ci
 ```
+
+Do not repair a versioned deployment by installing ad hoc package versions into a running container; rebuild a pinned image and redeploy it.
 
 ---
 
