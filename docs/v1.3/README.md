@@ -12,7 +12,9 @@ This tree is **v1.3**. Switch versions in the sidebar for older releases.
 
 ## Start here
 
-- [Installation](./getting-started/installation) — Compose or Helm. First boot needs `NEXTAUTH_SECRET` and `ENCRYPTION_KEY`.
+- [Getting started](./getting-started) — 15 minutes to a test incident on Compose
+- [Installation](./getting-started/installation) — Compose, Helm, Kustomize, from source. First boot needs `NEXTAUTH_SECRET` and `ENCRYPTION_KEY`.
+- [Troubleshooting](./troubleshooting) — Compose, database, auth, paging
 - [Notifications](./administration/notifications) — How someone actually gets paged (no voice).
 - [Incidents](./core-concepts/incidents)
 - [Escalation policies](./core-concepts/escalation-policies)

@@ -18,7 +18,7 @@ OpsKnight is built around a simple but powerful model: **Alerts become Incidents
                     YOUR MONITORING STACK
     ┌─────────────────────────────────────────────────┐
     │  Datadog • Prometheus • CloudWatch • Sentry     │
-    │  GitHub Actions • Custom Webhooks • 20+ more    │
+    │  CI/CD • uptime • cloud • custom webhooks       │
     └─────────────────────────┬───────────────────────┘
                               │
                               ▼
@@ -39,7 +39,7 @@ OpsKnight is built around a simple but powerful model: **Alerts become Incidents
     ┌─────────────────────────────────────────────────┐
     │              ESCALATION POLICIES                 │
     │  Multi-step notification chains with delays      │
-    │  Step 1 → Step 2 → Step 3 → Repeat               │
+    │  Step 1 → Step 2 → Step 3 → Complete             │
     └─────────────────────────┬───────────────────────┘
                               │
                               ▼
@@ -52,8 +52,8 @@ OpsKnight is built around a simple but powerful model: **Alerts become Incidents
                               ▼
     ┌─────────────────────────────────────────────────┐
     │              NOTIFICATIONS                       │
-    │  Multi-channel delivery until acknowledged       │
-    │  Email • SMS • Push • Slack • WhatsApp          │
+    │  User fallback plus service-level delivery        │
+    │  In-app • Email • SMS • Push • Slack • WhatsApp │
     └─────────────────────────────────────────────────┘
 ```
 
@@ -61,20 +61,24 @@ OpsKnight is built around a simple but powerful model: **Alerts become Incidents
 
 ## Concepts at a Glance
 
-| Concept                                      | What It Is                              | Why It Matters                            |
-| -------------------------------------------- | --------------------------------------- | ----------------------------------------- |
-| [Dashboard](./dashboard)                     | Command center for real-time visibility | See the forest, not just the trees        |
-| [Services](./services)                       | Systems you monitor with ownership      | Alerts need context and routing           |
-| [Incidents](./incidents)                     | Actionable work items from alerts       | Track resolution from trigger to close    |
-| [Escalation Policies](./escalation-policies) | Who gets notified and when              | Ensure issues never fall through cracks   |
-| [Schedules](./schedules)                     | On-call rotations and shifts            | Fair distribution of on-call duty         |
-| [Teams](./teams)                             | User groups with shared responsibility  | Organize people and permissions           |
-| [Users](./users)                             | Individuals with roles and preferences  | Authentication and personalization        |
-| [Analytics](./analytics)                     | Metrics, SLAs, and trends               | Measure and improve performance           |
-| [Postmortems](./postmortems)                 | Incident retrospectives                 | Learn from failures                       |
-| [Status Pages](./status-page)                | Public service health communication     | Transparency with customers               |
-| [Integrations](./integrations)               | Connections to monitoring tools         | Route alerts from your stack              |
-| [Scalability](./scalability)                 | Capacity targets and tuning             | Understand scale limits and optimizations |
+| Concept                                        | What It Is                              | Why It Matters                            |
+| ---------------------------------------------- | --------------------------------------- | ----------------------------------------- |
+| [Dashboard](./dashboard)                       | Command center for real-time visibility | See the forest, not just the trees        |
+| [Services](./services)                         | Systems you monitor with ownership      | Alerts need context and routing           |
+| [Incidents](./incidents)                       | Actionable work items from alerts       | Track resolution from trigger to close    |
+| [Incident Templates](./incident-templates)     | Reusable defaults for manual incidents  | Standardize recurring response patterns   |
+| [Escalation Policies](./escalation-policies)   | Who gets notified and when              | Ensure issues never fall through cracks   |
+| [Schedules](./schedules)                       | On-call rotations and shifts            | Fair distribution of on-call duty         |
+| [Teams](./teams)                               | User groups with shared responsibility  | Organize people and permissions           |
+| [Users](./users)                               | Individuals with roles and preferences  | Authentication and personalization        |
+| [Analytics](./analytics)                       | Metrics, SLAs, and trends               | Measure and improve performance           |
+| [Postmortems](./postmortems)                   | Incident retrospectives                 | Learn from failures                       |
+| [Action Items](./action-items)                 | Owned corrective work from postmortems  | Turn lessons into accountable changes     |
+| [Event Logs](./event-logs)                     | Cross-incident lifecycle history        | Review and test incident activity         |
+| [Reports and Dashboards](./reports-dashboards) | User-owned metric layouts               | Build role-focused operational views      |
+| [Status Pages](./status-page)                  | Public service health communication     | Transparency with customers               |
+| [Integrations](./integrations)                 | Connections to monitoring tools         | Route alerts from your stack              |
+| [Scalability](./scalability)                   | Capacity targets and tuning             | Understand scale limits and optimizations |
 
 ---
 
@@ -138,6 +142,8 @@ If you're new to OpsKnight, we recommend reading the concepts in this order:
 5. **[Teams](./teams)** — Organize your responders
 6. **[Dashboard](./dashboard)** — Master the command center
 7. **[Analytics](./analytics)** — Track and improve performance
+8. **[Postmortems](./postmortems)** and **[Action Items](./action-items)** — Turn incidents into owned improvements
+9. **[Reports and Dashboards](./reports-dashboards)** — Build SRE, team, SLA, and executive views
 
 ---
 
@@ -146,19 +152,19 @@ If you're new to OpsKnight, we recommend reading the concepts in this order:
 ### For Incident Responders
 
 - [Incident Lifecycle](./incidents#incident-lifecycle) — Understand statuses and actions
-- [Bulk Actions](./incidents#bulk-actions) — Manage alert storms efficiently
-- [Mobile Access](./mobile) — Respond from anywhere
+- [Bulk triage](./incidents#find-and-triage-incidents) — Manage alert storms efficiently
+- [Mobile Access](../mobile) — Respond from anywhere
 
 ### For On-Call Managers
 
-- [Schedule Layers](./schedules#layers) — Build complex coverage patterns
+- [Schedule layers](./schedules#add-a-rotation-layer) — Build coverage patterns
 - [Overrides](./schedules#overrides) — Handle vacations and swaps
 - [Fair Rotation](./schedules#fair-rotation) — Balance on-call burden
 
 ### For Operations Teams
 
 - [SLA Configuration](./analytics#sla-tracking) — Set response time targets
-- [Custom Fields](./administration/custom-fields) — Track additional metadata
+- [Custom Fields](../administration/custom-fields) — Track additional metadata
 - [Integrations](./integrations) — Connect your monitoring stack
 
 ### For Leadership

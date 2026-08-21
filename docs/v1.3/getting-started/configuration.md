@@ -1,12 +1,12 @@
 ---
 order: 2
 title: Configuration Reference
-description: All environment variables used by OpsKnight with descriptions, examples, and generation instructions
+description: Runtime, deployment, security, integration, and advanced environment variables supported by OpsKnight v1.3.
 ---
 
 # Configuration Reference
 
-This page is the complete reference for all environment variables used by OpsKnight. Copy `env.example` to `.env` and fill in the values appropriate for your environment.
+This page documents the operator-facing environment variables supported by OpsKnight v1.3. Copy `env.example` to `.env`, then provide secrets through your platform's secret store in production.
 
 ```bash
 cp env.example .env
@@ -99,39 +99,13 @@ This should match `NEXTAUTH_URL` in most deployments. It is exposed to the brows
 
 ---
 
-## Email / SMTP
+## Notification providers
 
-Configure SMTP credentials via **Settings → Notifications** in the UI, or supply them as environment variables:
+Configure Resend, SendGrid, SMTP, Amazon SES, Twilio, AWS SNS, WhatsApp, and Web Push in **Settings → Notification Providers**. Those credentials are encrypted in the database; v1.3 does not read `SMTP_*`, `TWILIO_*`, or AWS SNS credentials from environment variables.
 
-| Variable        | Description                     |
-| --------------- | ------------------------------- |
-| `SMTP_HOST`     | SMTP server hostname            |
-| `SMTP_PORT`     | SMTP port (typically 587 / 465) |
-| `SMTP_USER`     | SMTP username                   |
-| `SMTP_PASSWORD` | SMTP password                   |
-| `SMTP_FROM`     | From address for outbound email |
+`AWS_ACCESS_KEY_ID` is only a fallback for the SES client after an enabled SES record supplies the remaining provider configuration. Prefer storing the full, dedicated SES credential set in the SES provider form so behavior is explicit.
 
----
-
-## SMS (Twilio)
-
-Configure Twilio credentials via **Settings → Notifications** in the UI, or supply them as environment variables:
-
-| Variable              | Description                |
-| --------------------- | -------------------------- |
-| `TWILIO_ACCOUNT_SID`  | Twilio Account SID         |
-| `TWILIO_AUTH_TOKEN`   | Twilio Auth Token          |
-| `TWILIO_PHONE_NUMBER` | Twilio source phone number |
-
----
-
-## AWS SNS (SMS)
-
-| Variable                | Description        |
-| ----------------------- | ------------------ |
-| `AWS_REGION`            | AWS region         |
-| `AWS_ACCESS_KEY_ID`     | AWS IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key |
+See [Notifications](../administration/notifications) for fields, recipient requirements, test paths, and delivery semantics.
 
 ---
 
@@ -139,21 +113,58 @@ Configure Twilio credentials via **Settings → Notifications** in the UI, or su
 
 VAPID keys for web push can be generated via **Settings → Notifications → Web Push** in the UI.
 
-| Variable            | Description                   |
-| ------------------- | ----------------------------- |
-| `VAPID_PUBLIC_KEY`  | VAPID public key              |
-| `VAPID_PRIVATE_KEY` | VAPID private key (encrypted) |
-| `VAPID_SUBJECT`     | Contact email for VAPID       |
+| Variable                       | Description                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public base64url VAPID key exposed to clients when no database provider key is available. |
+| `VAPID_PRIVATE_KEY`            | Matching private VAPID key used by the sender fallback.                                   |
+| `VAPID_SUBJECT`                | Contact URI, normally `mailto:admin@example.com`; defaults to `mailto:admin@localhost`.   |
+
+Set the public and private variables together. The database-backed Web Push provider is the normal production path.
 
 ---
 
-## Observability
+## Operations and observability
 
-| Variable                      | Description                                     |
-| ----------------------------- | ----------------------------------------------- |
-| `OTEL_ENABLED`                | Set to `true` to enable OpenTelemetry tracing   |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint                         |
-| `LOG_LEVEL`                   | Log verbosity: `debug`, `info`, `warn`, `error` |
+| Variable                                  | Default                    | Description                                                                                                                       |
+| ----------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`                               | `info`                     | Minimum structured-log level: `debug`, `info`, `warn`, or `error`.                                                                |
+| `LOG_FORMAT`                              | Environment dependent      | Set to `json` for JSON output.                                                                                                    |
+| `LOG_BUFFER_MAX`                          | `500`                      | Maximum in-memory log-buffer size.                                                                                                |
+| `SENTRY_DSN`                              | —                          | Requests optional Sentry initialization when a custom build includes `@sentry/nextjs`; the standard v1.3 dependency set does not. |
+| `SENTRY_ENVIRONMENT`                      | `NODE_ENV`                 | Optional Sentry environment label for such a custom build.                                                                        |
+| `SENTRY_FORCE_ENABLE`                     | `false`                    | Enables that optional Sentry path outside production when `true`.                                                                 |
+| `NEXT_PUBLIC_ENABLE_WEB_VITALS`           | `false` outside production | Enables browser Web Vitals reporting outside production.                                                                          |
+| `APP_VERSION` / `NEXT_PUBLIC_APP_VERSION` | Package version            | Server/public version label override.                                                                                             |
+
+OpenTelemetry variables are not consumed by the v1.3 application code and are therefore not part of this reference.
+
+## Runtime controls
+
+| Variable                         | Default      | Description                                                                                                                    |
+| -------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_POOL_SIZE`             | `40`         | Adds a Prisma connection limit when `DATABASE_URL` has no `connection_limit`.                                                  |
+| `ENABLE_INTERNAL_CRON`           | `true`       | Set to `false` when background jobs are run by another designated process.                                                     |
+| `INTEGRATION_RATE_LIMIT`         | `true`       | Set to `false` to disable standard-handler integration rate limiting. This is not recommended for internet-facing deployments. |
+| `INTEGRATION_VERIFY_SIGNATURES`  | `true`       | Set to `false` to disable signature checks on handlers that honor this flag. Use only for controlled diagnosis.                |
+| `CORS_ALLOWED_ORIGINS`           | empty        | Comma-separated origins allowed by middleware for cross-origin API requests.                                                   |
+| `STATUS_PAGE_DOMAIN_CACHE_TTL`   | `60`         | Custom-status-domain middleware cache TTL in seconds.                                                                          |
+| `EVENT_TRANSACTION_MAX_ATTEMPTS` | code default | Advanced transaction retry limit; tune only after reviewing database contention.                                               |
+| `ESCALATION_LOCK_TIMEOUT_MS`     | code default | Advanced escalation lock timeout in milliseconds.                                                                              |
+| `SKIP_ENV_VALIDATION`            | unset        | Bypasses production environment validation. Use only for controlled build/diagnostic workflows.                                |
+
+## Authentication and integration overrides
+
+| Variable                                                       | Purpose                                                                                                           |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `AUTH_TRUST_HOST`                                              | Explicitly enables Auth.js host trust; setting `NEXTAUTH_URL` also enables it.                                    |
+| `OIDC_REQUIRE_EMAIL_VERIFIED_STRICT`                           | Requires a verified-email claim from OIDC when `true`.                                                            |
+| `OIDC_CONFIG_CACHE_TTL_MS`, `OIDC_CONFIG_RECORD_CACHE_TTL_MS`  | Advanced OIDC cache TTLs.                                                                                         |
+| `AUTH_OPTIONS_CACHE_TTL_MS`, `JWT_USER_REFRESH_TTL_MS`         | Advanced authentication/session cache timing.                                                                     |
+| `API_KEY_SECRET`                                               | Overrides the secret used to hash API keys; otherwise `NEXTAUTH_SECRET` is used. Back up and rotate deliberately. |
+| `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI` | Slack OAuth fallback values when equivalent stored settings are absent.                                           |
+| `SLACK_SIGNING_SECRET`                                         | Slack request-signature fallback/override.                                                                        |
+| `SLACK_BOT_TOKEN`, `SLACK_WEBHOOK_URL`                         | Legacy Slack sender fallbacks; prefer the encrypted Slack configuration UI.                                       |
+| `SLA_ALERT_EMAIL`                                              | Fallback recipient for configured SLA-breach email alerts.                                                        |
 
 ---
 
@@ -176,12 +187,7 @@ ENCRYPTION_KEY=<your-64-char-hex-key>
 # --- Application URL ---
 NEXT_PUBLIC_APP_URL=https://ops.yourcompany.com
 
-# --- Email (optional — can configure via UI) ---
-# SMTP_HOST=smtp.yourcompany.com
-# SMTP_PORT=587
-# SMTP_USER=opsknight@yourcompany.com
-# SMTP_PASSWORD=your-smtp-password
-# SMTP_FROM=opsknight@yourcompany.com
+# Configure notification-provider credentials in the application UI.
 ```
 
 ---

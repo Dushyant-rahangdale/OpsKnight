@@ -1,331 +1,164 @@
 ---
 order: 1
 title: Webhooks
-description: Receive alerts from external systems and send incident events to external endpoints
+description: Configure generic inbound alerts, service lifecycle webhooks, and status-page webhooks without confusing their contracts.
 ---
 
 # Webhooks
 
-OpsKnight supports both incoming webhooks (receiving alerts from monitoring tools) and outgoing webhooks (sending incident events to external systems).
+OpsKnight v1.3 has three distinct webhook systems. Choose the one that matches the direction and ownership of your workflow.
 
----
+| Need                                        | Configure at                                  | Contract                                                                              |
+| ------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Send an alert into OpsKnight                | **Service → Integrations**                    | Provider-specific or generic inbound integration endpoint.                            |
+| Send a service incident lifecycle event out | **Service → Settings → Webhook Integrations** | Generic, Google Chat, Microsoft Teams, Slack, Discord, or Telegram-formatted payload. |
+| Notify systems about the public status page | **Settings → Status Page → Webhooks**         | Status-page event contract, HMAC headers, attempts, and delivery log.                 |
 
-## Endpoint
+These systems use different secrets, payloads, retry behavior, and event sets. A successful test on one does not validate another.
 
-```
-POST /api/integrations/webhook?integrationId=YOUR_INTEGRATION_ID
-```
+## Generic inbound alerts
 
-This is the generic inbound webhook endpoint for tools without a dedicated integration.
+Create a **Custom Webhook** integration on the destination service and copy the URL displayed by OpsKnight:
 
----
-
-## Incoming Webhooks
-
-Receive alerts from external monitoring tools and create incidents automatically.
-
-### Supported Integrations
-
-OpsKnight has dedicated endpoints for popular monitoring tools:
-
-| Integration                 | Endpoint                                    |
-| --------------------------- | ------------------------------------------- |
-| **Prometheus**              | `/api/integrations/prometheus`              |
-| **Grafana**                 | `/api/integrations/grafana`                 |
-| **Datadog**                 | `/api/integrations/datadog`                 |
-| **New Relic**               | `/api/integrations/newrelic`                |
-| **Sentry**                  | `/api/integrations/sentry`                  |
-| **AWS CloudWatch**          | `/api/integrations/cloudwatch`              |
-| **Azure Monitor**           | `/api/integrations/azure`                   |
-| **Google Cloud Monitoring** | `/api/integrations/google-cloud-monitoring` |
-| **Dynatrace**               | `/api/integrations/dynatrace`               |
-| **AppDynamics**             | `/api/integrations/appdynamics`             |
-| **Splunk On-Call**          | `/api/integrations/splunk-oncall`           |
-| **Splunk Observability**    | `/api/integrations/splunk-observability`    |
-| **Elastic**                 | `/api/integrations/elastic`                 |
-| **Honeycomb**               | `/api/integrations/honeycomb`               |
-| **UptimeRobot**             | `/api/integrations/uptimerobot`             |
-| **Pingdom**                 | `/api/integrations/pingdom`                 |
-| **Better Uptime**           | `/api/integrations/better-uptime`           |
-| **Uptime Kuma**             | `/api/integrations/uptime-kuma`             |
-| **GitHub**                  | `/api/integrations/github`                  |
-| **Bitbucket**               | `/api/integrations/bitbucket`               |
-| **Generic Webhook**         | `/api/integrations/webhook`                 |
-
-### Generic Webhook
-
-For tools without a dedicated endpoint, use the generic webhook:
-
-```
-POST /api/integrations/webhook?integrationId=YOUR_INTEGRATION_ID
+```http
+POST /api/integrations/webhook?integrationId=INTEGRATION_ID&integrationKey=INTEGRATION_KEY
 Content-Type: application/json
 ```
 
-### Generic Webhook Payload
+The UI-generated URL is authoritative. Keep the integration key secret and rotate/delete the integration if it is exposed.
 
-The generic webhook accepts flexible payloads with automatic field mapping:
+### Payload
 
 ```json
 {
-  "summary": "Alert title",
+  "summary": "Database connection pool exhausted",
   "severity": "critical",
   "status": "triggered",
-  "dedup_key": "unique-alert-id",
-  "source": "my-monitoring-tool"
+  "dedup_key": "db-pool-primary",
+  "source": "custom-monitor"
 }
 ```
 
-### Field Mapping
+Common aliases are normalized:
 
-OpsKnight automatically maps common field names:
+| Purpose           | Accepted fields                       |
+| ----------------- | ------------------------------------- |
+| Title             | `summary`, `title`, `message`, `name` |
+| Severity          | `severity`, `level`, `priority`       |
+| Action            | `status`, `action`, `state`           |
+| Deduplication key | `dedup_key`, `id`, `alert_id`         |
+| Source            | `source`, `origin`, `system`          |
 
-| Purpose       | Accepted Fields                       |
-| ------------- | ------------------------------------- |
-| **Title**     | `summary`, `title`, `message`, `name` |
-| **Severity**  | `severity`, `level`, `priority`       |
-| **Status**    | `status`, `action`, `state`           |
-| **Dedup Key** | `dedup_key`, `id`, `alert_id`         |
-| **Source**    | `source`, `origin`, `system`          |
+Trigger-like values include `triggered`, `fired`, `alert`, `critical`, `error`, and `open`. Resolve-like values include `resolved`, `ok`, `normal`, `closed`, and `fixed`; `acknowledge` and `ack` acknowledge a matching incident.
 
-### Status Values
+Use a stable `dedup_key` for the same alert lifecycle. Test trigger and resolve with the same key, then confirm one incident is updated rather than two incidents being created.
 
-| Action          | Trigger Values                                 |
-| --------------- | ---------------------------------------------- |
-| **Trigger**     | triggered, fired, alert, critical, error, open |
-| **Resolve**     | resolved, ok, normal, closed, fixed            |
-| **Acknowledge** | acknowledge, ack                               |
+### Optional signature
 
-### Severity Mapping
+When the integration has a Signature Secret, calculate HMAC-SHA256 over the raw request body and send either:
 
-| Input           | OpsKnight Severity |
-| --------------- | ------------------ |
-| critical, high  | critical           |
-| error           | error              |
-| warning, medium | warning            |
-| info, low       | info               |
+```http
+X-Signature: sha256=HEX_DIGEST
+```
 
-### Signature Verification
+or:
 
-Optionally secure incoming webhooks with HMAC signatures:
+```http
+X-Webhook-Signature: sha256=HEX_DIGEST
+```
 
-1. Set a **Signature Secret** on the integration
-2. Include signature header in requests:
-   - `X-Signature: sha256=abc123...`
-   - or `X-Webhook-Signature: sha256=abc123...`
+Do not reserialize JSON between signing and sending. Signature verification is enabled by default on the standard integration handler; `INTEGRATION_VERIFY_SIGNATURES=false` is a diagnostic escape hatch, not a production configuration.
 
-OpsKnight verifies the HMAC-SHA256 signature against the request body.
+See [Events API](../../api/events) for the stable public event contract and [Integrations](../README) for provider-specific endpoint names.
 
----
+## Service lifecycle webhooks
 
-## Outgoing Webhooks
+Service webhooks are outbound notifications independent of escalation-policy paging and user notification preferences.
 
-Send incident events to external systems via status page webhooks.
+1. Open **Service → Settings**.
+2. Enable the **WEBHOOK** service notification channel.
+3. Choose whether service notifications fire for Triggered, Acknowledged, and Resolved events.
+4. Add a webhook integration with a unique name, type, HTTPS URL, optional secret, and optional channel/room value.
+5. Trigger a controlled incident and validate the receiver.
 
-### Creating Outgoing Webhooks
+Supported formatting choices are `GENERIC`, `GOOGLE_CHAT`, `TEAMS`, `SLACK`, `DISCORD`, and `TELEGRAM`. These are payload formatters for a URL you supply; they are not workspace OAuth connections or full chat-product integrations. For Telegram, the Channel/Room field supplies the target chat ID.
 
-1. Go to **Settings** → **Status Page** → **Webhooks**
-2. Click **Add Webhook**
-3. Configure:
-
-| Field       | Description                |
-| ----------- | -------------------------- |
-| **Name**    | Friendly identifier        |
-| **URL**     | Endpoint to receive events |
-| **Secret**  | HMAC signing secret        |
-| **Events**  | Which events to send       |
-| **Enabled** | Toggle on/off              |
-
-### Event Types
-
-| Event                   | Description              |
-| ----------------------- | ------------------------ |
-| `incident.created`      | New incident created     |
-| `incident.acknowledged` | Incident acknowledged    |
-| `incident.resolved`     | Incident resolved        |
-| `incident.snoozed`      | Incident snoozed         |
-| `incident.suppressed`   | Incident suppressed      |
-| `incident.updated`      | Incident details changed |
-
-### Outgoing Payload Format
+### Generic payload
 
 ```json
 {
-  "event": "incident.created",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "id": "cuid_abc123",
-    "title": "Database connection timeout",
-    "description": "Connection pool exhausted",
+  "event": { "type": "triggered", "timestamp": "2026-08-21T10:30:00.000Z" },
+  "incident": {
+    "id": "incident_id",
+    "title": "Database connection pool exhausted",
+    "description": "Primary pool has no available connections",
     "status": "OPEN",
     "urgency": "HIGH",
-    "priority": null,
-    "service": {
-      "id": "svc_xyz789",
-      "name": "API Gateway"
-    },
+    "url": "https://ops.example.com/incidents/incident_id",
+    "service": { "id": "service_id", "name": "API" },
     "assignee": null,
-    "createdAt": "2024-01-15T10:30:00Z"
+    "timestamps": {
+      "created": "2026-08-21T10:30:00.000Z",
+      "acknowledged": null,
+      "resolved": null
+    }
   }
 }
 ```
 
-### Outgoing Webhook Headers
+The lifecycle event types produced by this path are `triggered`, `acknowledged`, `resolved`, and `updated`.
 
-| Header                | Value                                 |
-| --------------------- | ------------------------------------- |
-| `Content-Type`        | `application/json`                    |
-| `X-Webhook-Signature` | `sha256=<hmac_signature>`             |
-| `X-Webhook-Event`     | Event name (e.g., `incident.created`) |
-| `User-Agent`          | `OpsKnight-StatusPage/1.0`            |
+### Delivery and signature behavior
 
-### Verifying Signatures
+- Requests are JSON `POST`s with `User-Agent: OpsKnight/1.0`.
+- The default timeout is 10 seconds per attempt.
+- Network/timeout failures, HTTP 429, and HTTP 5xx are retried up to three total attempts with backoff.
+- Other HTTP 4xx responses fail without retry.
+- URLs are checked by outbound network/SSRF validation; private or restricted destinations may be rejected.
+- A destination secret adds `X-OpsKnight-Timestamp` and `X-OpsKnight-Signature`.
 
-Verify incoming webhook signatures in your receiving application:
+The signature input is `TIMESTAMP + "." + RAW_JSON_BODY`. The headers are:
 
-```javascript
-const crypto = require('crypto');
-
-function verifySignature(payload, signature, secret) {
-  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-
-  const providedSignature = signature.replace('sha256=', '');
-
-  return crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature));
-}
-
-// Usage
-app.post('/webhook', (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const payload = JSON.stringify(req.body);
-
-  if (!verifySignature(payload, signature, 'your-secret')) {
-    return res.status(401).send('Invalid signature');
-  }
-
-  // Process the webhook
-  console.log('Event:', req.body.event);
-  console.log('Data:', req.body.data);
-
-  res.status(200).send('OK');
-});
+```http
+X-OpsKnight-Signature: sha256=HEX_HMAC_SHA256
+X-OpsKnight-Timestamp: UNIX_TIME_IN_MILLISECONDS
 ```
 
-```python
-import hmac
-import hashlib
+Compare the digest in constant time and reject stale timestamps according to your receiver's replay policy.
 
-def verify_signature(payload: str, signature: str, secret: str) -> bool:
-    expected = hmac.new(
-        secret.encode(),
-        payload.encode(),
-        hashlib.sha256
-    ).hexdigest()
+There is no service-webhook delivery-history UI or manual replay control in v1.3. Use receiver logs and OpsKnight system logs, then validate fixes with a new controlled event.
 
-    provided = signature.replace('sha256=', '')
-    return hmac.compare_digest(expected, provided)
-```
+## Status-page webhooks
 
----
+Status-page webhooks have a separate contract and delivery log. Verified runtime emitters cover `incident.created`, `incident.updated`, and `incident.resolved`; do not design an automation around other UI-listed event names until a controlled test proves emission in your deployed build.
 
-## Testing Webhooks
+They sign the raw body with `X-Webhook-Signature`, identify the event in `X-Webhook-Event`, use a 10-second timeout, and retry network errors, HTTP 429, and HTTP 5xx up to three total attempts. See [Status page](../../core-concepts/status-page#outbound-webhooks) for setup and exact verification guidance.
 
-### Test Incoming Webhooks
+## Production verification
 
-Use cURL to test your integration:
+- [ ] The correct webhook system and service/status page are selected.
+- [ ] HTTPS, DNS, certificate, firewall, and outbound policy permit the destination.
+- [ ] Inbound integration keys and all signing secrets are stored as secrets.
+- [ ] Trigger, acknowledge/update where applicable, and resolve are tested.
+- [ ] Deduplication is tested with a repeated inbound event.
+- [ ] The receiver verifies signatures against raw bytes and handles duplicates idempotently.
+- [ ] Receiver latency remains below the 10-second sender timeout.
+- [ ] HTTP 429/5xx retry behavior cannot create duplicate downstream work.
 
-```bash
-curl -X POST "https://your-opsknight.com/api/integrations/webhook?integrationId=YOUR_ID" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "summary": "Test alert",
-    "severity": "warning",
-    "status": "triggered",
-    "dedup_key": "test-alert-001",
-    "source": "manual-test"
-  }'
-```
+## Troubleshooting
 
-### Test Outgoing Webhooks
+| Symptom                           | Check                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------- |
+| Inbound 401/403                   | Integration ID/key, signature secret, raw-body HMAC, and signature-verification setting.  |
+| A new incident appears on resolve | Trigger and resolve used different or missing deduplication keys.                         |
+| Outbound URL rejected             | HTTPS scheme, DNS resolution, redirect target, and private/restricted address checks.     |
+| Chat receiver rejects payload     | Correct webhook type, current receiver product requirements, and a captured test payload. |
+| Repeated downstream action        | Receiver idempotency; retries can repeat a logically identical delivery.                  |
+| No service webhook                | WEBHOOK channel, enabled integration, selected lifecycle event, and service association.  |
 
-1. Go to **Settings** → **Status Page** → **Webhooks**
-2. Click **Test** on a webhook
-3. A test event is sent to the configured URL
+## Related topics
 
-### Using webhook.site
-
-For testing outgoing webhooks:
-
-1. Go to [webhook.site](https://webhook.site)
-2. Copy the unique URL
-3. Use as webhook endpoint in OpsKnight
-4. View received payloads in real-time
-
----
-
-## Use Cases
-
-### ITSM Integration
-
-Automatically create tickets in ServiceNow, Jira, or other ITSM tools:
-
-- Subscribe to `incident.created` events
-- Create tickets with incident details
-- Update tickets on `incident.resolved`
-
-### Custom Dashboards
-
-Push incident data to custom systems:
-
-- Real-time status displays
-- Executive dashboards
-- Analytics pipelines
-
-### ChatOps
-
-Send to messaging platforms:
-
-- Microsoft Teams (incoming webhook)
-- Google Chat
-- Discord
-- Telegram bots
-
-### Runbook Automation
-
-Trigger automated responses:
-
-- Subscribe to specific incident types
-- Execute remediation scripts
-- Scale infrastructure automatically
-
----
-
-## Best Practices
-
-### For Incoming Webhooks
-
-- **Use dedicated endpoints** when available for your monitoring tool
-- **Set signature secrets** to verify webhook authenticity
-- **Use descriptive dedup_keys** to prevent duplicate incidents
-- **Include source information** for better incident context
-
-### For Outgoing Webhooks
-
-- **Always verify signatures** in your receiving application
-- **Return 2xx quickly** — process asynchronously if needed
-- **Handle duplicate events** gracefully (idempotency)
-- **Monitor webhook delivery** via status page webhook logs
-
-### Security
-
-- Store secrets securely (environment variables, secrets manager)
-- Use HTTPS for all webhook URLs
-- Implement signature verification
-- Log webhook activity for debugging
-
----
-
-## Related Topics
-
-- [Events API](../../api/events) — Programmatic event submission
-- [Integrations Overview](.) — All integrations
-- [Status Page](../../core-concepts/status-page) — Status page configuration
+- [Integration contract](../README)
+- [Events API](../../api/events)
+- [Notifications](../../administration/notifications)
+- [Status page](../../core-concepts/status-page)

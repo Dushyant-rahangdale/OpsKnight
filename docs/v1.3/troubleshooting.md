@@ -1,9 +1,53 @@
-# Troubleshooting Guide
+---
+order: 10
+title: Troubleshooting
+description: Compose, database, auth, paging, and webhook failures
+---
 
-This guide covers common issues you may encounter when installing, configuring, or running OpsKnight.
+# Troubleshooting
+
+Most production and eval installs are **Docker Compose or Kubernetes**, not `npm install` on a laptop. Start with the Compose section. From-source Node issues are further down.
+
+---
+
+## Compose and containers
+
+### `docker compose up` exits or the UI never loads
+
+1. Confirm both app and Postgres are up: `docker compose ps`
+2. App logs: `docker compose logs -f` (look for Prisma migrate errors and missing `NEXTAUTH_SECRET` / `ENCRYPTION_KEY`)
+3. Postgres: `docker compose logs postgres`
+4. Health: `curl -s http://localhost:3000/api/health`
+
+### Port 3000 already in use
+
+```bash
+lsof -i :3000
+# or map another host port in compose: "3001:3000"
+```
+
+### Login loop or immediate session expiry
+
+`NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` should match the URL in the browser, including scheme and port (`http://localhost:3000` locally). After changing them, recreate the app container.
+
+### Database connection refused
+
+`DATABASE_URL` inside the repository Compose network uses the **service hostname** `opsknight-db`, not `localhost`. `localhost` is the app container, not Postgres.
+
+Reset the volume only if you can throw the database away:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+---
+
+This guide also covers from-source installs, auth, notifications, and ingest webhooks.
 
 ## Table of Contents
 
+- [Compose and containers](#compose-and-containers)
 - [Installation Issues](#installation-issues)
 - [Database Connection Problems](#database-connection-problems)
 - [Authentication Failures](#authentication-failures)
@@ -62,29 +106,20 @@ This guide covers common issues you may encounter when installing, configuring, 
    # This creates .next/standalone with optimized bundle
    ```
 
-### Optional dependencies fail to install
+### Notification-provider package is missing in a custom build
 
 **Symptoms:**
 
-- Warnings about `twilio`, `resend`, or `@aws-sdk/client-sns`
-- These are **optional** and won't prevent OpsKnight from running
+- A provider test reports that Twilio, Resend, SendGrid, or the AWS SNS client is not installed.
+- You built a custom image or used a dependency-pruning workflow.
 
-**Solution:**
-Install only the providers you need:
+The published Dockerfile installs the provider packages declared by OpsKnight. First compare your image build with the repository Dockerfile and lockfile. For a from-source installation, restore the locked dependency set:
 
 ```bash
-# For Twilio SMS/WhatsApp
-npm install twilio
-
-# For Resend email
-npm install resend
-
-# For AWS SNS
-npm install @aws-sdk/client-sns
-
-# For SendGrid email
-npm install @sendgrid/mail
+npm ci
 ```
+
+Do not repair a versioned deployment by installing ad hoc package versions into a running container; rebuild a pinned image and redeploy it.
 
 ---
 
@@ -473,16 +508,16 @@ If you see `CRITICAL: Encryption Key failed canary check`:
 
 ## Integrations & Webhook Diagnostic Matrix
 
-| Integration | Error / Symptom | Root Cause | Solution |
-| :--- | :--- | :--- | :--- |
-| **All Integrations** | `401 Unauthorized: Invalid integration key` | Missing or mismatched `integrationKey` query param or `x-integration-key` header | Verify integration key matches the key generated in OpsKnight Service Integrations tab. |
-| **All Integrations** | `429 Too Many Requests` | Ingestion rate limit exceeded (>100 req/min) | Check upstream monitoring tool alert grouping interval; inspect `Retry-After` header. |
-| **Zabbix** | Incidents not auto-closing on OK | Missing `event_id` macro in media type script | Map `event_id: "{EVENT.ID}"` in Zabbix Webhook Media Type parameters. |
-| **PagerDuty v2** | `400 Bad Request: Event object is invalid` | Payload missing required `summary` or `severity` | Verify `payload.summary` and `payload.severity` (`critical`/`error`/`warning`/`info`) are set. |
-| **GitLab CI** | `401 Unauthorized: Invalid token` | `x-gitlab-token` header does not match `signatureSecret` | Configure identical secret token in GitLab Webhook and OpsKnight Integration settings. |
-| **Vercel** | `401 Unauthorized: Missing or invalid signature` | `x-vercel-signature` HMAC check failed | Ensure webhook secret in Vercel matches `signatureSecret` in OpsKnight. |
-| **Nagios / Icinga** | Service alerts ignored during maintenance | `DOWNTIMESTART` notification received | Expected behavior: scheduled downtime suppresses noise and avoids paging on-call. |
-| **CloudWatch** | `INSUFFICIENT_DATA` alarm not resolving | By design: loss of telemetry is treated as warning trigger, not incident resolution | Incidents only resolve when AWS CloudWatch sends `NewStateValue: "OK"`. |
+| Integration          | Error / Symptom                                  | Root Cause                                                                          | Solution                                                                                       |
+| :------------------- | :----------------------------------------------- | :---------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| **All Integrations** | `401 Unauthorized: Invalid integration key`      | Missing or mismatched `integrationKey` query param or `x-integration-key` header    | Verify integration key matches the key generated in OpsKnight Service Integrations tab.        |
+| **All Integrations** | `429 Too Many Requests`                          | Ingestion rate limit exceeded (>100 req/min)                                        | Check upstream monitoring tool alert grouping interval; inspect `Retry-After` header.          |
+| **Zabbix**           | Incidents not auto-closing on OK                 | Missing `event_id` macro in media type script                                       | Map `event_id: "{EVENT.ID}"` in Zabbix Webhook Media Type parameters.                          |
+| **PagerDuty v2**     | `400 Bad Request: Event object is invalid`       | Payload missing required `summary` or `severity`                                    | Verify `payload.summary` and `payload.severity` (`critical`/`error`/`warning`/`info`) are set. |
+| **GitLab CI**        | `401 Unauthorized: Invalid token`                | `x-gitlab-token` header does not match `signatureSecret`                            | Configure identical secret token in GitLab Webhook and OpsKnight Integration settings.         |
+| **Vercel**           | `401 Unauthorized: Missing or invalid signature` | `x-vercel-signature` HMAC check failed                                              | Ensure webhook secret in Vercel matches `signatureSecret` in OpsKnight.                        |
+| **Nagios / Icinga**  | Service alerts ignored during maintenance        | `DOWNTIMESTART` notification received                                               | Expected behavior: scheduled downtime suppresses noise and avoids paging on-call.              |
+| **CloudWatch**       | `INSUFFICIENT_DATA` alarm not resolving          | By design: loss of telemetry is treated as warning trigger, not incident resolution | Incidents only resolve when AWS CloudWatch sends `NewStateValue: "OK"`.                        |
 
 ---
 
