@@ -98,8 +98,8 @@ The documentation maintainer owns inventory state and link/navigation quality on
 | USER, RESPONDER, ADMIN authorization        | Admin, security reviewer    | `src/lib/rbac`; role enum                         | Revise   | users and security guides                        | Matrix and tasks     | 5     |
 | Team OWNER, ADMIN, MEMBER roles             | Team admin                  | team actions and enum                             | Revise   | teams guide                                      | Matrix and tasks     | 5     |
 | API keys and scopes                         | Admin, API consumer         | API-key settings/routes/models                    | Revise   | API authentication guide                         | Contract             | 5, 6  |
-| Audit log                                   | Admin, security reviewer    | audit page/model/writers                          | Add      | admin/security guide                             | Operations/reference | 5     |
-| System logs                                 | Admin, operator             | system-logs page and logger                       | Add      | admin/operations guide                           | Troubleshooting      | 5     |
+| Audit log                                   | Admin, security reviewer    | audit page/model/writers                          | Complete | `v1.3/administration/audit-logs.md`              | Operations/reference | 5     |
+| System logs                                 | Admin, operator             | system-logs page and logger                       | Complete | `v1.3/administration/system-logs.md`             | Troubleshooting      | 5     |
 | Secrets, encryption, HTTPS, proxies         | Security reviewer, operator | configuration/security libraries                  | Revise   | security and deployment guides                   | Hardening            | 5     |
 
 ## Published automation contracts
