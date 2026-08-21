@@ -1,234 +1,104 @@
 ---
-order: 4
 title: Integrations
-description: Inbound alert sources and outbound paging for this version.
+description: Connect supported alert sources, notification providers, Slack ChatOps, Jira, and signed webhooks.
+order: 4
 ---
 
 # Integrations
 
-Tools send alerts **into** OpsKnight. OpsKnight pages people **out** on email, SMS, push, Slack, WhatsApp, or webhooks. There is no voice channel. Slack war rooms are documented from v1.2. PagerDuty Events API v2 ingest is in this version.
+OpsKnight integrations have three distinct directions:
 
----
+| Direction             | Purpose                                                                                     | Examples                                              |
+| --------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Inbound               | Normalize a provider webhook into trigger, acknowledge, or resolve actions for one service. | CloudWatch, Datadog, Prometheus, CI/CD, uptime tools. |
+| Outbound notification | Deliver incident and escalation messages to responders or external endpoints.               | Email, SMS, push, WhatsApp, Slack, service webhooks.  |
+| Workflow              | Connect incident response to another working surface.                                       | Slack ChatOps war rooms and Jira issues/action items. |
 
-## ⚡ Integration Categories
+There is no native voice/PSTN notification channel in v1.3. PagerDuty support is inbound Events API v2 compatibility, not a full PagerDuty product or bidirectional synchronization.
 
-### Alert Sources (Inbound)
+## Start here
 
-These tools send telemetry and incident alerts **TO** OpsKnight:
+1. Read [How integrations work](../core-concepts/integrations.md) for keys, URLs, signing, deduplication, recovery, and safe testing.
+2. Create the integration under **Service → Integrations**.
+3. Follow the provider runbook below.
+4. Trigger and resolve a synthetic alert using the exact production path.
+5. Configure and test outbound [notification providers](../administration/notifications.md).
 
-| Category | Supported Tools |
-| :--- | :--- |
-| **APM & Tracing** | Datadog, New Relic, Dynatrace, AppDynamics, Honeycomb, Splunk Observability, Sentry |
-| **Cloud & Infrastructure** | AWS CloudWatch, Azure Monitor, Google Cloud Monitoring |
-| **Metrics & Server Daemons** | Prometheus / Alertmanager, Grafana, Zabbix, Nagios Core & XI, Icinga 2 |
-| **CI/CD & Deployments** | GitHub Actions, GitLab CI/CD, Bitbucket Pipelines, Vercel |
-| **Uptime & Health Checks** | UptimeRobot, Pingdom, Better Uptime, Uptime Kuma |
-| **Log Analytics & SIEM** | Elastic / Kibana, Splunk On-Call |
-| **Issue Tracking (Bi-directional)** | [Jira Cloud](./issue-tracking/jira) |
-| **Custom ingest** | Generic Webhooks, [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) |
+## Inbound integration catalog
 
-### Notification Channels (Outbound)
+These entries are backed by v1.3 route handlers. The provider guide is authoritative for payload and recovery behavior.
 
-These channels dispatch urgent incident notifications **FROM** OpsKnight:
+| Category              | Provider                | Webhook path                                       | Guide                                                          |
+| --------------------- | ----------------------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| APM and observability | AppDynamics             | `/api/integrations/appdynamics`                    | [AppDynamics](apm-monitoring/appdynamics.md)                   |
+| APM and observability | Datadog                 | `/api/integrations/datadog`                        | [Datadog](apm-monitoring/datadog.md)                           |
+| APM and observability | Dynatrace               | `/api/integrations/dynatrace`                      | [Dynatrace](apm-monitoring/dynatrace.md)                       |
+| APM and observability | Grafana                 | `/api/integrations/grafana`                        | [Grafana](apm-monitoring/grafana.md)                           |
+| APM and observability | Honeycomb               | `/api/integrations/honeycomb`                      | [Honeycomb](apm-monitoring/honeycomb.md)                       |
+| APM and observability | New Relic               | `/api/integrations/newrelic`                       | [New Relic](apm-monitoring/new-relic.md)                       |
+| APM and observability | Sentry                  | `/api/integrations/sentry`                         | [Sentry](apm-monitoring/sentry.md)                             |
+| APM and observability | Splunk Observability    | `/api/integrations/splunk-observability`           | [Splunk Observability](apm-monitoring/splunk-observability.md) |
+| Cloud                 | AWS CloudWatch          | `/api/integrations/cloudwatch`                     | [AWS CloudWatch](cloud/aws-cloudwatch.md)                      |
+| Cloud                 | Azure Monitor           | `/api/integrations/azure`                          | [Azure Monitor](cloud/azure-monitor.md)                        |
+| Cloud                 | Google Cloud Monitoring | `/api/integrations/google-cloud-monitoring`        | [Google Cloud Monitoring](cloud/google-cloud-monitoring.md)    |
+| Metrics and alerting  | Icinga 2                | `/api/integrations/icinga`                         | [Icinga](metrics-alerting/icinga.md)                           |
+| Metrics and alerting  | Nagios                  | `/api/integrations/nagios`                         | [Nagios](metrics-alerting/nagios.md)                           |
+| Metrics and alerting  | Prometheus Alertmanager | `/api/integrations/prometheus`                     | [Prometheus](metrics-alerting/prometheus.md)                   |
+| Metrics and alerting  | Zabbix                  | `/api/integrations/zabbix`                         | [Zabbix](metrics-alerting/zabbix.md)                           |
+| CI/CD                 | Bitbucket               | `/api/integrations/bitbucket`                      | [Bitbucket](ci-cd/bitbucket.md)                                |
+| CI/CD                 | GitHub                  | `/api/integrations/github`                         | [GitHub](ci-cd/github.md)                                      |
+| CI/CD                 | GitLab                  | `/api/integrations/gitlab`                         | [GitLab](ci-cd/gitlab.md)                                      |
+| CI/CD                 | Vercel                  | `/api/integrations/vercel`                         | [Vercel](ci-cd/vercel.md)                                      |
+| Uptime                | Better Uptime           | `/api/integrations/better-uptime`                  | [Better Uptime](uptime/better-uptime.md)                       |
+| Uptime                | Pingdom                 | `/api/integrations/pingdom`                        | [Pingdom](uptime/pingdom.md)                                   |
+| Uptime                | Uptime Kuma             | `/api/integrations/uptime-kuma`                    | [Uptime Kuma](uptime/uptime-kuma.md)                           |
+| Uptime                | UptimeRobot             | `/api/integrations/uptimerobot`                    | [UptimeRobot](uptime/uptimerobot.md)                           |
+| Logs/events           | Elastic/Kibana          | `/api/integrations/elastic`                        | [Elastic/Kibana](logs-events/elastic-kibana.md)                |
+| Logs/events           | Splunk On-Call          | `/api/integrations/splunk-oncall`                  | [Splunk On-Call](logs-events/splunk-oncall.md)                 |
+| Compatibility         | PagerDuty Events API v2 | `/api/integrations/pagerduty` and `/api/events/v2` | [PagerDuty-compatible ingest](custom/pagerduty-emulation.md)   |
+| Custom                | Generic webhook         | `/api/integrations/webhook`                        | [Custom webhooks](custom/webhooks.md)                          |
 
-| Channel | Capabilities |
-| :--- | :--- |
-| **Slack** | Rich cards, 1-click Acknowledge/Resolve, [Incident War Rooms & ChatOps](./communication/slack-chatops) |
-| **Jira Cloud** | [Automatic issue creation, service project routing & note sync](./issue-tracking/jira) |
-| **Email** | HTML notification digests with deep-links |
-| **SMS** | Twilio or AWS SNS |
-| **Push Notifications** | Mobile PWA background push alerts |
-| **WhatsApp** | Real-time messaging alerts |
-| **Outbound Webhooks** | Generic HTTP POST webhooks with HMAC-SHA256 signatures |
+The application also has `/api/integrations/health` for authenticated integration-health inspection. It is an operational endpoint, not an inbound alert source.
 
----
+## Outbound notification and workflow guides
 
-## 🔌 Supported Inbound Integrations
+| Capability                                              | Guide                                                   | Scope                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------- |
+| Email, SMS, push, WhatsApp, provider tests, and history | [Notifications](../administration/notifications.md)     | Workspace providers and user preferences.                             |
+| Slack notifications                                     | [Slack](communication/slack.md)                         | Workspace connection and incident messages.                           |
+| Slack OAuth                                             | [Slack OAuth setup](communication/slack-oauth-setup.md) | App credentials, scopes, redirect, and connection.                    |
+| Slack ChatOps and war rooms                             | [Slack ChatOps](communication/slack-chatops.md)         | Dedicated incident channels, commands, and actions.                   |
+| Jira Cloud                                              | [Jira](issue-tracking/jira.md)                          | Workspace configuration, service mapping, incident/action-item links. |
+| Service webhooks                                        | [Custom webhooks](custom/webhooks.md)                   | Outbound lifecycle webhook configuration and signing.                 |
 
-### 1. APM & Application Monitoring
+Microsoft Teams and Google Chat do not have dedicated native notification providers in the v1.3 provider model. A compatible incoming-webhook endpoint may accept a generic outbound webhook payload, but test its format explicitly and do not describe it as a native integration.
 
-#### [Datadog](./apm-monitoring/datadog)
-Full-stack monitoring with APM, infrastructure metrics, and logs.
-- **Endpoint**: `/api/integrations/datadog`
-- **Payloads**: Monitors, Synthetics, APM alerts
+## Credential vocabulary
 
-#### [New Relic](./apm-monitoring/new-relic)
-Application performance monitoring and infrastructure alerts.
-- **Endpoint**: `/api/integrations/newrelic`
-- **Payloads**: Alert policies, NRQL violations, synthetics
+| Credential                    | Used for                                                                              | Created where                              |
+| ----------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Integration ID                | Selects the service integration record on provider-native webhook routes.             | Service integration record.                |
+| Integration key / routing key | Authorizes inbound provider-native and Events API traffic and routes it to a service. | Generated when the integration is created. |
+| Signature secret              | Optionally verifies the raw provider webhook with the route's supported HMAC scheme.  | Rotated/cleared on the integration.        |
+| Workspace API key             | Authorizes deliberately published API operations according to scopes.                 | **Settings → API Keys**.                   |
+| Outbound webhook secret       | Signs OpsKnight-to-consumer requests.                                                 | Generated with the webhook configuration.  |
 
-#### [Dynatrace](./apm-monitoring/dynatrace)
-AI-powered full-stack observability and problem detection.
-- **Endpoint**: `/api/integrations/dynatrace`
-- **Payloads**: Problems, anomaly detection, root cause analysis
+Never substitute one credential type for another. Keep them in secret storage and rotate after exposure.
 
-#### [AppDynamics](./apm-monitoring/appdynamics)
-Application performance management and business transactions.
-- **Endpoint**: `/api/integrations/appdynamics`
-- **Payloads**: Health rules, policy violations
+## Production acceptance
 
-#### [Grafana](./apm-monitoring/grafana)
-Grafana Unified Alerting and legacy dashboard alerts.
-- **Endpoint**: `/api/integrations/grafana`
-- **Payloads**: Unified alerting webhooks, legacy alerts
+An integration is ready only when:
 
-#### [Honeycomb](./apm-monitoring/honeycomb)
-Observability and distributed tracing triggers.
-- **Endpoint**: `/api/integrations/honeycomb`
-- **Payloads**: Triggers, query results
+- [ ] the provider can authenticate to the exact route;
+- [ ] a representative failure creates the expected service incident and urgency;
+- [ ] a repeated failure reuses the same deduplication key;
+- [ ] recovery resolves that incident when supported;
+- [ ] invalid key and invalid signature requests are rejected;
+- [ ] a disabled integration rejects or stops processing as documented;
+- [ ] rate limiting and retry behavior are understood;
+- [ ] responders receive the intended outbound notifications;
+- [ ] credential rotation and removal have been rehearsed.
 
-#### [Sentry](./apm-monitoring/sentry)
-Real-time error tracking and performance monitoring.
-- **Endpoint**: `/api/integrations/sentry`
-- **Payloads**: Issue alerts, metric alerts, webhook events
+## Troubleshooting
 
-#### [Splunk Observability](./apm-monitoring/splunk-observability)
-Splunk APM and infrastructure detector alerts.
-- **Endpoint**: `/api/integrations/splunk-observability`
-- **Payloads**: Detectors, signalflow alerts
-
----
-
-### 2. Cloud & Infrastructure
-
-#### [AWS CloudWatch](./cloud/aws-cloudwatch)
-Native AWS alarm notifications via Amazon SNS.
-- **Endpoint**: `/api/integrations/cloudwatch`
-- **Payloads**: CloudWatch Alarms (`ALARM`, `OK`, `INSUFFICIENT_DATA`), SNS subscriptions
-
-#### [Azure Monitor](./cloud/azure-monitor)
-Microsoft Azure Monitor alerts and Common Alert Schema.
-- **Endpoint**: `/api/integrations/azure-monitor`
-- **Payloads**: Metric alerts, log search alerts, activity log alerts
-
-#### [Google Cloud Monitoring](./cloud/google-cloud-monitoring)
-Google Cloud Monitoring incident webhooks (formerly Stackdriver).
-- **Endpoint**: `/api/integrations/gcp-monitoring`
-- **Payloads**: Alerting policies, condition triggers
-
----
-
-### 3. Metrics, Alerting & Server Daemons
-
-#### [Prometheus / Alertmanager](./metrics-alerting/prometheus)
-Grouped metric alerts and resolution notifications.
-- **Endpoint**: `/api/integrations/prometheus`
-- **Payloads**: Prometheus Alertmanager grouped alerts
-
-#### [Zabbix](./metrics-alerting/zabbix) *(New in v1.3)*
-Enterprise server, network, and VM monitoring.
-- **Endpoint**: `/api/integrations/zabbix`
-- **Payloads**: Trigger events, problem state updates, recoveries (`Disaster`, `High`, `Average`, `Warning`, `Information`)
-
-#### [Nagios Core & XI](./metrics-alerting/nagios) *(New in v1.3)*
-Host and service state alerting with macro variable parsing.
-- **Endpoint**: `/api/integrations/nagios`
-- **Payloads**: Host alerts (`DOWN`, `UP`), Service alerts (`CRITICAL`, `WARNING`, `OK`)
-
-#### [Icinga 2](./metrics-alerting/icinga) *(New in v1.3)*
-Modern daemon and distributed check results.
-- **Endpoint**: `/api/integrations/icinga`
-- **Payloads**: Service check results, host notifications, downtime transitions
-
----
-
-### 4. CI/CD & DevOps
-
-#### [GitHub Actions](./ci-cd/github)
-Workflow run failures, security alerts, and deployment events.
-- **Endpoint**: `/api/integrations/github`
-- **Payloads**: `workflow_run.completed` (`failure`), repository vulnerability alerts
-
-#### [GitLab CI/CD](./ci-cd/gitlab) *(New in v1.3)*
-Pipeline failure tracking with commit and branch resolution.
-- **Endpoint**: `/api/integrations/gitlab`
-- **Payloads**: Pipeline Hook (`failed`, `success`), Job Hook
-
-#### [Bitbucket Pipelines](./ci-cd/bitbucket)
-Bitbucket build statuses and pull request pipelines.
-- **Endpoint**: `/api/integrations/bitbucket`
-- **Payloads**: `repo:commit_status_updated` (`FAILED`, `SUCCESSFUL`)
-
-#### [Vercel Deployments](./ci-cd/vercel) *(New in v1.3)*
-Frontend build failures and deployment error monitoring.
-- **Endpoint**: `/api/integrations/vercel`
-- **Payloads**: `deployment.error`, `deployment.canceled`
-
----
-
-### 5. Uptime & Synthetic Monitoring
-
-#### [UptimeRobot](./uptime/uptimerobot)
-Website and API uptime checks.
-- **Endpoint**: `/api/integrations/uptimerobot`
-- **Payloads**: Monitor alert webhooks (down/up)
-
-#### [Pingdom](./uptime/pingdom)
-Global synthetic uptime checks and transaction monitoring.
-- **Endpoint**: `/api/integrations/pingdom`
-- **Payloads**: Uptime check state transitions
-
-#### [Better Uptime](./uptime/better-uptime)
-Synthetic monitoring and heartbeats.
-- **Endpoint**: `/api/integrations/betteruptime`
-- **Payloads**: Incident webhook notifications
-
-#### [Uptime Kuma](./uptime/uptime-kuma)
-Self-hosted monitoring and container health checks.
-- **Endpoint**: `/api/integrations/uptimekuma`
-- **Payloads**: Notification webhooks (down/up)
-
----
-
-### 6. Log Analytics & SIEM
-
-#### [Elastic / Kibana](./logs-events/elastic-kibana)
-Elasticsearch cluster and Kibana rule alerting.
-- **Endpoint**: `/api/integrations/elastic`
-- **Payloads**: Kibana Alerting webhooks, Watcher alerts
-
-#### [Splunk On-Call](./logs-events/splunk-oncall)
-Log search alerts and security incident forwarding.
-- **Endpoint**: `/api/integrations/splunk-oncall`
-- **Payloads**: Alert notifications, incident events
-
----
-
-### 7. Issue Tracking & Project Management
-
-#### [Jira Cloud](./issue-tracking/jira)
-Bi-directional Jira integration for real-time ticket creation and comments.
-- **Endpoint**: `/api/integrations/jira`
-- **Capabilities**: Auto-create Jira issues, route by service, sync comments, manage postmortem action items
-
----
-
-### 8. Custom ingest
-
-#### [PagerDuty Events API v2 ingest](./custom/pagerduty-emulation) *(v1.3)*
-Accept Events API v2 payloads on your OpsKnight host. Change the destination URL and test. Not a PagerDuty product.
-- **Endpoint**: `/api/integrations/pagerduty` (and `/api/events/v2`)
-- **Capabilities**: `trigger`, `acknowledge`, `resolve` with routing key resolution
-
-#### [Generic Webhooks](./custom/webhooks)
-Connect custom scripts, internal cron jobs, or proprietary systems.
-- **Endpoint**: `/api/integrations/webhook`
-- **Capabilities**: Custom JSON mapping, HMAC-SHA256 signature verification
-
----
-
-## 🛠️ How Normalization & Deduplication Work
-
-```mermaid
-flowchart LR
-    Ingress[Inbound Webhook] --> Verify[HMAC / Secret Verification]
-    Verify --> Parse[Normalized Event Parser]
-    Parse --> Dedup[SHA-256 Fingerprinting Engine]
-    Dedup --> Route[Service & Escalation Routing]
-    Route --> Dispatch[On-Call Alerting]
-```
-
-1. **Verification**: Inbound requests are validated via HMAC signatures (`X-Hub-Signature-256`, `X-Grafana-Signature`, etc.) or token headers.
-2. **Normalization**: Diverse payload schemas are transformed into OpsKnight's unified incident format (`title`, `description`, `urgency`, `service`, `dedup_key`).
-3. **Deduplication**: SHA-256 hashes prevent alert storms from opening duplicate tickets for ongoing root-cause events.
-4. **Escalation Routing**: Active on-call responders receive notifications across Slack, Push, SMS, and Email according to their team schedule.
+Start with [Event Logs](../core-concepts/event-logs.md), notification history, the incident timeline, and [Troubleshooting](../troubleshooting.md). A successful provider delivery only proves OpsKnight accepted the request; it does not prove escalation or outbound provider delivery succeeded.
