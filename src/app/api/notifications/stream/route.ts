@@ -31,6 +31,22 @@ export async function GET(req: NextRequest) {
       const encoder = new TextEncoder();
       let isClosed = false;
 
+      let pollInterval: NodeJS.Timeout | null = null;
+      let isPolling = false;
+
+      const cleanup = () => {
+        isClosed = true;
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+        }
+        try {
+          controller.close();
+        } catch (_error) {
+          // Controller already closed, ignore
+        }
+      };
+
       // Send initial connection message
       const send = (data: string) => {
         if (!isClosed) {
@@ -41,7 +57,7 @@ export async function GET(req: NextRequest) {
               component: 'api-notifications-stream',
               error,
             });
-            isClosed = true;
+            cleanup();
           }
         }
       };
@@ -53,7 +69,9 @@ export async function GET(req: NextRequest) {
       let lastCheckId = '';
       let pollCount = 0;
 
-      const pollInterval = setInterval(async () => {
+      pollInterval = setInterval(async () => {
+        if (isClosed || isPolling) return;
+        isPolling = true;
         pollCount++;
         try {
           // Optimized query: purely time-based, uses index [userId, createdAt]
@@ -156,19 +174,18 @@ export async function GET(req: NextRequest) {
               message: 'Error fetching notifications',
             })
           );
+        } finally {
+          isPolling = false;
         }
       }, 5000);
 
       // Cleanup on client disconnect
       req.signal.addEventListener('abort', () => {
-        isClosed = true;
-        clearInterval(pollInterval);
-        try {
-          controller.close();
-        } catch (_error) {
-          // Controller already closed, ignore
-        }
+        cleanup();
       });
+    },
+    cancel() {
+      // Stream canceled by consumer
     },
   });
 

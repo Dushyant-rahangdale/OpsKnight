@@ -109,33 +109,38 @@ export async function performDataCleanup(dryRun: boolean = false): Promise<Clean
     const idsToDelete = incidentIds.map(i => i.id);
 
     if (idsToDelete.length > 0) {
-      // Delete incident events
-      const eventsDeleted = await prisma.incidentEvent.deleteMany({
-        where: { incidentId: { in: idsToDelete } },
-      });
-      eventCount = eventsDeleted.count;
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < idsToDelete.length; i += BATCH_SIZE) {
+        const batch = idsToDelete.slice(i, i + BATCH_SIZE);
 
-      // Delete incident notes
-      await prisma.incidentNote.deleteMany({
-        where: { incidentId: { in: idsToDelete } },
-      });
+        // Delete incident events
+        const eventsDeleted = await prisma.incidentEvent.deleteMany({
+          where: { incidentId: { in: batch } },
+        });
+        eventCount += eventsDeleted.count;
 
-      // Delete custom field values
-      await prisma.customFieldValue.deleteMany({
-        where: { incidentId: { in: idsToDelete } },
-      });
+        // Delete incident notes
+        await prisma.incidentNote.deleteMany({
+          where: { incidentId: { in: batch } },
+        });
 
-      // Delete related alerts (set incidentId to null instead of deleting)
-      await prisma.alert.updateMany({
-        where: { incidentId: { in: idsToDelete } },
-        data: { incidentId: null },
-      });
+        // Delete custom field values
+        await prisma.customFieldValue.deleteMany({
+          where: { incidentId: { in: batch } },
+        });
 
-      // Delete incidents
-      const incidentsDeleted = await prisma.incident.deleteMany({
-        where: { id: { in: idsToDelete } },
-      });
-      incidentCount = incidentsDeleted.count;
+        // Delete related alerts (set incidentId to null instead of deleting)
+        await prisma.alert.updateMany({
+          where: { incidentId: { in: batch } },
+          data: { incidentId: null },
+        });
+
+        // Delete incidents
+        const incidentsDeleted = await prisma.incident.deleteMany({
+          where: { id: { in: batch } },
+        });
+        incidentCount += incidentsDeleted.count;
+      }
     }
 
     // Delete old alerts (those not linked to incidents)

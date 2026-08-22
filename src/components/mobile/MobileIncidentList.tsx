@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SwipeableIncidentCard from '@/components/mobile/SwipeableIncidentCard';
 import { logger } from '@/lib/logger';
 import { enqueueRequest } from '@/lib/offline-queue';
@@ -24,6 +25,7 @@ export default function MobileIncidentList({
   incidents: IncidentListItem[];
   filter: IncidentFilter;
 }) {
+  const router = useRouter();
   const [localIncidents, setLocalIncidents] = useState<IncidentListItem[]>(incidents);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -87,6 +89,7 @@ export default function MobileIncidentList({
       if (!response.ok) {
         throw new Error('Failed to update incident');
       }
+      router.refresh();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to update incident';
       if (typeof window !== 'undefined' && !navigator.onLine) {

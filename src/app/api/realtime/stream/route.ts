@@ -21,6 +21,22 @@ export async function GET(req: NextRequest) {
         const encoder = new TextEncoder();
         let isClosed = false;
 
+        let pollInterval: NodeJS.Timeout | null = null;
+        let isPolling = false;
+
+        const cleanup = () => {
+          isClosed = true;
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          try {
+            controller.close();
+          } catch (_error) {
+            // Controller already closed, ignore
+          }
+        };
+
         // Track last sent metrics for change detection to reduce bandwidth
         let lastMetricsHash = '';
         let heartbeatCounter = 0;
@@ -32,7 +48,7 @@ export async function GET(req: NextRequest) {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             } catch (error) {
               logger.error('Error sending SSE data', { component: 'api-realtime-stream', error });
-              isClosed = true;
+              cleanup();
             }
           }
         };
@@ -42,7 +58,9 @@ export async function GET(req: NextRequest) {
 
         // Set up polling interval (every 5 seconds)
         // Uses caching layer to reduce database load by ~10x
-        const pollInterval = setInterval(async () => {
+        pollInterval = setInterval(async () => {
+          if (isClosed || isPolling) return;
+          isPolling = true;
           try {
             // Get recent incident updates using cached query
             const incidentResult = await getCachedRecentIncidents(
@@ -106,19 +124,18 @@ export async function GET(req: NextRequest) {
                 timestamp: new Date().toISOString(),
               })
             );
+          } finally {
+            isPolling = false;
           }
         }, 5000); // Poll every 5 seconds
 
         // Clean up on client disconnect
         req.signal.addEventListener('abort', () => {
-          isClosed = true;
-          clearInterval(pollInterval);
-          try {
-            controller.close();
-          } catch (_error) {
-            // Controller already closed, ignore
-          }
+          cleanup();
         });
+      },
+      cancel() {
+        // Consumer canceled the stream
       },
     });
 

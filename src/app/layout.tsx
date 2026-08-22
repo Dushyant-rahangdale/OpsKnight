@@ -3,7 +3,6 @@ import { Manrope } from 'next/font/google'; // [NEW]
 import '@/styles/index.css';
 import { Providers } from './providers';
 import VersionCheck from '@/components/VersionCheck';
-import { startCronScheduler } from '@/lib/cron-scheduler';
 
 // Initialize fonts with explicit weights for better control
 const manrope = Manrope({
@@ -12,10 +11,6 @@ const manrope = Manrope({
   weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
 });
-
-if (process.env.NEXT_RUNTIME !== 'edge') {
-  startCronScheduler();
-}
 
 export const metadata: Metadata = {
   title: 'OpsKnight | Incident Management',

@@ -128,6 +128,7 @@ export default function MobileBottomSheet({
             </h3>
             <button
               onClick={onClose}
+              aria-label="Close bottom sheet"
               className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--text-muted)] transition hover:bg-[color:var(--bg-secondary)]"
             >
               <svg

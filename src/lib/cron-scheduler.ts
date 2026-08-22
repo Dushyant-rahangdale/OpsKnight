@@ -216,6 +216,8 @@ async function getNextScheduledTime(): Promise<Date> {
  * Schedule the next cron run
  */
 function scheduleNextRun(targetTime: Date) {
+  if (!initialized) return;
+
   const now = Date.now();
   const rawDelay = targetTime.getTime() - now;
   const delay = rawDelay <= 0 ? 0 : Math.min(Math.max(rawDelay, MIN_DELAY_MS), MAX_DELAY_MS);
@@ -255,6 +257,17 @@ async function runOnce() {
     workerId: WORKER_ID,
     timestamp: new Date().toISOString(),
   });
+
+  // Heartbeat to prevent lock expiration during long-running tasks
+  let heartbeat: NodeJS.Timeout | null = setInterval(async () => {
+    try {
+      const { default: prisma } = await import('./prisma');
+      await prisma.cronSchedulerState.updateMany({
+        where: { id: SINGLETON_ID, lockedBy: WORKER_ID },
+        data: { lockedAt: new Date() },
+      });
+    } catch (_) {}
+  }, 30_000);
 
   try {
     // Process tasks in parallel groups for better throughput
@@ -311,9 +324,15 @@ async function runOnce() {
     if (isNewDay && isAfter1AM) {
       try {
         const { generateAllDailyRollups, cleanupOldRollups } = await import('./metric-rollup');
+        const { performDataCleanup } = await import('./data-cleanup');
         const { getRetentionPolicy } = await import('./retention-policy');
         const { default: prisma } = await import('./prisma');
         const policy = await getRetentionPolicy();
+
+        // Run data cleanup according to retention policy
+        await performDataCleanup(false).catch(cleanupErr => {
+          logger.warn('[Cron] Daily data cleanup completed with warnings', { error: cleanupErr });
+        });
 
         // Window of days that should have a rollup: yesterday back to
         // `metricsRetentionDays` ago (computed in pure UTC).
@@ -368,14 +387,14 @@ async function runOnce() {
         const toGenerate = missingDays.slice(0, MAX_BACKFILL_PER_RUN);
 
         if (toGenerate.length > 0) {
-          logger.info('[Cron] Generating daily rollups', {
-            requested: toGenerate.length,
-            remainingAfterRun: Math.max(0, missingDays.length - toGenerate.length),
-            oldest: toGenerate[toGenerate.length - 1].toISOString().split('T')[0],
-            newest: toGenerate[0].toISOString().split('T')[0],
+          logger.info('[Cron] Backfilling missing daily metric rollups', {
+            missingTotal: missingDays.length,
+            generatingNow: toGenerate.length,
+            newest: toGenerate[0]?.toISOString().split('T')[0],
+            oldest: toGenerate[toGenerate.length - 1]?.toISOString().split('T')[0],
           });
-          for (const date of toGenerate) {
-            await generateAllDailyRollups(date);
+          for (const day of toGenerate) {
+            await generateAllDailyRollups(day);
           }
         }
 
@@ -420,6 +439,11 @@ async function runOnce() {
       stack: error instanceof Error ? error.stack : undefined,
     });
   } finally {
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
+
     // Release lock and schedule next run
     await releaseLock();
 

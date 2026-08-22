@@ -3,6 +3,7 @@ import { getAuthOptions } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma';
 import { sendPush } from '@/lib/push';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { getServerSession } from 'next-auth';
 
 export async function POST() {
@@ -19,6 +20,14 @@ export async function POST() {
 
     if (!user) {
       return jsonError('User not found', 404);
+    }
+
+    const rateLimit = await checkRateLimit(`test-push:${user.id}`, 5, 60_000);
+    if (!rateLimit.allowed) {
+      return jsonError(
+        'Rate limit exceeded. Please wait a moment before sending another test.',
+        429
+      );
     }
 
     const result = await sendPush({

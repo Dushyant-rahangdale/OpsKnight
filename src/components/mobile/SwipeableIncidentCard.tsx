@@ -138,7 +138,10 @@ export default function SwipeableIncidentCard({
   };
 
   return (
-    <div className="relative rounded-xl overflow-hidden bg-[color:var(--bg-surface)]">
+    <div
+      className="relative rounded-xl overflow-hidden bg-[color:var(--bg-surface)]"
+      data-swipe-ignore="true"
+    >
       {/* Background Actions Layer */}
       <motion.div
         className="absolute inset-0 flex items-center justify-between px-6 pointer-events-none"
@@ -210,6 +213,7 @@ export default function SwipeableIncidentCard({
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
+        data-swipe-ignore="true"
         aria-label={`Incident: ${incident.title}. Status: ${incident.status}. Swipe right to ${leftAction?.label || 'acknowledge'}, swipe left to ${rightAction?.label || 'snooze/resolve'}`}
         className={cn(
           'relative flex flex-col gap-2 p-4 rounded-xl border transition-colors bg-[var(--bg-surface)] z-10',
