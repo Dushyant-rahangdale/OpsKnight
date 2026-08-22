@@ -2,6 +2,7 @@ import { randomBytes, createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { logger } from '@/lib/logger';
+import { validatePasswordStrength } from '@/lib/passwords';
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_ATTEMPTS_PER_WINDOW = 5;
 
@@ -238,6 +239,11 @@ export async function completePasswordReset(
 
   try {
     if (!token) return { success: false, error: 'Invalid token' };
+
+    const strengthError = validatePasswordStrength(password || '');
+    if (strengthError) {
+      return { success: false, error: strengthError };
+    }
 
     const tokenHash = createHash('sha256').update(token).digest('hex');
     const record = await prisma.userToken.findFirst({
