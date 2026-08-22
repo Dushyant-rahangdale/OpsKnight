@@ -5,6 +5,7 @@ import { MobileAvatar } from '@/components/mobile/MobileUtils';
 import { getDefaultAvatar } from '@/lib/avatar';
 import MobileCard from '@/components/mobile/MobileCard';
 import { ArrowLeft } from 'lucide-react';
+import { getActiveOnCallShifts } from '@/lib/oncall-shifts';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,24 +38,6 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
         },
         orderBy: { name: 'asc' },
       },
-      shifts: {
-        where: {
-          start: { lte: new Date() },
-          end: { gte: new Date() },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatarUrl: true,
-              gender: true,
-            },
-          },
-        },
-        take: 1,
-      },
     },
   });
 
@@ -62,7 +45,17 @@ export default async function MobileScheduleDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const currentOnCall = schedule.shifts[0]?.user;
+  const activeShifts = await getActiveOnCallShifts();
+  const currentShift = activeShifts.find(s => s.scheduleId === schedule.id);
+  const currentOnCall = currentShift
+    ? {
+        id: currentShift.user.id,
+        name: currentShift.user.name,
+        email: '',
+        avatarUrl: currentShift.user.avatarUrl,
+        gender: null,
+      }
+    : null;
   const totalParticipants = schedule.layers.reduce((acc, layer) => acc + layer.users.length, 0);
 
   return (

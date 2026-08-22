@@ -9,13 +9,24 @@ const INFO_KEYS = ['info', 'informational', 'p4', 'p5', 'low', 'ok', 'normal'];
 const RESOLVE_KEYS = ['resolve', 'resolved', 'close', 'closed', 'recover', 'recovered', 'ok', 'up'];
 const ACK_KEYS = ['ack', 'acknowledge', 'acknowledged'];
 
+function matchesKeyword(text: string, keywords: string[]): boolean {
+  const normalized = text.toLowerCase().trim();
+  const tokens = normalized.split(/[\s_\-.:,;/|]+/);
+  return keywords.some(key => {
+    // For short tokens (<= 3 chars like 'up', 'ok', 'ack', 'err'), require exact token match
+    if (key.length <= 3) {
+      return tokens.includes(key) || normalized === key;
+    }
+    return normalized.includes(key) || tokens.includes(key);
+  });
+}
+
 export function normalizeSeverity(value?: string, fallback: Severity = 'warning'): Severity {
   if (!value) return fallback;
-  const normalized = value.toLowerCase();
-  if (CRITICAL_KEYS.some(key => normalized.includes(key))) return 'critical';
-  if (ERROR_KEYS.some(key => normalized.includes(key))) return 'error';
-  if (WARNING_KEYS.some(key => normalized.includes(key))) return 'warning';
-  if (INFO_KEYS.some(key => normalized.includes(key))) return 'info';
+  if (matchesKeyword(value, CRITICAL_KEYS)) return 'critical';
+  if (matchesKeyword(value, ERROR_KEYS)) return 'error';
+  if (matchesKeyword(value, WARNING_KEYS)) return 'warning';
+  if (matchesKeyword(value, INFO_KEYS)) return 'info';
   return fallback;
 }
 
@@ -24,9 +35,8 @@ export function normalizeEventAction(
   fallback: EventAction = 'trigger'
 ): EventAction {
   if (!value) return fallback;
-  const normalized = value.toLowerCase();
-  if (ACK_KEYS.some(key => normalized.includes(key))) return 'acknowledge';
-  if (RESOLVE_KEYS.some(key => normalized.includes(key))) return 'resolve';
+  if (matchesKeyword(value, ACK_KEYS)) return 'acknowledge';
+  if (matchesKeyword(value, RESOLVE_KEYS)) return 'resolve';
   return fallback;
 }
 

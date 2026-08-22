@@ -21,6 +21,9 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
       layers: {
         include: {
           users: {
+            where: {
+              user: { status: 'ACTIVE' },
+            },
             include: { user: true },
             orderBy: { position: 'asc' },
           },
@@ -30,6 +33,7 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
         where: {
           start: { lte: atTime },
           end: { gt: atTime },
+          user: { status: 'ACTIVE' },
         },
         include: {
           user: true,
@@ -40,15 +44,6 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
 
   if (!schedule || schedule.layers.length === 0) {
     return [];
-  }
-
-  // If there are active overrides at the given time, honor them immediately.
-  // Overrides replace the underlying rotation for their window.
-  if (schedule.overrides.length > 0) {
-    const overrideUserIds = Array.from(new Set(schedule.overrides.map(o => o.userId)));
-    if (overrideUserIds.length > 0) {
-      return overrideUserIds;
-    }
   }
 
   // Build schedule blocks to find who's on-call
@@ -103,6 +98,18 @@ async function getOnCallUsersForSchedule(scheduleId: string, atTime: Date): Prom
     }
   }
 
+  // Also include any active overrides at atTime
+  if (schedule.overrides.length > 0) {
+    for (const override of schedule.overrides) {
+      if (
+        override.start.getTime() <= atTime.getTime() &&
+        override.end.getTime() > atTime.getTime()
+      ) {
+        userIds.add(override.userId);
+      }
+    }
+  }
+
   if (userIds.size > 0) {
     return Array.from(userIds);
   }
@@ -129,18 +136,29 @@ async function getTeamUsers(
     select: {
       teamLeadId: true,
       members: {
-        where: { receiveTeamNotifications: true },
-        select: { userId: true },
+        where: {
+          receiveTeamNotifications: true,
+        },
+        select: {
+          userId: true,
+          user: { select: { status: true } },
+        },
       },
     },
   });
 
   if (!team) return [];
 
+  const activeMembers = team.members.filter(m =>
+    (m as { user?: { status?: string } | null }).user
+      ? (m as { user?: { status?: string } | null }).user?.status !== 'DISABLED'
+      : true
+  );
+
   if (notifyOnlyTeamLead) {
     // Check if team lead exists and has notifications enabled
     if (team.teamLeadId) {
-      const leadHasNotifications = team.members.some(m => m.userId === team.teamLeadId);
+      const leadHasNotifications = activeMembers.some(m => m.userId === team.teamLeadId);
       if (leadHasNotifications) {
         return [team.teamLeadId];
       }
@@ -148,7 +166,7 @@ async function getTeamUsers(
     return [];
   }
 
-  return team.members.map(m => m.userId);
+  return activeMembers.map(m => m.userId);
 }
 
 /**
@@ -162,8 +180,22 @@ export async function resolveEscalationTarget(
   notifyOnlyTeamLead: boolean = false
 ): Promise<string[]> {
   switch (targetType) {
-    case 'USER':
+    case 'USER': {
+      if (prisma.user?.findUnique) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: targetId },
+            select: { id: true, status: true },
+          });
+          if (user && user.status === 'DISABLED') {
+            return [];
+          }
+        } catch {
+          return [targetId];
+        }
+      }
       return [targetId];
+    }
 
     case 'TEAM':
       return await getTeamUsers(targetId, notifyOnlyTeamLead);
@@ -508,9 +540,24 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
     step.notificationChannels.length > 0 ? step.notificationChannels : undefined;
 
   for (const userId of targetUserIds) {
-    const message = `[OpsKnight] Incident: ${incident.title}${currentStepIndex > 0 ? ` (Escalation Level ${currentStepIndex + 1})` : ''}`;
-    const result = await sendUserNotification(incidentId, userId, message, escalationChannels);
-    notificationsSent.push({ userId, result });
+    try {
+      const message = `[OpsKnight] Incident: ${incident.title}${currentStepIndex > 0 ? ` (Escalation Level ${currentStepIndex + 1})` : ''}`;
+      const result = await sendUserNotification(incidentId, userId, message, escalationChannels);
+      notificationsSent.push({ userId, result });
+    } catch (err) {
+      logger.error('Failed to send escalation notification to user', {
+        incidentId,
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      notificationsSent.push({
+        userId,
+        result: {
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown notification failure',
+        },
+      });
+    }
   }
 
   // Create event message
@@ -536,17 +583,39 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
     nextStepMessage = `Next escalation step scheduled for [[scheduledAt=${nextEscalationAt.toISOString()}]] (${nextStep.delayMinutes} minute delay)`;
   }
 
+  let shouldScheduleNextJob = Boolean(nextStep && nextEscalationAt);
+
   await runSerializableTransaction(async tx => {
-    // Check current assignee/team state from database to avoid race conditions
+    // Check current state from database to avoid race conditions
     const currentIncident = await tx.incident.findUnique({
       where: { id: incidentId },
-      select: { assigneeId: true, teamId: true },
+      select: { assigneeId: true, teamId: true, status: true, escalationStatus: true },
     });
 
+    // Race condition guard: If the incident was acknowledged, resolved, or snoozed while notifications
+    // were being dispatched, do NOT schedule further escalation steps or overwrite to ESCALATING.
+    const isInactive =
+      currentIncident?.status &&
+      (currentIncident.status === 'ACKNOWLEDGED' ||
+        currentIncident.status === 'RESOLVED' ||
+        currentIncident.status === 'SNOOZED');
+    const isAlreadyCompleted = currentIncident?.escalationStatus === 'COMPLETED';
+
+    const finalEscalationStatus = isInactive || isAlreadyCompleted ? 'COMPLETED' : escalationStatus;
+    const finalNextEscalationAt = isInactive || isAlreadyCompleted ? null : nextEscalationAt;
+    const finalStep =
+      isInactive || isAlreadyCompleted || nextStepIndex >= policySteps.length
+        ? null
+        : nextStepIndex;
+
+    if (finalEscalationStatus !== 'ESCALATING' || !finalNextEscalationAt) {
+      shouldScheduleNextJob = false;
+    }
+
     const updateData: Prisma.IncidentUpdateInput = {
-      currentEscalationStep: nextStepIndex < policySteps.length ? nextStepIndex : null,
-      nextEscalationAt,
-      escalationStatus,
+      currentEscalationStep: finalStep,
+      nextEscalationAt: finalNextEscalationAt,
+      escalationStatus: finalEscalationStatus,
       escalationProcessingAt: null,
     };
 
@@ -574,14 +643,16 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
     await tx.incidentEvent.create({
       data: {
         incidentId,
+        type: 'ESCALATED',
         message: `Escalated to ${targetDescription} (Level ${currentStepIndex + 1}${step.delayMinutes > 0 ? `, after ${step.delayMinutes} minute delay` : ''})`,
       },
     });
 
-    if (nextStepMessage) {
+    if (nextStepMessage && !isInactive && !isAlreadyCompleted) {
       await tx.incidentEvent.create({
         data: {
           incidentId,
+          type: 'ESCALATED',
           message: nextStepMessage,
         },
       });
@@ -589,7 +660,7 @@ export async function executeEscalation(incidentId: string, stepIndex?: number) 
   });
 
   // Schedule next escalation step using PostgreSQL job queue
-  if (nextStep && nextEscalationAt) {
+  if (shouldScheduleNextJob && nextStep && nextEscalationAt) {
     try {
       const { scheduleEscalation } = await import('./jobs/queue');
       const delayMs = nextStep.delayMinutes * 60 * 1000;

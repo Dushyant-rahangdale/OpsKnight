@@ -56,7 +56,7 @@ function getDayHourInTimeZone(date: Date, timeZone: string): { day: number; hour
   }).formatToParts(date);
 
   const weekday = parts.find(p => p.type === 'weekday')?.value ?? 'Sun';
-  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '0');
+  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? '0') % 24;
 
   const dayMap: Record<string, number> = {
     Sun: 0,
@@ -90,7 +90,7 @@ function addCalendarDaysInTimeZone(base: Date, days: number, timeZone: string): 
     get('year'),
     get('month') - 1,
     get('day') + days,
-    get('hour'),
+    get('hour') % 24,
     get('minute'),
     get('second')
   );
@@ -200,9 +200,9 @@ function generateLayerBlocks(
     return [];
   }
 
-  // Calculate initial index
+  // Calculate initial index (start at least 1 index earlier to account for DST fallback offsets)
   const startOffsetMs = Math.max(0, effectiveWindowStart.getTime() - layerStart.getTime());
-  let index = Math.floor(startOffsetMs / rotationMs);
+  let index = Math.max(0, Math.floor(startOffsetMs / rotationMs) - 1);
 
   // If we land inside a gap, we might need to check if we missed the duty period for this index
   // But simpler to just start checking from this index.

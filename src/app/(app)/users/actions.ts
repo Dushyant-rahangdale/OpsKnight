@@ -113,6 +113,8 @@ async function deleteUserInternal(userId: string) {
       data: { actorId: null },
     }),
     prisma.teamMember.deleteMany({ where: { userId } }),
+    prisma.onCallLayerUser.deleteMany({ where: { userId } }),
+    prisma.onCallOverride.deleteMany({ where: { OR: [{ userId }, { replacesUserId: userId }] } }),
     prisma.onCallShift.deleteMany({ where: { userId } }),
     prisma.escalationRule.deleteMany({ where: { targetUserId: userId } }),
     prisma.incidentNote.deleteMany({ where: { userId } }),

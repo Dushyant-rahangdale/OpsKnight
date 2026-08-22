@@ -115,17 +115,19 @@ export async function updateIncidentStatus(id: string, status: IncidentStatus) {
             },
           });
 
-          const stepIndex = policyData?.currentEscalationStep ?? 0;
-          const delayMinutes = policyData?.service?.policy?.steps?.[stepIndex]?.delayMinutes ?? 0;
-          updateData.nextEscalationAt = new Date(Date.now() + delayMinutes * 60 * 1000);
+          if (incident.status === 'RESOLVED') {
+            updateData.resolvedAt = null;
+            updateData.currentEscalationStep = 0;
+            const step0Delay = policyData?.service?.policy?.steps?.[0]?.delayMinutes ?? 0;
+            updateData.nextEscalationAt =
+              step0Delay > 0 ? new Date(Date.now() + step0Delay * 60 * 1000) : new Date();
+          } else {
+            const stepIndex = policyData?.currentEscalationStep ?? 0;
+            const delayMinutes = policyData?.service?.policy?.steps?.[stepIndex]?.delayMinutes ?? 0;
+            updateData.nextEscalationAt = new Date(Date.now() + delayMinutes * 60 * 1000);
+          }
         } else {
           updateData.nextEscalationAt = new Date(); // Resume immediately
-        }
-        // When reopening a resolved incident, clear resolvedAt so it can be re-resolved,
-        // but preserve acknowledgedAt to maintain MTTA SLA metric integrity.
-        if (incident.status === 'RESOLVED') {
-          updateData.resolvedAt = null;
-          updateData.currentEscalationStep = 0;
         }
       }
     }
