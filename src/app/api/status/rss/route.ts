@@ -96,6 +96,7 @@ export async function GET(req: NextRequest) {
                   : 'Investigating';
             const pubDate = new Date(incident.createdAt).toUTCString();
             const guid = `${baseUrl}/status#incident-${incident.id}`;
+            const serviceName = incident.service?.name || 'General';
 
             return `
         <item>
@@ -103,8 +104,8 @@ export async function GET(req: NextRequest) {
             <link>${guid}</link>
             <guid isPermaLink="false">${guid}</guid>
             <pubDate>${pubDate}</pubDate>
-            <description>${escapeXml(incident.description || incident.title)} - Service: ${escapeXml(incident.service.name)}</description>
-            <category>${escapeXml(incident.service.name)}</category>
+            <description>${escapeXml(incident.description || incident.title)} - Service: ${escapeXml(serviceName)}</description>
+            <category>${escapeXml(serviceName)}</category>
         </item>`;
           })
           .join('')}
