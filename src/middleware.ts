@@ -11,8 +11,11 @@ const PUBLIC_PATH_PREFIXES = [
   '/set-password',
   '/api/auth',
   '/api/health',
+  '/api/events',
   '/api/logs/ingest',
+  '/api/status',
   '/api/status-page',
+  '/api/system/vapid-public-key',
   '/api/slack/actions',
   '/api/slack/oauth/callback',
   '/api/integrations',
@@ -55,7 +58,11 @@ function isPublicPath(pathname: string) {
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/icon.svg')
+    pathname.startsWith('/icon.svg') ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/manifest.webmanifest' ||
+    pathname.startsWith('/icons/')
   ) {
     return true;
   }
