@@ -135,6 +135,7 @@ export function mergeHybridMetrics(
   };
 
   const mttr = weightedAvg(historical.mttr, resolvedHist, live.mttr, resolvedLive);
+  const mttd = weightedAvg(historical.mttd, ackedHist, live.mttd, ackedLive);
 
   // Urgency / event totals — straight sum.
   const highUrgencyCount = historical.highUrgencyCount + live.highUrgencyCount;
@@ -194,9 +195,9 @@ export function mergeHybridMetrics(
     suppressedCount: live.suppressedCount,
     criticalCount: live.criticalCount,
 
-    // Lifecycle: MTTR weighted, percentiles null in hybrid mode.
+    // Lifecycle: MTTR and MTTD weighted, percentiles null in hybrid mode.
     mttr,
-    mttd: null,
+    mttd,
     mtti: null,
     mttk: null,
     mttaP50: null,

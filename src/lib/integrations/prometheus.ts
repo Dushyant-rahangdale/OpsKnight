@@ -53,7 +53,13 @@ export function transformPrometheusToEvent(payload: PrometheusAlert): Array<{
   }
 
   return payload.alerts.map(alert => {
-    const isResolved = payload.status === 'resolved' || alert.status === 'resolved' || alert.endsAt;
+    const isResolved =
+      payload.status === 'resolved' ||
+      alert.status === 'resolved' ||
+      (Boolean(alert.endsAt) &&
+        alert.endsAt !== '0001-01-01T00:00:00Z' &&
+        alert.status !== 'firing' &&
+        new Date(alert.endsAt!).getTime() <= Date.now());
 
     const summary =
       alert.annotations?.summary ||

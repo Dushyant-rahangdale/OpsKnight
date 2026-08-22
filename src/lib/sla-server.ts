@@ -358,8 +358,10 @@ async function calculateDbAggregateMetrics(
         AVG(GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000))
           FILTER (WHERE "status" = 'RESOLVED' AND COALESCE("resolvedAt", "updatedAt") IS NOT NULL AND COALESCE("resolvedAt", "updatedAt") >= "createdAt") as avg_mttr_ms,
         COUNT(*) FILTER (
-          WHERE "acknowledgedAt" IS NOT NULL
-          AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) <= ${Prisma.raw(ackTargetCase)}
+          WHERE ("acknowledgedAt" IS NOT NULL
+            AND GREATEST(0, EXTRACT(EPOCH FROM ("acknowledgedAt" - "createdAt")) * 1000) <= ${Prisma.raw(ackTargetCase)})
+          OR ("acknowledgedAt" IS NULL AND "status" = 'RESOLVED'
+            AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) <= ${Prisma.raw(ackTargetCase)})
         ) as ack_sla_met,
         COUNT(*) FILTER (
           WHERE ("acknowledgedAt" IS NOT NULL
@@ -367,6 +369,9 @@ async function calculateDbAggregateMetrics(
           OR ("acknowledgedAt" IS NULL
             AND "status" != 'RESOLVED'
             AND EXTRACT(EPOCH FROM (NOW() - "createdAt")) * 1000 > ${Prisma.raw(ackTargetCase)})
+          OR ("acknowledgedAt" IS NULL
+            AND "status" = 'RESOLVED'
+            AND GREATEST(0, EXTRACT(EPOCH FROM (COALESCE("resolvedAt", "updatedAt") - "createdAt")) * 1000) > ${Prisma.raw(ackTargetCase)})
         ) as ack_sla_breached,
         COUNT(*) FILTER (
           WHERE "status" = 'RESOLVED'
@@ -809,11 +814,6 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       boundary: realtimeStart.toISOString(),
     });
 
-    const serviceIdFilter = Array.isArray(filters.serviceId)
-      ? filters.serviceId[0]
-      : filters.serviceId;
-    const teamIdFilter = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
-
     // Historical partition: [finalStart, realtimeStart). The end is
     // exclusive of `realtimeStart` so an incident at exactly that
     // instant lands in the live partition and isn't double-counted.
@@ -824,7 +824,7 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       finalStart,
       historicalEnd,
       isClipped,
-      { serviceId: serviceIdFilter, teamId: teamIdFilter, priority: filters.priority }
+      { serviceId: filters.serviceId, teamId: filters.teamId, priority: filters.priority }
     );
 
     // Live partition: [realtimeStart, finalEnd]. Recursive call with
@@ -858,12 +858,6 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       end: finalEnd.toISOString(),
     });
 
-    const serviceIdFilter = Array.isArray(filters.serviceId)
-      ? filters.serviceId[0]
-      : filters.serviceId;
-
-    const teamIdFilter = Array.isArray(filters.teamId) ? filters.teamId[0] : filters.teamId;
-
     // Pass both the user-requested range and the clipped effective range so
     // the rollup function can correctly report `isClipped` and preserve
     // `requestedStart`/`requestedEnd` for the UI banner.
@@ -874,8 +868,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       finalEnd,
       isClipped,
       {
-        serviceId: serviceIdFilter,
-        teamId: teamIdFilter,
+        serviceId: filters.serviceId,
+        teamId: filters.teamId,
         priority: filters.priority,
       }
     );
@@ -1694,8 +1688,18 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         } else {
           ackSlaBreached++;
         }
-      } else if (incident.status !== 'RESOLVED') {
-        // FIX: Check if unacked incident is overdue
+      } else if (incident.status === 'RESOLVED') {
+        const resolvedAt = incident.resolvedAt || incident.updatedAt;
+        if (resolvedAt && incident.createdAt) {
+          const diffMin = (resolvedAt.getTime() - incident.createdAt.getTime()) / 60000;
+          if (diffMin <= ackTarget) {
+            ackSlaMet++;
+          } else {
+            ackSlaBreached++;
+          }
+        }
+      } else {
+        // Check if unacked incident is overdue
         const elapsedMin = (now.getTime() - incident.createdAt.getTime()) / 60000;
         if (elapsedMin > ackTarget) {
           ackSlaBreached++;
@@ -2666,7 +2670,11 @@ export async function calculateSLAMetricsFromRollups(
   effectiveStart: Date,
   effectiveEnd: Date,
   isClipped: boolean,
-  filters: { serviceId?: string | null; teamId?: string | null; priority?: string | string[] } = {}
+  filters: {
+    serviceId?: string | string[] | null;
+    teamId?: string | string[] | null;
+    priority?: string | string[];
+  } = {}
 ): Promise<SLAMetrics & { dataSource: 'rollup' }> {
   const { default: prisma } = await import('./prisma');
 
@@ -2689,8 +2697,16 @@ export async function calculateSLAMetricsFromRollups(
     where: {
       date: { gte: effectiveStart, lte: effectiveEnd },
       granularity: 'daily',
-      ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
-      ...(filters.teamId ? { teamId: filters.teamId } : {}),
+      ...(filters.serviceId
+        ? Array.isArray(filters.serviceId)
+          ? { serviceId: { in: filters.serviceId } }
+          : { serviceId: filters.serviceId }
+        : { serviceId: null }),
+      ...(filters.teamId
+        ? Array.isArray(filters.teamId)
+          ? { teamId: { in: filters.teamId } }
+          : { teamId: filters.teamId }
+        : {}),
     },
   });
 
@@ -2703,8 +2719,16 @@ export async function calculateSLAMetricsFromRollups(
       const where: Record<string, unknown> = {
         status: { notIn: ['RESOLVED', 'SNOOZED', 'SUPPRESSED'] as const },
       };
-      if (filters.serviceId) where.serviceId = filters.serviceId;
-      if (filters.teamId) where.service = { teamId: filters.teamId };
+      if (filters.serviceId) {
+        where.serviceId = Array.isArray(filters.serviceId)
+          ? { in: filters.serviceId }
+          : filters.serviceId;
+      }
+      if (filters.teamId) {
+        where.service = Array.isArray(filters.teamId)
+          ? { teamId: { in: filters.teamId } }
+          : { teamId: filters.teamId };
+      }
       const [openCount, criticalCount] = await Promise.all([
         prisma.incident.count({ where }),
         prisma.incident.count({ where: { ...where, urgency: 'HIGH' } }),
@@ -2732,8 +2756,16 @@ export async function calculateSLAMetricsFromRollups(
     where: {
       date: { gte: heatmapStart, lte: heatmapEnd },
       granularity: 'daily',
-      ...(filters.serviceId ? { serviceId: filters.serviceId } : {}),
-      ...(filters.teamId ? { teamId: filters.teamId } : {}),
+      ...(filters.serviceId
+        ? Array.isArray(filters.serviceId)
+          ? { serviceId: { in: filters.serviceId } }
+          : { serviceId: filters.serviceId }
+        : { serviceId: null }),
+      ...(filters.teamId
+        ? Array.isArray(filters.teamId)
+          ? { teamId: { in: filters.teamId } }
+          : { teamId: filters.teamId }
+        : {}),
     },
     select: {
       date: true,

@@ -113,9 +113,16 @@ export function transformSentryToEvent(payload: SentryEvent): {
     };
     const severity = severityMap[event.level?.toLowerCase() || 'error'] || 'error';
 
+    const groupKey =
+      (event as { issue_id?: string; group_id?: string; fingerprint?: string[] }).issue_id ||
+      (event as { issue_id?: string; group_id?: string; fingerprint?: string[] }).group_id ||
+      (event as { issue_id?: string; group_id?: string; fingerprint?: string[] })
+        .fingerprint?.[0] ||
+      event.event_id;
+
     return {
       event_action: 'trigger',
-      dedup_key: `sentry-${event.event_id}`,
+      dedup_key: `sentry-${groupKey}`,
       payload: {
         summary: event.message || 'Sentry Error',
         source: `Sentry${payload.project ? ` - ${payload.project.name}` : ''}`,

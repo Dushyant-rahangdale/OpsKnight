@@ -28,7 +28,7 @@ describe('movePolicyStep', () => {
     });
   });
 
-  it('swaps delay minutes when moving a step up', async () => {
+  it('updates step orders without overwriting delay minutes when moving a step up', async () => {
     prismaMock.escalationRule.findUnique.mockResolvedValue({
       id: 'step-1',
       policyId: 'pol-1',
@@ -49,11 +49,11 @@ describe('movePolicyStep', () => {
       expect.arrayContaining([
         {
           where: { id: 'step-1' },
-          data: { stepOrder: 0, delayMinutes: 0 },
+          data: { stepOrder: 0 },
         },
         {
           where: { id: 'step-0' },
-          data: { stepOrder: 1, delayMinutes: 10 },
+          data: { stepOrder: 1 },
         },
       ])
     );

@@ -91,7 +91,10 @@ describe('resolveEscalationTarget', () => {
           teamLeadId: true,
           members: {
             where: { receiveTeamNotifications: true },
-            select: { userId: true },
+            select: {
+              userId: true,
+              user: { select: { status: true } },
+            },
           },
         },
       });

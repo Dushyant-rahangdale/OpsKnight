@@ -145,12 +145,8 @@ export async function sendUserNotification(
   let primarySuccess = false;
 
   for (const channel of channels) {
-    if (primarySuccess) {
-      if (isHighUrgency && channel === 'EMAIL') {
-        // Continue to send email for high urgency incidents
-      } else {
-        continue;
-      }
+    if (!isHighUrgency && primarySuccess) {
+      break;
     }
 
     const result = await sendNotification(incidentId, userId, channel, message);
@@ -161,13 +157,7 @@ export async function sendUserNotification(
         userId,
       });
 
-      if (channel !== 'EMAIL') {
-        primarySuccess = true;
-      }
-
-      if (!isHighUrgency && primarySuccess) {
-        break;
-      }
+      primarySuccess = true;
     } else {
       errors.push(`${channel}: ${result.error || 'Failed'}`);
     }

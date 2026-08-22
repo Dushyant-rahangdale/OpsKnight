@@ -441,11 +441,11 @@ export async function movePolicyStep(
     await prisma.$transaction([
       prisma.escalationRule.update({
         where: { id: stepId },
-        data: { stepOrder: newOrder, delayMinutes: targetStep.delayMinutes },
+        data: { stepOrder: newOrder },
       }),
       prisma.escalationRule.update({
         where: { id: targetStep.id },
-        data: { stepOrder: currentOrder, delayMinutes: step.delayMinutes },
+        data: { stepOrder: currentOrder },
       }),
     ]);
 
@@ -483,29 +483,19 @@ export async function reorderPolicySteps(
           policyId,
           id: { in: newOrder },
         },
-        select: { id: true, delayMinutes: true, stepOrder: true },
-        orderBy: { stepOrder: 'asc' }, // Get them in original order to capture delays
+        select: { id: true, stepOrder: true },
       });
 
       if (steps.length !== newOrder.length) {
         throw new Error('Invalid step IDs provided for reordering');
       }
 
-      // Capture the delays from the ORIGINAL order (Step 1's delay, Step 2's delay...)
-      // Since we queried with 'in: newOrder', the order returned by findMany isn't guaranteed match newOrder.
-      // But we ordered by 'stepOrder: asc', so steps[0] is the current Step 1, steps[1] is current Step 2.
-      const sortedCurrentSteps = [...steps].sort((a, b) => a.stepOrder - b.stepOrder);
-      const delays = sortedCurrentSteps.map(s => s.delayMinutes);
-
-      // Update each step in 'newOrder'
-      // newOrder[i] is the ID of the step that should now be at position 'i'.
-      // We give it 'stepOrder: i' AND 'delayMinutes: delays[i]'.
+      // Update each step in 'newOrder' to its new stepOrder position
       for (let i = 0; i < newOrder.length; i++) {
         await tx.escalationRule.update({
           where: { id: newOrder[i] },
           data: {
             stepOrder: i,
-            delayMinutes: delays[i],
           },
         });
       }

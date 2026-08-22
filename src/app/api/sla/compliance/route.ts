@@ -142,8 +142,16 @@ export async function GET(request: NextRequest) {
             // For uptime, higher is better
             if (metrics.previousPeriod.resolveRate < metrics.resolveRate) trend = 'up';
             else if (metrics.previousPeriod.resolveRate > metrics.resolveRate) trend = 'down';
+          } else if (def.metricType === 'MTTA') {
+            // For MTTA, lower is better
+            const prev = metrics.previousPeriod.mtta;
+            const curr = metrics.mttd;
+            if (prev !== null && curr !== null) {
+              if (curr < prev) trend = 'up';
+              else if (curr > prev) trend = 'down';
+            }
           } else {
-            // For time-based metrics, lower is better
+            // For time-based metrics (MTTR), lower is better
             if (metrics.previousPeriod.mttr !== null && metrics.mttr !== null) {
               if (metrics.mttr < metrics.previousPeriod.mttr) trend = 'up';
               else if (metrics.mttr > metrics.previousPeriod.mttr) trend = 'down';
