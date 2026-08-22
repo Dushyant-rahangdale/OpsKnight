@@ -113,6 +113,7 @@ export default function MobileModal({
             </h2>
             <button
               onClick={onClose}
+              aria-label="Close dialog"
               style={{
                 background: 'none',
                 border: 'none',

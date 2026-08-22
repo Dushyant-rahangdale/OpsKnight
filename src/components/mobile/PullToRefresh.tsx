@@ -9,7 +9,8 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
   const [pullChange, setPullChange] = useState<number>(0);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const startPointRef = useRef<number | null>(null);
+  const startXRef = useRef<number | null>(null);
+  const startYRef = useRef<number | null>(null);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pullThreshold = 70;
@@ -50,7 +51,8 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isInteractiveTarget(e.target)) {
-      startPointRef.current = null;
+      startXRef.current = null;
+      startYRef.current = null;
       return;
     }
 
@@ -59,8 +61,9 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
       ? scrollParent.scrollTop
       : window.scrollY || document.documentElement.scrollTop;
 
-    if (scrollTop <= 0 && !refreshing) {
-      startPointRef.current = e.targetTouches[0].clientY;
+    if (scrollTop <= 0 && !refreshing && e.targetTouches?.[0]) {
+      startXRef.current = e.targetTouches[0].clientX ?? 0;
+      startYRef.current = e.targetTouches[0].clientY ?? 0;
     }
   };
 
@@ -69,7 +72,8 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
       if (pullChange !== 0) {
         setPullChange(0);
       }
-      startPointRef.current = null;
+      startXRef.current = null;
+      startYRef.current = null;
       return;
     }
 
@@ -79,27 +83,33 @@ export default function PullToRefresh({ children }: { children: ReactNode }) {
       : window.scrollY || document.documentElement.scrollTop;
 
     if (scrollTop > 0 || refreshing) return;
-    if (startPointRef.current === null) return;
+    if (startYRef.current === null || startXRef.current === null) return;
+    if (!e.targetTouches?.[0]) return;
 
-    const touchY = e.targetTouches[0].clientY;
-    const diff = touchY - startPointRef.current;
+    const touchX = e.targetTouches[0].clientX ?? 0;
+    const touchY = e.targetTouches[0].clientY ?? 0;
+    const diffX = Math.abs(touchX - startXRef.current);
+    const diffY = touchY - startYRef.current;
 
-    if (diff > 0) {
+    if (diffY > 0 && diffY > diffX * 1.5) {
       // Rubber band resistance effect
-      const pull = Math.min(diff * 0.45, maxPull);
+      const pull = Math.min(diffY * 0.45, maxPull);
       setPullChange(pull);
+    } else if (diffX > diffY && pullChange !== 0) {
+      setPullChange(0);
     }
   };
 
   const handleTouchEnd = () => {
-    if (startPointRef.current === null) return;
+    if (startYRef.current === null) return;
 
     if (pullChange > pullThreshold) {
       initLoading();
     } else {
       setPullChange(0);
     }
-    startPointRef.current = null;
+    startXRef.current = null;
+    startYRef.current = null;
   };
 
   // Calculate progress for visual feedback

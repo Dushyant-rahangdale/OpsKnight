@@ -7,6 +7,7 @@ import prisma from './prisma';
 import { logger } from './logger';
 import { getBaseUrl } from './env-validation';
 import { getWhatsAppConfig } from './notification-providers';
+import { formatToE164 } from './sms';
 
 export type WhatsAppOptions = {
   userId: string;
@@ -14,7 +15,7 @@ export type WhatsAppOptions = {
   eventType: 'triggered' | 'acknowledged' | 'resolved';
 };
 
-const normalizeWhatsAppNumber = (value: string) => value.replace(/^whatsapp:/i, '');
+const normalizeWhatsAppNumber = (value: string) => formatToE164(value.replace(/^whatsapp:/i, ''));
 
 /**
  * Send WhatsApp notification for an incident
@@ -53,20 +54,7 @@ export async function sendIncidentWhatsApp(
     }
 
     // Format phone number for WhatsApp (must be E.164 format)
-    let phoneNumber = user.phoneNumber.trim();
-    if (phoneNumber.startsWith('00')) {
-      phoneNumber = `+${phoneNumber.slice(2).replace(/\D/g, '')}`;
-    } else if (!phoneNumber.startsWith('+')) {
-      const digits = phoneNumber.replace(/\D/g, '');
-      if (digits.length === 10) {
-        phoneNumber = `+1${digits}`;
-      } else {
-        phoneNumber = `+${digits}`;
-      }
-    } else {
-      phoneNumber = `+${phoneNumber.replace(/\D/g, '')}`;
-    }
-
+    const phoneNumber = formatToE164(user.phoneNumber);
     const whatsappNumber = `whatsapp:${phoneNumber}`;
     // Get WhatsApp from number from database config
     const whatsappFromNumber = whatsappConfig.whatsappNumber;
@@ -88,9 +76,9 @@ export async function sendIncidentWhatsApp(
     if (eventType === 'triggered') {
       statusLine = incident.urgency === 'HIGH' ? '🚨 Critical Alert' : '⚠️ Incident Alert';
     } else if (eventType === 'acknowledged') {
-      statusLine = '👁️ Acknowledged';
+      statusLine = '👀 Incident Acknowledged';
     } else if (eventType === 'resolved') {
-      statusLine = '✅ Resolved';
+      statusLine = '✅ Incident Resolved';
     }
 
     // Truncate for sanity, though WhatsApp limit is 1600 chars
@@ -102,7 +90,6 @@ export async function sendIncidentWhatsApp(
 
     // Send via Twilio WhatsApp API
     const twilio = (await import('twilio')).default as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-
     const client = twilio(whatsappConfig.accountSid, whatsappConfig.authToken);
 
     try {
@@ -171,20 +158,7 @@ export async function sendWhatsApp(
     }
 
     // Format phone numbers
-    let toNumber = to.trim();
-    if (toNumber.startsWith('00')) {
-      toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
-    } else if (!toNumber.startsWith('+')) {
-      const digits = toNumber.replace(/\D/g, '');
-      if (digits.length === 10) {
-        toNumber = `+1${digits}`;
-      } else {
-        toNumber = `+${digits}`;
-      }
-    } else {
-      toNumber = `+${toNumber.replace(/\D/g, '')}`;
-    }
-
+    const toNumber = formatToE164(to);
     const whatsappTo = `whatsapp:${toNumber}`;
     // Get WhatsApp from number from database config
     const whatsappFromNumber = whatsappConfig.whatsappNumber;

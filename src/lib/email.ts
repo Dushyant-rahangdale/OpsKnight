@@ -117,8 +117,10 @@ export async function sendEmail(
         const err = error as { code?: string; message?: string };
         if (err.code === 'MODULE_NOT_FOUND') {
           logger.warn('Resend package not installed', { installCommand: 'npm install resend' });
-          logger.info('Would send via Resend', { to: options.to, from: emailConfig.fromEmail });
-          return { success: true };
+          return {
+            success: false,
+            error: 'Resend package not installed. Run: npm install resend',
+          };
         }
         logger.error('Resend send error', {
           component: 'email',

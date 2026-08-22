@@ -39,16 +39,16 @@ export async function GET(request: Request) {
     const dateFilter = buildDateFilter(range, startDate, endDate);
     const widgetFilters = {
       serviceId: serviceParam && serviceParam !== 'all' ? serviceParam : undefined,
-      assigneeId:
-        assigneeParam === null ? undefined : assigneeParam === '' ? null : assigneeParam,
+      assigneeId: assigneeParam === null ? undefined : assigneeParam === '' ? null : assigneeParam,
       urgency: (searchParams.get('urgency') as 'HIGH' | 'MEDIUM' | 'LOW' | null) || undefined,
-      status: (searchParams.get('status') as
-        | 'OPEN'
-        | 'ACKNOWLEDGED'
-        | 'SNOOZED'
-        | 'SUPPRESSED'
-        | 'RESOLVED'
-        | null) || undefined,
+      status:
+        (searchParams.get('status') as
+          | 'OPEN'
+          | 'ACKNOWLEDGED'
+          | 'SNOOZED'
+          | 'SUPPRESSED'
+          | 'RESOLVED'
+          | null) || undefined,
       startDate: dateFilter.createdAt?.gte,
       endDate: dateFilter.createdAt?.lte,
       includeAllTime: range === 'all',
@@ -56,10 +56,30 @@ export async function GET(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
+        let isClosed = false;
+        let intervalId: NodeJS.Timeout | null = null;
+        let isUpdating = false;
+
+        const cleanup = () => {
+          isClosed = true;
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+          try {
+            controller.close();
+          } catch (_error) {
+            // Already closed
+          }
+          logger.info('sse.widgets.stream_closed', { userId: user.id });
+        };
+
         // Send initial data immediately
         try {
           const initialData = await getWidgetData(user.id, user.role, widgetFilters);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
+          if (!isClosed) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialData)}\n\n`));
+          }
         } catch (error) {
           logger.error('sse.widgets.initial_error', {
             error: error instanceof Error ? error.message : String(error),
@@ -67,23 +87,31 @@ export async function GET(request: Request) {
         }
 
         // Set up interval for periodic updates
-        const intervalId = setInterval(async () => {
+        intervalId = setInterval(async () => {
+          if (isClosed || isUpdating) return;
+          isUpdating = true;
           try {
             const data = await getWidgetData(user.id, user.role, widgetFilters);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+            if (!isClosed) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+            }
           } catch (error) {
             logger.error('sse.widgets.update_error', {
               error: error instanceof Error ? error.message : String(error),
             });
+            cleanup();
+          } finally {
+            isUpdating = false;
           }
         }, 10000); // Update every 10 seconds
 
         // Cleanup on disconnect
         request.signal.addEventListener('abort', () => {
-          clearInterval(intervalId);
-          controller.close();
-          logger.info('sse.widgets.stream_closed', { userId: user.id });
+          cleanup();
         });
+      },
+      cancel() {
+        // Stream canceled by consumer
       },
     });
 

@@ -14,7 +14,8 @@ const VERTICAL_TOLERANCE = 1.2;
 const SWIPE_NAV_DELAY_MS = 120;
 const SWIPE_HINT_MS = 2200;
 const SWIPE_HINT_KEY = 'mobileSwipeHintSeen';
-const INTERACTIVE_SELECTOR = 'a,button,input,textarea,select,[data-swipe-ignore]';
+const INTERACTIVE_SELECTOR =
+  'a,button,input,textarea,select,[data-swipe-ignore],[role="button"],[role="slider"],[role="tab"]';
 
 const isInteractiveTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) return false;

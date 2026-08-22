@@ -87,6 +87,23 @@ export async function GET(req: NextRequest) {
       const encoder = new TextEncoder();
 
       // Track last sent data hash for change detection
+      let isClosed = false;
+      let interval: NodeJS.Timeout | null = null;
+      let isChecking = false;
+
+      const cleanup = () => {
+        isClosed = true;
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+        try {
+          controller.close();
+        } catch (_error) {
+          // Already closed
+        }
+      };
+
       let lastDataHash = '';
 
       // Simple hash function for change detection
@@ -96,8 +113,14 @@ export async function GET(req: NextRequest) {
 
       // Send initial connection message
       const send = (data: any) => {
-        const message = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(message));
+        if (!isClosed) {
+          try {
+            const message = `data: ${JSON.stringify(data)}\n\n`;
+            controller.enqueue(encoder.encode(message));
+          } catch (error) {
+            cleanup();
+          }
+        }
       };
 
       // Send only if data has changed (for non-critical updates)
@@ -116,7 +139,9 @@ export async function GET(req: NextRequest) {
 
       // Set up interval to check for updates
       // Uses caching layer to reduce database load by ~10x
-      const interval = setInterval(async () => {
+      interval = setInterval(async () => {
+        if (isClosed || isChecking) return;
+        isChecking = true;
         try {
           if (incidentId) {
             // Stream updates for a specific incident using cache
@@ -180,15 +205,21 @@ export async function GET(req: NextRequest) {
             }
           }
         } catch (_error) {
-          send({ type: 'error', message: 'Failed to fetch updates' });
+          if (!isClosed) {
+            send({ type: 'error', message: 'Failed to fetch updates' });
+          }
+        } finally {
+          isChecking = false;
         }
       }, 5000); // Check every 5 seconds
 
       // Cleanup on client disconnect
       req.signal.addEventListener('abort', () => {
-        clearInterval(interval);
-        controller.close();
+        cleanup();
       });
+    },
+    cancel() {
+      // Stream canceled by consumer
     },
   });
 

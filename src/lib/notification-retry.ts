@@ -39,6 +39,11 @@ export async function retryFailedNotifications(): Promise<{
         select: {
           id: true,
           status: true,
+          service: {
+            select: {
+              webhookUrl: true,
+            },
+          },
         },
       },
     },
@@ -62,6 +67,8 @@ export async function retryFailedNotifications(): Promise<{
   const emailModule = await import('./email');
   const smsModule = await import('./sms');
   const pushModule = await import('./push');
+  const whatsappModule = await import('./whatsapp');
+  const webhooksModule = await import('./webhooks');
 
   // Helper to determine event type from incident status
   const getEventType = (status?: string) =>
@@ -114,6 +121,27 @@ export async function retryFailedNotifications(): Promise<{
                 notification.incidentId,
                 eventType
               );
+              break;
+            case 'WHATSAPP':
+              result = await whatsappModule.sendIncidentWhatsApp(
+                notification.userId,
+                notification.incidentId,
+                eventType
+              );
+              break;
+            case 'WEBHOOK':
+              if (notification.incident?.service?.webhookUrl) {
+                result = await webhooksModule.sendIncidentWebhook(
+                  notification.incident.service.webhookUrl,
+                  notification.incidentId,
+                  eventType
+                );
+              } else {
+                result = {
+                  success: false,
+                  error: 'No webhook URL configured on incident service',
+                };
+              }
               break;
             default:
               result = {

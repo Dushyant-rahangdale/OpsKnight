@@ -44,6 +44,26 @@ type AwsSnsModule = {
   PublishCommand: new (input: { PhoneNumber: string; Message: string }) => unknown;
 };
 
+export function formatToE164(phone: string): string {
+  let cleaned = phone.replace(/^whatsapp:/i, '').trim();
+  if (cleaned.startsWith('00')) {
+    cleaned = `+${cleaned.slice(2).replace(/\D/g, '')}`;
+  } else if (cleaned.startsWith('+')) {
+    cleaned = `+${cleaned.slice(1).replace(/\D/g, '')}`;
+  } else {
+    let digits = cleaned.replace(/\D/g, '');
+    if (digits.startsWith('0') && digits.length >= 10) {
+      digits = digits.replace(/^0+/, '');
+    }
+    if (digits.length === 10) {
+      cleaned = `+1${digits}`;
+    } else {
+      cleaned = `+${digits}`;
+    }
+  }
+  return cleaned;
+}
+
 /**
  * Send SMS notification
  * Uses structured logger for delivery events and warnings
@@ -103,23 +123,8 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
       try {
         const client = twilio(smsConfig.accountSid, smsConfig.authToken);
 
-        // Format phone number to E.164 if needed
-        let toNumber = options.to.trim();
-        if (toNumber.startsWith('00')) {
-          toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
-        } else if (!toNumber.startsWith('+')) {
-          const digits = toNumber.replace(/\D/g, '');
-          if (digits.length === 10) {
-            toNumber = `+1${digits}`;
-            logger.warn('Phone number missing country code, assuming US 10-digit', {
-              to: toNumber,
-            });
-          } else {
-            toNumber = `+${digits}`;
-          }
-        } else {
-          toNumber = `+${toNumber.replace(/\D/g, '')}`;
-        }
+        // Format phone number to E.164
+        const toNumber = formatToE164(options.to);
 
         logger.info('Sending SMS via Twilio', {
           to: toNumber,
@@ -203,23 +208,8 @@ export async function sendSMS(options: SMSOptions): Promise<{ success: boolean; 
           };
         }
 
-        // Format phone number to E.164 if needed
-        let toNumber = options.to.trim();
-        if (toNumber.startsWith('00')) {
-          toNumber = `+${toNumber.slice(2).replace(/\D/g, '')}`;
-        } else if (!toNumber.startsWith('+')) {
-          const digits = toNumber.replace(/\D/g, '');
-          if (digits.length === 10) {
-            toNumber = `+1${digits}`;
-            logger.warn('Phone number missing country code, assuming US 10-digit', {
-              to: toNumber,
-            });
-          } else {
-            toNumber = `+${digits}`;
-          }
-        } else {
-          toNumber = `+${toNumber.replace(/\D/g, '')}`;
-        }
+        // Format phone number to E.164
+        const toNumber = formatToE164(options.to);
 
         // Load AWS SNS dynamically (optional dependency)
         let SNSClient: AwsSnsModule['SNSClient'];

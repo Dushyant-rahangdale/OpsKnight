@@ -250,12 +250,20 @@ function buildSlackBlocks(
   };
   const eventLabel = statusLabels[eventType] || eventType.toUpperCase();
 
+  const prefix = `${emoji} Incident ${eventLabel}: `;
+  const maxTitleLen = Math.max(10, 150 - prefix.length);
+  const safeTitle =
+    incident.title.length > maxTitleLen
+      ? incident.title.substring(0, maxTitleLen - 1) + '…'
+      : incident.title;
+  const headerText = `${prefix}${safeTitle}`.substring(0, 150);
+
   const blocks: SlackBlock[] = [
     {
       type: 'header',
       text: {
         type: 'plain_text',
-        text: `${emoji} Incident ${eventLabel}: ${incident.title}`,
+        text: headerText,
         emoji: true,
       },
     },
@@ -295,11 +303,15 @@ function buildSlackBlocks(
   ];
 
   if (additionalMessage) {
+    const safeNote =
+      additionalMessage.length > 2900
+        ? additionalMessage.substring(0, 2895) + '…'
+        : additionalMessage;
     blocks.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*Note:*\n${additionalMessage}`,
+        text: `*Note:*\n${safeNote}`,
       },
     });
   }
