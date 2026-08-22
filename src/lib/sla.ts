@@ -204,15 +204,25 @@ export type SerializedSLAMetrics = Omit<
 export function serializeSlaMetrics(metrics: SLAMetrics): SerializedSLAMetrics {
   return {
     ...metrics,
-    effectiveStart: metrics.effectiveStart.toISOString(),
-    effectiveEnd: metrics.effectiveEnd.toISOString(),
-    requestedStart: metrics.requestedStart.toISOString(),
-    requestedEnd: metrics.requestedEnd.toISOString(),
-    recentIncidents: metrics.recentIncidents?.map(inc => ({
-      ...inc,
-      createdAt: inc.createdAt.toISOString(),
-      resolvedAt: inc.resolvedAt?.toISOString() ?? null,
-    })),
+    effectiveStart:
+      metrics.effectiveStart instanceof Date
+        ? metrics.effectiveStart.toISOString()
+        : String(metrics.effectiveStart),
+    effectiveEnd:
+      metrics.effectiveEnd instanceof Date
+        ? metrics.effectiveEnd.toISOString()
+        : String(metrics.effectiveEnd),
+    requestedStart:
+      metrics.requestedStart instanceof Date
+        ? metrics.requestedStart.toISOString()
+        : String(metrics.requestedStart),
+    requestedEnd:
+      metrics.requestedEnd instanceof Date
+        ? metrics.requestedEnd.toISOString()
+        : String(metrics.requestedEnd),
+    recentIncidents: metrics.recentIncidents
+      ? serializeRecentIncidents(metrics.recentIncidents)
+      : undefined,
   };
 }
 
@@ -220,13 +230,12 @@ export function serializeSlaMetrics(metrics: SLAMetrics): SerializedSLAMetrics {
  * Serialize only the recentIncidents array from SLAMetrics.
  * Useful when only the incidents need to be serialized.
  */
-export function serializeRecentIncidents(
-  incidents: SLAMetrics['recentIncidents']
-): SerializedRecentIncident[] {
+export function serializeRecentIncidents(incidents?: any[] | null): SerializedRecentIncident[] {
   return (incidents || []).map(inc => ({
     ...inc,
-    createdAt: inc.createdAt.toISOString(),
-    resolvedAt: inc.resolvedAt?.toISOString() ?? null,
+    createdAt: inc.createdAt instanceof Date ? inc.createdAt.toISOString() : String(inc.createdAt),
+    resolvedAt:
+      inc.resolvedAt instanceof Date ? inc.resolvedAt.toISOString() : (inc.resolvedAt ?? null),
   }));
 }
 
