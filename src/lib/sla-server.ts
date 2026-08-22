@@ -19,6 +19,7 @@ import {
 } from './retention-policy';
 import { incidentEventSqlPredicate, incidentEventWhereFor } from './incident-event-classifier';
 import { mergeHybridMetrics } from './sla-hybrid-merge';
+import { getActiveOnCallShifts, getWindowOnCallShifts } from './oncall-shifts';
 
 // UUID validation regex - prevents SQL injection in dynamic CASE statements
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -81,8 +82,14 @@ function buildIncidentFilterSql(filters: SLAMetricsFilter, tableAlias: string = 
     fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"visibility"`)} = ${filters.visibility}`);
   }
 
-  if (filters.assigneeId) {
-    fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"assigneeId"`)} = ${filters.assigneeId}`);
+  if (filters.assigneeId !== undefined) {
+    if (filters.assigneeId === null) {
+      fragments.push(Prisma.sql`AND ${Prisma.raw(`${prefix}"assigneeId"`)} IS NULL`);
+    } else {
+      fragments.push(
+        Prisma.sql`AND ${Prisma.raw(`${prefix}"assigneeId"`)} = ${filters.assigneeId}`
+      );
+    }
   }
 
   // `Prisma.join([])` throws — return empty SQL when there are no filters
@@ -280,6 +287,20 @@ async function calculateDbAggregateMetrics(
   const statusFilter = (whereClause as { status?: string }).status;
   const statusFilterSql = statusFilter ? Prisma.sql`AND "status" = ${statusFilter}` : Prisma.empty;
 
+  const assigneeIdFilter = (whereClause as { assigneeId?: string | null }).assigneeId;
+  const assigneeFilterSql =
+    assigneeIdFilter !== undefined
+      ? assigneeIdFilter === null
+        ? Prisma.sql`AND "assigneeId" IS NULL`
+        : Prisma.sql`AND "assigneeId" = ${assigneeIdFilter}`
+      : Prisma.empty;
+
+  const visibilityFilter = (whereClause as { visibility?: string }).visibility;
+  const visibilityFilterSql =
+    visibilityFilter && visibilityFilter !== 'ALL'
+      ? Prisma.sql`AND "visibility" = ${visibilityFilter}`
+      : Prisma.empty;
+
   // Build aliased filter conditions for JOIN queries (using i. prefix for incident table)
   const serviceFilterSqlAliased = serviceIdFilter
     ? typeof serviceIdFilter === 'string'
@@ -294,6 +315,18 @@ async function calculateDbAggregateMetrics(
   const statusFilterSqlAliased = statusFilter
     ? Prisma.sql`AND i."status" = ${statusFilter}`
     : Prisma.empty;
+
+  const assigneeFilterSqlAliased =
+    assigneeIdFilter !== undefined
+      ? assigneeIdFilter === null
+        ? Prisma.sql`AND i."assigneeId" IS NULL`
+        : Prisma.sql`AND i."assigneeId" = ${assigneeIdFilter}`
+      : Prisma.empty;
+
+  const visibilityFilterSqlAliased =
+    visibilityFilter && visibilityFilter !== 'ALL'
+      ? Prisma.sql`AND i."visibility" = ${visibilityFilter}`
+      : Prisma.empty;
 
   // Calculate business hours for after-hours detection
   // Business hours: Monday-Friday 8am-6pm in user's timezone
@@ -1064,14 +1097,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
         ...(Object.keys(teamWhere).length > 0 ? { service: teamWhere } : {}),
       },
     }),
-    prisma.onCallShift.findMany({
-      where: { end: { gte: now }, start: { lte: coverageWindowEnd } },
-      select: { start: true, end: true, userId: true },
-    }),
-    prisma.onCallShift.findMany({
-      where: { end: { gte: finalStart }, start: { lte: finalEnd } },
-      select: { start: true, end: true, userId: true },
-    }),
+    getWindowOnCallShifts(now, coverageWindowEnd).then(shifts =>
+      shifts.map(s => ({ start: s.start, end: s.end, userId: s.userId }))
+    ),
+    getWindowOnCallShifts(finalStart, finalEnd).then(shifts =>
+      shifts.map(s => ({ start: s.start, end: s.end, userId: s.userId }))
+    ),
     prisma.onCallOverride.count({ where: { end: { gte: now } } }),
     prisma.incident.groupBy({
       by: ['status'],
@@ -1131,15 +1162,8 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
       where: recentIncidentWhere,
       _count: { _all: true },
     }),
-    // On-Call Widget
-    prisma.onCallShift.findMany({
-      where: { start: { lte: now }, end: { gte: now } },
-      include: {
-        user: { select: { name: true } },
-        schedule: { select: { name: true } },
-      },
-      take: 5,
-    }),
+    // On-Call Widget (Resolved dynamically from active schedule layers)
+    getActiveOnCallShifts(now).then(shifts => shifts.slice(0, 5)),
     // resolved24h must honor the same filters as the rest of the metrics —
     // otherwise team/urgency/visibility-scoped queries surface a count
     // from an unrelated population, contradicting the dashboard above it.
@@ -2305,8 +2329,12 @@ export async function calculateSLAMetrics(filters: SLAMetricsFilter = {}): Promi
     heatmapData,
     currentShifts: currentShiftsData.map(s => ({
       id: s.id,
+      userId: s.userId,
+      scheduleId: s.scheduleId,
       user: { name: s.user.name },
-      schedule: { name: s.schedule.name },
+      schedule: { id: s.schedule.id, name: s.schedule.name },
+      start: s.start,
+      end: s.end,
     })),
     activeIncidentSummaries,
     // `description` is opt-in (see SLAMetricsFilter.includeDescription).
@@ -2863,11 +2891,8 @@ export async function calculateSLAMetricsFromRollups(
     lifecycleAvailable && mttaCount > 0 ? safeBigIntToNumber(mttaSum, 'mttaSum') / mttaCount : null;
   const avgMttrMs =
     lifecycleAvailable && mttrCount > 0 ? safeBigIntToNumber(mttrSum, 'mttrSum') / mttrCount : null;
-  // SLAMetrics expresses lifecycle in minutes. avgMttaMs is computed for
-  // logging/future use; only avgMttr is currently returned (the type has
-  // no top-level `mtta` field — only mttaP50/P95, which we null out).
+  const avgMtta = avgMttaMs !== null ? avgMttaMs / 60000 : null;
   const avgMttr = avgMttrMs !== null ? avgMttrMs / 60000 : null;
-  void avgMttaMs;
 
   // Compliance: null when nothing was evaluated, not 0 (which implies 0%
   // achieved — a false signal for an empty bucket).
@@ -2965,7 +2990,7 @@ export async function calculateSLAMetricsFromRollups(
     // instead of an equality between P50 and P95 that's mathematically
     // impossible for real data.
     mttr: avgMttr,
-    mttd: null,
+    mttd: avgMtta,
     mtti: null,
     mttk: null,
     mttaP50: null,

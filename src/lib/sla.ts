@@ -151,8 +151,12 @@ export type SLAMetrics = {
   }>;
   currentShifts: Array<{
     id: string;
-    user: { name: string };
-    schedule: { name: string };
+    userId?: string;
+    scheduleId?: string;
+    user: { name: string | null };
+    schedule: { id?: string; name: string };
+    start: Date;
+    end: Date;
   }>;
   recentIncidents?: Array<{
     id: string;

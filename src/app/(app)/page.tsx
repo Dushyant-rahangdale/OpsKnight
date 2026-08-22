@@ -165,7 +165,7 @@ export default async function Dashboard({
   };
 
   // Fetch Data in Parallel
-  const [incidents, recentIncidents, services, users, slaMetrics, widgetData] = await Promise.all([
+  const [incidents, recentIncidents, services, users, slaMetrics] = await Promise.all([
     prisma.incident.findMany({
       where,
       select: incidentSelect,
@@ -238,9 +238,14 @@ export default async function Dashboard({
         retentionDays: 30,
       };
     }),
-    // Fail-safe wrapper for Widget Data
-    user
-      ? getWidgetData(user.id, 'user', {
+  ]);
+
+  // Derive widget data from already calculated SLA metrics (no duplicate database calls)
+  const widgetData = user
+    ? await getWidgetData(
+        user.id,
+        'user',
+        {
           serviceId: service,
           assigneeId: assigneeFilter,
           urgency: urgency as 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
@@ -248,12 +253,13 @@ export default async function Dashboard({
           startDate: metricsStartDate,
           endDate: metricsEndDate,
           includeAllTime: range === 'all',
-        }).catch(err => {
-          console.error('Failed to load widget data:', err);
-          return null;
-        })
-      : Promise.resolve(null),
-  ]);
+        },
+        slaMetrics
+      ).catch(err => {
+        console.error('Failed to load widget data:', err);
+        return null;
+      })
+    : null;
 
   // Transform incidents for the list table
   const incidentListItems: IncidentListItem[] = incidents.map(inc => ({

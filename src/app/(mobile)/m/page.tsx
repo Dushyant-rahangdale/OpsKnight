@@ -30,21 +30,9 @@ export default async function MobileDashboard() {
   const windowLabelDays = slaMetrics.isClipped ? effectiveWindowDays : metricsWindowDays;
   const windowLabelSuffix = slaMetrics.isClipped ? ' (retention limit)' : '';
 
-  const [currentOnCallShift] = await Promise.all([
-    // Check if current user is on-call
-    userId
-      ? prisma.onCallShift.findFirst({
-          where: {
-            userId,
-            start: { lte: new Date() },
-            end: { gte: new Date() },
-          },
-          include: {
-            schedule: { select: { name: true } },
-          },
-        })
-      : null,
-  ]);
+  const currentOnCallShift = userId
+    ? slaMetrics.currentShifts.find(s => s.userId === userId && s.end) || null
+    : null;
 
   const openIncidents = slaMetrics.openCount;
   const criticalIncidents = slaMetrics.criticalCount;
@@ -103,7 +91,7 @@ export default async function MobileDashboard() {
       {/* On-Call Widget */}
       {currentOnCallShift && (
         <Link
-          href={`/m/schedules/${currentOnCallShift.scheduleId}`}
+          href={`/m/schedules/${currentOnCallShift.scheduleId || currentOnCallShift.schedule.id || ''}`}
           className="mobile-enter delay-100"
           style={{
             display: 'flex',
