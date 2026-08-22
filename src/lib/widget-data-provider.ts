@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { calculateSLAMetrics } from '@/lib/sla-server';
 import type { SLAMetricsFilter } from '@/lib/sla-server';
 import type { SLAMetrics as SLAServerMetrics } from '@/lib/sla';
+import { getActiveOnCallShifts } from '@/lib/oncall-shifts';
 
 /**
  * Centralized Widget Data Provider
@@ -106,7 +107,8 @@ function determineTrend(current: number, previous: number): 'up' | 'down' | 'sta
 export async function getWidgetData(
   userId: string,
   _userRole: string,
-  filters: SLAMetricsFilter = {}
+  filters: SLAMetricsFilter = {},
+  providedSlaMetrics?: any
 ): Promise<WidgetDataContext> {
   const now = new Date();
 
@@ -121,9 +123,9 @@ export async function getWidgetData(
     metricsFilters.windowDays = 7;
   }
 
-  // Single source of truth: Get ALL metrics from sla-server
-  // This includes incidents, SLA compliance, service health, team workload, etc.
-  const slaMetricsRaw: SLAServerMetrics = await calculateSLAMetrics(metricsFilters);
+  // Single source of truth: Get ALL metrics from sla-server (or use pre-resolved metrics)
+  const slaMetricsRaw: SLAServerMetrics =
+    providedSlaMetrics || (await calculateSLAMetrics(metricsFilters));
 
   // Transform sla-server data to widget format
   // Active incidents from recentIncidents that aren't resolved
@@ -163,18 +165,18 @@ export async function getWidgetData(
 
     const nowMs = now.getTime();
 
-    // Check ACK breach alert
-    if (inc.slaAckDeadline && inc.status === 'OPEN') {
+    // Check ACK breach alert (imminent or already breached)
+    if (inc.slaAckDeadline && inc.status === 'OPEN' && !inc.acknowledgedAt) {
       const timeToAckBreach = inc.slaAckDeadline.getTime() - nowMs;
-      if (timeToAckBreach > 0 && timeToAckBreach <= ACK_BREACH_ALERT_WINDOW_MS) {
+      if (timeToAckBreach <= ACK_BREACH_ALERT_WINDOW_MS) {
         return true;
       }
     }
 
-    // Check Resolve breach alert
+    // Check Resolve breach alert (imminent or already breached)
     if (inc.slaResolveDeadline && !inc.resolvedAt) {
       const timeToResolveBreach = inc.slaResolveDeadline.getTime() - nowMs;
-      if (timeToResolveBreach > 0 && timeToResolveBreach <= RESOLVE_BREACH_ALERT_WINDOW_MS) {
+      if (timeToResolveBreach <= RESOLVE_BREACH_ALERT_WINDOW_MS) {
         return true;
       }
     }
@@ -182,15 +184,9 @@ export async function getWidgetData(
     return false;
   });
 
-  // Query directly for user's on-call status
-  const userOnCallShift = await prisma.onCallShift.findFirst({
-    where: {
-      userId,
-      start: { lte: now },
-      end: { gte: now },
-    },
-    orderBy: { start: 'asc' },
-  });
+  // Query dynamic on-call shifts for user's active status
+  const activeShifts = await getActiveOnCallShifts(now);
+  const userOnCallShift = activeShifts.find(s => s.userId === userId);
 
   const userAssignedCount = activeIncidentsData.filter(i => i.assigneeId === userId).length;
 

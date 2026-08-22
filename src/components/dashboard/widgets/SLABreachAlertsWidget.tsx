@@ -27,7 +27,8 @@ interface SLAAlert {
  * Formats milliseconds as a human-readable countdown
  */
 function formatTimeRemaining(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return '0s';
+  if (!Number.isFinite(ms)) return '0s';
+  if (ms <= 0) return 'Breached';
 
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -91,16 +92,35 @@ const SLABreachAlertsWidget = memo(function SLABreachAlertsWidget() {
         const acknowledgedAt = safeParseDate(incident.acknowledgedAt);
         const resolvedAt = safeParseDate(incident.resolvedAt);
 
-        if (ackDeadline && !acknowledgedAt) {
-          timeRemaining = Math.max(0, ackDeadline.getTime() - currentTime.getTime());
+        const isAckPending = Boolean(ackDeadline && !acknowledgedAt && incident.status === 'OPEN');
+        const isResolvePending = Boolean(resolveDeadline && !resolvedAt);
+
+        const ackRemaining = ackDeadline ? ackDeadline.getTime() - currentTime.getTime() : null;
+        const resolveRemaining = resolveDeadline
+          ? resolveDeadline.getTime() - currentTime.getTime()
+          : null;
+
+        // Choose the most pressing alert: breached first, then shortest remaining
+        if (isAckPending && ackRemaining !== null && ackRemaining <= 0) {
           alertType = 'ack';
-          // Critical if <= 5 minutes remaining
-          if (timeRemaining <= 5 * 60000) severity = 'critical';
-        } else if (resolveDeadline && !resolvedAt) {
-          timeRemaining = Math.max(0, resolveDeadline.getTime() - currentTime.getTime());
+          timeRemaining = ackRemaining;
+          severity = 'critical';
+        } else if (isResolvePending && resolveRemaining !== null && resolveRemaining <= 0) {
           alertType = 'resolve';
-          // Critical if <= 10 minutes remaining
-          if (timeRemaining <= 10 * 60000) severity = 'critical';
+          timeRemaining = resolveRemaining;
+          severity = 'critical';
+        } else if (
+          isAckPending &&
+          ackRemaining !== null &&
+          (resolveRemaining === null || ackRemaining <= resolveRemaining)
+        ) {
+          alertType = 'ack';
+          timeRemaining = ackRemaining;
+          severity = timeRemaining <= 5 * 60000 ? 'critical' : 'warning';
+        } else if (isResolvePending && resolveRemaining !== null) {
+          alertType = 'resolve';
+          timeRemaining = resolveRemaining;
+          severity = timeRemaining <= 10 * 60000 ? 'critical' : 'warning';
         }
 
         return {
@@ -118,9 +138,9 @@ const SLABreachAlertsWidget = memo(function SLABreachAlertsWidget() {
           severity,
         };
       })
-      .filter(alert => alert.alertType !== null && alert.timeRemaining > 0);
+      .filter(alert => alert.alertType !== null);
 
-    // Sort by time remaining (most urgent first)
+    // Sort by time remaining (breached and most urgent first)
     alerts.sort((a, b) => a.timeRemaining - b.timeRemaining);
 
     return alerts;
@@ -172,10 +192,10 @@ const SLABreachAlertsWidget = memo(function SLABreachAlertsWidget() {
                 key={incident.id}
                 onClick={() => handleIncidentClick(incident.id)}
                 className={cn(
-                  "group flex items-center gap-3 p-2.5 rounded-lg border text-left w-full transition-colors",
+                  'group flex items-center gap-3 p-2.5 rounded-lg border text-left w-full transition-colors',
                   isUrgent
-                    ? "bg-rose-50/50 border-rose-200 hover:border-rose-300"
-                    : "bg-amber-50/50 border-amber-200 hover:border-amber-300"
+                    ? 'bg-rose-50/50 border-rose-200 hover:border-rose-300'
+                    : 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
                 )}
                 role="listitem"
                 aria-label={`${incident.title} - ${actionLabel} deadline in ${timeStr}`}
@@ -183,10 +203,8 @@ const SLABreachAlertsWidget = memo(function SLABreachAlertsWidget() {
                 {/* Icon */}
                 <div
                   className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                    isUrgent
-                      ? "bg-rose-100 text-rose-600"
-                      : "bg-amber-100 text-amber-600"
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+                    isUrgent ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
                   )}
                   aria-hidden="true"
                 >
@@ -198,12 +216,16 @@ const SLABreachAlertsWidget = memo(function SLABreachAlertsWidget() {
                     {incident.title}
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px]">
-                    <span className="text-slate-400 truncate max-w-[80px]">{incident.serviceName}</span>
+                    <span className="text-slate-400 truncate max-w-[80px]">
+                      {incident.serviceName}
+                    </span>
                     <span className="text-slate-300">•</span>
-                    <span className={cn(
-                      "font-bold tabular-nums",
-                      isUrgent ? "text-rose-600" : "text-amber-600"
-                    )}>
+                    <span
+                      className={cn(
+                        'font-bold tabular-nums',
+                        isUrgent ? 'text-rose-600' : 'text-amber-600'
+                      )}
+                    >
                       {actionLabel} {timeStr}
                     </span>
                   </div>

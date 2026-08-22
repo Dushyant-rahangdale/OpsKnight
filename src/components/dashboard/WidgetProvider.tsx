@@ -80,7 +80,9 @@ export function WidgetProvider({ children, initialData }: WidgetProviderProps) {
     cleanup();
 
     try {
-      const eventSource = new EventSource('/api/widgets/stream');
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      const streamUrl = search ? `/api/widgets/stream${search}` : '/api/widgets/stream';
+      const eventSource = new EventSource(streamUrl);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {

@@ -37,7 +37,9 @@ const makeRollup = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const findManyMock = vi.fn();
+const { findManyMock } = vi.hoisted(() => ({
+  findManyMock: vi.fn(),
+}));
 
 vi.mock('@/lib/prisma', () => ({
   __esModule: true,
